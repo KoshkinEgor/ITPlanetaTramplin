@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · Подробная карточка возможности</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles/shared/style.css" />
+    <link rel="stylesheet" href="../../styles/opportunities/opportunity-detail.css" />
+    <script src="../../scripts/shared/shared-header.js" defer></script>
+  </head>
+  <body class="opportunity-detail-body">
+    <div data-shared-header data-header-config="opportunity-detail" data-header-base="../../"></div>
+
+    <input class="opportunity-detail-toggle" type="radio" name="detail-type" id="detail-type-vacancy" checked />
+    <input class="opportunity-detail-toggle" type="radio" name="detail-type" id="detail-type-internship" />
+    <input class="opportunity-detail-toggle" type="radio" name="detail-type" id="detail-type-mentorship" />
+    <input class="opportunity-detail-toggle" type="radio" name="detail-type" id="detail-type-event" />
+
+    <input class="opportunity-detail-toggle" type="radio" name="detail-role" id="detail-role-seeker" checked />
+    <input class="opportunity-detail-toggle" type="radio" name="detail-role" id="detail-role-employer" />
+    <input class="opportunity-detail-toggle" type="radio" name="detail-role" id="detail-role-guest" />
+
+    <main class="opportunity-detail-main">
+      <div class="container opportunity-detail-shell">
+        <section class="card opportunity-detail" aria-labelledby="opportunity-detail-title">
+          <div class="opportunity-detail__toolbar">
+            <a
+              class="button button-secondary"
+              href="../company/company-dashboard.html?section=opportunities"
+              data-history-back
+            >
+              <span aria-hidden="true">←</span>
+              К списку
+            </a>
+
+            <div class="opportunity-detail__switches">
+              <div class="opportunity-detail__switch">
+                <span class="opportunity-detail__switch-label">Тип</span>
+                <div class="opportunity-detail__switch-group" role="tablist" aria-label="Тип возможности">
+                  <label class="chip opportunity-detail__switch-chip" for="detail-type-vacancy">Вакансия</label>
+                  <label class="chip opportunity-detail__switch-chip" for="detail-type-internship">Стажировка</label>
+                  <label class="chip opportunity-detail__switch-chip" for="detail-type-mentorship">Менторство</label>
+                  <label class="chip opportunity-detail__switch-chip" for="detail-type-event">Мероприятие</label>
+                </div>
+              </div>
+
+              <div class="opportunity-detail__switch">
+                <span class="opportunity-detail__switch-label">Роль</span>
+                <div class="opportunity-detail__switch-group" role="tablist" aria-label="Роль пользователя">
+                  <label class="chip opportunity-detail__switch-chip" for="detail-role-seeker">Соискатель</label>
+                  <label class="chip opportunity-detail__switch-chip" for="detail-role-employer">Работодатель</label>
+                  <label class="chip opportunity-detail__switch-chip" for="detail-role-guest">Гость</label>
+                </div>
+              </div>
+            </div>
+
+            <a
+              class="icon-button opportunity-detail__close"
+              href="../company/company-dashboard.html?section=opportunities"
+              aria-label="Закрыть"
+              data-history-back
+            >
+              <span aria-hidden="true">×</span>
+            </a>
+          </div>
+
+          <section class="opportunity-detail__hero">
+            <div class="opportunity-detail__hero-main">
+              <div class="opportunity-detail__company">
+                <div class="opportunity-detail__company-mark" aria-hidden="true">К</div>
+
+                <div class="opportunity-detail__company-copy">
+                  <div class="opportunity-detail__company-meta">
+                    <span class="tag">ООО Компани</span>
+                    <span class="chip">Проверенный работодатель</span>
+                  </div>
+                  <p class="opportunity-detail__company-name">ООО Компани</p>
+                  <p class="opportunity-detail__company-note">
+                    Платформа карьерных стартов, образовательных программ и комьюнити-активностей
+                    для студентов и молодых специалистов.
+                  </p>
+                </div>
+              </div>
+
+              <article class="opportunity-hero block block--vacancy">
+                <div class="opportunity-hero__badges">
+                  <span class="tag tag-success">Активна</span>
+                  <span class="chip">Вакансия</span>
+                  <span class="chip chip-accent">Уже откликались</span>
+                </div>
+
+                <h1 id="opportunity-detail-title">Junior Security Analyst</h1>
+
+                <div class="opportunity-hero__meta">
+                  <span>Офис / гибрид</span>
+                  <span>Москва, Ленинский проспект 42/23</span>
+                  <span>от 90 000 ₽</span>
+                </div>
+
+                <p class="opportunity-hero__summary">
+                  Стартовая роль в команде мониторинга и реагирования: реальные кейсы, наставник,
+                  чёткая адаптация и понятная траектория роста внутри направления ИБ.
+                </p>
+
+                <div class="opportunity-hero__tags">
+                  <span class="tag">SOC</span>
+                  <span class="tag">SIEM</span>
+                  <span class="tag">Junior</span>
+                  <span class="tag">Полный день</span>
+                </div>
+              </article>
+
+              <article class="opportunity-hero block block--internship">
+                <div class="opportunity-hero__badges">
+                  <span class="tag tag-success">Идёт набор</span>
+                  <span class="chip">Стажировка</span>
+                  <span class="chip chip-accent">Оплачиваемая</span>
+                </div>
+
+                <h1>Летняя школа SOC</h1>
+
+                <div class="opportunity-hero__meta">
+                  <span>Гибридный формат</span>
+                  <span>Москва + онлайн</span>
+                  <span>40 000 ₽ / месяц</span>
+                </div>
+
+                <p class="opportunity-hero__summary">
+                  Интенсивная стажировка на 8 недель с погружением в инцидент-менеджмент, работу с
+                  логами, лаборатории и сопровождение куратора на каждом этапе.
+                </p>
+
+                <div class="opportunity-hero__tags">
+                  <span class="tag">8 недель</span>
+                  <span class="tag">Для студентов</span>
+                  <span class="tag">С наставником</span>
+                  <span class="tag">20 ч/нед</span>
+                </div>
+              </article>
+
+              <article class="opportunity-hero block block--mentorship">
+                <div class="opportunity-hero__badges">
+                  <span class="tag">Набор открыт</span>
+                  <span class="chip">Менторская программа</span>
+                  <span class="chip">Без фиксированной зарплаты</span>
+                </div>
+
+                <h1>Mentor Track: Product & Career</h1>
+
+                <div class="opportunity-hero__meta">
+                  <span>Онлайн / 1:1 встречи</span>
+                  <span>12 недель</span>
+                  <span>Вознаграждение не указано</span>
+                </div>
+
+                <p class="opportunity-hero__summary">
+                  Персональная программа сопровождения с ментором: карьерная стратегия, ревью
+                  портфолио, постановка целей и сопровождение по этапам роста.
+                </p>
+
+                <div class="opportunity-hero__tags">
+                  <span class="tag">1:1</span>
+                  <span class="tag">Карьерный рост</span>
+                  <span class="tag">Портфолио</span>
+                  <span class="tag">Еженедельно</span>
+                </div>
+              </article>
+
+              <article class="opportunity-hero block block--event">
+                <div class="opportunity-hero__badges">
+                  <span class="tag tag-success">Регистрация открыта</span>
+                  <span class="chip">Мероприятие</span>
+                  <span class="chip chip-accent">155 регистраций</span>
+                </div>
+
+                <h1>Айти Планета</h1>
+
+                <div class="opportunity-hero__meta">
+                  <span>Гибридный формат</span>
+                  <span>12 апреля 2026, 11:00</span>
+                  <span>Москва + онлайн-трансляция</span>
+                </div>
+
+                <p class="opportunity-hero__summary">
+                  Практико-ориентированное событие для молодых специалистов и студентов:
+                  выступления, кейс-зона, быстрые знакомства с работодателями и трек нетворкинга.
+                </p>
+
+                <div class="opportunity-hero__tags">
+                  <span class="tag">Хакатон</span>
+                  <span class="tag">Бесплатно</span>
+                  <span class="tag">Нетворкинг</span>
+                  <span class="tag">500+ мест</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="opportunity-detail__hero-side">
+              <article class="card opportunity-insight">
+                <span class="tag">Умная подсказка</span>
+                <h2>Подходит вам на 85%</h2>
+                <p>Совпадение по навыкам: 6 из 7. Особенно сильное пересечение по аналитике и коммуникации.</p>
+              </article>
+
+              <article class="card opportunity-insight">
+                <span class="tag tag-warm">Связи с этой возможностью</span>
+                <ul class="opportunity-insight__list">
+                  <li>2 ваших контакта работают в этой компании</li>
+                  <li>1 контакт уже откликнулся</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+
+          <div class="opportunity-detail__layout">
+            <div class="opportunity-detail__content">
+              <section class="card opportunity-section">
+                <div class="opportunity-section__head">
+                  <span class="tag">Описание</span>
+                  <h2>Полное описание</h2>
+                </div>
+
+                <div class="opportunity-copy block block--vacancy">
+                  <div class="opportunity-copy__group">
+                    <h3>О роли</h3>
+                    <p>
+                      Вы будете работать в команде мониторинга и реагирования, помогать разбирать
+                      события безопасности, сопровождать инциденты и поддерживать качество процессов
+                      в ежедневном цикле SOC.
+                    </p>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Требования</h3>
+                    <ul>
+                      <li>Базовое понимание ИБ, сетей и журналирования событий.</li>
+                      <li>Внимательность к деталям и готовность быстро учиться на кейсах.</li>
+                      <li>Умение работать с таблицами, логами и внутренними инструментами.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Обязанности</h3>
+                    <ul>
+                      <li>Первичный анализ алертов и эскалация инцидентов.</li>
+                      <li>Подготовка кратких аналитических сводок для команды.</li>
+                      <li>Участие в улучшении правил мониторинга и базы знаний.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-media">
+                    <div class="opportunity-media__preview">Видео о команде</div>
+                    <p>Опциональный медиаблок: здесь может быть видео о команде или превью рабочего процесса.</p>
+                  </div>
+                </div>
+
+                <div class="opportunity-copy block block--internship">
+                  <div class="opportunity-copy__group">
+                    <h3>О программе</h3>
+                    <p>
+                      Стажировка собрана как короткий интенсив: вы проходите вводный модуль, берёте
+                      задачи на реальных данных и получаете еженедельное ревью с куратором.
+                    </p>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Что потребуется</h3>
+                    <ul>
+                      <li>Интерес к аналитике и ИБ, знание базовых терминов.</li>
+                      <li>Готовность выделять не менее 20 часов в неделю.</li>
+                      <li>Аккуратная коммуникация и желание работать в команде.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Что получите</h3>
+                    <ul>
+                      <li>Практические кейсы и лаборатории по расследованию инцидентов.</li>
+                      <li>Наставника и персональную обратную связь.</li>
+                      <li>Возможность выйти в оффер по итогам программы.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-media">
+                    <div class="opportunity-media__preview">Фото лаборатории</div>
+                    <p>Опциональный медиаконтент со стажировочного потока и внутренней лаборатории.</p>
+                  </div>
+                </div>
+
+                <div class="opportunity-copy block block--mentorship">
+                  <div class="opportunity-copy__group">
+                    <h3>О процессе</h3>
+                    <p>
+                      Программа рассчитана на 12 недель и строится вокруг персонального плана: вы
+                      вместе с ментором определяете цель, фиксируете трек развития и проходите его
+                      через регулярные встречи, разборы и домашние шаги.
+                    </p>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Как проходят встречи</h3>
+                    <ul>
+                      <li>1 личная сессия в неделю по 60 минут.</li>
+                      <li>Асинхронная обратная связь между встречами.</li>
+                      <li>Ревью резюме, портфолио и карьерных материалов.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Ожидаемый результат</h3>
+                    <ul>
+                      <li>Собранный карьерный маршрут и обновлённое позиционирование.</li>
+                      <li>Подготовка к интервью и улучшение самопрезентации.</li>
+                      <li>Понятный план следующего карьерного шага.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-media">
+                    <div class="opportunity-media__preview">Менторская сессия</div>
+                    <p>Блок можно заменить фото, видео или цитатой ментора о процессе сопровождения.</p>
+                  </div>
+                </div>
+
+                <div class="opportunity-copy block block--event">
+                  <div class="opportunity-copy__group">
+                    <h3>О мероприятии</h3>
+                    <p>
+                      Событие объединяет работодателей, студентов и молодых специалистов. Внутри
+                      программы выступления, кейс-зона, встречи с командами, быстрые интервью и блок
+                      живого нетворкинга.
+                    </p>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Для кого</h3>
+                    <ul>
+                      <li>Для студентов ИТ-направлений и выпускников.</li>
+                      <li>Для джунов, которые ищут карьерный старт или смену направления.</li>
+                      <li>Для тех, кто хочет познакомиться с работодателями напрямую.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-copy__group">
+                    <h3>Что будет внутри</h3>
+                    <ul>
+                      <li>Лекции, демо-зона, карьерные консультации и нетворкинг.</li>
+                      <li>Панель работодателей и быстрые знакомства.</li>
+                      <li>Отдельная зона обратной связи по резюме и профилю.</li>
+                    </ul>
+                  </div>
+
+                  <div class="opportunity-media">
+                    <div class="opportunity-media__preview">Промо события</div>
+                    <p>Медиаблок под афишу, трейлер события или обложку трансляции.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card opportunity-section">
+                <div class="opportunity-section__head">
+                  <span class="tag">Навыки</span>
+                  <h2>Навыки и технологии</h2>
+                </div>
+
+                <div class="opportunity-skillset block block--vacancy">
+                  <span class="tag">SIEM</span>
+                  <span class="tag">SOC</span>
+                  <span class="tag">Linux</span>
+                  <span class="tag">SQL</span>
+                  <span class="tag">Аналитика</span>
+                  <span class="tag">Инциденты</span>
+                  <span class="tag">Коммуникация</span>
+                </div>
+
+                <div class="opportunity-skillset block block--internship">
+                  <span class="tag">Логи</span>
+                  <span class="tag">Базовая ИБ</span>
+                  <span class="tag">Командная работа</span>
+                  <span class="tag">Troubleshooting</span>
+                  <span class="tag">Исследование</span>
+                </div>
+
+                <div class="opportunity-skillset block block--mentorship">
+                  <span class="tag">Карьерная стратегия</span>
+                  <span class="tag">Портфолио</span>
+                  <span class="tag">Резюме</span>
+                  <span class="tag">Интервью</span>
+                  <span class="tag">Goal setting</span>
+                </div>
+
+                <div class="opportunity-skillset block block--event">
+                  <span class="tag">Нетворкинг</span>
+                  <span class="tag">Карьера</span>
+                  <span class="tag">Хакатон</span>
+                  <span class="tag">Soft skills</span>
+                  <span class="tag">Сообщество</span>
+                </div>
+              </section>
+
+              <section class="card opportunity-section">
+                <div class="opportunity-section__head">
+                  <span class="tag">Организатор</span>
+                  <h2>О компании / организаторе</h2>
+                </div>
+
+                <div class="opportunity-company-panel">
+                  <p>
+                    ООО Компани развивает карьерную платформу, образовательные форматы и программу
+                    взаимодействия с начинающими специалистами. Команда объединяет product,
+                    community и security-направления.
+                  </p>
+
+                  <div class="opportunity-company-panel__links">
+                    <a class="button button-secondary" href="#">Сайт</a>
+                    <a class="button button-secondary" href="#">Telegram</a>
+                    <a class="button button-secondary" href="#">VK</a>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card opportunity-section block block--mentorship">
+                <div class="opportunity-section__head">
+                  <span class="tag">Процесс</span>
+                  <h2>Как устроена менторская программа</h2>
+                </div>
+
+                <ol class="opportunity-steps">
+                  <li>Диагностика текущей точки и постановка карьерной цели.</li>
+                  <li>Сбор плана развития с чекпоинтами на 12 недель.</li>
+                  <li>Еженедельные встречи, материалы и обратная связь между сессиями.</li>
+                  <li>Финальная упаковка результата: резюме, портфолио, стратегия откликов.</li>
+                </ol>
+              </section>
+
+              <section class="card opportunity-section block block--event">
+                <div class="opportunity-section__head">
+                  <span class="tag">Программа</span>
+                  <h2>Расписание мероприятия</h2>
+                </div>
+
+                <ol class="opportunity-steps">
+                  <li>11:00 — регистрация и welcome-зона.</li>
+                  <li>12:00 — выступления команд и панель работодателей.</li>
+                  <li>14:30 — карьерные консультации и быстрые знакомства.</li>
+                  <li>16:00 — кейс-зона, разборы и открытый нетворкинг.</li>
+                </ol>
+              </section>
+            </div>
+
+            <aside class="opportunity-detail__aside">
+              <div class="opportunity-detail__aside-inner">
+                <article class="card opportunity-side-card">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag">Действия</span>
+                    <h2>Быстрые действия</h2>
+                  </div>
+
+                  <div class="opportunity-side-meta block block--vacancy">
+                    <div class="opportunity-side-meta__item">
+                      <span>Дедлайн</span>
+                      <strong>30 апреля 2026</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Занятость</span>
+                      <strong>Полный день</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Контакт</span>
+                      <strong>jobs@tamplin.ru</strong>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-side-meta block block--internship">
+                    <div class="opportunity-side-meta__item">
+                      <span>Старт программы</span>
+                      <strong>1 июня 2026</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Занятость</span>
+                      <strong>20 ч/нед</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Контакт</span>
+                      <strong>academy@tamplin.ru</strong>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-side-meta block block--mentorship">
+                    <div class="opportunity-side-meta__item">
+                      <span>Длительность</span>
+                      <strong>12 недель</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Формат</span>
+                      <strong>Онлайн / 1:1</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Оплата</span>
+                      <strong>Не указана</strong>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-side-meta block block--event">
+                    <div class="opportunity-side-meta__item">
+                      <span>Дата</span>
+                      <strong>12 апреля 2026</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Время</span>
+                      <strong>11:00 — 18:00</strong>
+                    </div>
+                    <div class="opportunity-side-meta__item">
+                      <span>Формат</span>
+                      <strong>Гибридный</strong>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-actions block block--vacancy">
+                    <div class="role-block role-block--seeker">
+                      <button class="button button-primary" type="button">Откликнуться</button>
+                      <button class="button button-secondary" type="button">В избранное</button>
+                    </div>
+                    <div class="role-block role-block--employer">
+                      <button class="button button-primary" type="button">Редактировать</button>
+                    </div>
+                    <div class="role-block role-block--guest">
+                      <button class="button button-primary" type="button">Войти для отклика</button>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-actions block block--internship">
+                    <div class="role-block role-block--seeker">
+                      <button class="button button-primary" type="button">Откликнуться</button>
+                      <button class="button button-secondary" type="button">В избранное</button>
+                    </div>
+                    <div class="role-block role-block--employer">
+                      <button class="button button-primary" type="button">Редактировать</button>
+                    </div>
+                    <div class="role-block role-block--guest">
+                      <button class="button button-primary" type="button">Войти для отклика</button>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-actions block block--mentorship">
+                    <div class="role-block role-block--seeker">
+                      <button class="button button-primary" type="button">Подать заявку</button>
+                      <button class="button button-secondary" type="button">В избранное</button>
+                    </div>
+                    <div class="role-block role-block--employer">
+                      <button class="button button-primary" type="button">Редактировать</button>
+                    </div>
+                    <div class="role-block role-block--guest">
+                      <button class="button button-primary" type="button">Войти для отклика</button>
+                    </div>
+                  </div>
+
+                  <div class="opportunity-actions block block--event">
+                    <div class="role-block role-block--seeker">
+                      <button class="button button-primary" type="button">Записаться</button>
+                      <button class="button button-secondary" type="button">В избранное</button>
+                    </div>
+                    <div class="role-block role-block--employer">
+                      <button class="button button-primary" type="button">Редактировать</button>
+                    </div>
+                    <div class="role-block role-block--guest">
+                      <button class="button button-primary" type="button">Войти для отклика</button>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="card opportunity-side-card role-block role-block--seeker">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag tag-success">Статус отклика</span>
+                    <h2>Прогресс отклика</h2>
+                  </div>
+
+                  <div class="opportunity-progress">
+                    <span class="opportunity-progress__badge is-active">Отправлено</span>
+                    <span class="opportunity-progress__badge">Просмотрено</span>
+                    <span class="opportunity-progress__badge">Приглашение</span>
+                    <span class="opportunity-progress__badge">Отказ</span>
+                  </div>
+                </article>
+
+                <article class="card opportunity-side-card">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag tag-warm">История</span>
+                    <h2>История взаимодействия</h2>
+                  </div>
+
+                  <ul class="opportunity-history">
+                    <li>Вы уже смотрели эту возможность</li>
+                    <li>Добавлено в избранное</li>
+                    <li>Откликались 2 дня назад</li>
+                  </ul>
+                </article>
+
+                <article class="card opportunity-side-card">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag">Рекомендации</span>
+                    <h2>Рекомендовать другу</h2>
+                  </div>
+
+                  <details class="opportunity-disclosure">
+                    <summary class="button button-secondary opportunity-disclosure__summary">
+                      Открыть рекомендации
+                    </summary>
+
+                    <div class="opportunity-recommend">
+                      <p>Выберите контакт или отправьте ссылку на карточку.</p>
+                      <div class="opportunity-recommend__contacts">
+                        <label class="opportunity-contact">
+                          <input type="checkbox" />
+                          <span>Анна Кейз</span>
+                        </label>
+                        <label class="opportunity-contact">
+                          <input type="checkbox" />
+                          <span>Илья Смирнов</span>
+                        </label>
+                        <label class="opportunity-contact">
+                          <input type="checkbox" />
+                          <span>Мария Орлова</span>
+                        </label>
+                      </div>
+
+                      <label class="opportunity-link-field">
+                        <span>Ссылка</span>
+                        <input type="text" value="https://tamplin.ru/opportunity/7421" readonly />
+                      </label>
+
+                      <div class="opportunity-recommend__actions">
+                        <button class="button button-primary" type="button">Отправить</button>
+                        <button class="button button-secondary" type="button">Копировать ссылку</button>
+                      </div>
+                    </div>
+                  </details>
+                </article>
+
+                <article class="card opportunity-side-card">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag">Локация</span>
+                    <h2>Показать на карте</h2>
+                  </div>
+
+                  <details class="opportunity-disclosure">
+                    <summary class="button button-secondary opportunity-disclosure__summary">
+                      Показать на карте
+                    </summary>
+
+                    <div class="opportunity-map">
+                      <div class="opportunity-map__canvas" aria-label="Мини-карта"></div>
+                      <p>г. Москва, Ленинский проспект 42/23</p>
+                    </div>
+                  </details>
+                </article>
+
+                <article class="card opportunity-side-card">
+                  <div class="opportunity-side-card__head">
+                    <span class="tag">Состояния</span>
+                    <h2>Учтённые сценарии</h2>
+                  </div>
+
+                  <div class="opportunity-states">
+                    <span class="opportunity-state opportunity-state--closed">Вакансия закрыта</span>
+                    <span class="opportunity-state opportunity-state--expired">Дедлайн прошёл</span>
+                    <span class="opportunity-state opportunity-state--applied">Пользователь откликнулся</span>
+                    <span class="opportunity-state opportunity-state--empty">Нет данных по зарплате</span>
+                  </div>
+                </article>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script>
+      (function () {
+        var backLinks = document.querySelectorAll("[data-history-back]");
+
+        backLinks.forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            if (window.history.length < 2) {
+              return;
+            }
+
+            event.preventDefault();
+            window.history.back();
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

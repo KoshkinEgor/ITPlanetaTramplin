@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · UI Kit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles/ui/design-system.css" />
+    <link rel="stylesheet" href="../../styles/ui/ui-kit.css" />
+  </head>
+  <body class="ui-kit-body">
+    <main class="ui-kit-page">
+      <section class="ui-card ui-kit-hero">
+        <span class="ui-kit-hero__eyebrow">UI Foundation · first pass</span>
+        <div class="ui-kit-hero__copy">
+          <h1 class="ui-type-display">Новый базовый слой для компонентов и форм.</h1>
+          <p class="ui-type-body-lg">
+            Эта страница показывает первый проход дизайн-системы проекта: отдельные токены, типографику,
+            кнопки, поля, состояния, выборы и карточки. Всё собрано на <code>Manrope</code> и на
+            <code>ui-*</code> контрактах, чтобы дальше можно было переносить стили в продукт поэтапно.
+          </p>
+        </div>
+        <div class="ui-kit-hero__meta">
+          <span class="ui-kit-note">Standalone showcase</span>
+          <span class="ui-kit-note">Без candidate/dashboard CSS</span>
+          <span class="ui-kit-note">Figma polish later</span>
+        </div>
+      </section>
+
+      <nav class="ui-surface ui-kit-anchor-row" aria-label="Навигация по UI kit">
+        <a class="ui-chip is-active" href="#typography">Typography</a>
+        <a class="ui-chip" href="#tokens">Tokens</a>
+        <a class="ui-chip" href="#buttons">Buttons</a>
+        <a class="ui-chip" href="#forms">Forms</a>
+        <a class="ui-chip" href="#selection">Selection</a>
+        <a class="ui-chip" href="#status">Status</a>
+        <a class="ui-chip" href="#cards">Cards</a>
+      </nav>
+
+      <section class="ui-kit-section" id="typography">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Typography</span>
+            <h2 class="ui-type-h1">Шрифт, веса и читаемая шкала текста</h2>
+            <p class="ui-type-body">
+              В первой версии базовым семейством остаётся <code>Manrope</code>. Ниже собраны display,
+              heading, body и caption-уровни, чтобы ими можно было пользоваться как на экранах, так и в
+              карточках и формах.
+            </p>
+          </div>
+          <span class="ui-badge">400 / 500 / 600 / 700 / 800</span>
+        </div>
+
+        <div class="ui-kit-grid ui-kit-grid--two">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Scale preview</span>
+              <div class="ui-kit-type-stack">
+                <div class="ui-kit-type-line">
+                  <span class="ui-type-overline">Display</span>
+                  <p class="ui-type-display">Строй карьеру с нуля</p>
+                  <p class="ui-type-caption">800 · tight spacing · hero and section openers</p>
+                </div>
+                <div class="ui-kit-type-line">
+                  <span class="ui-type-overline">H1</span>
+                  <p class="ui-type-h1">Компонентная библиотека</p>
+                  <p class="ui-type-caption">800 · main section titles</p>
+                </div>
+                <div class="ui-kit-type-line">
+                  <span class="ui-type-overline">H2 / H3</span>
+                  <p class="ui-type-h2">Карточки и состояния</p>
+                  <p class="ui-type-h3">Роль, статусы и действия</p>
+                </div>
+                <div class="ui-kit-type-line">
+                  <span class="ui-type-overline">Body / Caption</span>
+                  <p class="ui-type-body-lg">
+                    Крупный body подходит для intro-copy и поясняющих блоков внутри dashboard.
+                  </p>
+                  <p class="ui-type-body">
+                    Обычный body идёт в описания, helper-text и вторичный контент без просадки по контрасту.
+                  </p>
+                  <p class="ui-type-caption">Caption годится для hints, labels и meta-строк.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__head">
+              <div class="ui-kit-specimen__copy">
+                <span class="ui-kit-specimen__eyebrow">Font details</span>
+                <h3 class="ui-type-h3">Manrope as base family</h3>
+              </div>
+              <span class="ui-tag">Readable UI</span>
+            </div>
+            <ul class="ui-kit-list">
+              <li><span>Family</span><code>Manrope</code></li>
+              <li><span>Base size</span><code>0.96rem</code></li>
+              <li><span>Body line-height</span><code>1.6</code></li>
+              <li><span>Heading tracking</span><code>-0.05em</code></li>
+              <li><span>Caption role</span><code>Hints / meta</code></li>
+            </ul>
+            <div class="ui-divider"></div>
+            <div class="ui-kit-specimen__stack">
+              <p class="ui-type-body">
+                Текст набран в спокойной светлой системе: заголовки плотные, но не кричащие, body оставлен
+                мягким и читаемым, чтобы на длинных экранах не уставали глаза.
+              </p>
+              <span class="ui-badge ui-badge--success">Approved fallback until Figma export</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="tokens">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Tokens</span>
+            <h2 class="ui-type-h1">Цвета, радиусы и тени</h2>
+            <p class="ui-type-body">
+              Токены собраны отдельно, чтобы следующий Figma-pass менял в первую очередь цветовую схему,
+              глубину и геометрию, не ломая структуру компонентов.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-card ui-kit-specimen">
+          <div class="ui-kit-token-grid">
+            <article class="ui-surface ui-kit-token">
+              <div class="ui-kit-token__swatch" style="background: linear-gradient(180deg, #4b98ff 0%, #2f80ff 100%);"></div>
+              <div class="ui-kit-token__copy">
+                <strong class="ui-type-h3">Accent Blue</strong>
+                <p class="ui-type-caption">CTA, focus, active states</p>
+              </div>
+            </article>
+            <article class="ui-surface ui-kit-token">
+              <div class="ui-kit-token__swatch" style="background: linear-gradient(135deg, #e5ff89 0%, #c9ff1f 100%);"></div>
+              <div class="ui-kit-token__copy">
+                <strong class="ui-type-h3">Accent Lime</strong>
+                <p class="ui-type-caption">Highlights and soft emphasis</p>
+              </div>
+            </article>
+            <article class="ui-surface ui-kit-token">
+              <div class="ui-kit-token__swatch" style="background: linear-gradient(180deg, #ffffff 0%, #edf3fb 100%);"></div>
+              <div class="ui-kit-token__copy">
+                <strong class="ui-type-h3">Surface</strong>
+                <p class="ui-type-caption">Cards, panels and elevated controls</p>
+              </div>
+            </article>
+            <article class="ui-surface ui-kit-token">
+              <div class="ui-kit-token__swatch" style="background: linear-gradient(180deg, #2c3343 0%, #181d2d 100%);"></div>
+              <div class="ui-kit-token__copy">
+                <strong class="ui-type-h3">Ink</strong>
+                <p class="ui-type-caption">Headlines and strong text hierarchy</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="ui-kit-grid ui-kit-grid--two">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Radius</span>
+              <h3 class="ui-type-h3">Плавная геометрия для карточек и контролов</h3>
+            </div>
+            <div class="ui-kit-radius-grid">
+              <div class="ui-surface ui-kit-shape">
+                <div class="ui-kit-shape__preview ui-kit-shape__preview--sm"></div>
+                <span class="ui-type-caption">12px · compact controls</span>
+              </div>
+              <div class="ui-surface ui-kit-shape">
+                <div class="ui-kit-shape__preview ui-kit-shape__preview--md"></div>
+                <span class="ui-type-caption">18px · inputs and alerts</span>
+              </div>
+              <div class="ui-surface ui-kit-shape">
+                <div class="ui-kit-shape__preview ui-kit-shape__preview--lg"></div>
+                <span class="ui-type-caption">32px · cards and hero surfaces</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Elevation</span>
+              <h3 class="ui-type-h3">Тени для глубины и выделения действий</h3>
+            </div>
+            <div class="ui-kit-shadow-grid">
+              <div class="ui-surface ui-kit-elevation">
+                <div class="ui-kit-elevation__preview ui-kit-elevation__preview--soft"></div>
+                <span class="ui-type-caption">Soft card shadow</span>
+              </div>
+              <div class="ui-surface ui-kit-elevation">
+                <div class="ui-kit-elevation__preview ui-kit-elevation__preview--strong"></div>
+                <span class="ui-type-caption">Raised panel shadow</span>
+              </div>
+              <div class="ui-surface ui-kit-elevation">
+                <div class="ui-kit-elevation__preview ui-kit-elevation__preview--accent"></div>
+                <span class="ui-type-caption">Primary action glow</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="buttons">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Buttons</span>
+            <h2 class="ui-type-h1">Размеры, модификаторы и action states</h2>
+            <p class="ui-type-body">
+              Базовая кнопка завязана на единый радиус, плотный вес шрифта и предсказуемые размеры.
+              Состояния выражаются только через модификаторы и state-class’ы.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-kit-grid ui-kit-grid--two">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Variants</span>
+              <h3 class="ui-type-h3">Primary, secondary, ghost, danger</h3>
+            </div>
+            <div class="ui-kit-button-row">
+              <button class="ui-button ui-button--primary" type="button">
+                <span class="ui-button__label">Сохранить изменения</span>
+              </button>
+              <button class="ui-button ui-button--secondary" type="button">Открыть список</button>
+              <button class="ui-button ui-button--ghost" type="button">Подробнее</button>
+              <button class="ui-button ui-button--danger" type="button">Удалить</button>
+            </div>
+            <div class="ui-divider"></div>
+            <div class="ui-kit-button-row">
+              <button class="ui-button ui-button--primary ui-button--sm" type="button">Small</button>
+              <button class="ui-button ui-button--primary" type="button">Default</button>
+              <button class="ui-button ui-button--primary ui-button--lg" type="button">Large CTA</button>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">States</span>
+              <h3 class="ui-type-h3">Loading, active and disabled</h3>
+            </div>
+            <div class="ui-kit-button-row">
+              <button class="ui-button ui-button--secondary is-active" type="button">Выбрано</button>
+              <button class="ui-button ui-button--primary is-loading" type="button" aria-disabled="true">
+                <span class="ui-button__label">Сохраняем</span>
+                <span class="ui-button__loader" aria-hidden="true"></span>
+              </button>
+              <button class="ui-button ui-button--primary is-disabled" type="button">Недоступно</button>
+            </div>
+            <p class="ui-type-caption">
+              Состояния не зависят от page-специфичных селекторов и могут переноситься в любой экран.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="forms">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Forms</span>
+            <h2 class="ui-type-h1">Поля, helper-text и статусы валидации</h2>
+            <p class="ui-type-body">
+              Поля сделаны как самостоятельные блоки с предсказуемой структурой: label, control, hint или error.
+              Для демо есть default, focused, success, error и disabled варианты.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-kit-form-grid">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-field-stack">
+              <label class="ui-field">
+                <span class="ui-label">Имя и фамилия</span>
+                <input class="ui-input" type="text" placeholder="Анна Ковалева" />
+                <span class="ui-hint">Обычное текстовое поле для профиля кандидата.</span>
+              </label>
+
+              <label class="ui-field">
+                <span class="ui-label">Роль</span>
+                <select class="ui-select">
+                  <option>Кандидат</option>
+                  <option>Работодатель</option>
+                  <option>Куратор</option>
+                </select>
+                <span class="ui-hint">Select использует тот же радиус и focus ring.</span>
+              </label>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-field-stack">
+              <label class="ui-field">
+                <span class="ui-label">Focused field</span>
+                <input class="ui-input is-focused" type="text" value="Product Analyst" />
+                <span class="ui-hint">Статический focused state для UI showcase.</span>
+              </label>
+
+              <label class="ui-field is-success">
+                <span class="ui-label">Портфолио</span>
+                <input class="ui-input" type="url" value="https://portfolio.example" />
+                <span class="ui-hint">Ссылка проверена и доступна.</span>
+              </label>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-field-stack">
+              <label class="ui-field is-error">
+                <span class="ui-label">Телефон</span>
+                <input class="ui-input" type="tel" value="+7 (900) 000-00-0_" />
+                <span class="ui-error">Номер заполнен не полностью.</span>
+              </label>
+
+              <label class="ui-field">
+                <span class="ui-label">О себе</span>
+                <textarea class="ui-textarea" placeholder="Расскажите о себе, интересах и карьерной цели."></textarea>
+                <span class="ui-hint">Textarea выдерживает длинный copy-block без потери ритма.</span>
+              </label>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-field-stack">
+              <label class="ui-field is-disabled">
+                <span class="ui-label">Отключённое поле</span>
+                <input class="ui-input" type="text" value="Профиль закрыт для редактирования" disabled />
+                <span class="ui-hint">Disabled контрол не должен перетягивать на себя внимание.</span>
+              </label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="selection">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Selection</span>
+            <h2 class="ui-type-h1">Checkbox, radio и switch</h2>
+            <p class="ui-type-body">
+              Выборы собраны как отдельные контракты, которые можно использовать в onboarding, фильтрах и
+              настройках приватности без дополнительных обёрток из старого shared-слоя.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-kit-selection-grid">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Checkbox</span>
+              <h3 class="ui-type-h3">Согласия и множественный выбор</h3>
+            </div>
+            <label class="ui-check">
+              <input class="ui-checkbox" type="checkbox" checked />
+              <span class="ui-check__copy">
+                <span class="ui-check__label">Получать карьерные рекомендации</span>
+                <span class="ui-check__hint">Еженедельная подборка вакансий и событий.</span>
+              </span>
+            </label>
+            <label class="ui-check">
+              <input class="ui-checkbox" type="checkbox" />
+              <span class="ui-check__copy">
+                <span class="ui-check__label">Показывать зарплатные ожидания</span>
+                <span class="ui-check__hint">Видно только авторизованным работодателям.</span>
+              </span>
+            </label>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Radio</span>
+              <h3 class="ui-type-h3">Один активный сценарий</h3>
+            </div>
+            <label class="ui-check">
+              <input class="ui-radio" type="radio" name="privacy" checked />
+              <span class="ui-check__copy">
+                <span class="ui-check__label">Открытый профиль</span>
+                <span class="ui-check__hint">Резюме доступно работодателям и кураторам.</span>
+              </span>
+            </label>
+            <label class="ui-check">
+              <input class="ui-radio" type="radio" name="privacy" />
+              <span class="ui-check__copy">
+                <span class="ui-check__label">Только по инвайту</span>
+                <span class="ui-check__hint">Контакты скрыты до отклика или приглашения.</span>
+              </span>
+            </label>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Switch</span>
+              <h3 class="ui-type-h3">Быстрый бинарный toggle</h3>
+            </div>
+            <div class="ui-kit-switch-row">
+              <label class="ui-check">
+                <input class="ui-switch" type="checkbox" checked />
+                <span class="ui-check__copy">
+                  <span class="ui-check__label">Публичный статус</span>
+                  <span class="ui-check__hint">Показывать, что вы открыты к предложениям.</span>
+                </span>
+              </label>
+            </div>
+            <div class="ui-divider"></div>
+            <div class="ui-kit-switch-row">
+              <label class="ui-check">
+                <input class="ui-switch" type="checkbox" />
+                <span class="ui-check__copy">
+                  <span class="ui-check__label">Тихий режим</span>
+                  <span class="ui-check__hint">Отключить уведомления на время сессии.</span>
+                </span>
+              </label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="status">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Status</span>
+            <h2 class="ui-type-h1">Чипы, теги, бейджи и системные alerts</h2>
+            <p class="ui-type-body">
+              Эти элементы дают короткую обратную связь на уровне интерфейса: фильтры, статусы карточек,
+              системные сообщения и компактные индикаторы.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-kit-grid ui-kit-grid--two">
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Inline labels</span>
+              <h3 class="ui-type-h3">Chips, tags and badges</h3>
+            </div>
+            <div class="ui-kit-chip-row">
+              <span class="ui-chip">Стажировка</span>
+              <span class="ui-chip is-active">Junior</span>
+              <span class="ui-chip ui-chip--accent">Гибрид</span>
+            </div>
+            <div class="ui-kit-chip-row">
+              <span class="ui-tag">Новый</span>
+              <span class="ui-tag ui-tag--success">Подтверждено</span>
+              <span class="ui-tag ui-tag--warning">Нужно проверить</span>
+              <span class="ui-tag ui-tag--danger">Ошибка</span>
+            </div>
+            <div class="ui-kit-badge-row">
+              <span class="ui-badge">Черновик</span>
+              <span class="ui-badge ui-badge--success">Опубликовано</span>
+              <span class="ui-badge ui-badge--warning">На модерации</span>
+              <span class="ui-badge ui-badge--danger">Отклонено</span>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-specimen">
+            <div class="ui-kit-specimen__copy">
+              <span class="ui-kit-specimen__eyebrow">Feedback</span>
+              <h3 class="ui-type-h3">Alert states</h3>
+            </div>
+            <div class="ui-kit-alert-stack">
+              <article class="ui-alert ui-alert--info">
+                <strong>Профиль почти готов</strong>
+                <p>Добавьте портфолио и желаемую роль, чтобы повысить качество рекомендаций.</p>
+              </article>
+              <article class="ui-alert ui-alert--success">
+                <strong>Изменения сохранены</strong>
+                <p>Данные профиля обновлены и уже отображаются работодателям.</p>
+              </article>
+              <article class="ui-alert ui-alert--warning">
+                <strong>Нужна проверка</strong>
+                <p>Ссылка на Telegram указана без публичного username.</p>
+              </article>
+              <article class="ui-alert ui-alert--error">
+                <strong>Ошибка валидации</strong>
+                <p>Форма не отправлена, потому что обязательные поля не заполнены.</p>
+              </article>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="ui-kit-section" id="cards">
+        <div class="ui-kit-section__head">
+          <div class="ui-kit-section__copy">
+            <span class="ui-kit-section__eyebrow">Cards</span>
+            <h2 class="ui-type-h1">Примеры composition layer</h2>
+            <p class="ui-type-body">
+              Базовые карточки показывают, как новые атомы складываются в понятные блоки продукта: метрика,
+              вакансия и информационный note.
+            </p>
+          </div>
+        </div>
+
+        <div class="ui-kit-card-grid">
+          <article class="ui-card ui-card--interactive ui-kit-card-sample">
+            <div class="ui-kit-card-sample__copy">
+              <span class="ui-tag">Вакансия</span>
+              <h3 class="ui-type-h3">Junior Product Analyst</h3>
+              <p class="ui-type-body">
+                Аналитика, SQL, BI и исследовательская работа в гибридной команде с сильным onboarding.
+              </p>
+            </div>
+            <div class="ui-kit-status-strip">
+              <span class="ui-badge ui-badge--success">Открыта</span>
+              <span class="ui-chip">Москва</span>
+              <span class="ui-chip">Гибрид</span>
+            </div>
+            <div class="ui-divider"></div>
+            <div class="ui-kit-inline-row">
+              <button class="ui-button ui-button--primary ui-button--sm" type="button">Откликнуться</button>
+              <button class="ui-button ui-button--secondary ui-button--sm" type="button">Сохранить</button>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-card-sample">
+            <div class="ui-kit-card-sample__copy">
+              <span class="ui-tag ui-tag--success">Метрика</span>
+              <div class="ui-kit-card-metric">
+                <strong>84%</strong>
+                <p class="ui-type-body">
+                  Совпадение профиля с целевой ролью после обновления навыков и опыта.
+                </p>
+              </div>
+            </div>
+            <div class="ui-kit-card-sample__meta">
+              <span class="ui-badge">SQL</span>
+              <span class="ui-badge">Research</span>
+              <span class="ui-badge">Dashboard</span>
+            </div>
+          </article>
+
+          <article class="ui-card ui-kit-card-sample">
+            <div class="ui-kit-card-sample__copy">
+              <span class="ui-tag ui-tag--warning">Note</span>
+              <h3 class="ui-type-h3">Как использовать этот слой</h3>
+              <p class="ui-type-body">
+                Для продуктовых страниц подключайте <code>design-system.css</code>, затем берите
+                <code>ui-*</code> компоненты и собирайте из них свои блоки, не переопределяя старые
+                shared-классы.
+              </p>
+            </div>
+            <ul class="ui-kit-list">
+              <li><span>База</span><code>design-system.css</code></li>
+              <li><span>Демо-слой</span><code>ui-kit.css</code></li>
+              <li><span>Шрифт</span><code>Manrope</code></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <footer class="ui-surface ui-kit-footer">
+        <p class="ui-type-body">
+          Следующий шаг после проверки этой страницы: отдельный polish-pass по Figma screenshot/export,
+          без смены структуры разделов и без отката <code>ui-*</code> контрактов.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

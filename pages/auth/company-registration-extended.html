@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · Расширенная регистрация компании</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles/shared/style.css?v=20260320-auth7" />
+    <link rel="stylesheet" href="../../styles/auth/auth-register.css?v=20260320-auth-system1" />
+  </head>
+  <body class="auth-body">
+    <main class="auth-layout">
+      <section
+        class="auth-stage auth-stage--flow"
+        aria-labelledby="company-registration-extended-title"
+      >
+        <div class="auth-stage__backdrop" aria-hidden="true"></div>
+        <div class="auth-stage__media auth-stage__media--left" aria-hidden="true"></div>
+        <div class="auth-stage__media auth-stage__media--right" aria-hidden="true"></div>
+
+        <div class="auth-flow auth-flow--two-column">
+          <article class="auth-card">
+            <div class="auth-panel__top">
+              <a class="auth-back" href="company-registration.html" aria-label="Вернуться к короткой форме">
+                <span aria-hidden="true">←</span>
+              </a>
+
+              <div class="auth-brand" aria-label="TRAMPLIN">
+                <span class="auth-brand__mark" aria-hidden="true"></span>
+                <span class="auth-brand__label">TRAMPLIN</span>
+              </div>
+            </div>
+
+            <div class="auth-card__copy">
+              <span class="auth-badge">Расширенная регистрация компании</span>
+              <h1 id="company-registration-extended-title">Подтвердите компанию сразу</h1>
+              <p>
+                Эта версия собирает больше данных о компании и контактном лице. После
+                подтверждения почты можно запустить экспресс-проверку без дополнительного шага
+                в личном кабинете.
+              </p>
+            </div>
+
+            <form class="auth-form auth-form--details" action="email-confirmation.html" method="get">
+              <input type="hidden" name="role" value="employer" />
+              <input type="hidden" name="flow" value="employer-verify" />
+
+              <div class="auth-form-grid">
+                <label class="auth-field auth-field--full">
+                  <span>Название компании</span>
+                  <input
+                    class="auth-input"
+                    type="text"
+                    name="companyName"
+                    placeholder="Например, Orbit Labs"
+                    required
+                  />
+                </label>
+
+                <label class="auth-field">
+                  <span>Юридическое название</span>
+                  <input class="auth-input" type="text" name="legalName" placeholder="ООО «Орбит Лабс»" />
+                </label>
+
+                <label class="auth-field">
+                  <span>ИНН / регистрационный номер</span>
+                  <input class="auth-input" type="text" name="taxId" placeholder="7701234567" />
+                </label>
+
+                <label class="auth-field">
+                  <span>Корпоративная почта</span>
+                  <input
+                    class="auth-input"
+                    type="email"
+                    name="email"
+                    placeholder="careers@orbitlabs.ai"
+                    required
+                  />
+                </label>
+
+                <label class="auth-field">
+                  <span>Сайт компании</span>
+                  <input class="auth-input" type="url" name="website" placeholder="https://orbitlabs.ai" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Телефон компании</span>
+                  <input class="auth-input" type="tel" name="phone" placeholder="+7 (999) 000-00-00" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Город</span>
+                  <input class="auth-input" type="text" name="city" placeholder="Казань" />
+                </label>
+
+                <label class="auth-field">
+                  <span>Контактное лицо</span>
+                  <input class="auth-input" type="text" name="contactName" placeholder="Алина Смирнова" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Роль контактного лица</span>
+                  <input class="auth-input" type="text" name="contactRole" placeholder="HR BP / Recruiter" />
+                </label>
+              </div>
+
+              <div class="auth-section">
+                <div class="auth-section-label">
+                  <h2>Размер компании</h2>
+                  <span>Для калибровки профиля работодателя</span>
+                </div>
+
+                <div class="auth-choice-row auth-choice-row--compact">
+                  <label class="auth-choice-card">
+                    <input type="radio" name="companySize" value="small" checked />
+                    <strong>До 50 человек</strong>
+                    <span>Стартап, небольшая студия или продуктовая команда.</span>
+                  </label>
+
+                  <label class="auth-choice-card">
+                    <input type="radio" name="companySize" value="medium" />
+                    <strong>50-250 человек</strong>
+                    <span>Растущая компания с несколькими направлениями найма.</span>
+                  </label>
+
+                  <label class="auth-choice-card">
+                    <input type="radio" name="companySize" value="large" />
+                    <strong>250+</strong>
+                    <span>Крупный работодатель с несколькими командами и потоками найма.</span>
+                  </label>
+
+                  <label class="auth-choice-card">
+                    <input type="radio" name="companySize" value="education" />
+                    <strong>Образовательный проект</strong>
+                    <span>Интенсивы, стажировки, карьерные события и партнёрские программы.</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="auth-form-grid">
+                <label class="auth-field auth-field--full">
+                  <span>Чем занимается компания</span>
+                  <textarea
+                    class="auth-textarea"
+                    name="about"
+                    placeholder="Коротко опишите продукт, стек, карьерные направления и типы вакансий."
+                  ></textarea>
+                </label>
+
+                <label class="auth-field auth-field--full">
+                  <span>Что хотите публиковать в первую очередь</span>
+                  <input
+                    class="auth-input"
+                    type="text"
+                    name="firstPublish"
+                    placeholder="Вакансии, стажировки, мероприятия, программы амбассадоров"
+                  />
+                </label>
+              </div>
+
+              <div class="auth-note auth-note--accent">
+                <strong>Экспресс-проверка</strong>
+                <p>
+                  После подтверждения email заявка будет считаться полной: это сокращает путь
+                  до публикации и убирает отдельный шаг подтверждения компании в кабинете.
+                </p>
+              </div>
+
+              <label class="auth-check">
+                <input type="checkbox" name="terms" required checked />
+                <span>
+                  Подтверждаю, что могу представлять компанию в сервисе, а домен, почта и
+                  контактные данные принадлежат работодателю или используются с его согласия.
+                </span>
+              </label>
+
+              <div class="auth-form-actions">
+                <button class="auth-button auth-button--primary" type="submit">
+                  Подтвердить почту и отправить на проверку
+                </button>
+                <a class="auth-button auth-button--secondary" href="company-registration.html">
+                  Вернуться к короткой форме
+                </a>
+              </div>
+            </form>
+          </article>
+
+          <aside class="auth-card auth-card--aside" aria-label="Что подготовить для быстрой проверки">
+            <div class="auth-card__copy">
+              <span class="auth-badge">Быстрая проверка</span>
+              <h2>Что лучше подготовить</h2>
+              <p>
+                Чем точнее домен, контакты и описание компании, тем меньше возвратов на
+                доработку и тем быстрее открывается публикация.
+              </p>
+            </div>
+
+            <div class="auth-metric">
+              <strong>1</strong>
+              <span>подтверждение почты запускает быстрый сценарий без ожидания в кабинете</span>
+            </div>
+
+            <ul class="auth-list">
+              <li>
+                <strong>Домен и почта</strong>
+                <span>Желательно использовать адрес на домене компании, а не личный email.</span>
+              </li>
+              <li>
+                <strong>Контакт ответственного</strong>
+                <span>Имя и роль человека, который отвечает за публикации и обратную связь.</span>
+              </li>
+              <li>
+                <strong>Описание деятельности</strong>
+                <span>Продукт, направления найма и формат работы помогают быстрее понять контекст.</span>
+              </li>
+            </ul>
+
+            <div class="auth-note">
+              <strong>Практика</strong>
+              <p>
+                Если вы уже знаете, какие вакансии или мероприятия будут первыми, укажите это
+                сразу: кабинет можно открыть более точно уже на стартовом экране.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
