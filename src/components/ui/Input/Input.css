@@ -1,0 +1,193 @@
+.ui-control-shell {
+  position: relative;
+  display: grid;
+}
+
+.ui-control-shell__icon {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  color: rgba(103, 113, 135, 0.7);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ui-control-shell__icon--end {
+  right: 18px;
+  left: auto;
+}
+
+.ui-control-shell__icon--with-clear,
+.ui-control-shell__icon--with-action {
+  right: 50px;
+}
+
+.ui-control-shell__addon {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--ui-radius-pill);
+  background: rgba(24, 29, 45, 0.05);
+  color: var(--ui-color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ui-control-shell__addon--start {
+  left: 12px;
+}
+
+.ui-control-shell__addon--end {
+  right: 12px;
+}
+
+.ui-control-shell__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ui-control-shell--has-start .ui-input,
+.ui-control-shell--has-start .ui-select {
+  padding-left: 46px;
+}
+
+.ui-control-shell--has-start-addon .ui-input {
+  padding-left: 60px;
+}
+
+.ui-control-shell--has-end .ui-input {
+  padding-right: 46px;
+}
+
+.ui-control-shell--has-end-addon .ui-input {
+  padding-right: 60px;
+}
+
+.ui-control-shell--has-clear .ui-input,
+.ui-control-shell--has-action .ui-input {
+  padding-right: 72px;
+}
+
+.ui-control-shell--has-end-and-clear .ui-input,
+.ui-control-shell--has-end-and-action .ui-input {
+  padding-right: 102px;
+}
+
+.ui-control-shell--has-end-addon-and-action .ui-input {
+  padding-right: 118px;
+}
+
+.ui-control-shell__action {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: var(--ui-radius-pill);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ui-color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  transform: translateY(-50%);
+  transition:
+    transform var(--ui-transition-fast),
+    background-color var(--ui-transition-base),
+    border-color var(--ui-transition-base);
+}
+
+.ui-control-shell__action:hover {
+  transform: translateY(calc(-50% - 1px));
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.ui-control-shell__action:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-shadow-focus);
+}
+
+.ui-control-shell__action--toggle {
+  min-width: 46px;
+}
+
+.ui-control-shell__action--active {
+  border-color: rgba(46, 168, 82, 0.16);
+  background: rgba(46, 168, 82, 0.1);
+  color: var(--ui-color-success);
+}
+
+.ui-control-shell:focus-within .ui-control-shell__icon {
+  color: var(--ui-color-accent);
+}
+
+.ui-control-shell:focus-within .ui-control-shell__addon {
+  color: var(--ui-color-accent);
+  background: rgba(47, 128, 255, 0.1);
+}
+
+.ui-input,
+.ui-textarea,
+.ui-select {
+  width: 100%;
+  min-height: 58px;
+  padding: 15px 18px;
+  border: 1px solid var(--ui-color-stroke);
+  border-radius: var(--ui-radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ui-color-text);
+  box-shadow: 0 10px 22px rgba(36, 49, 77, 0.05);
+  transition:
+    transform var(--ui-transition-fast),
+    box-shadow var(--ui-transition-base),
+    border-color var(--ui-transition-base),
+    background-color var(--ui-transition-base);
+}
+
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  color: rgba(103, 113, 135, 0.72);
+}
+
+.ui-input:hover,
+.ui-textarea:hover,
+.ui-select:hover,
+.ui-input.is-hovered,
+.ui-textarea.is-hovered,
+.ui-select.is-hovered {
+  transform: translateY(-1px);
+  border-color: rgba(47, 128, 255, 0.18);
+}
+
+.ui-input:focus,
+.ui-textarea:focus,
+.ui-select:focus,
+.ui-input.is-focused,
+.ui-textarea.is-focused,
+.ui-select.is-focused {
+  border-color: rgba(47, 128, 255, 0.26);
+  box-shadow: var(--ui-shadow-focus), 0 14px 30px rgba(36, 49, 77, 0.06);
+  outline: none;
+}
+
+.ui-input:disabled,
+.ui-textarea:disabled,
+.ui-select:disabled {
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: none;
+}
