@@ -1,0 +1,40 @@
+.ui-switch {
+  appearance: none;
+  position: relative;
+  width: 54px;
+  height: 32px;
+  margin: 0;
+  border-radius: var(--ui-radius-pill);
+  background: rgba(24, 29, 45, 0.12);
+}
+
+.ui-switch.is-hovered,
+.ui-switch:hover {
+  background: rgba(24, 29, 45, 0.16);
+}
+
+.ui-switch::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(24, 29, 45, 0.14);
+  transition: transform var(--ui-transition-base);
+}
+
+.ui-switch:checked {
+  background: linear-gradient(180deg, #5aa2ff 0%, var(--ui-color-accent) 100%);
+}
+
+.ui-switch:checked.is-hovered,
+.ui-switch:checked:hover {
+  background: linear-gradient(180deg, #71b1ff 0%, #3a8cff 100%);
+}
+
+.ui-switch:checked::after {
+  transform: translateX(22px);
+}

@@ -1,0 +1,190 @@
+.entry-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.entry-login__panel {
+  width: min(100%, 400px);
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+}
+
+.entry-login__brand-mark {
+  width: 24px;
+  height: 14px;
+}
+
+.entry-login__options,
+.entry-login__actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-login__options {
+  gap: 8px;
+}
+
+.entry-login__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 16px;
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.entry-login__option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(47, 128, 255, 0.18);
+  box-shadow: var(--shadow-subtle);
+}
+
+.entry-login__option.is-selected,
+.entry-login__option:has(input:checked) {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-subtle);
+}
+
+.entry-login__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.entry-login__option-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-secondary);
+}
+
+.entry-login__option-icon::before,
+.entry-login__option-icon::after {
+  content: "";
+  position: absolute;
+}
+
+.entry-login__option-icon--candidate::before {
+  top: 7px;
+  left: 13px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.entry-login__option-icon--candidate::after {
+  left: 10px;
+  bottom: 7px;
+  width: 20px;
+  height: 11px;
+  border-radius: 10px 10px 8px 8px;
+  background: var(--surface);
+}
+
+.entry-login__option-icon--employer::before {
+  left: 9px;
+  top: 11px;
+  width: 20px;
+  height: 14px;
+  border: 2px solid var(--surface);
+  border-radius: 5px;
+}
+
+.entry-login__option-icon--employer::after {
+  top: 8px;
+  left: 14px;
+  width: 10px;
+  height: 6px;
+  border: 2px solid var(--surface);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+
+.entry-login__option.is-selected .entry-login__option-icon,
+.entry-login__option:has(input:checked) .entry-login__option-icon {
+  border-color: rgba(47, 128, 255, 0.16);
+  background: rgba(47, 128, 255, 0.12);
+}
+
+.entry-login__option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.entry-login__option-copy strong {
+  color: var(--text-primary);
+  font-size: 0.93rem;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.entry-login__option-copy span {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.entry-login__actions {
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.entry-login__action {
+  min-height: 42px;
+  padding: 11px 18px;
+}
+
+.auth-button__loader {
+  display: none;
+}
+
+.entry-login__action.is-loading .auth-button__loader {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+@media (max-width: 720px) {
+  .entry-login {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .entry-login__panel {
+    width: min(100%, 320px);
+    padding: 14px 12px 12px;
+  }
+
+  .entry-login__option {
+    min-height: 60px;
+    padding-inline: 10px;
+  }
+
+  .entry-login__option-copy strong {
+    font-size: 0.88rem;
+  }
+
+  .entry-login__option-copy span {
+    font-size: 0.68rem;
+  }
+}

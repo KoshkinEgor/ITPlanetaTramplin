@@ -1,0 +1,246 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Трамплин, главная страница" [ref=e4] [cursor=pointer]:
+        - /url: index.html
+        - generic [ref=e6]: TAMPLIN
+      - navigation "Основная навигация" [ref=e7]:
+        - link "Вакансии" [ref=e8] [cursor=pointer]:
+          - /url: "#"
+        - link "Стажировки" [ref=e9] [cursor=pointer]:
+          - /url: "#"
+        - link "Менторы" [ref=e10] [cursor=pointer]:
+          - /url: "#"
+        - link "Мероприятия" [ref=e11] [cursor=pointer]:
+          - /url: "#"
+        - link "Компании" [ref=e12] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e13]:
+        - button "Уведомления" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: "!"
+        - link "Опубликовать вакансию" [ref=e16] [cursor=pointer]:
+          - /url: "#"
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - complementary "Навигация кабинета компании" [ref=e20]:
+        - generic [ref=e21]:
+          - paragraph [ref=e22]: Рабочая зона компании
+          - navigation "Разделы кабинета" [ref=e23]:
+            - link "Профиль компании" [ref=e24] [cursor=pointer]:
+              - /url: company-dashboard.html
+            - link "Создать возможность" [ref=e25] [cursor=pointer]:
+              - /url: company-opportunity.html
+            - link "Возможности" [ref=e26] [cursor=pointer]:
+              - /url: opportunity-card.html
+            - link "Отклики" [ref=e27] [cursor=pointer]:
+              - /url: company-dashboard.html
+        - generic [ref=e28]:
+          - generic [ref=e29]: 3 шага до публикации
+          - heading "Форма собирается как редактор карточки" [level=2] [ref=e30]
+          - list [ref=e31]:
+            - listitem [ref=e32]:
+              - text: "1"
+              - generic [ref=e33]:
+                - strong [ref=e34]: Основа
+                - paragraph [ref=e35]: Определи тип, заголовок, формат и базовые параметры возможности.
+            - listitem [ref=e36]:
+              - text: "2"
+              - generic [ref=e37]:
+                - strong [ref=e38]: Ценность
+                - paragraph [ref=e39]: "Покажи, что получит кандидат: задачи, программу, преимущества и контекст."
+            - listitem [ref=e40]:
+              - text: "3"
+              - generic [ref=e41]:
+                - strong [ref=e42]: Публикация
+                - paragraph [ref=e43]: Добавь CTA, контакт и дедлайн, чтобы карточка была готова к выдаче.
+      - region "Создать возможность для соискателей" [ref=e44]:
+        - radio "Мероприятие" [checked]
+        - radio "Вакансия"
+        - radio "Стажировка"
+        - article [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: Кабинет работодателя
+              - generic [ref=e49]: Черновик обновлён 2 минуты назад
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - heading "Создать возможность для соискателей" [level=1] [ref=e52]
+                - paragraph [ref=e53]: "Экран собран как рабочий редактор публикации: слева секции формы, справа live-preview карточки и чеклист. Список возможностей не трогаем, меняем только сам сценарий создания."
+              - generic "Сводка по форме" [ref=e54]:
+                - article [ref=e55]:
+                  - strong [ref=e56]: "3"
+                  - text: этапа до публикации
+                - article [ref=e57]:
+                  - strong [ref=e58]: 82%
+                  - text: готовности черновика
+                - article [ref=e59]:
+                  - strong [ref=e60]: "1"
+                  - text: карточка в фокусе
+                - article [ref=e61]:
+                  - strong [ref=e62]: 24 ч
+                  - text: до ручной модерации
+            - tablist "Тип возможности" [ref=e63]:
+              - generic [ref=e64] [cursor=pointer]: Мероприятие
+              - generic [ref=e65] [cursor=pointer]: Вакансия
+              - generic [ref=e66] [cursor=pointer]: Стажировка
+          - generic [ref=e67]:
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - generic [ref=e71]:
+                  - generic [ref=e72]:
+                    - text: Шаг 1
+                    - heading "Основа публикации" [level=2] [ref=e73]
+                  - paragraph [ref=e74]: "Собери ядро карточки: название, формат, дату и точку входа для регистрации."
+                - generic [ref=e75]:
+                  - generic [ref=e76]:
+                    - generic [ref=e77]: Название мероприятия
+                    - textbox "Название мероприятия Заголовок должен работать как самостоятельный анонс в каталоге." [ref=e78]: Айти планета
+                    - generic [ref=e79]: Заголовок должен работать как самостоятельный анонс в каталоге.
+                  - generic [ref=e80]:
+                    - generic [ref=e81]: Формат
+                    - combobox "Формат" [ref=e82]:
+                      - option "Гибридный" [selected]
+                      - option "Офлайн"
+                      - option "Онлайн"
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: Дата и время
+                    - textbox "Дата и время" [ref=e85]: 12 апреля 2026 · 11:00
+                  - generic [ref=e86]:
+                    - generic [ref=e87]: Локация
+                    - textbox "Локация" [ref=e88]: Москва + онлайн-трансляция
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: Регистрация
+                    - textbox "Регистрация" [ref=e91]: до 8 апреля 2026
+              - generic [ref=e92]:
+                - generic [ref=e93]:
+                  - generic [ref=e94]:
+                    - text: Шаг 2
+                    - heading "Что получит участник" [level=2] [ref=e95]
+                  - paragraph [ref=e96]: Покажи пользу, аудиторию и содержимое программы, чтобы анонс выглядел предметно.
+                - generic [ref=e97]:
+                  - generic [ref=e98]:
+                    - generic [ref=e99]: Описание
+                    - textbox "Описание" [ref=e100]: XVII практико-ориентированное соревнование, направленное на выявление и поддержку талантливой молодёжи в направлении информационных и инновационных технологий.
+                  - generic [ref=e101]:
+                    - generic [ref=e102]: Для кого
+                    - textbox "Для кого" [ref=e103]: Студенты, джуны, начинающие команды
+                  - generic [ref=e104]:
+                    - generic [ref=e105]: Ценность
+                    - textbox "Ценность" [ref=e106]: Кейсы, нетворк и приглашения на стажировки
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: Программа
+                    - textbox "Программа" [ref=e109]: Открывающий трек, практические задания, разборы с экспертами, карьерный стенд компаний-партнёров и финальная презентация решений.
+              - generic [ref=e110]:
+                - generic [ref=e111]:
+                  - generic [ref=e112]:
+                    - text: Шаг 3
+                    - heading "Публикация и CTA" [level=2] [ref=e113]
+                  - paragraph [ref=e114]: "Задай финальные параметры: куда вести пользователя и кто сопровождает публикацию."
+                - generic [ref=e115]:
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: Организатор
+                    - textbox "Организатор" [ref=e118]: ООО Компани · Community
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: Контактное лицо
+                    - textbox "Контактное лицо" [ref=e121]: Алина Орлова, event lead
+                  - generic [ref=e122]:
+                    - generic [ref=e123]: Текст кнопки
+                    - textbox "Текст кнопки" [ref=e124]: Зарегистрироваться
+                  - generic [ref=e125]:
+                    - generic [ref=e126]: Ссылка на регистрацию
+                    - textbox "Ссылка на регистрацию" [ref=e127]: https://tamplin.ru/event/ai-planet
+              - generic [ref=e128]:
+                - button "Сохранить черновик" [ref=e129] [cursor=pointer]
+                - button "Предпросмотр" [ref=e130] [cursor=pointer]
+                - button "Опубликовать" [ref=e131] [cursor=pointer]
+            - complementary [ref=e132]:
+              - article [ref=e133]:
+                - generic [ref=e134]:
+                  - generic [ref=e135]: Live preview
+                  - text: Готово на 82%
+                - heading "Айти планета" [level=2] [ref=e136]
+                - paragraph [ref=e137]: ООО Компани · Community
+                - paragraph [ref=e138]: Соревнование и карьерный ивент с гибридным форматом, экспертными разборами и быстрым входом в стажировки партнёров.
+                - generic [ref=e139]:
+                  - generic [ref=e140]: Гибридный
+                  - generic [ref=e141]: Москва
+                  - generic [ref=e142]: Регистрация
+                - generic [ref=e143]:
+                  - generic [ref=e144]:
+                    - term [ref=e145]: Дата
+                    - definition [ref=e146]: 12 апреля 2026
+                  - generic [ref=e147]:
+                    - term [ref=e148]: CTA
+                    - definition [ref=e149]: Зарегистрироваться
+                  - generic [ref=e150]:
+                    - term [ref=e151]: Фокус
+                    - definition [ref=e152]: Практика + нетворк
+                  - generic [ref=e153]:
+                    - term [ref=e154]: Аудитория
+                    - definition [ref=e155]: Джуны и студенты
+              - article [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]: Live preview
+                  - text: Готово на 79%
+                - heading "Junior Security Analyst" [level=2] [ref=e159]
+                - paragraph [ref=e160]: ООО Компани · SOC
+                - paragraph [ref=e161]: Роль для начинающего аналитика с понятным контуром задач, живыми кейсами и менторством в гибридной команде.
+                - generic [ref=e162]:
+                  - generic [ref=e163]: Офис / гибрид
+                  - generic [ref=e164]: Москва
+                  - generic [ref=e165]: от 90 000 ₽
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - term [ref=e168]: Дедлайн
+                    - definition [ref=e169]: 30 апреля
+                  - generic [ref=e170]:
+                    - term [ref=e171]: Команда
+                    - definition [ref=e172]: SOC
+                  - generic [ref=e173]:
+                    - term [ref=e174]: Формат
+                    - definition [ref=e175]: Гибрид
+                  - generic [ref=e176]:
+                    - term [ref=e177]: CTA
+                    - definition [ref=e178]: Откликнуться
+              - article [ref=e179]:
+                - generic [ref=e180]:
+                  - generic [ref=e181]: Live preview
+                  - text: Готово на 84%
+                - heading "Летняя школа SOC" [level=2] [ref=e182]
+                - paragraph [ref=e183]: ООО Компани · Академия
+                - paragraph [ref=e184]: Стажировка с куратором, лабораториями и внятным треком роста от онбординга до финального проекта.
+                - generic [ref=e185]:
+                  - generic [ref=e186]: 8 недель
+                  - generic [ref=e187]: Гибрид
+                  - generic [ref=e188]: 40 000 ₽ / мес
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - term [ref=e191]: Старт
+                    - definition [ref=e192]: 1 июня 2026
+                  - generic [ref=e193]:
+                    - term [ref=e194]: Куратор
+                    - definition [ref=e195]: Егор Самойлов
+                  - generic [ref=e196]:
+                    - term [ref=e197]: Отбор
+                    - definition [ref=e198]: Анкета + тестовое
+                  - generic [ref=e199]:
+                    - term [ref=e200]: CTA
+                    - definition [ref=e201]: Подать заявку
+              - article [ref=e202]:
+                - generic [ref=e203]:
+                  - generic [ref=e204]: Чеклист
+                  - heading "Публикация без пустых зон" [level=2] [ref=e205]
+                  - paragraph [ref=e206]: Справа всегда видно, хватает ли карточке сигналов для выдачи в каталоге и карточке детали.
+                - list [ref=e207]:
+                  - listitem [ref=e208]: Тип и заголовок определены
+                  - listitem [ref=e209]: Формат и базовые параметры заполнены
+                  - listitem [ref=e210]: Ценность для кандидата описана
+                  - listitem [ref=e211]: Проверить ссылку и текст CTA перед публикацией
+              - article [ref=e212]:
+                - generic [ref=e213]: Подсказка
+                - heading "Мероприятие" [level=2] [ref=e214]
+                - paragraph [ref=e215]: "Лучше всего работают конкретная тема, дата и обещание результата: что человек получит после участия и почему это стоит времени."
+                - generic [ref=e216]:
+                  - generic [ref=e217]: Дата
+                  - generic [ref=e218]: Формат
+                  - generic [ref=e219]: Польза

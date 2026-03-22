@@ -1,0 +1,114 @@
+.ui-tabs {
+  display: grid;
+  gap: 16px;
+}
+
+.ui-tabs--vertical {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.ui-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--ui-color-stroke);
+  border-radius: calc(var(--ui-radius-lg) + 4px);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 12px 24px rgba(36, 49, 77, 0.05);
+}
+
+.ui-tabs__list--stretch .ui-tabs__tab {
+  flex: 1 1 0;
+}
+
+.ui-tabs--vertical .ui-tabs__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.ui-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  transition:
+    transform var(--ui-transition-fast),
+    border-color var(--ui-transition-base),
+    background-color var(--ui-transition-base),
+    color var(--ui-transition-base),
+    box-shadow var(--ui-transition-base);
+}
+
+.ui-tabs--vertical .ui-tabs__tab {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.ui-tabs__tab-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui-tabs__tab-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.ui-tabs__tab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ui-tabs__tab:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ui-tabs__tab[aria-selected="true"] {
+  border-color: rgba(47, 128, 255, 0.18);
+  background: rgba(47, 128, 255, 0.08);
+  color: var(--ui-color-accent);
+  box-shadow: 0 10px 20px rgba(47, 128, 255, 0.1);
+}
+
+.ui-tabs__tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ui-tabs__tab-badge {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--ui-radius-pill);
+  background: rgba(24, 29, 45, 0.08);
+  color: var(--ui-color-text);
+  font-size: 0.74rem;
+}
+
+.ui-tabs__panel {
+  padding: 24px;
+  border: 1px solid var(--ui-color-stroke);
+  border-radius: var(--ui-radius-xl);
+  background:
+    radial-gradient(circle at top right, rgba(201, 255, 31, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 255, 0.96));
+  box-shadow: var(--ui-shadow-soft);
+}
+
+@media (max-width: 900px) {
+  .ui-tabs--vertical {
+    grid-template-columns: 1fr;
+  }
+}

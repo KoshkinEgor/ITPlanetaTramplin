@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · Кабинет куратора</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="../../styles/shared/style.css" />
+    <link rel="stylesheet" href="../../styles/curator/curator-dashboard.css" />
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <script src="../../scripts/shared/shared-header.js" defer></script>
+    <script src="../../scripts/curator/curator-dashboard.js" defer></script>
+  </head>
+  <body class="curator-dashboard-body">
+    <div data-shared-header data-header-config="curator-dashboard" data-header-base="../../"></div>
+
+    <input class="curator-dashboard__toggle" type="checkbox" id="curator-drawer" />
+
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-dashboard" checked />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-moderation" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-companies" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-users" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-reports" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-tags" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-logs" />
+    <input class="curator-dashboard__toggle" type="radio" name="curator-section" id="curator-section-settings" />
+
+    <main class="curator-dashboard-main">
+      <div class="container curator-dashboard-shell">
+        <label class="curator-dashboard__overlay" for="curator-drawer" aria-hidden="true"></label>
+
+        <aside class="card curator-dashboard__sidebar" aria-label="Разделы кабинета куратора">
+          <div class="curator-dashboard__sidebar-head">
+            <div>
+              <p>Рабочий контур</p>
+              <strong>Кабинет куратора</strong>
+            </div>
+
+            <label class="icon-button curator-dashboard__sidebar-close" for="curator-drawer" aria-label="Закрыть меню">
+              <span aria-hidden="true">✕</span>
+            </label>
+          </div>
+
+          <nav class="curator-dashboard__menu">
+            <label class="curator-dashboard__menu-link" for="curator-section-dashboard" data-section-link="dashboard">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 12h6V4H4v8Zm10 8h6V4h-6v16ZM4 20h6v-4H4v4Zm10-6h6v-4h-6v4Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Дашборд</span>
+                <span class="curator-dashboard__menu-note">Очередь и приоритеты смены</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-dashboard-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-moderation" data-section-link="moderation">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3 5 6v6c0 4.4 3 8.5 7 9.5 4-1 7-5.1 7-9.5V6l-7-3Zm-1 12-3-3 1.4-1.4 1.6 1.6 3.6-3.6L16 10l-5 5Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Модерация возможностей</span>
+                <span class="curator-dashboard__menu-note">Вакансии, стажировки, события</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-moderation-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-companies" data-section-link="companies">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 20h16M6 20V8l6-3 6 3v12M9 12h1m4 0h1m-6 4h1m4 0h1" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Верификация компаний</span>
+                <span class="curator-dashboard__menu-note">Проверка данных и доменов</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-companies-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-users" data-section-link="users">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M16 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM8 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-6 1.8-6 4v1h12v-1c0-2.2-2.7-4-6-4Zm8 0c-.6 0-1.2.1-1.8.3 1.1.8 1.8 1.9 1.8 3.2V20h6v-1c0-2.2-2.7-4-6-4Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Пользователи</span>
+                <span class="curator-dashboard__menu-note">Соискатели и работодатели</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-users-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-reports" data-section-link="reports">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M6 4h11l-1 6 1 6H6v4H4V4h2Zm2 2v8h6.6l-.7-4 .7-4H8Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Жалобы</span>
+                <span class="curator-dashboard__menu-note">Группировка и эскалация</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-reports-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-tags" data-section-link="tags">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 10.6 13.4 4H6v7.4l6.6 6.6 7.4-7.4ZM8.5 9A1.5 1.5 0 1 0 8.5 6a1.5 1.5 0 0 0 0 3Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Теги и система</span>
+                <span class="curator-dashboard__menu-note">Справочники и правила</span>
+              </span>
+              <span class="curator-dashboard__menu-count" id="sidebar-tags-count">0</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-logs" data-section-link="logs">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 6h14M5 12h14M5 18h14" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Логи</span>
+                <span class="curator-dashboard__menu-note">Служебные события и журнал</span>
+              </span>
+              <span class="curator-dashboard__menu-count curator-dashboard__menu-count--ghost">•</span>
+            </label>
+
+            <label class="curator-dashboard__menu-link" for="curator-section-settings" data-section-link="settings">
+              <span class="curator-dashboard__menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="m19.4 13 .2-1-.2-1 2-1.6-2-3.4-2.4 1a7.2 7.2 0 0 0-1.8-1l-.4-2.6h-4l-.4 2.6c-.6.2-1.2.5-1.8 1l-2.4-1-2 3.4L4.6 11l-.2 1 .2 1-2 1.6 2 3.4 2.4-1c.6.5 1.2.8 1.8 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.5 1.8-1l2.4 1 2-3.4-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
+                </svg>
+              </span>
+              <span class="curator-dashboard__menu-copy">
+                <span class="curator-dashboard__menu-title">Настройки</span>
+                <span class="curator-dashboard__menu-note">SLA, уведомления, шаблоны</span>
+              </span>
+              <span class="curator-dashboard__menu-count curator-dashboard__menu-count--ghost">•</span>
+            </label>
+          </nav>
+
+          <div class="curator-dashboard__sidebar-foot">
+            <span class="tag">Смена куратора</span>
+            <strong id="sidebar-summary-count">0 задач</strong>
+            <p id="sidebar-summary-text">В работе приоритетная очередь: модерация возможностей, проверка компаний и жалобы.</p>
+          </div>
+        </aside>
+
+        <div class="curator-dashboard__workspace">
+          <div class="curator-dashboard__screens">
+            <section class="curator-screen curator-screen--dashboard">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Главный экран</span>
+                  <h1>Дашборд модерации</h1>
+                  <p>Быстрая сводка по очереди, активным проверкам и последним действиям в системе.</p>
+                </div>
+
+                <div class="curator-screen__actions">
+                  <label class="button button-secondary" for="curator-section-moderation">Открыть очередь</label>
+                  <label class="button button-primary" for="curator-section-companies">К компаниям</label>
+                </div>
+              </div>
+
+              <div class="curator-metrics" id="dashboard-metrics"></div>
+
+              <div class="curator-dashboard-grid">
+                <section class="card curator-panel curator-panel--queue">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag tag-warm">Приоритет</span>
+                      <h2>Очередь задач</h2>
+                    </div>
+                    <span class="chip chip-counter" id="dashboard-queue-count">0</span>
+                  </div>
+
+                  <div class="curator-panel__body" id="dashboard-queue"></div>
+                </section>
+
+                <div class="curator-dashboard-grid__side">
+                  <section class="card curator-panel">
+                    <div class="curator-panel__head">
+                      <div>
+                        <span class="tag">Активность</span>
+                        <h2>Последние действия</h2>
+                      </div>
+                    </div>
+
+                    <div class="curator-panel__body" id="dashboard-activity"></div>
+                  </section>
+
+                  <section class="card curator-panel">
+                    <div class="curator-panel__head">
+                      <div>
+                        <span class="tag">Фокус</span>
+                        <h2>Сводка смены</h2>
+                      </div>
+                    </div>
+
+                    <div class="curator-panel__body" id="dashboard-focus"></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--moderation">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Модерация</span>
+                  <h1>Модерация возможностей</h1>
+                  <p>Проверка вакансий, стажировок и мероприятий с быстрыми решениями и детальной карточкой.</p>
+                </div>
+              </div>
+
+              <section class="card curator-toolbar">
+                <div class="curator-toolbar__head">
+                  <div>
+                    <h2>Очередь публикаций</h2>
+                    <p id="moderation-summary">Загружаем список возможностей.</p>
+                  </div>
+                  <span class="chip chip-counter" id="moderation-count-chip">0</span>
+                </div>
+
+                <div class="curator-toolbar__controls">
+                  <label class="search-bar curator-search">
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input id="moderation-search" type="search" placeholder="Поиск по названию, компании или тегам" />
+                  </label>
+
+                  <div class="curator-filter-group" id="moderation-status-filters" aria-label="Фильтр статусов">
+                    <button class="button button-secondary is-active" type="button" data-moderation-status="all">Все</button>
+                    <button class="button button-secondary" type="button" data-moderation-status="pending">На проверке</button>
+                    <button class="button button-secondary" type="button" data-moderation-status="approved">Одобрено</button>
+                    <button class="button button-secondary" type="button" data-moderation-status="rejected">Отклонено</button>
+                    <button class="button button-secondary" type="button" data-moderation-status="revision">Доработка</button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="curator-content-grid">
+                <section class="card curator-table-card">
+                  <div class="curator-table-card__head">
+                    <div>
+                      <h2>Список возможностей</h2>
+                      <p>Быстрые действия работают прямо в строке, детальная проверка открывается справа.</p>
+                    </div>
+                  </div>
+
+                  <div class="curator-table-wrap">
+                    <table class="curator-table">
+                      <thead>
+                        <tr>
+                          <th>Название</th>
+                          <th>Компания</th>
+                          <th>Тип</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                          <th>Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody id="moderation-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <aside class="card curator-detail-card" id="moderation-detail"></aside>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--companies">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Проверка компаний</span>
+                  <h1>Верификация компаний</h1>
+                  <p>Проверка сайта, домена, контактов и документов перед публикацией компании на платформе.</p>
+                </div>
+              </div>
+
+              <section class="card curator-toolbar">
+                <div class="curator-toolbar__head">
+                  <div>
+                    <h2>Запросы на верификацию</h2>
+                    <p id="companies-summary">Проверяем компании в очереди.</p>
+                  </div>
+                  <span class="chip chip-counter" id="companies-count-chip">0</span>
+                </div>
+
+                <div class="curator-toolbar__controls">
+                  <label class="search-bar curator-search">
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input id="companies-search" type="search" placeholder="Поиск по названию, сайту или домену" />
+                  </label>
+
+                  <div class="curator-filter-group" id="companies-status-filters" aria-label="Фильтр компаний">
+                    <button class="button button-secondary is-active" type="button" data-company-status="all">Все</button>
+                    <button class="button button-secondary" type="button" data-company-status="pending">На проверке</button>
+                    <button class="button button-secondary" type="button" data-company-status="verified">Подтверждены</button>
+                    <button class="button button-secondary" type="button" data-company-status="needs-data">Запрошены данные</button>
+                    <button class="button button-secondary" type="button" data-company-status="rejected">Отклонены</button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="curator-content-grid">
+                <section class="card curator-table-card">
+                  <div class="curator-table-card__head">
+                    <div>
+                      <h2>Компании</h2>
+                      <p>Выделите компанию в списке, чтобы открыть подробную карточку проверки.</p>
+                    </div>
+                  </div>
+
+                  <div class="curator-table-wrap">
+                    <table class="curator-table">
+                      <thead>
+                        <tr>
+                          <th>Название</th>
+                          <th>Статус</th>
+                          <th>Дата</th>
+                          <th>Сайт</th>
+                          <th>Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody id="companies-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <aside class="card curator-detail-card" id="company-detail"></aside>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--users">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Пользователи</span>
+                  <h1>Соискатели и работодатели</h1>
+                  <p>Управление ролями, статусами и ограничениями аккаунтов с подтверждением критичных действий.</p>
+                </div>
+              </div>
+
+              <section class="card curator-toolbar">
+                <div class="curator-toolbar__head">
+                  <div>
+                    <h2>Список пользователей</h2>
+                    <p id="users-summary">Показываем актуальные аккаунты по роли и статусу.</p>
+                  </div>
+                  <span class="chip chip-counter" id="users-count-chip">0</span>
+                </div>
+
+                <div class="curator-toolbar__controls">
+                  <label class="search-bar curator-search">
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input id="users-search" type="search" placeholder="Поиск по имени, роли или команде" />
+                  </label>
+
+                  <div class="curator-filter-group" id="users-role-filters" aria-label="Фильтр ролей">
+                    <button class="button button-secondary is-active" type="button" data-user-role="all">Все</button>
+                    <button class="button button-secondary" type="button" data-user-role="candidate">Соискатели</button>
+                    <button class="button button-secondary" type="button" data-user-role="employer">Работодатели</button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="curator-content-grid">
+                <section class="card curator-table-card">
+                  <div class="curator-table-card__head">
+                    <div>
+                      <h2>Пользователи платформы</h2>
+                      <p>Просмотр профиля, блокировка и удаление доступны из строки таблицы.</p>
+                    </div>
+                  </div>
+
+                  <div class="curator-table-wrap">
+                    <table class="curator-table">
+                      <thead>
+                        <tr>
+                          <th>Имя</th>
+                          <th>Роль</th>
+                          <th>Статус</th>
+                          <th>Дата</th>
+                          <th>Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody id="users-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <aside class="card curator-detail-card" id="user-detail"></aside>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--reports">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Жалобы</span>
+                  <h1>Работа с жалобами</h1>
+                  <p>Группировка однотипных обращений, сортировка по количеству и действия без лишних переходов.</p>
+                </div>
+              </div>
+
+              <section class="card curator-toolbar">
+                <div class="curator-toolbar__head">
+                  <div>
+                    <h2>Очередь жалоб</h2>
+                    <p id="reports-summary">Жалобы уже объединены по объекту и отсортированы по приоритету.</p>
+                  </div>
+                  <span class="chip chip-counter" id="reports-count-chip">0</span>
+                </div>
+
+                <div class="curator-toolbar__controls">
+                  <div class="curator-filter-group" id="reports-sort-filters" aria-label="Сортировка жалоб">
+                    <button class="button button-secondary is-active" type="button" data-report-sort="count">По количеству</button>
+                    <button class="button button-secondary" type="button" data-report-sort="date">По дате</button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="curator-report-list" id="reports-list"></div>
+            </section>
+
+            <section class="curator-screen curator-screen--tags">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Справочники</span>
+                  <h1>Теги и система</h1>
+                  <p>Управление тегами, категориями и системными правилами, влияющими на публикацию и поиск.</p>
+                </div>
+              </div>
+
+              <section class="card curator-toolbar">
+                <div class="curator-toolbar__head">
+                  <div>
+                    <h2>Каталог тегов</h2>
+                    <p id="tags-summary">Ищите теги по названию и фильтруйте по типу.</p>
+                  </div>
+                  <span class="chip chip-counter" id="tags-count-chip">0</span>
+                </div>
+
+                <div class="curator-toolbar__controls">
+                  <label class="search-bar curator-search">
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input id="tags-search" type="search" placeholder="Поиск по тегам и категориям" />
+                  </label>
+
+                  <div class="curator-filter-group" id="tags-type-filters" aria-label="Фильтр тегов">
+                    <button class="button button-secondary is-active" type="button" data-tag-type="all">Все</button>
+                    <button class="button button-secondary" type="button" data-tag-type="skill">Навыки</button>
+                    <button class="button button-secondary" type="button" data-tag-type="format">Формат</button>
+                    <button class="button button-secondary" type="button" data-tag-type="topic">Тематика</button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="curator-content-grid">
+                <section class="card curator-table-card">
+                  <div class="curator-table-card__head">
+                    <div>
+                      <h2>Список тегов</h2>
+                      <p>Создание, редактирование и удаление тегов выполняется в едином редакторе справа.</p>
+                    </div>
+                    <button class="button button-primary curator-table-card__action" type="button" id="tag-create-button">Создать тег</button>
+                  </div>
+
+                  <div class="curator-table-wrap">
+                    <table class="curator-table">
+                      <thead>
+                        <tr>
+                          <th>Название</th>
+                          <th>Тип</th>
+                          <th>Использований</th>
+                          <th>Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tags-rows"></tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <aside class="card curator-detail-card curator-tag-editor">
+                  <div class="curator-detail-card__shell">
+                    <div class="curator-detail-card__head">
+                      <div>
+                        <span class="tag">Редактор</span>
+                        <h2 id="tag-editor-title">Новый тег</h2>
+                      </div>
+                    </div>
+
+                    <form class="curator-form" id="tag-form">
+                      <label class="curator-field">
+                        <span>Название</span>
+                        <input id="tag-name" type="text" placeholder="Например, Product Analytics" required />
+                      </label>
+
+                      <label class="curator-field">
+                        <span>Тип</span>
+                        <select id="tag-type">
+                          <option value="skill">Навык</option>
+                          <option value="format">Формат</option>
+                          <option value="topic">Тематика</option>
+                        </select>
+                      </label>
+
+                      <label class="curator-field">
+                        <span>Количество использований</span>
+                        <input id="tag-usage" type="number" min="0" step="1" value="0" />
+                      </label>
+
+                      <div class="curator-form__actions">
+                        <button class="button button-secondary" type="button" id="tag-reset-button">Очистить</button>
+                        <button class="button button-primary" type="submit" id="tag-submit-button">Сохранить</button>
+                      </div>
+                    </form>
+
+                    <div class="curator-system-grid" id="system-rules"></div>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--logs">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Служебный журнал</span>
+                  <h1>Логи платформы</h1>
+                  <p>Последние события модерации, системные уведомления и действия кураторов по разделам.</p>
+                </div>
+              </div>
+
+              <div class="curator-logs-grid">
+                <section class="card curator-panel">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag">Журнал</span>
+                      <h2>Последние записи</h2>
+                    </div>
+                  </div>
+
+                  <div class="curator-panel__body" id="logs-list"></div>
+                </section>
+
+                <aside class="card curator-panel">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag">Система</span>
+                      <h2>Статус контуров</h2>
+                    </div>
+                  </div>
+
+                  <div class="curator-panel__body" id="logs-summary"></div>
+                </aside>
+              </div>
+            </section>
+
+            <section class="curator-screen curator-screen--settings">
+              <div class="curator-screen__head">
+                <div class="curator-screen__copy">
+                  <span class="tag">Настройки</span>
+                  <h1>Параметры кабинета</h1>
+                  <p>Настройки SLA, уведомлений и сценариев ручной проверки для кураторской команды.</p>
+                </div>
+              </div>
+
+              <div class="curator-settings-grid">
+                <section class="card curator-panel">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag">SLA</span>
+                      <h2>Сроки обработки</h2>
+                    </div>
+                  </div>
+
+                  <div class="curator-settings-list">
+                    <article class="curator-setting-item">
+                      <div>
+                        <strong>Возможности</strong>
+                        <p>Цель обработки публикаций не позднее 4 часов с момента отправки.</p>
+                      </div>
+                      <span class="chip">4 часа</span>
+                    </article>
+
+                    <article class="curator-setting-item">
+                      <div>
+                        <strong>Компании</strong>
+                        <p>Первичный ответ на заявку компании в течение рабочего дня.</p>
+                      </div>
+                      <span class="chip">1 день</span>
+                    </article>
+
+                    <article class="curator-setting-item">
+                      <div>
+                        <strong>Жалобы</strong>
+                        <p>Эскалация критичных жалоб сразу после подтверждения нарушения.</p>
+                      </div>
+                      <span class="chip">Приоритет</span>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="card curator-panel">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag">Уведомления</span>
+                      <h2>Каналы оповещений</h2>
+                    </div>
+                  </div>
+
+                  <div class="curator-toggle-list">
+                    <label class="curator-toggle-item">
+                      <span>
+                        <strong>Срочные жалобы</strong>
+                        <p>Отправлять уведомление при повторных жалобах на один объект.</p>
+                      </span>
+                      <input type="checkbox" checked />
+                    </label>
+
+                    <label class="curator-toggle-item">
+                      <span>
+                        <strong>Новые компании</strong>
+                        <p>Пинг в начале дня по всем новым запросам на верификацию.</p>
+                      </span>
+                      <input type="checkbox" checked />
+                    </label>
+
+                    <label class="curator-toggle-item">
+                      <span>
+                        <strong>Еженедельная сводка</strong>
+                        <p>Собирать отчёт по одобрениям, отклонениям и доработкам.</p>
+                      </span>
+                      <input type="checkbox" />
+                    </label>
+                  </div>
+                </section>
+
+                <section class="card curator-panel">
+                  <div class="curator-panel__head">
+                    <div>
+                      <span class="tag">Шаблоны</span>
+                      <h2>Причины и комментарии</h2>
+                    </div>
+                  </div>
+
+                  <div class="curator-template-list">
+                    <article class="curator-template-item">
+                      <strong>Отклонение публикации</strong>
+                      <p>Используйте обязательный комментарий: что нарушено и что нужно исправить.</p>
+                    </article>
+
+                    <article class="curator-template-item">
+                      <strong>Запрос данных у компании</strong>
+                      <p>Шаблон письма включает сайт, домен, контакт и подтверждение деятельности.</p>
+                    </article>
+
+                    <article class="curator-template-item">
+                      <strong>Блокировка пользователя</strong>
+                      <p>Применяется только через подтверждение с указанием причины действия.</p>
+                    </article>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <dialog class="curator-dialog" id="confirm-dialog">
+      <form class="card curator-dialog__panel" method="dialog">
+        <div class="curator-dialog__head">
+          <div>
+            <span class="tag tag-warm">Подтверждение</span>
+            <h2 id="confirm-dialog-title">Подтвердите действие</h2>
+          </div>
+        </div>
+
+        <p id="confirm-dialog-text">Вы уверены, что хотите выполнить это действие?</p>
+
+        <div class="curator-dialog__actions">
+          <button class="button button-secondary" value="cancel" type="submit">Отмена</button>
+          <button class="button button-primary" value="confirm" type="submit" id="confirm-dialog-submit">Подтвердить</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

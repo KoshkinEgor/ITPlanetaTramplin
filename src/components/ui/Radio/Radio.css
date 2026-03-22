@@ -1,0 +1,28 @@
+.ui-radio {
+  border-radius: 50%;
+}
+
+.ui-radio::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.35);
+  transition:
+    transform var(--ui-transition-fast),
+    opacity var(--ui-transition-fast);
+}
+
+.ui-radio:checked {
+  border-color: var(--ui-color-accent);
+  background: var(--ui-color-accent);
+}
+
+.ui-radio:checked::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}

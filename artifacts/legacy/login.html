@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · Вход</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css?v=20260320-auth7" />
+    <link rel="stylesheet" href="styles/login-page.css?v=20260320-figma-login1" />
+  </head>
+  <body class="entry-login-body">
+    <main class="entry-login">
+      <article class="auth-panel entry-login__panel" data-auth-screen="login">
+        <div class="auth-panel__top">
+          <a class="auth-back" href="index.html" aria-label="Вернуться на главную">
+            <span aria-hidden="true">←</span>
+          </a>
+
+          <div class="auth-brand" aria-label="TRAMPLIN">
+            <span class="auth-brand__mark entry-login__brand-mark" aria-hidden="true"></span>
+            <span class="auth-brand__label">TRAMPLIN</span>
+          </div>
+        </div>
+
+        <div class="auth-panel__copy entry-login__copy">
+          <span class="auth-badge entry-login__badge">Личный кабинет</span>
+          <h1 id="auth-title">Вход</h1>
+          <p>
+            Выберите роль, чтобы продолжить работу с вакансиями,
+            откликами и карьерным профилем.
+          </p>
+        </div>
+
+        <form class="auth-form entry-login__form" action="candidate-dashboard.html" novalidate data-auth-form>
+          <input type="hidden" name="role" value="candidate" data-role-value />
+
+          <div class="entry-login__options" role="radiogroup" aria-label="Выбор роли">
+            <label class="entry-login__option is-selected" data-role-card>
+              <input type="radio" name="login-role" value="candidate" checked />
+              <span
+                class="entry-login__option-icon entry-login__option-icon--candidate"
+                aria-hidden="true"
+              ></span>
+              <span class="entry-login__option-copy">
+                <strong>Я ищу работу</strong>
+                <span>Профиль соискателя, вакансии и отклики</span>
+              </span>
+            </label>
+
+            <label class="entry-login__option" data-role-card>
+              <input type="radio" name="login-role" value="employer" />
+              <span
+                class="entry-login__option-icon entry-login__option-icon--employer"
+                aria-hidden="true"
+              ></span>
+              <span class="entry-login__option-copy">
+                <strong>Я ищу сотрудников</strong>
+                <span>Профиль работодателя, команды и подбор</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="entry-login__actions">
+            <button
+              class="auth-button auth-button--primary entry-login__action"
+              type="submit"
+              data-submit-button
+              data-loading-label="Переходим"
+            >
+              <span class="auth-button__label">Войти</span>
+              <span class="auth-button__loader" aria-hidden="true"></span>
+            </button>
+
+            <a
+              class="auth-button auth-button--secondary entry-login__action"
+              href="candidate-registration.html?role=candidate"
+              data-auth-register-link
+            >
+              Зарегистрироваться
+            </a>
+          </div>
+        </form>
+      </article>
+    </main>
+
+    <script src="pages/auth/auth-screens.js?v=20260320-auth-system1"></script>
+  </body>
+</html>

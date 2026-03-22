@@ -1,0 +1,243 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Трамплин, главная страница" [ref=e4] [cursor=pointer]:
+        - /url: index.html
+        - generic [ref=e6]: TAMPLIN
+      - navigation "Основная навигация" [ref=e7]:
+        - link "Вакансии" [ref=e8] [cursor=pointer]:
+          - /url: "#"
+        - link "Стажировки" [ref=e9] [cursor=pointer]:
+          - /url: "#"
+        - link "Менторы" [ref=e10] [cursor=pointer]:
+          - /url: "#"
+        - link "Мероприятия" [ref=e11] [cursor=pointer]:
+          - /url: "#"
+        - link "Компании" [ref=e12] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e13]:
+        - button "Уведомления" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: "!"
+        - link "Опубликовать вакансию" [ref=e16] [cursor=pointer]:
+          - /url: "#"
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - complementary "Навигация кабинета компании" [ref=e20]:
+        - generic [ref=e21]:
+          - paragraph [ref=e22]: Рабочая зона компании
+          - navigation "Разделы кабинета" [ref=e23]:
+            - link "Профиль компании" [ref=e24] [cursor=pointer]:
+              - /url: company-dashboard.html
+            - link "Создать возможность" [ref=e25] [cursor=pointer]:
+              - /url: company-opportunity.html
+            - link "Возможности" [ref=e26] [cursor=pointer]:
+              - /url: opportunity-card.html
+            - link "Отклики" [ref=e27] [cursor=pointer]:
+              - /url: company-dashboard.html
+        - generic [ref=e28]:
+          - generic [ref=e29]: 3 шага до публикации
+          - heading "Форма собирается как редактор карточки" [level=2] [ref=e30]
+          - list [ref=e31]:
+            - listitem [ref=e32]:
+              - text: "1"
+              - generic [ref=e33]:
+                - strong [ref=e34]: Основа
+                - paragraph [ref=e35]: Определи тип, заголовок, формат и базовые параметры возможности.
+            - listitem [ref=e36]:
+              - text: "2"
+              - generic [ref=e37]:
+                - strong [ref=e38]: Ценность
+                - paragraph [ref=e39]: "Покажи, что получит кандидат: задачи, программу, преимущества и контекст."
+            - listitem [ref=e40]:
+              - text: "3"
+              - generic [ref=e41]:
+                - strong [ref=e42]: Публикация
+                - paragraph [ref=e43]: Добавь CTA, контакт и дедлайн, чтобы карточка была готова к выдаче.
+      - region "Создать возможность для соискателей" [ref=e44]:
+        - radio "Мероприятие"
+        - radio "Вакансия" [checked] [active]
+        - radio "Стажировка"
+        - article [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: Кабинет работодателя
+              - generic [ref=e49]: Черновик обновлён 2 минуты назад
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - heading "Создать возможность для соискателей" [level=1] [ref=e52]
+                - paragraph [ref=e53]: "Экран собран как рабочий редактор публикации: слева секции формы, справа live-preview карточки и чеклист. Список возможностей не трогаем, меняем только сам сценарий создания."
+              - generic "Сводка по форме" [ref=e54]:
+                - article [ref=e55]:
+                  - strong [ref=e56]: "3"
+                  - text: этапа до публикации
+                - article [ref=e57]:
+                  - strong [ref=e58]: 82%
+                  - text: готовности черновика
+                - article [ref=e59]:
+                  - strong [ref=e60]: "1"
+                  - text: карточка в фокусе
+                - article [ref=e61]:
+                  - strong [ref=e62]: 24 ч
+                  - text: до ручной модерации
+            - tablist "Тип возможности" [ref=e63]:
+              - generic [ref=e64] [cursor=pointer]: Мероприятие
+              - generic [ref=e65] [cursor=pointer]: Вакансия
+              - generic [ref=e66] [cursor=pointer]: Стажировка
+          - generic [ref=e67]:
+            - generic [ref=e220]:
+              - generic [ref=e221]:
+                - generic [ref=e222]:
+                  - generic [ref=e223]:
+                    - text: Шаг 1
+                    - heading "Основа публикации" [level=2] [ref=e224]
+                  - paragraph [ref=e225]: Определи роль, вилку, формат и дедлайн так, чтобы карточка была понятна с первого взгляда.
+                - generic [ref=e226]:
+                  - generic [ref=e227]:
+                    - generic [ref=e228]: Название вакансии
+                    - textbox "Название вакансии Используй формулировку роли, а не внутреннее название отдела." [ref=e229]: Junior Security Analyst
+                    - generic [ref=e230]: Используй формулировку роли, а не внутреннее название отдела.
+                  - generic [ref=e231]:
+                    - generic [ref=e232]: Формат
+                    - combobox "Формат" [ref=e233]:
+                      - option "Офис / гибрид" [selected]
+                      - option "Удалённо"
+                      - option "Офис"
+                  - generic [ref=e234]:
+                    - generic [ref=e235]: Город
+                    - textbox "Город" [ref=e236]: Москва
+                  - generic [ref=e237]:
+                    - generic [ref=e238]: Зарплатная вилка
+                    - textbox "Зарплатная вилка" [ref=e239]: от 90 000 ₽
+                  - generic [ref=e240]:
+                    - generic [ref=e241]: Дедлайн отклика
+                    - textbox "Дедлайн отклика" [ref=e242]: до 30 апреля 2026
+              - generic [ref=e243]:
+                - generic [ref=e244]:
+                  - generic [ref=e245]:
+                    - text: Шаг 2
+                    - heading "Задачи и ожидания" [level=2] [ref=e246]
+                  - paragraph [ref=e247]: "Сделай блок задач и требований коротким, но конкретным: без внутренних аббревиатур и шума."
+                - generic [ref=e248]:
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: Описание роли
+                    - textbox "Описание роли" [ref=e251]: Ищем начинающего аналитика в команду мониторинга и реагирования. Важны внимательность, интерес к ИБ и готовность быстро учиться на реальных кейсах.
+                  - generic [ref=e252]:
+                    - generic [ref=e253]: Основные задачи
+                    - textbox "Основные задачи" [ref=e254]: Мониторинг инцидентов, первичная аналитика событий безопасности, эскалация кейсов и участие в разборе алертов вместе с наставником.
+                  - generic [ref=e255]:
+                    - generic [ref=e256]: Требования
+                    - textbox "Требования" [ref=e257]: Базовое понимание сетей и Linux, интерес к SOC-процессам, аккуратность в работе с данными и готовность к гибридному формату.
+              - generic [ref=e258]:
+                - generic [ref=e259]:
+                  - generic [ref=e260]:
+                    - text: Шаг 3
+                    - heading "Публикация и контакт" [level=2] [ref=e261]
+                  - paragraph [ref=e262]: Добавь контакт, ссылку и CTA, чтобы путь кандидата не обрывался после открытия карточки.
+                - generic [ref=e263]:
+                  - generic [ref=e264]:
+                    - generic [ref=e265]: Команда
+                    - textbox "Команда" [ref=e266]: Security Operations Center
+                  - generic [ref=e267]:
+                    - generic [ref=e268]: Рекрутер
+                    - textbox "Рекрутер" [ref=e269]: Дарья Белова
+                  - generic [ref=e270]:
+                    - generic [ref=e271]: Текст кнопки
+                    - textbox "Текст кнопки" [ref=e272]: Откликнуться
+                  - generic [ref=e273]:
+                    - generic [ref=e274]: Ссылка на отклик
+                    - textbox "Ссылка на отклик" [ref=e275]: https://tamplin.ru/vacancy/7421
+              - generic [ref=e276]:
+                - button "Сохранить черновик" [ref=e277] [cursor=pointer]
+                - button "Предпросмотр" [ref=e278] [cursor=pointer]
+                - button "Опубликовать" [ref=e279] [cursor=pointer]
+            - complementary [ref=e132]:
+              - article [ref=e133]:
+                - generic [ref=e134]:
+                  - generic [ref=e135]: Live preview
+                  - text: Готово на 82%
+                - heading "Айти планета" [level=2] [ref=e136]
+                - paragraph [ref=e137]: ООО Компани · Community
+                - paragraph [ref=e138]: Соревнование и карьерный ивент с гибридным форматом, экспертными разборами и быстрым входом в стажировки партнёров.
+                - generic [ref=e139]:
+                  - generic [ref=e140]: Гибридный
+                  - generic [ref=e141]: Москва
+                  - generic [ref=e142]: Регистрация
+                - generic [ref=e143]:
+                  - generic [ref=e144]:
+                    - term [ref=e145]: Дата
+                    - definition [ref=e146]: 12 апреля 2026
+                  - generic [ref=e147]:
+                    - term [ref=e148]: CTA
+                    - definition [ref=e149]: Зарегистрироваться
+                  - generic [ref=e150]:
+                    - term [ref=e151]: Фокус
+                    - definition [ref=e152]: Практика + нетворк
+                  - generic [ref=e153]:
+                    - term [ref=e154]: Аудитория
+                    - definition [ref=e155]: Джуны и студенты
+              - article [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]: Live preview
+                  - text: Готово на 79%
+                - heading "Junior Security Analyst" [level=2] [ref=e159]
+                - paragraph [ref=e160]: ООО Компани · SOC
+                - paragraph [ref=e161]: Роль для начинающего аналитика с понятным контуром задач, живыми кейсами и менторством в гибридной команде.
+                - generic [ref=e162]:
+                  - generic [ref=e163]: Офис / гибрид
+                  - generic [ref=e164]: Москва
+                  - generic [ref=e165]: от 90 000 ₽
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - term [ref=e168]: Дедлайн
+                    - definition [ref=e169]: 30 апреля
+                  - generic [ref=e170]:
+                    - term [ref=e171]: Команда
+                    - definition [ref=e172]: SOC
+                  - generic [ref=e173]:
+                    - term [ref=e174]: Формат
+                    - definition [ref=e175]: Гибрид
+                  - generic [ref=e176]:
+                    - term [ref=e177]: CTA
+                    - definition [ref=e178]: Откликнуться
+              - article [ref=e179]:
+                - generic [ref=e180]:
+                  - generic [ref=e181]: Live preview
+                  - text: Готово на 84%
+                - heading "Летняя школа SOC" [level=2] [ref=e182]
+                - paragraph [ref=e183]: ООО Компани · Академия
+                - paragraph [ref=e184]: Стажировка с куратором, лабораториями и внятным треком роста от онбординга до финального проекта.
+                - generic [ref=e185]:
+                  - generic [ref=e186]: 8 недель
+                  - generic [ref=e187]: Гибрид
+                  - generic [ref=e188]: 40 000 ₽ / мес
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - term [ref=e191]: Старт
+                    - definition [ref=e192]: 1 июня 2026
+                  - generic [ref=e193]:
+                    - term [ref=e194]: Куратор
+                    - definition [ref=e195]: Егор Самойлов
+                  - generic [ref=e196]:
+                    - term [ref=e197]: Отбор
+                    - definition [ref=e198]: Анкета + тестовое
+                  - generic [ref=e199]:
+                    - term [ref=e200]: CTA
+                    - definition [ref=e201]: Подать заявку
+              - article [ref=e202]:
+                - generic [ref=e203]:
+                  - generic [ref=e204]: Чеклист
+                  - heading "Публикация без пустых зон" [level=2] [ref=e205]
+                  - paragraph [ref=e206]: Справа всегда видно, хватает ли карточке сигналов для выдачи в каталоге и карточке детали.
+                - list [ref=e207]:
+                  - listitem [ref=e208]: Тип и заголовок определены
+                  - listitem [ref=e209]: Формат и базовые параметры заполнены
+                  - listitem [ref=e210]: Ценность для кандидата описана
+                  - listitem [ref=e211]: Проверить ссылку и текст CTA перед публикацией
+              - article [ref=e280]:
+                - generic [ref=e281]: Подсказка
+                - heading "Вакансия" [level=2] [ref=e282]
+                - paragraph [ref=e283]: На отклик сильнее всего влияет ясная роль, честная вилка и несколько конкретных задач, а не длинный корпоративный текст.
+                - generic [ref=e284]:
+                  - generic [ref=e285]: Роль
+                  - generic [ref=e286]: Вилка
+                  - generic [ref=e287]: Команда
