@@ -1,0 +1,32 @@
+.ui-pill-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: var(--ui-radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ui-color-text-soft);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  transition:
+    transform var(--ui-transition-fast),
+    border-color var(--ui-transition-base),
+    background-color var(--ui-transition-base),
+    color var(--ui-transition-base),
+    box-shadow var(--ui-transition-base);
+}
+
+.ui-pill-button:hover {
+  transform: translateY(-1px);
+}
+
+.ui-pill-button.is-active {
+  color: var(--ui-color-accent);
+  border-color: rgba(47, 128, 255, 0.16);
+  background: rgba(47, 128, 255, 0.08);
+}

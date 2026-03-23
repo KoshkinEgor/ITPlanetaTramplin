@@ -43,7 +43,7 @@
 
 .ui-button--primary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
 .ui-button--primary.is-hovered:not(:disabled):not(.is-disabled) {
-  box-shadow: 0 22px 40px rgba(47, 128, 255, 0.3);
+  box-shadow: var(--ui-shadow-accent-hover);
 }
 
 .ui-button--secondary {
@@ -74,12 +74,12 @@
 .ui-button--danger {
   color: #ffffff;
   background: linear-gradient(180deg, #ec7a56 0%, var(--ui-color-danger) 100%);
-  box-shadow: 0 18px 34px rgba(222, 101, 68, 0.22);
+  box-shadow: var(--ui-shadow-danger);
 }
 
 .ui-button--danger:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
 .ui-button--danger.is-hovered:not(:disabled):not(.is-disabled) {
-  box-shadow: 0 22px 40px rgba(222, 101, 68, 0.26);
+  box-shadow: var(--ui-shadow-danger-hover);
 }
 
 .ui-button:focus-visible:not(:disabled):not(.is-disabled),
@@ -90,7 +90,7 @@
 
 .ui-button--primary:focus-visible:not(:disabled):not(.is-disabled),
 .ui-button--primary.is-focused:not(:disabled):not(.is-disabled) {
-  box-shadow: var(--ui-shadow-focus), 0 22px 40px rgba(47, 128, 255, 0.3);
+  box-shadow: var(--ui-shadow-focus), var(--ui-shadow-accent-hover);
 }
 
 .ui-button--secondary:focus-visible:not(:disabled):not(.is-disabled),
@@ -109,7 +109,7 @@
 
 .ui-button--danger:focus-visible:not(:disabled):not(.is-disabled),
 .ui-button--danger.is-focused:not(:disabled):not(.is-disabled) {
-  box-shadow: var(--ui-shadow-focus), 0 22px 40px rgba(222, 101, 68, 0.26);
+  box-shadow: var(--ui-shadow-focus), var(--ui-shadow-danger-hover);
 }
 
 .ui-button--sm {
