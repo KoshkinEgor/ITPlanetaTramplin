@@ -1434,7 +1434,7 @@
   }
 
   function openOpportunity(id) {
-    window.location.href = `../opportunities/opportunity-detail.html?opportunity=${encodeURIComponent(id)}`;
+    window.location.href = `../opportunities/opportunity-detail-card.html?opportunity=${encodeURIComponent(id)}`;
   }
 
   function pluralize(count) {

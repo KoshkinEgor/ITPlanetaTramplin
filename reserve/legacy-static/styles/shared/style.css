@@ -231,11 +231,11 @@ main {
 .button-primary {
   color: #ffffff;
   background: linear-gradient(180deg, #3f95ff 0%, var(--accent-blue) 100%);
-  box-shadow: 0 16px 26px rgba(47, 128, 255, 0.28);
+  box-shadow: 0 10px 22px rgba(47, 128, 255, 0.24);
 }
 
 .button-primary:hover {
-  box-shadow: 0 20px 34px rgba(47, 128, 255, 0.34);
+  box-shadow: 0 12px 24px rgba(47, 128, 255, 0.28);
 }
 
 .button-secondary {
@@ -251,7 +251,7 @@ main {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(180deg, #3f95ff 0%, var(--accent-blue) 100%);
-  box-shadow: 0 12px 22px rgba(47, 128, 255, 0.22);
+  box-shadow: 0 8px 18px rgba(47, 128, 255, 0.18);
 }
 
 .icon-button {
@@ -1435,11 +1435,11 @@ main {
 .auth-button--primary {
   color: #ffffff;
   background: linear-gradient(180deg, #4f9cff 0%, #2f80ff 100%);
-  box-shadow: 0 14px 28px rgba(47, 128, 255, 0.26);
+  box-shadow: 0 10px 22px rgba(47, 128, 255, 0.24);
 }
 
 .auth-button--primary:hover {
-  box-shadow: 0 18px 34px rgba(47, 128, 255, 0.3);
+  box-shadow: 0 12px 24px rgba(47, 128, 255, 0.28);
 }
 
 .auth-button--secondary {

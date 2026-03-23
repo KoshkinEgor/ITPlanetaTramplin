@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../../styles/shared/style.css" />
     <link rel="stylesheet" href="../../styles/candidate/candidate-dashboard.css" />
     <script src="../../scripts/shared/shared-header.js" defer></script>
+    <script src="../../scripts/candidate/candidate-dashboard.js" defer></script>
   </head>
   <body class="candidate-dashboard-body">
     <div data-shared-header data-header-config="candidate-dashboard" data-header-base="../../"></div>
@@ -81,7 +82,25 @@
 
         <div class="candidate-dashboard__workspace">
           <section class="card candidate-profile" aria-labelledby="candidate-profile-title">
-            <div class="candidate-profile__cover" aria-hidden="true"></div>
+            <div class="candidate-profile__cover">
+              <input
+                class="candidate-profile__cover-input"
+                type="file"
+                id="candidate-cover-upload"
+                name="candidate-cover-upload"
+                accept="image/png, image/jpeg, image/webp"
+              />
+              <label
+                class="candidate-profile__cover-upload"
+                for="candidate-cover-upload"
+                data-cover-upload-label
+              >
+                <span class="candidate-profile__cover-upload-link">Загрузить шапку профиля</span>
+                <span class="candidate-profile__cover-upload-hint" data-cover-upload-status>
+                  PNG, JPG или WEBP до 10 МБ
+                </span>
+              </label>
+            </div>
 
             <div class="candidate-profile__body">
               <div class="candidate-profile__identity">
@@ -94,7 +113,7 @@
                     <span class="tag">Профиль соискателя</span>
                     <span class="chip candidate-profile__intro-chip candidate-profile__intro-chip--default">
                       <span class="status-dot" aria-hidden="true"></span>
-                      На связи
+                      Онлайн
                     </span>
                     <span class="chip candidate-profile__intro-chip candidate-profile__intro-chip--responses">
                       12 активностей за месяц
@@ -135,37 +154,17 @@
 
                 <div class="candidate-profile__stats candidate-profile__stats--default">
                   <div>
-                    <span>Отклики</span>
                     <strong>12</strong>
+                    <span>Отклики</span>
                   </div>
                   <div>
+                    <strong>4</strong>
                     <span>Проекты</span>
-                    <strong>4</strong>
                   </div>
                   <div>
-                    <span>Контакты</span>
                     <strong>19</strong>
+                    <span>Контакты</span>
                   </div>
-                </div>
-
-                <div class="candidate-profile__stats candidate-profile__stats--responses">
-                  <div>
-                    <span>Отклики</span>
-                    <strong>12</strong>
-                  </div>
-                  <div>
-                    <span>Активные</span>
-                    <strong>4</strong>
-                  </div>
-                  <div>
-                    <span>Избранное</span>
-                    <strong>3</strong>
-                  </div>
-                </div>
-
-                <div class="candidate-dashboard__section-actions" aria-label="Быстрые действия профиля">
-                  <label class="button button-secondary" for="candidate-section-contacts">Контакты</label>
-                  <label class="button button-primary" for="candidate-section-settings">Редактировать профиль</label>
                 </div>
               </aside>
             </div>
@@ -173,68 +172,18 @@
 
           <div class="candidate-dashboard__screens">
             <section class="candidate-dashboard__screen candidate-dashboard__screen--about">
-              <div class="candidate-dashboard__section-head">
-                <div>
-                  <span class="tag">Dashboard</span>
-                  <h2>Обо мне</h2>
-                </div>
-
-                <div class="candidate-dashboard__section-actions">
-                  <a class="button button-secondary" href="../home/index.html#map-view">Перейти к карте</a>
-                  <a class="button button-primary" href="../home/index.html#map-view">Найти возможности</a>
-                </div>
-              </div>
-
-              <div class="candidate-dashboard__grid candidate-dashboard__grid--about">
-                <article class="card candidate-card">
-                  <div class="candidate-card__head">
-                    <span class="tag">О себе</span>
-                    <h3>Короткий профиль</h3>
-                  </div>
-                  <p>
-                    Ищу стажировку или junior-позицию в аналитике продукта, исследовании или UX.
-                    Хочу работать в команде, где есть данные, пользователи и пространство для роста.
-                  </p>
-                </article>
-
-                <article class="card candidate-card">
-                  <div class="candidate-card__head">
-                    <span class="tag">Карьерные интересы</span>
-                    <h3>Направления</h3>
-                  </div>
-                  <div class="candidate-chip-list">
-                    <span class="chip">Product Analytics</span>
-                    <span class="chip">UX Research</span>
-                    <span class="chip">Junior PM</span>
-                    <span class="chip">EdTech</span>
-                  </div>
-                </article>
-
-                <article class="card candidate-card">
-                  <div class="candidate-card__head">
-                    <span class="tag">Формат работы</span>
-                    <h3>Предпочтения</h3>
-                  </div>
-                  <div class="candidate-chip-list">
-                    <span class="chip">Гибрид</span>
-                    <span class="chip">Офис</span>
-                    <span class="chip">Частичная занятость</span>
-                  </div>
-                </article>
-              </div>
-
-              <section class="candidate-dashboard__subsection">
+              <section class="candidate-dashboard__subsection candidate-dashboard__subsection--highlight">
                 <div class="candidate-dashboard__subsection-head">
-                  <h3>Рекомендуемые возможности</h3>
+                  <h2>Рекомендуемые возможности</h2>
                   <a class="section-link" href="../home/index.html#map-view">
-                    Смотреть все
+                    Все возможности
                     <span aria-hidden="true">→</span>
                   </a>
                 </div>
 
                 <div class="candidate-dashboard__card-grid">
                   <article class="vacancy-card card candidate-opportunity-card">
-                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail.html" aria-label="Открыть Летнюю школу SOC"></a>
+                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail-card.html" aria-label="Открыть Летнюю школу SOC"></a>
                     <div class="vacancy-card__top">
                       <span class="company-mark company-mark--orange" aria-hidden="true">К</span>
                       <div class="vacancy-card__top-meta">
@@ -255,11 +204,11 @@
                       <span class="tag">Наставник</span>
                     </div>
 
-                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail.html">Открыть</a>
+                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail-card.html">Открыть</a>
                   </article>
 
                   <article class="vacancy-card card candidate-opportunity-card">
-                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail.html" aria-label="Открыть Junior Product Analyst"></a>
+                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail-card.html" aria-label="Открыть Junior Product Analyst"></a>
                     <div class="vacancy-card__top">
                       <span class="company-mark company-mark--vk" aria-hidden="true">К</span>
                       <div class="vacancy-card__top-meta">
@@ -280,49 +229,61 @@
                       <span class="tag">Research</span>
                     </div>
 
-                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail.html">Открыть</a>
+                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail-card.html">Открыть</a>
                   </article>
                 </div>
               </section>
 
-              <div class="candidate-dashboard__grid candidate-dashboard__grid--stacked">
-                <article class="card candidate-card">
-                  <div class="candidate-card__head">
+              <div class="candidate-dashboard__grid candidate-dashboard__grid--stacked candidate-dashboard__grid--about-main">
+                <article class="card candidate-card candidate-card--contacts">
+                  <div class="candidate-card__head candidate-card__head--compact">
                     <span class="tag">Рекомендуемые контакты</span>
-                    <h3>Кого стоит добавить</h3>
+                    <a class="section-link" href="../contacts/contact-profile.html">
+                      Все рекомендации
+                      <span aria-hidden="true">→</span>
+                    </a>
                   </div>
 
-                  <div class="candidate-contact-list">
-                    <a class="candidate-contact-card" href="../contacts/contact-profile.html">
+                  <div class="candidate-contact-list candidate-contact-list--recommended">
+                    <a class="candidate-contact-card candidate-contact-card--action" href="../contacts/contact-profile.html">
                       <span class="candidate-contact-card__avatar">МС</span>
                       <span class="candidate-contact-card__content">
                         <strong>Мария Соколова</strong>
-                        <span>3 общих навыка: SQL, UX, Research</span>
+                        <span>Product researcher в EdTech, 3 общих навыка и готовность посмотреть портфолио.</span>
                       </span>
-                      <span class="tag">Добавить</span>
+                      <span class="candidate-contact-card__action" aria-hidden="true">+</span>
                     </a>
 
-                    <a class="candidate-contact-card" href="../contacts/contact-profile.html">
-                      <span class="candidate-contact-card__avatar">ИД</span>
+                    <a class="candidate-contact-card candidate-contact-card--action" href="../contacts/contact-profile.html">
+                      <span class="candidate-contact-card__avatar">ОФ</span>
                       <span class="candidate-contact-card__content">
-                        <strong>Илья Демин</strong>
-                        <span>Работает в компании из ваших рекомендаций</span>
+                        <strong>Ольга Федосеева</strong>
+                        <span>Менторит junior-аналитиков в финтехе и ищет людей с сильным research-бэкграундом.</span>
                       </span>
-                      <span class="tag">Профиль</span>
+                      <span class="candidate-contact-card__action" aria-hidden="true">+</span>
                     </a>
                   </div>
                 </article>
 
-                <article class="card candidate-card">
-                  <div class="candidate-card__head">
+                <article class="card candidate-card candidate-card--activity">
+                  <div class="candidate-card__head candidate-card__head--stacked">
                     <span class="tag tag-warm">Последние действия</span>
-                    <h3>Что происходило недавно</h3>
+                    <h3>Что менялось на этой неделе</h3>
                   </div>
 
-                  <ul class="candidate-activity">
-                    <li>Просмотрена вакансия Junior Product Analyst</li>
-                    <li>Отклик отправлен на Летнюю школу SOC</li>
-                    <li>Добавлен контакт Мария Соколова</li>
+                  <ul class="candidate-activity candidate-activity--timeline">
+                    <li>
+                      <strong>Просмотрена вакансия Junior Product Analyst</strong>
+                      <span>Вчера · сохранили в короткий список для следующего отклика.</span>
+                    </li>
+                    <li>
+                      <strong>Отклик отправлен на Летнюю школу SOC</strong>
+                      <span>2 дня назад · осталось дождаться обратной связи от организатора.</span>
+                    </li>
+                    <li>
+                      <strong>Добавлен контакт Мария Соколова</strong>
+                      <span>3 дня назад · появился новый warm intro в продуктовую аналитику.</span>
+                    </li>
                   </ul>
                 </article>
               </div>
@@ -468,7 +429,7 @@
               <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-active">
                 <div class="candidate-response-list">
                   <article class="card candidate-response-card">
-                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail.html"></a>
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
                     <div class="candidate-response-card__top">
                       <div>
                         <span class="chip">Вакансия</span>
@@ -483,7 +444,7 @@
                       <span>Дедлайн 30 апреля</span>
                     </div>
                     <div class="candidate-card__actions">
-                      <a class="button button-secondary" href="../opportunities/opportunity-detail.html">Открыть карточку</a>
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
                       <a class="button button-secondary" href="../home/index.html#map-view">Показать на карте</a>
                       <button class="button button-secondary" type="button">Отменить отклик</button>
                       <button class="button button-primary" type="button">Рекомендовать контакту</button>
@@ -491,7 +452,7 @@
                   </article>
 
                   <article class="card candidate-response-card">
-                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail.html"></a>
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
                     <div class="candidate-response-card__top">
                       <div>
                         <span class="chip">Стажировка</span>
@@ -506,7 +467,7 @@
                       <span>Старт 1 июня</span>
                     </div>
                     <div class="candidate-card__actions">
-                      <a class="button button-secondary" href="../opportunities/opportunity-detail.html">Открыть карточку</a>
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
                       <a class="button button-secondary" href="../home/index.html#map-view">Показать на карте</a>
                       <button class="button button-secondary" type="button">Отменить отклик</button>
                       <button class="button button-primary" type="button">Рекомендовать контакту</button>
@@ -518,7 +479,7 @@
               <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-saved">
                 <div class="candidate-response-list">
                   <article class="card candidate-response-card">
-                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail.html"></a>
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
                     <div class="candidate-response-card__top">
                       <div>
                         <span class="chip">Мероприятие</span>
@@ -533,7 +494,7 @@
                       <span>12 апреля 2026</span>
                     </div>
                     <div class="candidate-card__actions">
-                      <a class="button button-secondary" href="../opportunities/opportunity-detail.html">Открыть карточку</a>
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
                       <button class="button button-secondary" type="button">Убрать из избранного</button>
                       <button class="button button-primary" type="button">Рекомендовать контакту</button>
                     </div>
@@ -544,7 +505,7 @@
               <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-finished">
                 <div class="candidate-response-list">
                   <article class="card candidate-response-card">
-                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail.html"></a>
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
                     <div class="candidate-response-card__top">
                       <div>
                         <span class="chip">Вакансия</span>

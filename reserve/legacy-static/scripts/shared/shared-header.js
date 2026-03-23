@@ -8,7 +8,7 @@
   ];
 
   const PLATFORM_NAV = [
-    { href: "pages/candidate/candidate-dashboard.html", text: "Соискателю" },
+    { href: "pages/candidate/candidate-profile.html", text: "Соискателю" },
     { href: "pages/company/company-dashboard.html", text: "Работодателям" },
     { href: "pages/home/index.html#info", text: "О системе" },
   ];
@@ -23,7 +23,7 @@
   const CURATOR_NAV = [
     { href: "pages/home/app-home.html#workspace", text: "Возможности" },
     { href: "pages/home/app-home.html#companies", text: "Компании" },
-    { href: "pages/candidate/candidate-dashboard.html", text: "Соискатели" },
+    { href: "pages/candidate/candidate-profile.html", text: "Соискатели" },
     { href: "pages/company/company-dashboard.html", text: "Работодатели" },
   ];
 
@@ -90,7 +90,7 @@
           {
             type: "profileLink",
             className: "app-home-profile-link app-home-auth app-home-auth--user",
-            href: "pages/candidate/candidate-dashboard.html",
+            href: "pages/candidate/candidate-profile.html",
             ariaLabel: "Перейти в личный кабинет",
             avatar: "АК",
             eyebrow: "Быстрый доступ",
@@ -123,7 +123,7 @@
         className: "main-nav candidate-header__nav",
         ariaLabel: "Навигация платформы",
         items: [
-          { href: "pages/candidate/candidate-dashboard.html", text: "Соискателю", current: true },
+          { href: "pages/candidate/candidate-profile.html", text: "Соискателю", current: true },
           { href: "pages/company/company-dashboard.html", text: "Работодателям" },
           { href: "pages/home/index.html#info", text: "О системе" },
         ],
@@ -146,7 +146,7 @@
           {
             type: "link",
             className: "button button-primary",
-            href: "pages/candidate/candidate-dashboard.html",
+            href: "pages/candidate/candidate-profile.html",
             text: "Профиль",
           },
         ],
@@ -189,7 +189,7 @@
           {
             type: "link",
             className: "button button-secondary",
-            href: "pages/candidate/candidate-dashboard.html",
+            href: "pages/candidate/candidate-profile.html",
             text: "Назад в кабинет",
           },
         ],
