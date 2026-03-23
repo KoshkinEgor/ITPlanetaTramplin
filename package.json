@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "preview": "vite preview",
-    "ui-kit:dev": "vite --open /ui-kit-react.html"
+    "preview": "vite preview --host 127.0.0.1",
+    "ui-kit:dev": "vite --host 127.0.0.1 --open /ui-kit-react.html"
   },
   "dependencies": {
     "react": "18.2.0",

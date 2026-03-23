@@ -2,7 +2,8 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "./" : "/",
   plugins: [react()],
   build: {
     rollupOptions: {
@@ -10,6 +11,7 @@ export default defineConfig({
         index: resolve(__dirname, "index.html"),
         uiKitReact: resolve(__dirname, "ui-kit-react.html"),
         homeIndex: resolve(__dirname, "pages/home/index.html"),
+        companyDashboard: resolve(__dirname, "pages/company/company-dashboard.html"),
         moderatorDashboard: resolve(__dirname, "pages/curator/moderator-dashboard.html"),
         moderatorOpportunities: resolve(__dirname, "pages/curator/moderator-opportunities.html"),
         moderatorCompanies: resolve(__dirname, "pages/curator/moderator-companies.html"),
@@ -36,4 +38,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

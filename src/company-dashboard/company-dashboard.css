@@ -1,0 +1,193 @@
+.company-dashboard-react-body {
+  min-height: 100vh;
+}
+
+.company-dashboard-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(201, 255, 31, 0.24), transparent 28%),
+    radial-gradient(circle at right 18%, rgba(47, 128, 255, 0.22), transparent 32%),
+    linear-gradient(180deg, #f6f9ff 0%, #edf3fb 52%, #f8fbff 100%);
+}
+
+.company-dashboard-page__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(24, 29, 45, 0.02) 0,
+      rgba(24, 29, 45, 0.02) 1px,
+      transparent 1px,
+      transparent 88px
+    );
+  pointer-events: none;
+}
+
+.company-dashboard-page__shell {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 24px 0 56px;
+}
+
+.company-dashboard-page__main {
+  display: grid;
+  gap: 24px;
+}
+
+.company-dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  gap: 24px;
+  padding: 32px;
+  border-radius: 32px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(240, 246, 255, 0.96)),
+    linear-gradient(180deg, rgba(47, 128, 255, 0.06), rgba(201, 255, 31, 0.08));
+  box-shadow: 0 24px 60px rgba(35, 51, 86, 0.12);
+}
+
+.company-dashboard-hero__copy {
+  display: grid;
+  gap: 18px;
+}
+
+.company-dashboard-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.company-dashboard-hero__actions {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.company-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.company-dashboard-metric {
+  display: grid;
+  gap: 10px;
+}
+
+.company-dashboard-metric strong {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--ui-color-text);
+}
+
+.company-dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.company-dashboard-panel {
+  display: grid;
+  gap: 20px;
+  min-height: 100%;
+}
+
+.company-dashboard-panel--wide {
+  grid-row: span 2;
+}
+
+.company-dashboard-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.company-dashboard-list-item,
+.company-dashboard-response {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(246, 249, 255, 0.9);
+  border: 1px solid rgba(47, 128, 255, 0.08);
+}
+
+.company-dashboard-list-item__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.company-dashboard-checklist {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.company-dashboard-checklist li {
+  position: relative;
+  padding-left: 26px;
+  color: rgba(24, 29, 45, 0.82);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.company-dashboard-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.48rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d7ff44 0%, var(--ui-color-lime) 100%);
+  box-shadow: 0 0 0 6px rgba(201, 255, 31, 0.16);
+}
+
+.company-dashboard-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .company-dashboard-hero,
+  .company-dashboard-layout,
+  .company-dashboard-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .company-dashboard-panel--wide {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .company-dashboard-page__shell {
+    width: min(100% - 24px, 1180px);
+    padding: 16px 0 40px;
+  }
+
+  .company-dashboard-hero {
+    padding: 22px;
+    border-radius: 26px;
+  }
+
+  .company-dashboard-list-item__top {
+    flex-direction: column;
+  }
+
+  .company-dashboard-panel__actions,
+  .company-dashboard-hero__actions {
+    display: grid;
+  }
+}
