@@ -1,0 +1,44 @@
+﻿using Models;
+
+namespace DTO
+{
+    public class EmployerLoginDTO
+    {
+        public string Login { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+
+    }
+
+    public class EmployerRegistrationDTO
+    {
+        public string Password { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;       
+        public string CompanyName { get; set; } = null!;
+        public string? Inn { get; set; }
+        public string? VerificationData { get; set; }
+        public string? LegalAddress { get; set; }
+
+    }
+
+    public partial class EmployerGetDTO
+    {
+        public int Id { get; set; }
+
+        public string CompanyName { get; set; } = null!;
+
+        public string? Inn { get; set; }
+
+        public string? LegalAddress { get; set; }
+
+        public string? ProfileImage { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Socials { get; set; }
+
+        public string? MediaContent { get; set; }
+
+        public virtual ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
+
+    }
+}

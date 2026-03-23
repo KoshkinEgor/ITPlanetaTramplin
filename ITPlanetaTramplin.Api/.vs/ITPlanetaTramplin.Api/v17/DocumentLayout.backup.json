@@ -1,0 +1,234 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dto\\applicantdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dto\\applicantdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dto\\contact.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dto\\contact.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dto\\applicantachievmentdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dto\\applicantachievmentdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dto\\applicanteducationdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dto\\applicanteducationdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\models\\opportunity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\models\\opportunity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\models\\recommendation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\models\\recommendation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dto\\recommendationdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dto\\recommendationdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\dbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\models\\contact.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\models\\contact.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\models\\applicantachievement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\models\\applicantachievement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|d:\\projects\\itplanetatramplin\\itplanetatramplin.api\\itplanetatramplin.api\\models\\applicanteducation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECCC82A1-83F0-4A95-AE07-F45835CFB254}|ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api.csproj|solutionrelative:itplanetatramplin.api\\models\\applicanteducation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 242,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ApplicantDTOs.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantDTOs.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DTO\\ApplicantDTOs.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantDTOs.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DTO\\ApplicantDTOs.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-23T11:08:37.315Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Program.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Program.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Program.cs*",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Program.cs*",
+              "ViewState": "AgIAADIBAAAAAAAAAAAAAEMBAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T16:10:10.526Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Contact.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\Contact.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DTO\\Contact.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\Contact.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DTO\\Contact.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAQAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T21:18:41.703Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ApplicantEducationDTOs.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantEducationDTOs.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DTO\\ApplicantEducationDTOs.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantEducationDTOs.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DTO\\ApplicantEducationDTOs.cs",
+              "ViewState": "AgIAADYAAAAAAAAAAAAiwAgAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T18:41:11.356Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ApplicantAchievmentDTOs.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantAchievmentDTOs.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DTO\\ApplicantAchievmentDTOs.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\ApplicantAchievmentDTOs.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DTO\\ApplicantAchievmentDTOs.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAowCkAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T20:05:06.307Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 60,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Opportunity.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Opportunity.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Models\\Opportunity.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Opportunity.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Models\\Opportunity.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAIwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-23T09:37:45.971Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Recommendation.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Recommendation.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Models\\Recommendation.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Recommendation.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Models\\Recommendation.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAzwBcAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-23T09:05:06.083Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "RecommendationDTOs.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\RecommendationDTOs.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DTO\\RecommendationDTOs.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DTO\\RecommendationDTOs.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DTO\\RecommendationDTOs.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAwAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-23T09:05:39.266Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "DBContext.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DBContext.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\DBContext.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\DBContext.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\DBContext.cs",
+              "ViewState": "AgIAALYAAAAAAAAAAAAAwM0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T21:40:53.745Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Contact.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Contact.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Models\\Contact.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\Contact.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Models\\Contact.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAkAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T21:22:46.144Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ApplicantAchievement.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\ApplicantAchievement.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Models\\ApplicantAchievement.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\ApplicantAchievement.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Models\\ApplicantAchievement.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T20:05:33.935Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ApplicantEducation.cs",
+              "DocumentMoniker": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\ApplicantEducation.cs",
+              "RelativeDocumentMoniker": "ITPlanetaTramplin.Api\\Models\\ApplicantEducation.cs",
+              "ToolTip": "D:\\projects\\ITPlanetaTramplin\\ITPlanetaTramplin.Api\\ITPlanetaTramplin.Api\\Models\\ApplicantEducation.cs",
+              "RelativeToolTip": "ITPlanetaTramplin.Api\\Models\\ApplicantEducation.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-22T19:05:17.303Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
