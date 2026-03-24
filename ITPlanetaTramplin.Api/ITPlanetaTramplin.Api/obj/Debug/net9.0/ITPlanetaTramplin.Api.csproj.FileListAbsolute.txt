@@ -134,4 +134,3 @@ D:\projects\ITPlanetaTramplin\ITPlanetaTramplin.Api\ITPlanetaTramplin.Api\obj\De
 D:\projects\ITPlanetaTramplin\ITPlanetaTramplin.Api\ITPlanetaTramplin.Api\obj\Debug\net9.0\ITPlanetaTramplin.Api.pdb
 D:\projects\ITPlanetaTramplin\ITPlanetaTramplin.Api\ITPlanetaTramplin.Api\obj\Debug\net9.0\ITPlanetaTramplin.Api.genruntimeconfig.cache
 D:\projects\ITPlanetaTramplin\ITPlanetaTramplin.Api\ITPlanetaTramplin.Api\obj\Debug\net9.0\ref\ITPlanetaTramplin.Api.dll
-D:\projects\ITPlanetaTramplin\ITPlanetaTramplin.Api\ITPlanetaTramplin.Api\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

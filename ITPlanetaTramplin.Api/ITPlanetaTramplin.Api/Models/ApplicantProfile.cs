@@ -32,6 +32,6 @@ public partial class ApplicantProfile
     public virtual ICollection<Recommendation> RecommendationCandidates { get; set; } = new List<Recommendation>();
 
     public virtual ICollection<Recommendation> RecommendationRecommenders { get; set; } = new List<Recommendation>();
-
+    public virtual ICollection<Project> Projects {get;set;} = new List<Project>();
     public virtual User User { get; set; } = null!;
 }

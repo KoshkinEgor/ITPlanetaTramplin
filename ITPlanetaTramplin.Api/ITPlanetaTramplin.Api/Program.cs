@@ -671,6 +671,7 @@ api.MapPost("/opportunities", ([FromBody] DTO.OpportunityPostDTO opportunityData
             ExpireAt = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(opportunityData.ExpireAt ?? 0).DateTime),
             Employer = user,
             OpportunityType = opportunityData.OpportunityType,
+            EmploymentType=opportunityData.EmploymentType
 
         };
 
@@ -826,6 +827,7 @@ api.MapGet("/opportunities/{opportunityid}/applications", (int opportunityid) =>
     }
 });
 
+
 // -----------------------------------------------
 //  КОНТАКТЫ
 // -----------------------------------------------
@@ -948,6 +950,62 @@ api.MapGet("/recommendation", (HttpContext context) =>
 
 }).RequireAuthorization("requireApplicantRole");
 
+// --------------------------------------
+//  УПРАВЛЕНИЕ ПРОЕКТАМИ
+// --------------------------------------
+
+// Добавление проекта
+
+api.MapPost("/applicant/projects", ([FromBody] DTO.ProjectCreateDTO projectData, HttpContext context) =>
+{
+
+   var userClaim = int.Parse(context.User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+   using (var db = new ApplicationDBContext())
+    {
+        var applicantProfile = db.ApplicantProfiles.FirstOrDefault(ap => ap.UserId==userClaim);
+
+        if (applicantProfile != null)
+        {
+
+            var project = new Models.Project()
+            {
+                Author=applicantProfile,
+                Title=projectData.Title,
+                Description=projectData.Description,
+                ProjectType=projectData.ProjectType,
+                StartDate = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(projectData.StartDate).DateTime),
+                EndDate= DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(projectData.EndDate).DateTime),
+                ProjectDetailsJson=projectData.ProjectDetailsJson
+            };
+            db.Projects.Add(project);
+            db.SaveChanges();
+
+            return Results.Created($"/projects/{project.Id}", project.Id);
+        }
+        else
+        {
+            return Results.Unauthorized();
+        }
+    }
+});
+
+// Список проектов текущего пользователя
+api.MapGet("/applicant/projects", (HttpContext context) =>
+{
+    var userClaim = int.Parse(context.User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+    using (var db = new ApplicationDBContext())
+    {
+        var applicantProfileProjects = db.ApplicantProfiles
+            .Include(ap => ap.Projects)
+            .FirstOrDefault(ap => ap.UserId==userClaim)?.Projects
+            .Select(ap => new {ap.Title, ap.Description, ap.Id, ap.StartDate, ap.EndDate, ap.ProjectDetailsJson, ap.ProjectType})
+            ?? null;
+        return applicantProfileProjects;
+    }
+
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

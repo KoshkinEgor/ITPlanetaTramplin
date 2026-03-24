@@ -22,6 +22,8 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<ApplicantProfile> ApplicantProfiles { get; set; }
 
+    public virtual DbSet<Project> Projects { get; set; }
+
     public virtual DbSet<OpportunityApplication> Applications { get; set; }
 
     public virtual DbSet<Contact> Contacts { get; set; }
@@ -41,6 +43,7 @@ public partial class ApplicationDBContext : DbContext
     public virtual DbSet<VApplicantStat> VApplicantStats { get; set; }
 
     public virtual DbSet<VEmployerStat> VEmployerStats { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -88,6 +91,58 @@ public partial class ApplicationDBContext : DbContext
                 .HasForeignKey(d => d.ApplicantId)
                 .HasConstraintName("applicant_achievements_applicant_id_fkey");
         });
+
+        modelBuilder.Entity<Project>(entity =>
+ {
+     // Конфигурация первичного ключа
+     entity.HasKey(e => e.Id).HasName("project_pkey");
+
+     entity.ToTable("applicant_projects");
+
+     // Конфигурация индексов
+     entity.HasIndex(e => e.AuthorId, "idx_projects_author_id");
+
+     // Маппинг свойств на столбцы базы данных (snake_case)
+     entity.Property(e => e.Id)
+         .HasColumnName("id");
+
+     entity.Property(e => e.AuthorId)
+         .HasColumnName("author_id")
+         .IsRequired();
+
+     entity.Property(e => e.Title)
+         .HasColumnName("title")
+         .IsRequired()
+         .HasMaxLength(255);
+
+     entity.Property(e => e.Description)
+         .HasColumnName("description")
+         .HasMaxLength(4000);
+
+     entity.Property(e => e.ProjectType)
+         .HasColumnName("project_type")
+         .HasMaxLength(100);
+
+     entity.Property(e => e.StartDate)
+         .HasColumnName("start_date")
+         .IsRequired();
+
+     entity.Property(e => e.EndDate)
+         .HasColumnName("end_date");
+
+     // Маппинг JSON-поля (рекомендуется тип jsonb для PostgreSQL)
+     entity.Property(e => e.ProjectDetailsJson)
+         .HasColumnName("project_details_json")
+         .HasColumnType("jsonb");
+
+     // Конфигурация связи с сущностью ApplicantProfile
+     // Один профиль автора может иметь множество проектов
+     entity.HasOne(e => e.Author)
+         .WithMany(p => p.Projects) // Явное указание коллекции в ApplicantProfile
+         .HasForeignKey(e => e.AuthorId)
+         .HasConstraintName("fk_projects_author_id")
+         .OnDelete(DeleteBehavior.Restrict); // Запрет удаления профиля при наличии проектов
+ });
 
         modelBuilder.Entity<ApplicantEducation>(entity =>
         {
@@ -155,6 +210,7 @@ public partial class ApplicationDBContext : DbContext
             entity.HasOne(d => d.User).WithOne(p => p.ApplicantProfile)
                 .HasForeignKey<ApplicantProfile>(d => d.UserId)
                 .HasConstraintName("applicant_profiles_user_id_fkey");
+
         });
 
         modelBuilder.Entity<OpportunityApplication>(entity =>
@@ -208,7 +264,7 @@ public partial class ApplicationDBContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("contacts_user_id_fkey");
 
-            entity.HasCheckConstraint("CK_Contacts_UserNotEqualContact", "[user_id] <> [contact_id]");
+            entity.HasCheckConstraint("CK_Contacts_UserNotEqualContact", "user_id <> contact_id");
         });
 
         modelBuilder.Entity<CuratorProfile>(entity =>
@@ -229,7 +285,8 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.Thirdname)
                 .HasMaxLength(100)
                 .HasColumnName("thirdname");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
 
         });
 
@@ -441,11 +498,10 @@ public partial class ApplicationDBContext : DbContext
                 .HasNoKey()
                 .ToView("v_applicant_stats");
 
-            entity.Property(e => e.AchievementsCount).HasColumnName("achievements_count");
+            entity.Property(e => e.ApplicationCount).HasColumnName("applications_count");
             entity.Property(e => e.ContactCount).HasColumnName("contact_count");
-            entity.Property(e => e.EducationsCount).HasColumnName("educations_count");
+            entity.Property(e => e.ProjectsCount).HasColumnName("projects_count");
             entity.Property(e => e.ProfileId).HasColumnName("profile_id");
-            entity.Property(e => e.ResponsesCount).HasColumnName("responses_count");
         });
 
         modelBuilder.Entity<VEmployerStat>(entity =>

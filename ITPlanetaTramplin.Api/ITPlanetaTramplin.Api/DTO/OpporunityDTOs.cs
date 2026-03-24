@@ -16,6 +16,7 @@ namespace DTO
 
         public long? ExpireAt { get; set; }
         public string OpportunityType { get;set; }
+        public string EmploymentType {get;set;}
         
         public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
     }

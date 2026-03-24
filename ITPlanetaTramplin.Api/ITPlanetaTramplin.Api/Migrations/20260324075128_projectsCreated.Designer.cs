@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Application.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace ITPlanetaTramplin.Api.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260324075128_projectsCreated")]
+    partial class projectsCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -513,7 +516,7 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     b.HasIndex(new[] { "AuthorId" }, "idx_projects_author_id");
 
-                    b.ToTable("applicant_projects", (string)null);
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("Models.Recommendation", b =>

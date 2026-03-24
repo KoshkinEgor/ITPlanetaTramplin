@@ -7,11 +7,9 @@ public partial class VApplicantStat
 {
     public int? ProfileId { get; set; }
 
-    public long? ResponsesCount { get; set; }
+    public long? ApplicationCount { get; set; }
 
-    public long? EducationsCount { get; set; }
-
-    public long? AchievementsCount { get; set; }
+    public long? ProjectsCount { get; set; }
 
     public long? ContactCount { get; set; }
 }
