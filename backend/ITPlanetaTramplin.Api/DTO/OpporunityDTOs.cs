@@ -5,7 +5,6 @@ namespace DTO
 {
     public partial class OpportunityPostDTO
     {
-
         public string Title { get; set; } = null!;
 
         public string? Description { get; set; } = null!;
@@ -15,7 +14,10 @@ namespace DTO
         public string? LocationCity { get; set; }
 
         public long? ExpireAt { get; set; }
+
         public string OpportunityType { get; set; } = string.Empty;
+
+        public string? EmploymentType { get; set; }
         
         public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
     }
@@ -61,6 +63,8 @@ namespace DTO
         public string? Description { get; set; } = null!;
 
         public string? OpportunityType { get; set; }
+
+        public string? EmploymentType { get; set; }
 
         public string? LocationAddress { get; set; }
 

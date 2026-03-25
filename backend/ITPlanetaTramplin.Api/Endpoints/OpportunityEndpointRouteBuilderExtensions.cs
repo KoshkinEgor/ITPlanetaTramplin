@@ -54,7 +54,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 : null,
             EmployerId = employer.Id,
             OpportunityType = request.OpportunityType,
-            EmploymentType = "unspecified",
+            EmploymentType = NormalizeEmploymentType(request.EmploymentType),
             ModerationStatus = OpportunityModerationStatuses.Pending,
             Tags = request.Tags,
         };
@@ -141,6 +141,11 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (request.OpportunityType is not null)
         {
             opportunity.OpportunityType = request.OpportunityType;
+        }
+
+        if (request.EmploymentType is not null)
+        {
+            opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
         }
 
         if (request.LocationAddress is not null)
@@ -405,4 +410,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             CandidateName = ((application.Applicant.Name ?? string.Empty) + " " + (application.Applicant.Surname ?? string.Empty) + " " + (application.Applicant.Thirdname ?? string.Empty)).Trim(),
         });
     }
+
+    private static string NormalizeEmploymentType(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "unspecified" : value.Trim();
 }
