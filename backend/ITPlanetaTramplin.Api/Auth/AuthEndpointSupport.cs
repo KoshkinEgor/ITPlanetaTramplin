@@ -61,7 +61,7 @@ internal static class AuthEndpointSupport
         role switch
         {
             PublicRoles.Candidate => "register-candidate",
-            PublicRoles.Company => string.IsNullOrWhiteSpace(user.EmployerProfile?.Inn) ? "employer-start" : "employer-verify",
+            PublicRoles.Company => string.IsNullOrWhiteSpace(user.EmployerProfile?.VerificationData) ? "employer-start" : "employer-verify",
             _ => "register-candidate",
         };
 
@@ -218,7 +218,7 @@ internal static class AuthEndpointSupport
 
     public static string? BuildEmployerVerificationData(string? rawVerificationData, EmployerInnLookupDTO? innLookup)
     {
-        if (string.IsNullOrWhiteSpace(rawVerificationData) && innLookup is null)
+        if (string.IsNullOrWhiteSpace(rawVerificationData))
         {
             return null;
         }
@@ -238,6 +238,7 @@ internal static class AuthEndpointSupport
                     innLookup.Ogrn,
                     innLookup.Status,
                     innLookup.IsActive,
+                    innLookup.Emails,
                 },
         });
     }

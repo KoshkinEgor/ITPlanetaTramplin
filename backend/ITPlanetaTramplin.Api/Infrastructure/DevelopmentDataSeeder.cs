@@ -10,6 +10,8 @@ internal static class DevelopmentDataSeeder
 {
     private const string DemoCompanyEmail = "demo-company@tramplin.local";
     private const string DemoCompanyPassword = "Demo1234";
+    private const string DemoCuratorEmail = "demo-curator@tramplin.local";
+    private const string DemoCuratorPassword = "Curator1234";
 
     private static readonly SeedOpportunity[] SeedOpportunities =
     [
@@ -52,6 +54,57 @@ internal static class DevelopmentDataSeeder
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DevelopmentDataSeeder");
+
+        var curatorUser = await db.Users
+            .Include(item => item.CuratorProfile)
+            .FirstOrDefaultAsync(item => item.Email == DemoCuratorEmail, cancellationToken);
+
+        if (curatorUser is null)
+        {
+            curatorUser = new User
+            {
+                Email = DemoCuratorEmail,
+                IsVerified = true,
+                CuratorProfile = new CuratorProfile
+                {
+                    Name = "Demo",
+                    Surname = "Curator",
+                    Thirdname = null,
+                },
+            };
+
+            curatorUser.PasswordHash = AuthSupport.HashPassword(curatorUser, DemoCuratorPassword);
+            db.Users.Add(curatorUser);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            curatorUser.IsVerified = true;
+            curatorUser.PasswordHash = string.IsNullOrWhiteSpace(curatorUser.PasswordHash)
+                ? AuthSupport.HashPassword(curatorUser, DemoCuratorPassword)
+                : curatorUser.PasswordHash;
+
+            curatorUser.CuratorProfile ??= new CuratorProfile
+            {
+                Name = "Demo",
+                Surname = "Curator",
+                Thirdname = null,
+            };
+
+            curatorUser.CuratorProfile.Name = string.IsNullOrWhiteSpace(curatorUser.CuratorProfile.Name)
+                ? "Demo"
+                : curatorUser.CuratorProfile.Name;
+            curatorUser.CuratorProfile.Surname = string.IsNullOrWhiteSpace(curatorUser.CuratorProfile.Surname)
+                ? "Curator"
+                : curatorUser.CuratorProfile.Surname;
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        logger.LogInformation(
+            "Development curator account ready for {Email}. Use password {Password}.",
+            DemoCuratorEmail,
+            DemoCuratorPassword);
 
         var approvedOpportunitiesCount = await db.Opportunities
             .CountAsync(

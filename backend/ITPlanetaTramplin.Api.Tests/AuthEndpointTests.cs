@@ -62,20 +62,21 @@ public class AuthEndpointTests
 
         var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/company", new
         {
-            email = "company@tramplin.local",
+            email = "hello@sever.local",
             password = "Password1",
-            companyName = "Tramplin Co",
-            inn = (string?)null,
+            companyName = "Sever Co",
+            inn = "5408114123",
         });
 
         Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
 
         var payload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
         Assert.NotNull(payload);
+        Assert.Equal("employer-start", payload!.VerificationFlow);
 
         var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
         {
-            email = payload!.Email,
+            email = payload.Email,
             role = payload.Role,
             code = payload.DebugCode,
         });
@@ -96,6 +97,28 @@ public class AuthEndpointTests
         var authResponse = await legacyLoginResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
         Assert.NotNull(authResponse);
         Assert.Equal("company", authResponse!.User.Role);
+    }
+
+    [Fact]
+    public async Task CompanyRegistration_ReturnsMismatchReason_WhenEmailDoesNotMatchInn()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/company", new
+        {
+            email = "founder@gmail.com",
+            password = "Password1",
+            companyName = "Tramplin Co",
+            inn = "7707083893",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, registrationResponse.StatusCode);
+
+        var payload = await registrationResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("доменов", payload!.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("tramplin.local", payload.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

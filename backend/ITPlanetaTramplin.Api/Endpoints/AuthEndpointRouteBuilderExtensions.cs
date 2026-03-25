@@ -438,6 +438,16 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.MessageResult("ИНН должен содержать 10 или 12 цифр.", StatusCodes.Status400BadRequest);
         }
 
+        if (string.IsNullOrWhiteSpace(AuthSupport.NormalizeInn(request.Inn)))
+        {
+            return AuthEndpointSupport.MessageResult("ИНН компании обязателен.", StatusCodes.Status400BadRequest);
+        }
+
+        if (!AuthSupport.IsValidInn(request.Inn))
+        {
+            return AuthEndpointSupport.MessageResult("ИНН должен содержать 10 или 12 цифр.", StatusCodes.Status400BadRequest);
+        }
+
         var normalizedEmail = AuthSupport.NormalizeEmail(request.Email);
         var normalizedInn = AuthSupport.NormalizeInn(request.Inn);
         EmployerInnLookupDTO? innLookup = null;
@@ -470,6 +480,11 @@ internal static class AuthEndpointRouteBuilderExtensions
                     "Компания по указанному ИНН найдена, но не находится в активном статусе.",
                     StatusCodes.Status400BadRequest);
             }
+        }
+
+        if (!TryMatchCompanyEmail(normalizedEmail, innLookup!, out var emailValidationError))
+        {
+            return AuthEndpointSupport.MessageResult(emailValidationError, StatusCodes.Status400BadRequest);
         }
 
         if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == normalizedEmail, cancellationToken))
@@ -629,5 +644,64 @@ internal static class AuthEndpointRouteBuilderExtensions
             "Подтвердите email, чтобы войти в аккаунт. Мы отправили код подтверждения на почту.",
             "Подтвердите email, чтобы войти в аккаунт. Код создан, но письмо отправить не удалось. Запросите отправку ещё раз.",
             logger);
+    }
+
+    private static bool TryMatchCompanyEmail(string email, EmployerInnLookupDTO innLookup, out string errorMessage)
+    {
+        var knownEmails = innLookup.Emails
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(AuthSupport.NormalizeEmail)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (knownEmails.Length == 0)
+        {
+            errorMessage = "Не удалось сверить email с ИНН: в DaData для этой компании нет корпоративной почты.";
+            return false;
+        }
+
+        var normalizedEmail = AuthSupport.NormalizeEmail(email);
+        if (knownEmails.Contains(normalizedEmail, StringComparer.OrdinalIgnoreCase))
+        {
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        var requestedDomain = GetEmailDomain(normalizedEmail);
+        var knownDomains = knownEmails
+            .Select(GetEmailDomain)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (!string.IsNullOrWhiteSpace(requestedDomain) &&
+            knownDomains.Contains(requestedDomain, StringComparer.OrdinalIgnoreCase))
+        {
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        if (knownDomains.Length > 0)
+        {
+            errorMessage =
+                $"Почта не совпадает с данными DaData для ИНН {innLookup.Inn}. Используйте корпоративный email на одном из доменов: {string.Join(", ", knownDomains)}.";
+            return false;
+        }
+
+        errorMessage = "Почта не совпадает с данными DaData для указанного ИНН.";
+        return false;
+    }
+
+    private static string? GetEmailDomain(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var parts = email.Split('@', 2, StringSplitOptions.TrimEntries);
+        return parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1])
+            ? parts[1].ToLowerInvariant()
+            : null;
     }
 }

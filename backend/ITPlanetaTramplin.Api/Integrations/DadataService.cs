@@ -72,6 +72,7 @@ internal sealed class DadataService
             Ogrn = ReadString(data, "ogrn"),
             Status = status,
             IsActive = string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase),
+            Emails = ReadStringArray(data, "emails"),
         };
     }
 
@@ -98,5 +99,39 @@ internal sealed class DadataService
         }
 
         return current.ValueKind == JsonValueKind.String ? current.GetString() : current.ToString();
+    }
+
+    private static List<string> ReadStringArray(JsonElement element, string propertyName)
+    {
+        var values = new List<string>();
+
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.Array)
+        {
+            return values;
+        }
+
+        foreach (var item in property.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                var value = item.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    values.Add(value.Trim());
+                }
+
+                continue;
+            }
+
+            var unrestrictedValue = ReadString(item, "unrestricted_value") ?? ReadString(item, "value");
+            if (!string.IsNullOrWhiteSpace(unrestrictedValue))
+            {
+                values.Add(unrestrictedValue.Trim());
+            }
+        }
+
+        return values
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }

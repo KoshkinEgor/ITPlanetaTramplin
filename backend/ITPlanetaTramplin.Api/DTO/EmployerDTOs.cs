@@ -59,6 +59,8 @@ namespace DTO
         public string? Status { get; set; }
 
         public bool IsActive { get; set; }
+
+        public List<string> Emails { get; set; } = new();
     }
 
     public class CompanyProfileReadDTO
