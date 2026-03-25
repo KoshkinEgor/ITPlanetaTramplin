@@ -1,0 +1,68 @@
+namespace ITPlanetaTramplin.Api.Domain;
+
+internal static class CompanyVerificationStatuses
+{
+    public const string Pending = "pending";
+    public const string Approved = "approved";
+    public const string Revision = "revision";
+    public const string Rejected = "rejected";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Pending => Pending,
+            Approved => Approved,
+            Revision => Revision,
+            Rejected => Rejected,
+            _ => Pending,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Pending or Approved or Revision or Rejected;
+}
+
+internal static class OpportunityModerationStatuses
+{
+    public const string Pending = "pending";
+    public const string Approved = "approved";
+    public const string Revision = "revision";
+    public const string Rejected = "rejected";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Pending => Pending,
+            Approved => Approved,
+            Revision => Revision,
+            Rejected => Rejected,
+            _ => Pending,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Pending or Approved or Revision or Rejected;
+}
+
+internal static class OpportunityApplicationStatuses
+{
+    public const string Submitted = "submitted";
+    public const string Reviewing = "reviewing";
+    public const string Invited = "invited";
+    public const string Accepted = "accepted";
+    public const string Rejected = "rejected";
+    public const string Withdrawn = "withdrawn";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Submitted => Submitted,
+            Reviewing => Reviewing,
+            Invited => Invited,
+            Accepted => Accepted,
+            Rejected => Rejected,
+            Withdrawn => Withdrawn,
+            _ => Submitted,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Submitted or Reviewing or Invited or Accepted or Rejected or Withdrawn;
+}

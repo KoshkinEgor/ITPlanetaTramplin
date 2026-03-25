@@ -3,4 +3,12 @@ dist/
 .playwright-cli/
 output/
 test-results/
+coverage/
+.codex-build/
 artifacts/logs/*.log
+.env.local
+.env.*.local
+.vs/
+*.user
+**/bin/
+**/obj/
