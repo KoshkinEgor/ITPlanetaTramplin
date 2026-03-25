@@ -34,6 +34,26 @@
   border-radius: 32px;
 }
 
+.ui-opportunity-card__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px 24px;
+  align-items: start;
+}
+
+.ui-opportunity-card__main {
+  display: grid;
+  gap: inherit;
+  min-width: 0;
+}
+
+.ui-opportunity-card__aside {
+  display: grid;
+  align-self: stretch;
+  align-content: end;
+  min-width: min(100%, 360px);
+}
+
 .ui-opportunity-card__top {
   display: flex;
   align-items: flex-start;
@@ -77,37 +97,9 @@
 }
 
 .ui-opportunity-card__save {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: 0 0 auto;
   margin-left: auto;
-  border: 1px solid rgba(24, 29, 45, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--ui-color-text-muted);
-  cursor: pointer;
-  transition:
-    transform var(--ui-transition-fast),
-    border-color var(--ui-transition-base),
-    color var(--ui-transition-base);
-}
-
-.ui-opportunity-card__save:hover {
-  transform: translateY(-1px);
-  color: var(--ui-color-accent);
-  border-color: rgba(47, 128, 255, 0.16);
-}
-
-.ui-opportunity-card--sm .ui-opportunity-card__save {
-  width: 30px;
-  height: 30px;
-}
-
-.ui-opportunity-card--md .ui-opportunity-card__save,
-.ui-opportunity-card--lg .ui-opportunity-card__save {
-  width: 42px;
-  height: 42px;
+  border-color: rgba(24, 29, 45, 0.08);
 }
 
 .ui-opportunity-card--sm .ui-opportunity-card__save svg {
@@ -204,11 +196,23 @@
   gap: 10px;
 }
 
+.ui-opportunity-card__actions--end {
+  justify-content: flex-end;
+}
+
+.ui-opportunity-card__actions--start {
+  justify-content: flex-start;
+}
+
 .ui-opportunity-card__action.ui-button {
   flex: 0 0 auto;
   width: fit-content;
   max-width: 100%;
   box-shadow: none;
+}
+
+.ui-opportunity-card--row .ui-opportunity-card__action.ui-button {
+  min-width: clamp(180px, 16vw, 236px);
 }
 
 .ui-opportunity-card--row.ui-opportunity-card--sm .ui-opportunity-card__actions {
@@ -224,39 +228,33 @@
   gap: 14px;
 }
 
-.ui-opportunity-card--mini.ui-card {
-  gap: 10px;
-  padding: 14px;
-  border-radius: 20px;
-}
-
-.ui-opportunity-card--mini .ui-opportunity-card__title {
-  font-size: 0.96rem;
-}
-
-.ui-opportunity-card--mini .ui-opportunity-card__meta,
-.ui-opportunity-card--mini .ui-opportunity-card__note,
-.ui-opportunity-card--mini .ui-opportunity-card__inline-note {
-  font-size: 0.78rem;
-}
-
-.ui-opportunity-card--mini .ui-opportunity-card__accent {
-  font-size: 0.98rem;
-}
-
-.ui-opportunity-card--mini .ui-opportunity-card__status,
-.ui-opportunity-card--mini .ui-opportunity-card__tag {
-  min-height: 30px;
-  font-size: 0.72rem;
-}
-
 @media (max-width: 820px) {
+  .ui-opportunity-card__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ui-opportunity-card__aside {
+    min-width: 0;
+  }
+
   .ui-opportunity-card--row .ui-opportunity-card__actions {
     align-items: flex-start;
     max-width: none;
+    justify-content: flex-start;
   }
 
   .ui-opportunity-card--row .ui-opportunity-card__action.ui-button {
+    min-width: min(100%, 220px);
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-opportunity-card--row .ui-opportunity-card__actions {
+    display: grid;
+  }
+
+  .ui-opportunity-card--row .ui-opportunity-card__action.ui-button {
+    width: 100%;
     min-width: 0;
   }
 }

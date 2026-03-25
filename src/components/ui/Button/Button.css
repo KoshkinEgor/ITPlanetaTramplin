@@ -2,16 +2,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 54px;
-  padding: 14px 22px;
+  gap: 6px;
+  min-height: 48px;
+  padding: 12px 16px;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-pill);
   background: rgba(255, 255, 255, 0.88);
   color: var(--ui-color-text);
-  font-size: var(--ui-font-size-body);
-  line-height: 1.15;
-  font-weight: 800;
+  font-size: var(--ui-typo-txt-select-size);
+  line-height: var(--ui-typo-txt-select-line-height);
+  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
+  font-weight: var(--ui-typo-txt-select-weight);
   cursor: pointer;
   text-decoration: none;
   transition:
@@ -82,6 +83,26 @@
   box-shadow: var(--ui-shadow-danger-hover);
 }
 
+.ui-button--contrast {
+  --ui-button-accent: #2f80ff;
+  color: var(--ui-button-accent);
+  border-color: currentColor;
+  background: linear-gradient(180deg, rgba(14, 14, 16, 0.98) 0%, rgba(4, 4, 5, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 32px rgba(0, 0, 0, 0.24);
+}
+
+.ui-button--contrast:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.ui-button--contrast.is-hovered:not(:disabled):not(.is-disabled),
+.ui-button--contrast.is-active {
+  background: linear-gradient(180deg, rgba(20, 20, 23, 1) 0%, rgba(7, 7, 8, 1) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 36px rgba(0, 0, 0, 0.28),
+    0 0 24px -8px currentColor;
+}
+
 .ui-button:focus-visible:not(:disabled):not(.is-disabled),
 .ui-button.is-focused:not(:disabled):not(.is-disabled) {
   outline: none;
@@ -112,16 +133,25 @@
   box-shadow: var(--ui-shadow-focus), var(--ui-shadow-danger-hover);
 }
 
+.ui-button--contrast:focus-visible:not(:disabled):not(.is-disabled),
+.ui-button--contrast.is-focused:not(:disabled):not(.is-disabled) {
+  box-shadow:
+    var(--ui-shadow-focus),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 24px -8px currentColor;
+}
+
 .ui-button--sm {
-  min-height: 44px;
-  padding: 10px 16px;
-  font-size: 0.88rem;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: var(--ui-typo-txt-select-small-size);
+  line-height: var(--ui-typo-txt-select-small-line-height);
+  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
 }
 
 .ui-button--lg {
-  min-height: 62px;
-  padding: 16px 28px;
-  font-size: 1rem;
+  min-height: 56px;
+  padding: 14px 26px;
 }
 
 .ui-button__icon {

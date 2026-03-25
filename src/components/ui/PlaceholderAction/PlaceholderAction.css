@@ -1,0 +1,24 @@
+.ui-placeholder-action {
+  display: grid;
+  gap: 8px;
+  min-height: 64px;
+  padding: 14px 18px;
+  border: 1px dashed rgba(47, 128, 255, 0.28);
+  border-radius: var(--ui-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 248, 255, 0.92));
+  color: var(--ui-color-text);
+}
+
+.ui-placeholder-action__label {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.ui-placeholder-action__description {
+  color: var(--ui-color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-weight: 600;
+}

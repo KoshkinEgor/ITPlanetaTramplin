@@ -1,4 +1,4 @@
-import { Badge, Card } from "../ui";
+import { Badge, Card, IconButton } from "../ui";
 import { cn } from "../../lib/cn";
 
 function BackIcon() {
@@ -40,19 +40,27 @@ export function AuthBrand() {
   );
 }
 
-export function AuthTopBar({ backHref, backLabel }) {
+export function AuthTopBar({ backHref, backLabel, backButtonSize = "lg" }) {
   return (
     <div className="auth-screen__topbar">
-      <a className="auth-screen__back" href={backHref} aria-label={backLabel}>
+      <IconButton href={backHref} label={backLabel} size={backButtonSize} className="auth-screen__back">
         <BackIcon />
-      </a>
+      </IconButton>
       <AuthBrand />
       <span className="auth-screen__topbar-spacer" aria-hidden="true" />
     </div>
   );
 }
 
-export function AuthHero({ badge, title, description, centered = false, className }) {
+export function AuthHero({
+  badge,
+  title,
+  description,
+  centered = false,
+  className,
+  titleClassName,
+  descriptionClassName,
+}) {
   return (
     <div className={cn("auth-screen__copy", centered && "auth-screen__copy--centered", className)}>
       {badge ? (
@@ -61,8 +69,8 @@ export function AuthHero({ badge, title, description, centered = false, classNam
         </Badge>
       ) : null}
       <div className="auth-screen__copy-body">
-        <h1 className={cn(centered ? "ui-type-display" : "ui-type-h1")}>{title}</h1>
-        <p className={cn(centered ? "ui-type-body-lg" : "ui-type-body")}>{description}</p>
+        <h1 className={cn(titleClassName || (centered ? "ui-type-display" : "ui-type-h1"))}>{title}</h1>
+        <p className={cn(descriptionClassName || (centered ? "ui-type-body-lg" : "ui-type-body"))}>{description}</p>
       </div>
     </div>
   );

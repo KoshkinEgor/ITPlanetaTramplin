@@ -150,6 +150,18 @@ body.opportunity-card-react-body {
 .opportunity-focus-card__eyebrow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.opportunity-focus-card__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.opportunity-focus-card__toolbar-button {
+  flex: 0 0 auto;
 }
 
 .opportunity-focus-card__copy {
@@ -423,6 +435,10 @@ body.opportunity-card-react-body {
 
 .opportunity-card-page__more-link:hover {
   text-decoration: underline;
+}
+
+.opportunity-card-page__grid--embedded {
+  align-items: start;
 }
 
 .opportunity-card-fade-up {

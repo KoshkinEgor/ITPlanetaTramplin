@@ -1,7 +1,9 @@
-import { Button, Card, PillButton, StatusBadge, Tag } from "../components/ui";
-import { PortalHeader } from "../components/layout/PortalHeader";
+import { AppLink } from "../app/AppLink";
+import { Button, Card, PillButton, StatusBadge, Tag } from "../shared/ui";
+import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
-import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "./data";
+import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "./config";
+import "./moderator-dashboard.css";
 
 function HeartIcon() {
   return (
@@ -102,7 +104,7 @@ export function ModeratorHeader() {
     <PortalHeader
       navItems={navItems}
       currentKey={currentKey}
-      actionHref="../auth/login.html"
+      actionHref="/auth/login"
       actionLabel="Войти / Регистрация"
       iconButtons={MODERATOR_ICON_BUTTONS}
       className="moderator-header moderator-fade-up"
@@ -120,14 +122,14 @@ export function ModeratorSidebar({ activeKey }) {
       <nav className="moderator-sidebar__menu" aria-label="Разделы кабинета">
         {SIDEBAR_ITEMS.map((item) =>
           item.href ? (
-            <a
+            <AppLink
               key={item.key}
               href={item.href}
               className={`moderator-sidebar__link ${item.key === activeKey ? "is-active" : ""}`.trim()}
               aria-current={item.key === activeKey ? "page" : undefined}
             >
               {item.label}
-            </a>
+            </AppLink>
           ) : (
             <button key={item.key} type="button" className="moderator-sidebar__link">
               {item.label}

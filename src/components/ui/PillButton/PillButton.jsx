@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { AppLink } from "../../../app/AppLink";
 import { cn } from "../../../lib/cn";
 
 export const PillButton = forwardRef(function PillButton(
@@ -6,6 +7,7 @@ export const PillButton = forwardRef(function PillButton(
     as = "button",
     href,
     active = false,
+    size = "md",
     className,
     children,
     type = "button",
@@ -14,11 +16,11 @@ export const PillButton = forwardRef(function PillButton(
   ref
 ) {
   const Element = href ? "a" : as;
-  const classNames = cn("ui-pill-button", active && "is-active", className);
+  const classNames = cn("ui-pill-button", size === "lg" && "ui-pill-button--lg", active && "is-active", className);
 
-  if (Element === "a") {
+  if (href) {
     return (
-      <a
+      <AppLink
         ref={ref}
         href={href}
         className={classNames}
@@ -26,7 +28,7 @@ export const PillButton = forwardRef(function PillButton(
         {...props}
       >
         {children}
-      </a>
+      </AppLink>
     );
   }
 

@@ -1,380 +1,304 @@
-import { useState } from "react";
-import { Button, Card, FormField, Input, Select, Switch, Tag, Textarea } from "../components/ui";
-import {
-  SETTINGS_CREDENTIAL_SECTIONS,
-  SETTINGS_OVERVIEW_SECTIONS,
-  SETTINGS_VISIBILITY_PANELS,
-} from "./data";
-import {
-  CandidateFrame,
-  CandidateProfileHero,
-  CandidateSectionHeader,
-  CandidateSettingsPreviewCard,
-} from "./shared";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { buildForgotPasswordRoute } from "../app/routes";
+import { getCandidateProfile, updateCandidateProfile } from "../api/candidate";
+import { ApiError } from "../lib/http";
+import { Alert, Button, Card, EmptyState, FormField, Input, Loader, TagSelector, Textarea } from "../shared/ui";
+import { CANDIDATE_SETTINGS_SECTIONS, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
+import { getCandidateSkills } from "./mappers";
+import { CandidateSectionHeader, CandidateSettingsPreviewCard } from "./shared";
 
-const PROFILE_FORM = {
-  lastName: "Ковалёва",
-  firstName: "Анна",
-  middleName: "Сергеевна",
-  gender: "female",
-  birthDate: "07.09.2003",
-  citizenship: "Россия",
-  city: "Чебоксары",
-  about: "Дополнительная информация",
-  university: "ЧГУ им. И. Н. Ульянова",
-  graduationYear: "2027",
-};
-
-const SECURITY_LOGINS = [
-  {
-    device: "XiaoMi M2007J20CG",
-    location: "Самара",
-    timestamp: "12.03.2026 / 17:00",
-  },
-  {
-    device: "XiaoMi M2007J20CG",
-    location: "Чебоксары",
-    timestamp: "11.03.2026 / 14:42",
-  },
-];
-
-const NOTIFICATION_SETTINGS = [
-  { id: "response-status", label: "Изменения статуса отклика", enabled: true },
-  { id: "recommendations", label: "Новые рекомендации", enabled: true },
-  { id: "contact-invites", label: "Приглашения в контакты", enabled: true },
-  { id: "new-opportunities", label: "Новые возможности", enabled: false },
-];
-
-const GENDER_OPTIONS = [
-  { value: "female", label: "Женский" },
-  { value: "male", label: "Мужской" },
-  { value: "other", label: "Не указан" },
-];
-
-const COUNTRY_OPTIONS = [
-  { value: "Россия", label: "Россия" },
-  { value: "Беларусь", label: "Беларусь" },
-  { value: "Казахстан", label: "Казахстан" },
-];
-
-const CITY_OPTIONS = [
-  { value: "Чебоксары", label: "Чебоксары" },
-  { value: "Москва", label: "Москва" },
-  { value: "Казань", label: "Казань" },
-];
-
-function buildVisibilityOptions(currentValue) {
-  return [
-    currentValue,
-    "Только работодатели",
-    "Только работодатели и контакты",
-    "Все авторизованные",
-    "Только контакты",
-  ]
-    .filter((value, index, values) => value && values.indexOf(value) === index)
-    .map((value) => ({ value, label: value }));
+function createDraft(profile) {
+  return {
+    name: profile?.name ?? "",
+    surname: profile?.surname ?? "",
+    thirdname: profile?.thirdname ?? "",
+    description: profile?.description ?? "",
+    skills: getCandidateSkills(profile),
+  };
 }
 
-function SettingsChevronRightIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function getOpenSection(searchParams) {
+  const section = searchParams.get("section");
+  return CANDIDATE_SETTINGS_SECTIONS.some((item) => item.id === section)
+    ? section
+    : CANDIDATE_SETTINGS_SECTIONS[0]?.id;
 }
 
-function CandidateSettingsSaveButton({ centered = false }) {
+function CandidateSettingsSaveButton({ disabled, label = "РЎРѕС…СЂР°РЅРёС‚СЊ" }) {
   return (
-    <div className={`candidate-settings-detail__save${centered ? " is-centered" : ""}`}>
-      <Button>Сохранить</Button>
+    <div className="candidate-settings-detail__save">
+      <Button type="submit" disabled={disabled}>
+        {label}
+      </Button>
     </div>
   );
 }
 
-function CandidateSettingsProfileDetails() {
-  const [additionalEducationItems, setAdditionalEducationItems] = useState([]);
-
-  const handleAddEducation = () => {
-    setAdditionalEducationItems((currentItems) => [
-      ...currentItems,
-      {
-        id: `education-${currentItems.length + 1}`,
-        university: "",
-        graduationYear: "",
-      },
-    ]);
-  };
-
+function CandidateProfileSettingsForm({ draft, errors, isSaving, saveError, saveSuccess, onChange, onSave }) {
   return (
-    <div className="candidate-settings-detail">
+    <form className="candidate-settings-detail" onSubmit={onSave} noValidate>
       <section className="candidate-settings-detail__section">
-        <h4 className="candidate-settings-detail__section-title">Основная информация</h4>
+        <h4 className="candidate-settings-detail__section-title">РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h4>
 
-        <div className="candidate-settings-detail__grid">
-          <FormField label="Фамилия">
-            <Input defaultValue={PROFILE_FORM.lastName} />
-          </FormField>
-          <FormField label="Имя">
-            <Input defaultValue={PROFILE_FORM.firstName} />
-          </FormField>
-          <FormField label="Отчество">
-            <Input defaultValue={PROFILE_FORM.middleName} />
-          </FormField>
-        </div>
-
-        <div className="candidate-settings-profile-row">
-          <div className="candidate-settings-photo">
-            <span className="candidate-settings-photo__label">Загрузить фото профиля</span>
-            <div className="candidate-settings-photo__surface" aria-hidden="true">
-              <span>АК</span>
-            </div>
-            <button type="button" className="candidate-settings-photo__edit">
-              Изменить
-            </button>
-          </div>
-
-          <FormField label="Пол">
-            <Select defaultValue={PROFILE_FORM.gender} options={GENDER_OPTIONS} />
-          </FormField>
-
-          <FormField label="Дата рождения">
-            <Input defaultValue={PROFILE_FORM.birthDate} />
-          </FormField>
-        </div>
-
-        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
-          <FormField label="Гражданство">
-            <Select defaultValue={PROFILE_FORM.citizenship} options={COUNTRY_OPTIONS} />
-          </FormField>
-          <FormField label="Город">
-            <Select defaultValue={PROFILE_FORM.city} options={CITY_OPTIONS} />
-          </FormField>
-        </div>
-
-        <FormField label="О себе">
-          <Textarea defaultValue={PROFILE_FORM.about} autoResize rows={4} />
-        </FormField>
-      </section>
-
-      <section className="candidate-settings-detail__section">
-        <h4 className="candidate-settings-detail__section-title">Образование</h4>
-
-        <div className="candidate-settings-detail__grid">
-          <FormField label="Название">
-            <Input defaultValue={PROFILE_FORM.university} />
-          </FormField>
-        </div>
-
-        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--graduation">
-          <FormField label="Год окончания">
-            <Input defaultValue={PROFILE_FORM.graduationYear} />
-          </FormField>
-          <p className="candidate-settings-detail__hint">Если ещё учитесь, укажите год предполагаемого окончания</p>
-        </div>
-
-        {additionalEducationItems.length ? (
-          <div className="candidate-settings-education-list">
-            {additionalEducationItems.map((education, index) => (
-              <div key={education.id} className="candidate-settings-education-item">
-                <div className="candidate-settings-education-item__head">
-                  <div className="candidate-settings-detail__subtitle">{`РћР±СЂР°Р·РѕРІР°РЅРёРµ ${index + 2}`}</div>
-                </div>
-
-                <div className="candidate-settings-detail__grid">
-                  <FormField label="РќР°Р·РІР°РЅРёРµ">
-                    <Input defaultValue={education.university} />
-                  </FormField>
-                </div>
-
-                <div className="candidate-settings-detail__grid candidate-settings-detail__grid--graduation">
-                  <FormField label="Р“РѕРґ РѕРєРѕРЅС‡Р°РЅРёСЏ">
-                    <Input defaultValue={education.graduationYear} />
-                  </FormField>
-                  <p className="candidate-settings-detail__hint">Р•СЃР»Рё РµС‰С‘ СѓС‡РёС‚РµСЃСЊ, СѓРєР°Р¶РёС‚Рµ РіРѕРґ РїСЂРµРґРїРѕР»Р°РіР°РµРјРѕРіРѕ РѕРєРѕРЅС‡Р°РЅРёСЏ</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        {saveError ? (
+          <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ" showIcon>
+            {saveError}
+          </Alert>
         ) : null}
 
-        <div className="candidate-settings-education-actions">
-          <Button type="button" variant="ghost" size="sm" className="candidate-settings-education-add" onClick={handleAddEducation}>
-            Р”РѕР±Р°РІРёС‚СЊ РµС‰С‘ РѕР±СЂР°Р·РѕРІР°РЅРёРµ
-          </Button>
+        {saveSuccess ? (
+          <Alert tone="success" title="РџСЂРѕС„РёР»СЊ РѕР±РЅРѕРІР»РµРЅ" showIcon>
+            Р”Р°РЅРЅС‹Рµ СЃРѕС…СЂР°РЅРµРЅС‹ РІ backend Рё СѓР¶Рµ РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РЅР° СЃС‚СЂР°РЅРёС†Р°С… РєР°РЅРґРёРґР°С‚Р°.
+          </Alert>
+        ) : null}
+
+        <div className="candidate-settings-detail__grid">
+          <FormField label="Р¤Р°РјРёР»РёСЏ" required error={errors.surname}>
+            <Input value={draft.surname} onValueChange={(value) => onChange("surname", value)} />
+          </FormField>
+          <FormField label="РРјСЏ" required error={errors.name}>
+            <Input value={draft.name} onValueChange={(value) => onChange("name", value)} />
+          </FormField>
+          <FormField label="РћС‚С‡РµСЃС‚РІРѕ">
+            <Input value={draft.thirdname} onValueChange={(value) => onChange("thirdname", value)} />
+          </FormField>
+        </div>
+
+        <FormField label="Рћ СЃРµР±Рµ">
+          <Textarea value={draft.description} onValueChange={(value) => onChange("description", value)} autoResize rows={5} />
+        </FormField>
+
+        <div className="candidate-settings-detail__section">
+          <div className="candidate-settings-detail__subtitle">РќР°РІС‹РєРё</div>
+          <TagSelector
+            className="candidate-project-editor-tag-selector"
+            title="РљР»СЋС‡РµРІС‹Рµ РЅР°РІС‹РєРё"
+            value={draft.skills}
+            suggestions={CANDIDATE_SKILL_SUGGESTIONS}
+            suggestionsLabel="РџРѕРґСЃРєР°Р·РєРё"
+            searchPlaceholder="РџРѕРёСЃРє РЅР°РІС‹РєРѕРІ"
+            clearLabel="РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє"
+            saveLabel="РЎРѕС…СЂР°РЅРёС‚СЊ РЅР°РІС‹РєРё"
+            onSave={(nextSkills) => onChange("skills", nextSkills)}
+          />
+          {errors.skills ? <span className="ui-error">{errors.skills}</span> : null}
         </div>
       </section>
 
-      <CandidateSettingsSaveButton />
-    </div>
+      <CandidateSettingsSaveButton disabled={isSaving} label={isSaving ? "РЎРѕС…СЂР°РЅСЏРµРј..." : "РЎРѕС…СЂР°РЅРёС‚СЊ"} />
+    </form>
   );
 }
 
-function CandidateSettingsSecurityDetails() {
-  const securitySection = SETTINGS_CREDENTIAL_SECTIONS[1];
-
+function CandidateSecuritySettings({ email }) {
   return (
     <div className="candidate-settings-detail">
-      <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
-        <FormField label="Телефон">
-          <Input defaultValue="+7 927 563 89 41" />
-        </FormField>
-        <FormField label="Почта">
-          <Input defaultValue="mail@gmail.com" />
-        </FormField>
-      </div>
-
       <section className="candidate-settings-detail__section">
-        <div className="candidate-settings-detail__subtitle">Сменить пароль</div>
+        <h4 className="candidate-settings-detail__section-title">Р”Р°РЅРЅС‹Рµ РґРѕСЃС‚СѓРїР°</h4>
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
-          <FormField label="Старый пароль">
-            <Input defaultValue={securitySection.email} type="password" />
+          <FormField label="Email">
+            <Input value={email || "Email РЅРµ СѓРєР°Р·Р°РЅ"} readOnly />
           </FormField>
-          <FormField label="Новый пароль">
-            <Input defaultValue={securitySection.email} type="password" />
+          <FormField label="РџР°СЂРѕР»СЊ">
+            <Input value="********" readOnly type="password" />
           </FormField>
         </div>
+        <p className="candidate-settings-detail__hint">
+          РЎРјРµРЅР° РїР°СЂРѕР»СЏ РІС‹РЅРµСЃРµРЅР° РІ РѕС‚РґРµР»СЊРЅС‹Р№ flow РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїР° Рё РЅРµ С…СЂР°РЅРёС‚СЃСЏ РІ РєР»РёРµРЅС‚СЃРєРѕРј СЃРѕСЃС‚РѕСЏРЅРёРё.
+        </p>
       </section>
 
-      <section className="candidate-settings-detail__section">
-        <div className="candidate-settings-detail__subtitle">Последние входы</div>
-        <div className="candidate-settings-logins">
-          {SECURITY_LOGINS.map((login) => (
-            <button key={`${login.device}-${login.timestamp}`} type="button" className="candidate-settings-login">
-              <span className="candidate-settings-login__copy">
-                <strong>{login.device}</strong>
-                <span>{login.location}</span>
-                <span>{login.timestamp}</span>
-              </span>
-              <span className="candidate-settings-login__icon" aria-hidden="true">
-                <SettingsChevronRightIcon />
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <CandidateSettingsSaveButton />
+      <div className="candidate-settings-detail__save">
+        <Button href={buildForgotPasswordRoute({ email })} variant="secondary">
+          РџРµСЂРµР№С‚Рё Рє РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЋ РґРѕСЃС‚СѓРїР°
+        </Button>
+      </div>
     </div>
   );
-}
-
-function CandidateSettingsVisibilityCard({ panel }) {
-  return (
-    <Card className="candidate-settings-privacy-card">
-      <div className="candidate-settings-privacy-card__head">
-        <Tag>{panel.eyebrow}</Tag>
-        <h4>{panel.title}</h4>
-      </div>
-
-      <div className="candidate-settings-privacy-card__fields">
-        {panel.rows.map((row) => (
-          <FormField
-            key={row.label}
-            label={row.label}
-            action={
-              <button type="button" className="candidate-settings-reset">
-                Сбросить
-              </button>
-            }
-          >
-            <Select defaultValue={row.value} options={buildVisibilityOptions(row.value)} />
-          </FormField>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function CandidateSettingsPrivacyDetails() {
-  return (
-    <div className="candidate-settings-detail candidate-settings-detail--privacy">
-      <div className="candidate-settings-privacy-grid">
-        {SETTINGS_VISIBILITY_PANELS.slice(0, 2).map((panel) => (
-          <CandidateSettingsVisibilityCard key={panel.id} panel={panel} />
-        ))}
-      </div>
-
-      <Card className="candidate-settings-privacy-card candidate-settings-notifications-card">
-        <div className="candidate-settings-privacy-card__head candidate-settings-privacy-card__head--center">
-          <Tag>{SETTINGS_VISIBILITY_PANELS[2].eyebrow}</Tag>
-          <h4>{SETTINGS_VISIBILITY_PANELS[2].title}</h4>
-        </div>
-
-        <div className="candidate-settings-switches">
-          {NOTIFICATION_SETTINGS.map((item) => (
-            <div key={item.id} className="candidate-settings-switch-row">
-              <Switch defaultChecked={item.enabled} label={item.label} className="candidate-settings-switch" />
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <CandidateSettingsSaveButton centered />
-    </div>
-  );
-}
-
-function renderSectionContent(sectionId) {
-  switch (sectionId) {
-    case "settings-profile":
-      return <CandidateSettingsProfileDetails />;
-    case "settings-security":
-      return <CandidateSettingsSecurityDetails />;
-    case "settings-privacy":
-      return <CandidateSettingsPrivacyDetails />;
-    default:
-      return null;
-  }
-}
-
-function getInitialOpenSections() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const currentUrl = new URL(window.location.href);
-  const requestedSection = currentUrl.searchParams.get("section") || currentUrl.hash.replace(/^#/, "");
-
-  if (!requestedSection) {
-    return [];
-  }
-
-  return SETTINGS_OVERVIEW_SECTIONS.some((section) => section.id === requestedSection) ? [requestedSection] : [];
 }
 
 export function CandidateSettingsApp() {
-  const [openSections, setOpenSections] = useState(getInitialOpenSections);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [state, setState] = useState({
+    status: "loading",
+    profile: null,
+    draft: createDraft(null),
+    error: null,
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [saveState, setSaveState] = useState({ status: "idle", error: "" });
 
-  const toggleSection = (sectionId) => {
-    setOpenSections((currentSections) =>
-      currentSections.includes(sectionId)
-        ? currentSections.filter((currentSectionId) => currentSectionId !== sectionId)
-        : [...currentSections, sectionId]
-    );
-  };
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function load() {
+      try {
+        const profile = await getCandidateProfile(controller.signal);
+        setState({
+          status: "ready",
+          profile,
+          draft: createDraft(profile),
+          error: null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setState({
+          status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
+          profile: null,
+          draft: createDraft(null),
+          error,
+        });
+      }
+    }
+
+    load();
+    return () => controller.abort();
+  }, []);
+
+  const openSection = getOpenSection(searchParams);
+  const profileSection = CANDIDATE_SETTINGS_SECTIONS[0];
+  const securitySection = CANDIDATE_SETTINGS_SECTIONS[1];
+
+  function handleDraftChange(field, value) {
+    setState((current) => ({
+      ...current,
+      draft: {
+        ...current.draft,
+        [field]: value,
+      },
+    }));
+
+    setFormErrors((current) => {
+      if (!(field in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  function handleToggle(sectionId) {
+    const nextSection = sectionId === openSection ? "" : sectionId;
+
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+
+      if (nextSection) {
+        next.set("section", nextSection);
+      } else {
+        next.delete("section");
+      }
+
+      return next;
+    }, { replace: true });
+  }
+
+  async function handleProfileSave(event) {
+    event.preventDefault();
+
+    const nextErrors = {};
+    if (!state.draft.name.trim()) {
+      nextErrors.name = "РЈРєР°Р¶РёС‚Рµ РёРјСЏ.";
+    }
+    if (!state.draft.surname.trim()) {
+      nextErrors.surname = "РЈРєР°Р¶РёС‚Рµ С„Р°РјРёР»РёСЋ.";
+    }
+    if (!Array.isArray(state.draft.skills) || state.draft.skills.length === 0) {
+      nextErrors.skills = "Р”РѕР±Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РЅР°РІС‹Рє.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors);
+      return;
+    }
+
+    setSaveState({ status: "saving", error: "" });
+
+    try {
+      const profile = await updateCandidateProfile({
+        name: state.draft.name.trim(),
+        surname: state.draft.surname.trim(),
+        thirdname: state.draft.thirdname.trim() || null,
+        description: state.draft.description.trim() || null,
+        skills: state.draft.skills,
+      });
+
+      setState((current) => ({
+        ...current,
+        profile,
+        draft: createDraft(profile),
+      }));
+      setSaveState({ status: "success", error: "" });
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕРІС‚РѕСЂРёС‚СЊ СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕР·Р¶Рµ.",
+      });
+    }
+  }
 
   return (
-    <CandidateFrame activeKey="settings" hero={<CandidateProfileHero />}>
-      <Card className="candidate-settings-panel">
-        <CandidateSectionHeader
-          eyebrow="Настройки"
-          title="Настройки профиля"
-          description="Собери свой портфолио и резюме для точных рекомендаций."
-        />
+    <section className="candidate-page-section">
+      <CandidateSectionHeader
+        eyebrow="РќР°СЃС‚СЂРѕР№РєРё"
+        title="РќР°СЃС‚СЂРѕР№РєРё РїСЂРѕС„РёР»СЏ"
+        description="Р–РёРІС‹Рµ СЃРµРєС†РёРё РєР°Р±РёРЅРµС‚Р°: РїСЂРѕС„РёР»СЊ СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ С‡РµСЂРµР· API, Р±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ РІРµРґРµС‚ РІ СЂРµР°Р»СЊРЅС‹Р№ flow РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїР°."
+      />
 
-        <div className="candidate-settings-panel__cards">
-          {SETTINGS_OVERVIEW_SECTIONS.map((section) => (
-            <CandidateSettingsPreviewCard
-              key={section.id}
-              section={section}
-              isOpen={openSections.includes(section.id)}
-              onToggle={toggleSection}
-            >
-              {renderSectionContent(section.id)}
-            </CandidateSettingsPreviewCard>
-          ))}
+      {state.status === "loading" ? <Loader label="Р—Р°РіСЂСѓР¶Р°РµРј РЅР°СЃС‚СЂРѕР№РєРё РїСЂРѕС„РёР»СЏ" surface /> : null}
+
+      {state.status === "unauthorized" ? (
+        <Card>
+          <EmptyState
+            eyebrow="Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ"
+            title="РќСѓР¶РЅРѕ РІРѕР№С‚Рё РєР°Рє РєР°РЅРґРёРґР°С‚"
+            description="РќР°СЃС‚СЂРѕР№РєРё РїСЂРѕС„РёР»СЏ РґРѕСЃС‚СѓРїРЅС‹ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ Р°РІС‚РѕСЂРёР·Р°С†РёРё РєР°РЅРґРёРґР°С‚Р°."
+            tone="warning"
+          />
+        </Card>
+      ) : null}
+
+      {state.status === "error" ? (
+        <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё" showIcon>
+          {state.error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ РїРѕР·Р¶Рµ."}
+        </Alert>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <div className="candidate-page-stack">
+          <CandidateSettingsPreviewCard
+            section={profileSection}
+            isOpen={openSection === profileSection.id}
+            onToggle={handleToggle}
+          >
+            <CandidateProfileSettingsForm
+              draft={state.draft}
+              errors={formErrors}
+              isSaving={saveState.status === "saving"}
+              saveError={saveState.status === "error" ? saveState.error : ""}
+              saveSuccess={saveState.status === "success"}
+              onChange={handleDraftChange}
+              onSave={handleProfileSave}
+            />
+          </CandidateSettingsPreviewCard>
+
+          <CandidateSettingsPreviewCard
+            section={securitySection}
+            isOpen={openSection === securitySection.id}
+            onToggle={handleToggle}
+          >
+            <CandidateSecuritySettings email={state.profile?.email ?? ""} />
+          </CandidateSettingsPreviewCard>
         </div>
-      </Card>
-    </CandidateFrame>
+      ) : null}
+    </section>
   );
 }

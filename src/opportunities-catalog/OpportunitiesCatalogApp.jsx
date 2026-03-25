@@ -1,225 +1,430 @@
-import { useMemo, useState } from "react";
-import { PortalHeader } from "../components/layout/PortalHeader";
-import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
-import { Button, Card, PillButton, SearchInput, Tag } from "../components/ui";
+import { useEffect, useMemo, useState } from "react";
+import { buildOpportunityDetailRoute } from "../app/routes";
+import { getCandidateProfile } from "../api/candidate";
+import { getOpportunities } from "../api/opportunities";
+import { OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
+import {
+  Alert,
+  Button,
+  Card,
+  CompanyVacancyTile,
+  ContentRail,
+  EmptyState,
+  Loader,
+  OpportunityMiniCard,
+  PillButton,
+  SearchInput,
+  SectionHeader,
+  Tag,
+} from "../shared/ui";
+import "./opportunities-catalog.css";
+
+const BODY_CLASS = "opportunities-browser-react-body";
 
 const NAV_ITEMS = [
-  { key: "opportunities", label: "Возможности", href: "./opportunities-catalog.html" },
-  { key: "career", label: "Карьера", href: "../candidate/candidate-profile.html" },
-  { key: "about", label: "О платформе", href: "../home/index.html#about" },
+  { key: "opportunities", label: "Все возможности", href: "/opportunities" },
+  { key: "career", label: "Карьера", href: "/candidate/profile" },
+  { key: "about", label: "О платформе", href: "/#about" },
 ];
 
-const TYPE_FILTERS = ["Все", "Вакансии", "Стажировки", "Мероприятия"];
-const TYPE_FILTER_MAP = {
-  Все: null,
-  Вакансии: "Вакансия",
-  Стажировки: "Стажировка",
-  Мероприятия: "Мероприятие",
-};
-
-const RESULT_ITEMS = [
-  {
-    id: "security-analyst",
-    type: "Вакансия",
-    title: "Junior Security Analyst",
-    company: "ООО Компани · Москва + онлайн",
-    accent: "от 90 000 ₽",
-    note: "за месяц, до вычета налогов",
-    chips: ["Без опыта", "Можно удаленно"],
-    tags: [],
-    salaryValue: 90000,
-  },
-  {
-    id: "it-planet",
-    type: "Мероприятие",
-    title: "IT - Планета",
-    company: "IT - Планета · Москва + онлайн",
-    accent: "155",
-    note: "регистраций",
-    chips: [],
-    tags: [],
-    salaryValue: 155,
-  },
-  {
-    id: "ux-internship",
-    type: "Стажировка",
-    title: "Дизайнер интерфейсов мобильных приложений UI/UX",
-    company: "White Tiger Soft · Москва + онлайн",
-    accent: "от 30 000 ₽",
-    note: "за месяц, до вычета налогов",
-    chips: ["Студенты", "Оплачиваемая"],
-    tags: [],
-    salaryValue: 30000,
-  },
-  {
-    id: "product-intern",
-    type: "Стажировка",
-    title: "Product Analytics Intern",
-    company: "Signal Hub · Москва + гибрид",
-    accent: "60 000 ₽",
-    note: "в месяц + наставник",
-    chips: ["SQL", "Growth"],
-    tags: [],
-    salaryValue: 60000,
-  },
-  {
-    id: "frontend-trainee",
-    type: "Вакансия",
-    title: "Frontend Trainee",
-    company: "Cloud Orbit · Новосибирск + гибрид",
-    accent: "от 70 000 ₽",
-    note: "за месяц, до вычета налогов",
-    chips: ["Junior", "React"],
-    tags: [],
-    salaryValue: 70000,
-  },
+const TYPE_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "vacancy", label: "Вакансии" },
+  { value: "internship", label: "Стажировки" },
+  { value: "event", label: "Мероприятия" },
 ];
-
-const RECOMMENDED_ITEMS = [
-  {
-    id: "recommended-1",
-    type: "Вакансия",
-    status: "Активно",
-    statusTone: "success",
-    title: "Junior Security Analyst",
-    company: "ООО Компани · Москва + онлайн",
-    accent: "от 90 000 ₽",
-    chips: ["Junior", "SOC", "SIEM"],
-  },
-  {
-    id: "recommended-2",
-    type: "Мероприятие",
-    status: "Ожидание",
-    statusTone: "warning",
-    title: "IT - Планета",
-    company: "IT - Планета · Москва + онлайн",
-    accent: "155 регистраций",
-    chips: ["Студенты", "Мероприятие"],
-  },
-  {
-    id: "recommended-3",
-    type: "Мероприятие",
-    status: "Активно",
-    statusTone: "success",
-    title: "IT - Планета",
-    company: "IT - Планета · Москва + онлайн",
-    accent: "155 регистраций",
-    chips: ["Студенты", "Мероприятие"],
-  },
-  {
-    id: "recommended-4",
-    type: "Мероприятие",
-    status: "Ожидание",
-    statusTone: "warning",
-    title: "IT - Планета",
-    company: "IT - Планета · Москва + онлайн",
-    accent: "155 регистраций",
-    chips: ["Студенты"],
-  },
-];
-
-const CITY_COMPANIES = [
-  { initials: "Ig", name: "IGrids", count: "20 вакансий", tone: "lime" },
-  { initials: "KS", name: "КейсСистемс", count: "32 вакансии", tone: "neutral" },
-  { initials: "Ig", name: "IGrids", count: "20 вакансий", tone: "lime" },
-  { initials: "Ig", name: "IGrids", count: "20 вакансий", tone: "lime" },
-  { initials: "Ig", name: "IGrids", count: "20 вакансий", tone: "lime" },
-  { initials: "Ig", name: "IGrids", count: "20 вакансий", tone: "lime" },
-];
-
-const REGION_OPTIONS = ["Москва", "Чебоксары", "Казань", "Новосибирск"];
-const SPECIALIZATION_OPTIONS = ["Аналитика", "Дизайн", "Разработка", "Кибербезопасность"];
-const PAY_PERIODS = ["Период выплат", "За месяц", "За проект", "Почасово"];
-const FORMAT_OPTIONS = ["На месте работодателя", "Разъездной", "Удаленно", "Гибрид"];
-const EDUCATION_OPTIONS = ["Не требуется или не указано", "Высшее", "Среднее профессиональное"];
 
 function normalize(value) {
-  return String(value).trim().toLowerCase();
+  return String(value ?? "").trim().toLowerCase();
 }
 
-function ClearIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="10" cy="10" r="8.2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="m6.7 6.7 6.6 6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m13.3 6.7-6.6 6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
+function tokenize(value) {
+  return normalize(value)
+    .replace(/[^a-zа-яё0-9+#]+/gi, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).trim()).filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right, "ru")
   );
 }
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
-function ArrowDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 3.5v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="m5.5 9.5 2.5 3 2.5-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function pluralize(count, [one, few, many]) {
+  const abs = Math.abs(count) % 100;
+  const last = abs % 10;
+
+  if (abs > 10 && abs < 20) {
+    return many;
+  }
+
+  if (last === 1) {
+    return one;
+  }
+
+  if (last >= 2 && last <= 4) {
+    return few;
+  }
+
+  return many;
 }
 
-function SidebarSelect({ label, value, resetText = "Сбросить" }) {
-  return (
-    <div className="opportunities-sidebar__group">
-      <div className="opportunities-sidebar__group-head">
-        <span>{label}</span>
-        <button type="button">{resetText}</button>
-      </div>
-      <button type="button" className="opportunities-sidebar__select">
-        <span>{value}</span>
-        <ChevronDownIcon />
-      </button>
-    </div>
-  );
+function formatCount(count, words) {
+  return `${new Intl.NumberFormat("ru-RU").format(count)} ${pluralize(count, words)}`;
 }
 
-function SidebarCheckboxGroup({ label, options, selected, onToggle }) {
-  return (
-    <div className="opportunities-sidebar__group">
-      <div className="opportunities-sidebar__group-head">
-        <span>{label}</span>
-        <button type="button">Сбросить</button>
-      </div>
-      <div className="opportunities-sidebar__checks">
-        {options.map((option) => (
-          <label key={option} className="opportunities-sidebar__check">
-            <input type="checkbox" checked={selected.includes(option)} onChange={() => onToggle(option)} />
-            <span>{option}</span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+function translateOpportunityType(value) {
+  switch (value) {
+    case "vacancy":
+      return "Вакансия";
+    case "internship":
+      return "Стажировка";
+    case "event":
+      return "Мероприятие";
+    default:
+      return value || "Возможность";
+  }
+}
+
+function translateEmploymentType(value) {
+  switch (normalize(value)) {
+    case "remote":
+      return "Удаленно";
+    case "hybrid":
+      return "Гибрид";
+    case "office":
+    case "onsite":
+      return "На месте работодателя";
+    case "online":
+      return "Онлайн";
+    default:
+      return value && normalize(value) !== "unspecified" ? value : "";
+  }
+}
+
+function shortenText(value, maxLength = 96) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "";
+  }
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength).trim()}…`;
+}
+
+function createOpportunityMeta(item) {
+  return [item.companyName, item.locationCity, translateEmploymentType(item.employmentType)].filter(Boolean).join(" · ");
+}
+
+function createRowCardItem(item) {
+  return {
+    type: translateOpportunityType(item.opportunityType),
+    title: item.title,
+    meta: createOpportunityMeta(item),
+    accent: translateEmploymentType(item.employmentType),
+    note: shortenText(item.description, 88),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
+  };
+}
+
+function scoreOpportunity(item, candidateSkills, activeType, city) {
+  const haystack = [
+    item.title,
+    item.description,
+    item.companyName,
+    item.locationCity,
+    ...(Array.isArray(item.tags) ? item.tags : []),
+  ]
+    .map((entry) => String(entry ?? ""))
+    .join(" ")
+    .toLowerCase();
+
+  const matchedSkills = candidateSkills.filter((skill) => {
+    const tokens = tokenize(skill);
+    return tokens.length > 0 && tokens.every((token) => haystack.includes(token));
+  });
+
+  const skillBonus = Math.min(matchedSkills.length * 12, 36);
+  const typeBonus = activeType !== "all" && item.opportunityType === activeType ? 4 : 0;
+  const cityBonus = city && normalize(item.locationCity) === normalize(city) ? 3 : 0;
+
+  return {
+    matchedSkills,
+    matchedSkillsCount: matchedSkills.length,
+    score: clamp(55 + skillBonus + typeBonus + cityBonus, 55, 95),
+  };
+}
+
+function createRecommendationCard(item, scoreData) {
+  const hasSkillMatch = scoreData.matchedSkillsCount > 0;
+
+  return {
+    type: translateOpportunityType(item.opportunityType),
+    status: hasSkillMatch ? `Подходит на ${scoreData.score}%` : "",
+    statusTone: hasSkillMatch ? "success" : "neutral",
+    title: item.title,
+    company: createOpportunityMeta(item),
+    accentPrefix: item.opportunityType === "event" ? "" : "Формат",
+    accent: translateEmploymentType(item.employmentType),
+    note: item.opportunityType === "event" ? "" : shortenText(item.description, 42),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
+  };
+}
+
+function buildCompanyGroups(items) {
+  const cityMap = new Map();
+
+  items.forEach((item) => {
+    const city = String(item.locationCity ?? "").trim();
+    const companyName = String(item.companyName ?? "").trim();
+
+    if (!city || !companyName) {
+      return;
+    }
+
+    const cityEntry = cityMap.get(city) ?? { city, count: 0, companies: new Map() };
+    const companyEntry = cityEntry.companies.get(companyName) ?? { name: companyName, count: 0 };
+
+    companyEntry.count += 1;
+    cityEntry.count += 1;
+    cityEntry.companies.set(companyName, companyEntry);
+    cityMap.set(city, cityEntry);
+  });
+
+  return [...cityMap.values()]
+    .map((entry) => ({
+      city: entry.city,
+      count: entry.count,
+      companies: [...entry.companies.values()].sort((left, right) => right.count - left.count || left.name.localeCompare(right.name, "ru")),
+    }))
+    .sort((left, right) => right.count - left.count || left.city.localeCompare(right.city, "ru"));
 }
 
 export function OpportunitiesCatalogApp() {
-  const [query, setQuery] = useState("");
-  const [activeType, setActiveType] = useState("Все");
-  const [sortAscending, setSortAscending] = useState(true);
+  const [state, setState] = useState({
+    status: "loading",
+    items: [],
+    candidate: null,
+    error: null,
+  });
+  const [filters, setFilters] = useState({
+    query: "",
+    activeType: "all",
+    city: "",
+    specialization: "",
+    employmentTypes: [],
+    incomeFrom: "",
+    payoutPeriod: "",
+    education: [],
+  });
   const [visibleCount, setVisibleCount] = useState(3);
-  const [selectedFormats, setSelectedFormats] = useState(["На месте работодателя", "Удаленно", "Гибрид"]);
-  const [selectedEducation, setSelectedEducation] = useState(["Не требуется или не указано"]);
+  const [expandedCompanies, setExpandedCompanies] = useState(false);
+  const [companyCity, setCompanyCity] = useState("");
+
+  useEffect(() => {
+    document.body.classList.add(BODY_CLASS);
+    return () => {
+      document.body.classList.remove(BODY_CLASS);
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function load() {
+      try {
+        const [items, candidate] = await Promise.all([
+          getOpportunities(controller.signal),
+          getCandidateProfile(controller.signal).catch((error) => {
+            if (error?.status === 401 || error?.status === 403) {
+              return null;
+            }
+
+            return null;
+          }),
+        ]);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setState({
+          status: "ready",
+          items: Array.isArray(items) ? items : [],
+          candidate,
+          error: null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setState({
+          status: "error",
+          items: [],
+          candidate: null,
+          error,
+        });
+      }
+    }
+
+    load();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(3);
+    setExpandedCompanies(false);
+  }, [filters.query, filters.activeType, filters.city, filters.specialization, filters.employmentTypes]);
+
+  const filterOptions = useMemo(
+    () => ({
+      cities: uniqueOptions(state.items.map((item) => item.locationCity)).map((value) => ({ value, label: value })),
+      specializations: uniqueOptions(state.items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
+      employmentTypes: uniqueOptions(state.items.map((item) => translateEmploymentType(item.employmentType)))
+        .filter(Boolean)
+        .map((value) => ({ value, label: value })),
+    }),
+    [state.items]
+  );
 
   const filteredItems = useMemo(() => {
-    const normalizedQuery = normalize(query);
-    return RESULT_ITEMS.filter((item) => {
-      const matchesType = TYPE_FILTER_MAP[activeType] ? item.type === TYPE_FILTER_MAP[activeType] : true;
-      const haystack = normalize([item.title, item.company, item.accent, item.note].join(" "));
-      return matchesType && (!normalizedQuery || haystack.includes(normalizedQuery));
+    const normalizedQuery = normalize(filters.query);
+    const normalizedSpecialization = normalize(filters.specialization);
+    const selectedEmploymentTypes = filters.employmentTypes.map((value) => normalize(value));
+
+    return state.items.filter((item) => {
+      const matchesType = filters.activeType === "all" || item.opportunityType === filters.activeType;
+      const matchesCity = !filters.city || normalize(item.locationCity) === normalize(filters.city);
+      const matchesSpecialization =
+        !normalizedSpecialization || (Array.isArray(item.tags) ? item.tags.some((tag) => normalize(tag) === normalizedSpecialization) : false);
+      const matchesEmployment =
+        selectedEmploymentTypes.length === 0 || selectedEmploymentTypes.includes(normalize(translateEmploymentType(item.employmentType)));
+      const haystack = normalize([item.title, item.companyName, item.locationCity, item.description, ...(item.tags ?? [])].join(" "));
+      const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+
+      return matchesType && matchesCity && matchesSpecialization && matchesEmployment && matchesQuery;
     });
-  }, [activeType, query, sortAscending]);
+  }, [filters, state.items]);
 
-  const visibleItems = filteredItems.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredItems.length;
+  const candidateSkills = useMemo(
+    () => (Array.isArray(state.candidate?.skills) ? state.candidate.skills.filter(Boolean) : []),
+    [state.candidate]
+  );
 
-  const toggleInList = (setter, currentValues, value) => {
-    setter(currentValues.includes(value) ? currentValues.filter((item) => item !== value) : [...currentValues, value]);
+  const recommendationSource = filteredItems.length ? filteredItems : state.items;
+
+  const scoredRecommendations = useMemo(
+    () =>
+      recommendationSource
+        .map((item) => ({
+          item,
+          ...scoreOpportunity(item, candidateSkills, filters.activeType, filters.city),
+        }))
+        .sort((left, right) => right.score - left.score || left.item.title.localeCompare(right.item.title, "ru")),
+    [candidateSkills, filters.activeType, filters.city, recommendationSource]
+  );
+
+  const recommendedItems = scoredRecommendations.slice(0, 4);
+  const personalizedItems = scoredRecommendations.filter((entry) => entry.matchedSkillsCount > 0);
+  const hasPersonalization = candidateSkills.length > 0;
+  const visibleResults = filteredItems.slice(0, visibleCount);
+
+  const companyGroups = useMemo(() => buildCompanyGroups(recommendationSource), [recommendationSource]);
+
+  const preferredCompanyCity = useMemo(() => {
+    if (filters.city && companyGroups.some((entry) => entry.city === filters.city)) {
+      return filters.city;
+    }
+
+    return companyGroups[0]?.city ?? "";
+  }, [companyGroups, filters.city]);
+
+  useEffect(() => {
+    setCompanyCity(preferredCompanyCity);
+  }, [preferredCompanyCity]);
+
+  const activeCompanyGroup = companyGroups.find((entry) => entry.city === companyCity) ?? companyGroups[0] ?? null;
+  const visibleCompanies = expandedCompanies ? activeCompanyGroup?.companies ?? [] : (activeCompanyGroup?.companies ?? []).slice(0, 6);
+
+  const heroMeta = useMemo(() => {
+    if (!hasPersonalization) {
+      return `В каталоге сейчас ${formatCount(filteredItems.length || state.items.length, ["возможность", "возможности", "возможностей"])}.`;
+    }
+
+    if (!personalizedItems.length) {
+      return "Пока точных совпадений по навыкам не нашли, но каталог уже готов к фильтрации по городу, тегам и формату работы.";
+    }
+
+    const vacancies = personalizedItems.filter((entry) => entry.item.opportunityType === "vacancy").length;
+    const events = personalizedItems.filter((entry) => entry.item.opportunityType === "event").length;
+    const internships = personalizedItems.filter((entry) => entry.item.opportunityType === "internship").length;
+    const parts = [];
+
+    if (events) {
+      parts.push(formatCount(events, ["мероприятие", "мероприятия", "мероприятий"]));
+    }
+
+    if (vacancies) {
+      parts.push(formatCount(vacancies, ["вакансия", "вакансии", "вакансий"]));
+    }
+
+    if (internships) {
+      parts.push(formatCount(internships, ["стажировка", "стажировки", "стажировок"]));
+    }
+
+    return `Тебе подходит ${parts.join(" и ")}.`;
+  }, [filteredItems.length, hasPersonalization, personalizedItems, state.items.length]);
+
+  const sectionCityPills = companyGroups.slice(0, 6);
+
+  const handleFilterChange = (field, value) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleResetSection = (section) => {
+    setFilters((current) => {
+      switch (section) {
+        case "city":
+          return { ...current, city: "" };
+        case "income":
+          return { ...current, incomeFrom: "", payoutPeriod: "" };
+        case "specialization":
+          return { ...current, specialization: "" };
+        case "employmentTypes":
+          return { ...current, employmentTypes: [] };
+        case "education":
+          return { ...current, education: [] };
+        default:
+          return current;
+      }
+    });
+  };
+
+  const handleResetAll = () => {
+    setFilters({
+      query: "",
+      activeType: "all",
+      city: "",
+      specialization: "",
+      employmentTypes: [],
+      incomeFrom: "",
+      payoutPeriod: "",
+      education: [],
+    });
   };
 
   return (
@@ -228,178 +433,220 @@ export function OpportunitiesCatalogApp() {
         <PortalHeader
           navItems={NAV_ITEMS}
           currentKey="opportunities"
-          actionHref="../candidate/candidate-profile.html"
+          actionHref="/candidate/profile"
           actionLabel="Профиль"
-          className="opportunities-browser__header opportunities-browser-fade-up"
+          className="opportunities-browser__header"
         />
 
-        <div className="opportunities-browser__layout">
-          <aside className="opportunities-sidebar opportunities-browser-fade-up opportunities-browser-fade-up--delay-1">
-            <Card className="opportunities-sidebar__surface">
-              <div className="opportunities-sidebar__map-card" aria-hidden="true">
-                <span className="opportunities-sidebar__map-glow opportunities-sidebar__map-glow--lime" />
-                <span className="opportunities-sidebar__map-glow opportunities-sidebar__map-glow--blue" />
-                <span className="opportunities-sidebar__map-pin opportunities-sidebar__map-pin--left" />
-                <span className="opportunities-sidebar__map-pin opportunities-sidebar__map-pin--center" />
-                <span className="opportunities-sidebar__map-pin opportunities-sidebar__map-pin--right" />
-                <Button className="opportunities-sidebar__map-button">Вакансии на карте</Button>
-              </div>
+        <section className="opportunities-browser__hero">
+          <Tag tone="accent" size="lg">
+            Возможности
+          </Tag>
+          <SectionHeader
+            align="center"
+            title={
+              hasPersonalization
+                ? "Мы проанализировали ваши навыки и цель и подобрали для вас подходящие возможности"
+                : "Каталог возможностей для старта карьеры"
+            }
+            description={heroMeta}
+          />
+          <Button href="#catalog-results" size="lg" className="opportunities-browser__hero-action">
+            Найти первую возможность
+          </Button>
+        </section>
 
-              <SidebarSelect label="Регион" value="Поиск региона" />
-              <div className="opportunities-sidebar__group">
-                <div className="opportunities-sidebar__group-head">
-                  <span>Уровень дохода</span>
-                  <button type="button">Сбросить</button>
-                </div>
-                <div className="opportunities-sidebar__income-fields">
-                  <input type="text" value="от" readOnly />
-                  <button type="button" className="opportunities-sidebar__select">
-                    <span>{PAY_PERIODS[0]}</span>
-                    <ChevronDownIcon />
-                  </button>
-                </div>
-              </div>
-              <SidebarSelect label="Специализация" value="Поиск специальности" />
-              <SidebarCheckboxGroup
-                label="Формат работы"
-                options={FORMAT_OPTIONS}
-                selected={selectedFormats}
-                onToggle={(value) => toggleInList(setSelectedFormats, selectedFormats, value)}
-              />
-              <SidebarCheckboxGroup
-                label="Образование"
-                options={EDUCATION_OPTIONS}
-                selected={selectedEducation}
-                onToggle={(value) => toggleInList(setSelectedEducation, selectedEducation, value)}
-              />
-            </Card>
-          </aside>
+        {state.status === "loading" ? <Loader label="Загружаем каталог возможностей" surface /> : null}
 
-          <div className="opportunities-browser__content">
-            <section className="opportunities-browser__hero opportunities-browser-fade-up">
-              <Tag tone="accent">
-                Возможности
-              </Tag>
-              <div className="opportunities-browser__hero-copy">
-                <h1 className="ui-type-display">Возможности</h1>
-                <p className="ui-type-body-lg">Находи стажировки, вакансии, компании и менторов по своим предпочтениям.</p>
-              </div>
-            </section>
+        {state.status === "error" ? (
+          <Alert tone="error" title="Не удалось загрузить каталог" showIcon>
+            {state.error?.message ?? "Попробуйте обновить страницу позже."}
+          </Alert>
+        ) : null}
 
-            <div className="opportunities-browser__toolbar">
-              <SearchInput
-                value={query}
-                onValueChange={setQuery}
-                placeholder="Поиск по названию, действию или дате"
-                clearLabel={<ClearIcon />}
-                className="opportunities-browser__search"
+        {state.status === "ready" ? (
+          <>
+            <section className="opportunities-browser__layout" id="catalog-results">
+              <OpportunityFilterSidebar
+                values={filters}
+                options={filterOptions}
+                disabledSections={{ income: true, payout: true, education: true }}
+                onChange={handleFilterChange}
+                onResetSection={handleResetSection}
+                onResetAll={handleResetAll}
               />
 
-              <div className="opportunities-browser__toolbar-row opportunities-browser-fade-up opportunities-browser-fade-up--delay-1">
-                <div className="opportunities-browser__type-filters">
-                  {TYPE_FILTERS.map((filter) => (
-                    <PillButton
-                      key={filter}
-                      active={filter === activeType}
-                      className="opportunities-browser__type-pill"
-                      onClick={() => setActiveType(filter)}
-                    >
-                      {filter}
-                    </PillButton>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  className="opportunities-browser__sort-button"
-                  onClick={() => setSortAscending((current) => !current)}
-                >
-                  <span>{sortAscending ? "По возрастанию зарплат" : "По убыванию зарплат"}</span>
-                  <ArrowDownIcon />
-                </button>
-              </div>
-            </div>
-
-            <div className="opportunities-browser__results-caption opportunities-browser-fade-up opportunities-browser-fade-up--delay-1">
-              Найдена 3 061 возможность
-            </div>
-
-            <section className="opportunities-browser__results opportunities-browser-fade-up opportunities-browser-fade-up--delay-2">
-              {visibleItems.map((item) => (
-                <OpportunityRowCard
-                  key={item.id}
-                  item={item}
-                  surface="panel"
-                  size="md"
-                  className="opportunities-result-entry"
-                  primaryAction={{
-                    href: "./opportunity-detail-card.html",
-                    label: item.type === "Мероприятие" ? "Подать заявку" : "Откликнуться",
-                  }}
-                  secondaryAction={{
-                    href: "../contacts/contact-profile.html",
-                    label: "Связаться",
-                    variant: "secondary",
-                  }}
-                />
-              ))}
-
-              <Button
-                type="button"
-                variant="secondary"
-                className="opportunities-browser__more-button"
-                onClick={() => setVisibleCount((current) => Math.min(current + 2, filteredItems.length))}
-              >
-                {hasMore ? "Больше возможностей" : "Показаны все возможности"}
-              </Button>
-            </section>
-
-            <section className="opportunities-browser__section" id="recommended">
-              <div className="opportunities-browser__section-head">
-                <h2 className="ui-type-display">Рекомендуемые возможности</h2>
-              </div>
-              <div className="opportunities-browser__recommended-grid">
-                {RECOMMENDED_ITEMS.map((item) => (
-                  <OpportunityBlockCard
-                    key={item.id}
-                    item={item}
-                    surface="panel"
+              <div className="opportunities-browser__main">
+                <div className="opportunities-browser__section-head">
+                  <Tag tone="accent">Возможности</Tag>
+                  <SectionHeader
                     size="md"
-                    className="opportunities-recommended-entry"
-                    detailAction={{
-                      href: "./opportunity-detail-card.html",
-                      label: "Подробнее",
-                      variant: "secondary",
-                    }}
+                    title="Возможности"
+                    description="Находи стажировки, вакансии, компании и мероприятия по своим предпочтениям."
                   />
-                ))}
+                </div>
+
+                <SearchInput
+                  value={filters.query}
+                  onValueChange={(value) => handleFilterChange("query", value)}
+                  placeholder="Поиск по названию, действию или дате"
+                  clearLabel="Очистить поиск"
+                  appearance="elevated"
+                  size="lg"
+                  className="opportunities-browser__search"
+                />
+
+                <div className="opportunities-browser__toolbar">
+                  <div className="opportunities-browser__type-filters">
+                    {TYPE_FILTERS.map((filter) => (
+                      <PillButton
+                        key={filter.value}
+                        size="lg"
+                        active={filter.value === filters.activeType}
+                        onClick={() => handleFilterChange("activeType", filter.value)}
+                      >
+                        {filter.label}
+                      </PillButton>
+                    ))}
+                  </div>
+
+                  <div className="opportunities-browser__sort">
+                    <button type="button" disabled className="opportunities-browser__sort-button">
+                      По возрастанию зарплат
+                    </button>
+                    <p>Сортировка появится после подключения зарплатных данных.</p>
+                  </div>
+                </div>
+
+                <p className="opportunities-browser__results-caption">
+                  Найдено {formatCount(filteredItems.length, ["возможность", "возможности", "возможностей"])}
+                </p>
+
+                {filteredItems.length ? (
+                  <div className="opportunities-browser__results">
+                    {visibleResults.map((item) => (
+                      <OpportunityRowCard
+                        key={item.id}
+                        item={createRowCardItem(item)}
+                        primaryAction={{
+                          href: buildOpportunityDetailRoute(item.id),
+                          label: "Связаться",
+                          variant: "secondary",
+                        }}
+                        detailAction={{
+                          href: buildOpportunityDetailRoute(item.id),
+                          label: item.opportunityType === "event" ? "Подать заявку" : "Откликнуться",
+                          variant: "secondary",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <EmptyState
+                      eyebrow="Ничего не найдено"
+                      title="Нет возможностей по текущим фильтрам"
+                      description="Измените запрос, город или специализацию. Неподдержанные фильтры пока показаны только как структура."
+                      tone="neutral"
+                    />
+                  </Card>
+                )}
+
+                {filteredItems.length > visibleCount ? (
+                  <Button variant="secondary" size="lg" className="opportunities-browser__more-button" onClick={() => setVisibleCount((current) => current + 3)}>
+                    Больше возможностей
+                  </Button>
+                ) : null}
               </div>
             </section>
 
             <section className="opportunities-browser__section">
-              <Card className="opportunities-browser__city-panel">
-                <div className="opportunities-browser__section-head">
-                  <h2 className="ui-type-display">Вакансии в Чебоксарах</h2>
-                </div>
-                <div className="opportunities-browser__city-grid">
-                  {CITY_COMPANIES.map((item, index) => (
-                    <article key={`${item.name}-${index}`} className="opportunities-browser__city-card">
-                      <span className={`opportunities-browser__city-avatar opportunities-browser__city-avatar--${item.tone}`.trim()}>{item.initials}</span>
-                      <div className="opportunities-browser__city-copy">
-                        <strong>{item.name}</strong>
-                        <span>{item.count}</span>
-                      </div>
-                    </article>
+              <SectionHeader
+                size="md"
+                title="Рекомендуемые возможности"
+                description={
+                  hasPersonalization
+                    ? "Показываем публикации с лучшим совпадением по навыкам, городу и выбранному типу."
+                    : "Пока профиль кандидата не доступен, показываем свежие публикации из текущего каталога."
+                }
+              />
+
+              {recommendedItems.length ? (
+                <ContentRail ariaLabel="Рекомендуемые возможности" itemWidth="370px" gap="18px" className="opportunities-browser__rail">
+                  {recommendedItems.map((entry, index) => (
+                    <OpportunityMiniCard
+                      key={entry.item.id}
+                      variant={index === 0 ? "featured" : "compact"}
+                      item={createRecommendationCard(entry.item, entry)}
+                      detailAction={{
+                        href: buildOpportunityDetailRoute(entry.item.id),
+                        label: "Подробнее",
+                        variant: "secondary",
+                      }}
+                    />
                   ))}
-                </div>
-                <button type="button" className="opportunities-browser__expand">
-                  Развернуть
-                  <ChevronDownIcon />
-                </button>
+                </ContentRail>
+              ) : (
+                <Card>
+                  <EmptyState
+                    title="Рекомендации появятся после загрузки каталога"
+                    description="Пока в каталоге нет элементов, которые можно показать в горизонтальной подборке."
+                    tone="neutral"
+                  />
+                </Card>
+              )}
+            </section>
+
+            <section className="opportunities-browser__section">
+              <Card className="opportunities-browser__companies-card">
+                <SectionHeader
+                  size="md"
+                  title={activeCompanyGroup ? `Вакансии в ${activeCompanyGroup.city}` : "Компании с открытыми вакансиями"}
+                  description="Группируем актуальные публикации по городам и компаниям без отдельных backend-эндпоинтов."
+                  actions={
+                    sectionCityPills.length ? (
+                      <div className="opportunities-browser__city-pills">
+                        {sectionCityPills.map((item) => (
+                          <PillButton key={item.city} active={item.city === activeCompanyGroup?.city} onClick={() => setCompanyCity(item.city)}>
+                            {item.city}
+                          </PillButton>
+                        ))}
+                      </div>
+                    ) : null
+                  }
+                />
+
+                {activeCompanyGroup ? (
+                  <>
+                    <div className="opportunities-browser__company-grid">
+                      {visibleCompanies.map((item, index) => (
+                        <CompanyVacancyTile
+                          key={`${activeCompanyGroup.city}-${item.name}`}
+                          name={item.name}
+                          count={formatCount(item.count, ["вакансия", "вакансии", "вакансий"])}
+                          tone={index % 3 === 0 ? "lime" : "neutral"}
+                        />
+                      ))}
+                    </div>
+
+                    {(activeCompanyGroup.companies?.length ?? 0) > 6 ? (
+                      <button type="button" className="opportunities-browser__expand" onClick={() => setExpandedCompanies((current) => !current)}>
+                        {expandedCompanies ? "Свернуть" : "Развернуть"}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <EmptyState
+                    title="Пока нет агрегированных компаний"
+                    description="Секция появится автоматически, когда у публикаций будут заполнены компания и город."
+                    tone="neutral"
+                    compact
+                  />
+                )}
               </Card>
             </section>
-          </div>
-        </div>
+          </>
+        ) : null}
       </div>
     </main>
   );

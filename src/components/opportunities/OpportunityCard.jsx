@@ -1,11 +1,10 @@
-import { Button, Card, StatusBadge, Tag } from "../ui";
+import { Button, Card, IconButton, StatusBadge, Tag } from "../ui";
 import { cn } from "../../lib/cn";
 import "./OpportunityCard.css";
 
 const CHIP_PLACEMENT_BY_VARIANT = {
   row: "top",
   block: "bottom",
-  mini: "none",
 };
 
 function HeartIcon() {
@@ -24,14 +23,14 @@ function HeartIcon() {
 
 function normalizeOpportunity(item) {
   return {
-    type: item.type ?? item.eyebrow ?? "",
-    title: item.title ?? "",
-    meta: item.company ?? item.meta ?? "",
-    accent: item.accent ?? "",
-    note: item.note ?? "",
-    status: item.status ?? "",
-    statusTone: item.statusTone ?? item.tone ?? "neutral",
-    chips: item.chips ?? [],
+    type: item?.type ?? item?.eyebrow ?? "",
+    title: item?.title ?? "",
+    meta: item?.company ?? item?.meta ?? "",
+    accent: item?.accent ?? "",
+    note: item?.note ?? "",
+    status: item?.status ?? "",
+    statusTone: item?.statusTone ?? item?.tone ?? "neutral",
+    chips: Array.isArray(item?.chips) ? item.chips.filter(Boolean) : [],
   };
 }
 
@@ -71,17 +70,101 @@ function OpportunityCardBase({
   surface = "panel",
   size = "md",
   chipPlacement,
+  actionsAlign = "start",
   showSave = true,
   className,
   primaryAction,
   secondaryAction,
   detailAction,
+  favoriteLabel = "Сохранить возможность",
+  favoritePressed = false,
+  onFavoriteClick,
+  ...props
 }) {
   const data = normalizeOpportunity(item);
   const actions = [resolveAction(primaryAction), resolveAction(secondaryAction), resolveAction(detailAction)].filter(Boolean);
   const { topTags, bottomTags } = splitTags(data.chips, chipPlacement ?? CHIP_PLACEMENT_BY_VARIANT[variant] ?? "bottom");
   const shouldShowSave = showSave && variant !== "mini";
+  const saveButtonSize = size === "sm" ? "sm" : "md";
   const hasTopRow = data.type || data.status || topTags.length > 0 || shouldShowSave;
+
+  const topRow = hasTopRow ? (
+    <div className="ui-opportunity-card__top">
+      <div className="ui-opportunity-card__badges">
+        {data.type ? <Tag className="ui-opportunity-card__tag">{data.type}</Tag> : null}
+        {data.status ? (
+          <StatusBadge tone={data.statusTone} className="ui-opportunity-card__status">
+            {data.status}
+          </StatusBadge>
+        ) : null}
+        {topTags.map((chip, index) => (
+          <Tag key={`${chip}-${index}`} className="ui-opportunity-card__tag">
+            {chip}
+          </Tag>
+        ))}
+      </div>
+
+      {shouldShowSave ? (
+        <IconButton
+          type="button"
+          label={favoriteLabel}
+          aria-pressed={favoritePressed}
+          onClick={onFavoriteClick}
+          size={saveButtonSize}
+          className="ui-opportunity-card__save"
+        >
+          <HeartIcon />
+        </IconButton>
+      ) : null}
+    </div>
+  ) : null;
+
+  const body = (
+    <div className="ui-opportunity-card__body">
+      <h3 className="ui-opportunity-card__title">{data.title}</h3>
+      {data.meta ? <p className="ui-opportunity-card__meta">{data.meta}</p> : null}
+
+      {variant === "row" ? (
+        data.accent ? (
+          <div className="ui-opportunity-card__value">
+            <strong className="ui-opportunity-card__accent">{data.accent}</strong>
+            {data.note ? <span className="ui-opportunity-card__inline-note">{data.note}</span> : null}
+          </div>
+        ) : null
+      ) : (
+        <>
+          {data.accent ? <strong className="ui-opportunity-card__accent">{data.accent}</strong> : null}
+          {data.note ? <p className="ui-opportunity-card__note">{data.note}</p> : null}
+        </>
+      )}
+    </div>
+  );
+
+  const chips = bottomTags.length ? (
+    <div className="ui-opportunity-card__chips">
+      {bottomTags.map((chip, index) => (
+        <Tag key={`${chip}-${index}`} className="ui-opportunity-card__tag">
+          {chip}
+        </Tag>
+      ))}
+    </div>
+  ) : null;
+
+  const actionButtons = actions.length ? (
+    <div className={cn("ui-opportunity-card__actions", `ui-opportunity-card__actions--${actionsAlign}`, actions.length > 1 && "is-multiple")}>
+      {actions.map((action) => (
+        <Button
+          key={`${action.label}-${action.href ?? action.variant}`}
+          href={action.href}
+          onClick={action.onClick}
+          variant={action.variant}
+          className={cn("ui-opportunity-card__action", action.className)}
+        >
+          {action.label}
+        </Button>
+      ))}
+    </div>
+  ) : null;
 
   return (
     <Card
@@ -92,87 +175,33 @@ function OpportunityCardBase({
         `ui-opportunity-card--${size}`,
         className
       )}
+      {...props}
     >
-      {hasTopRow ? (
-        <div className="ui-opportunity-card__top">
-          <div className="ui-opportunity-card__badges">
-            {data.type ? <Tag className="ui-opportunity-card__tag">{data.type}</Tag> : null}
-            {data.status ? (
-              <StatusBadge tone={data.statusTone} className="ui-opportunity-card__status">
-                {data.status}
-              </StatusBadge>
-            ) : null}
-            {topTags.map((chip, index) => (
-              <Tag key={`${chip}-${index}`} className="ui-opportunity-card__tag">
-                {chip}
-              </Tag>
-            ))}
+      {variant === "row" ? (
+        <div className="ui-opportunity-card__layout">
+          <div className="ui-opportunity-card__main">
+            {topRow}
+            {body}
+            {chips}
           </div>
-
-          {shouldShowSave ? (
-            <button type="button" className="ui-opportunity-card__save" aria-label="Сохранить возможность">
-              <HeartIcon />
-            </button>
-          ) : null}
+          {actionButtons ? <div className="ui-opportunity-card__aside">{actionButtons}</div> : null}
         </div>
-      ) : null}
-
-      <div className="ui-opportunity-card__body">
-        <h3 className="ui-opportunity-card__title">{data.title}</h3>
-        {data.meta ? <p className="ui-opportunity-card__meta">{data.meta}</p> : null}
-
-        {variant === "row" ? (
-          data.accent ? (
-            <div className="ui-opportunity-card__value">
-              <strong className="ui-opportunity-card__accent">{data.accent}</strong>
-              {data.note ? <span className="ui-opportunity-card__inline-note">{data.note}</span> : null}
-            </div>
-          ) : null
-        ) : (
-          <>
-            {data.accent ? <strong className="ui-opportunity-card__accent">{data.accent}</strong> : null}
-            {data.note ? <p className="ui-opportunity-card__note">{data.note}</p> : null}
-          </>
-        )}
-      </div>
-
-      {bottomTags.length > 0 ? (
-        <div className="ui-opportunity-card__chips">
-          {bottomTags.map((chip, index) => (
-            <Tag key={`${chip}-${index}`} className="ui-opportunity-card__tag">
-              {chip}
-            </Tag>
-          ))}
-        </div>
-      ) : null}
-
-      {actions.length > 0 ? (
-        <div className={cn("ui-opportunity-card__actions", actions.length > 1 && "is-multiple")}>
-          {actions.map((action) => (
-            <Button
-              key={`${action.label}-${action.href ?? action.variant}`}
-              href={action.href}
-              variant={action.variant}
-              className={cn("ui-opportunity-card__action", action.className)}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      ) : null}
+      ) : (
+        <>
+          {topRow}
+          {body}
+          {chips}
+          {actionButtons}
+        </>
+      )}
     </Card>
   );
 }
 
 export function OpportunityRowCard(props) {
-  return <OpportunityCardBase variant="row" {...props} />;
+  return <OpportunityCardBase variant="row" actionsAlign="end" {...props} />;
 }
 
 export function OpportunityBlockCard(props) {
   return <OpportunityCardBase variant="block" {...props} />;
 }
-
-export function OpportunityMiniCard(props) {
-  return <OpportunityCardBase variant="mini" showSave={false} chipPlacement="none" size="sm" {...props} />;
-}
-

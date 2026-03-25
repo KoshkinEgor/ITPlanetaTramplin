@@ -22,16 +22,18 @@
 
 .ui-check__label {
   color: var(--ui-color-text);
-  font-size: 0.9rem;
-  line-height: 1.35;
-  font-weight: 800;
+  font-size: var(--ui-typo-txt-size);
+  line-height: var(--ui-typo-txt-line-height);
+  letter-spacing: var(--ui-typo-txt-letter-spacing);
+  font-weight: var(--ui-typo-txt-weight);
 }
 
 .ui-check__hint {
   color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-caption);
-  line-height: 1.5;
-  font-weight: 700;
+  font-size: var(--ui-typo-txt-regular-small-size);
+  line-height: var(--ui-typo-txt-regular-small-line-height);
+  letter-spacing: var(--ui-typo-txt-regular-small-letter-spacing);
+  font-weight: var(--ui-typo-txt-regular-small-weight);
 }
 
 .ui-checkbox,

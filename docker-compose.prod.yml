@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/ITPlanetaTramplin.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: ${API_CONNECTION_STRING}
+      Database__ApplyMigrationsOnStartup: ${API_APPLY_MIGRATIONS_ON_STARTUP:-false}
+      Jwt__Key: ${API_JWT_KEY}
+      EmailVerification__HashKey: ${API_EMAIL_VERIFICATION_HASH_KEY}
+      PasswordReset__HashKey: ${API_PASSWORD_RESET_HASH_KEY}
+      Smtp__Host: ${API_SMTP_HOST:-}
+      Smtp__Port: ${API_SMTP_PORT:-587}
+      Smtp__EnableSsl: ${API_SMTP_ENABLE_SSL:-true}
+      Smtp__Username: ${API_SMTP_USERNAME:-}
+      Smtp__Password: ${API_SMTP_PASSWORD:-}
+      Smtp__FromEmail: ${API_SMTP_FROM_EMAIL:-}
+      Smtp__FromName: ${API_SMTP_FROM_NAME:-Tramplin}
+      Dadata__ApiKey: ${API_DADATA_API_KEY:-}
+    expose:
+      - "8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: ${FRONTEND_VITE_API_BASE_URL:-/api}
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - api
+    environment:
+      CADDY_SITE: ${CADDY_SITE:-localhost}
+      CADDY_EMAIL: ${CADDY_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_prod_data:
+  caddy_data:
+  caddy_config:

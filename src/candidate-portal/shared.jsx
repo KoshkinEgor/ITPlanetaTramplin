@@ -1,21 +1,16 @@
-import "../styles/tokens.css";
-import "../styles/globals.css";
-import "../components/ui/index.css";
-import { Avatar, Button, Card, FormField, Input, PillButton, SearchInput, SectionHeader, SegmentedControl, StatusBadge, Tag } from "../components/ui";
-import { PortalHeader } from "../components/layout/PortalHeader";
+import { AppLink } from "../app/AppLink";
+import { buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { Avatar, Button, Card, FormField, Input, PillButton, SearchInput, SectionHeader, SegmentedControl, StatusBadge, Tag } from "../shared/ui";
+import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
-import {
-  CANDIDATE_PAGE_ROUTES,
-  CANDIDATE_PROFILE,
-  CANDIDATE_SIDEBAR_ITEMS,
-  CANDIDATE_STATS,
-} from "./data";
+import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SIDEBAR_ITEMS } from "./config";
+import { getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "./mappers";
 import "./candidate-portal.css";
 
 const CANDIDATE_HEADER_NAV = [
-  { key: "opportunities", label: "Возможности", href: "../opportunities/opportunities-catalog.html" },
+  { key: "opportunities", label: "Возможности", href: "/opportunities" },
   { key: "career", label: "Карьера", href: CANDIDATE_PAGE_ROUTES.overview },
-  { key: "about", label: "О платформе", href: "../home/index.html#about" },
+  { key: "about", label: "О платформе", href: "/#about" },
 ];
 
 function MailIcon() {
@@ -141,62 +136,63 @@ export function CandidateSidebar({ activeKey }) {
 
       <nav className="candidate-sidebar__menu" aria-label="Разделы кабинета">
         {CANDIDATE_SIDEBAR_ITEMS.map((item) => (
-          <a
+          <AppLink
             key={item.key}
             href={item.href}
             className={cn("candidate-sidebar__link", item.key === activeKey && "is-active")}
             aria-current={item.key === activeKey ? "page" : undefined}
           >
             {item.label}
-          </a>
+          </AppLink>
         ))}
       </nav>
 
       <CandidateProgressCard
         className="candidate-sidebar__summary"
-        note="Чем полнее профиль, тем точнее рекомендации и отклики работодателей."
+        note="Чем полнее профиль, тем точнее рекомендации и тем понятнее ваши сильные стороны для работодателя."
       />
     </Card>
   );
 }
 
 export function CandidateProfileHero({
-  description = CANDIDATE_PROFILE.description,
-  skills = CANDIDATE_PROFILE.skills,
+  profile,
+  description,
+  skills,
+  stats = [],
+  completion = 0,
   sideContent,
   className,
 }) {
-  const resolvedDescription = typeof description === "undefined" ? CANDIDATE_PROFILE.description : description;
-  const resolvedSkills = Array.isArray(skills) ? skills : CANDIDATE_PROFILE.skills;
-  const [firstName, ...restName] = CANDIDATE_PROFILE.name.split(" ");
+  const displayName = getCandidateDisplayName(profile);
+  const [firstName, ...restName] = displayName.split(" ");
   const lastName = restName.join(" ");
+  const resolvedDescription = typeof description === "undefined" ? profile?.description : description;
+  const resolvedSkills = Array.isArray(skills) ? skills : getCandidateSkills(profile);
   const defaultAside = (
     <>
-      <CandidateProgressCard className="candidate-hero__progress" />
-      <CandidateStatTiles items={CANDIDATE_STATS} className="candidate-hero__stats" />
-      <Button href={`${CANDIDATE_PAGE_ROUTES.settings}?section=settings-profile`} variant="secondary" className="candidate-hero__action candidate-hero__aside-action">
-        {"\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c"}
+      <CandidateProgressCard value={completion} className="candidate-hero__progress" />
+      <CandidateStatTiles items={stats} className="candidate-hero__stats" />
+      <Button href={buildCandidateSettingsRoute("settings-profile")} variant="secondary" className="candidate-hero__action candidate-hero__aside-action">
+        Редактировать профиль
       </Button>
     </>
   );
-  const resolvedAside = sideContent ?? defaultAside;
 
   return (
     <Card className={cn("candidate-hero", className)}>
       <div className="candidate-hero__cover">
         <button type="button" className="candidate-hero__cover-link">
-          {"\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0448\u0430\u043f\u043a\u0443 \u043f\u0440\u043e\u0444\u0438\u043b\u044f"}
+          Обновить данные профиля
         </button>
 
         <div className="candidate-hero__cover-pills">
-          <span className="candidate-hero__pill candidate-hero__pill--accent">
-            {"\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0441\u043e\u0438\u0441\u043a\u0430\u0442\u0435\u043b\u044f"}
-          </span>
+          <span className="candidate-hero__pill candidate-hero__pill--accent">Профиль соискателя</span>
           <span className="candidate-hero__pill candidate-hero__pill--status">
             <span className="candidate-hero__pill-icon" aria-hidden="true">
               <HeartLineIcon />
             </span>
-            {CANDIDATE_PROFILE.onlineLabel}
+            Онлайн
           </span>
         </div>
       </div>
@@ -205,7 +201,7 @@ export function CandidateProfileHero({
         <div className="candidate-hero__main">
           <div className="candidate-hero__identity">
             <Avatar
-              initials={CANDIDATE_PROFILE.initials}
+              initials={getCandidateInitials(profile)}
               size="xl"
               shape="rounded"
               tone="neutral"
@@ -217,7 +213,7 @@ export function CandidateProfileHero({
                 <span>{firstName}</span>
                 {lastName ? <span>{lastName}</span> : null}
               </h1>
-              <p className="ui-type-body-lg candidate-hero__meta">{CANDIDATE_PROFILE.meta}</p>
+              <p className="ui-type-body-lg candidate-hero__meta">{getCandidateMeta(profile)}</p>
             </div>
           </div>
 
@@ -236,13 +232,13 @@ export function CandidateProfileHero({
           ) : null}
         </div>
 
-        <div className="candidate-hero__aside">{resolvedAside}</div>
+        <div className="candidate-hero__aside">{sideContent ?? defaultAside}</div>
       </div>
     </Card>
   );
 }
 
-export function CandidateProgressCard({ title = "Заполненность профиля", value = CANDIDATE_PROFILE.completion, note, className }) {
+export function CandidateProgressCard({ title = "Заполненность профиля", value = 0, note, className }) {
   return (
     <div className={cn("candidate-progress-card", className)}>
       <div className="candidate-progress-card__head">
@@ -260,7 +256,7 @@ export function CandidateProgressCard({ title = "Заполненность пр
   );
 }
 
-export function CandidateStatTiles({ items = CANDIDATE_STATS, className }) {
+export function CandidateStatTiles({ items = [], className }) {
   return (
     <div className={cn("candidate-stat-tiles", className)}>
       {items.map((item) => (
@@ -278,9 +274,9 @@ function CandidateActionCircle({ label, icon, tone = "accent", href }) {
 
   if (href) {
     return (
-      <a href={href} className={className} aria-label={label}>
+      <AppLink href={href} className={className} aria-label={label}>
         {icon}
-      </a>
+      </AppLink>
     );
   }
 
@@ -294,14 +290,14 @@ function CandidateActionCircle({ label, icon, tone = "accent", href }) {
 export function CandidateContactCard({ contact, variant = "grid", className }) {
   if (variant === "compact") {
     return (
-      <a href="../contacts/contact-profile.html" className={cn("candidate-contact-card", "candidate-contact-card--compact", className)}>
+      <AppLink href="/candidate/contacts" className={cn("candidate-contact-card", "candidate-contact-card--compact", className)}>
         <Avatar initials={contact.initials} shape="rounded" className="candidate-contact-card__avatar" />
         <div className="candidate-contact-card__copy">
           <strong>{contact.name}</strong>
           <span>{contact.summary}</span>
         </div>
         <CandidateActionCircle label="Добавить контакт" icon={<PlusIcon />} tone="neutral" />
-      </a>
+      </AppLink>
     );
   }
 
@@ -324,10 +320,10 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
       </div>
 
       <div className="candidate-contact-card__actions">
-        <Button as="a" href="../contacts/contact-profile.html" variant="secondary" className="candidate-contact-card__button">
-          Рекомендовать возможность
+        <Button as="a" href="/candidate/contacts" variant="secondary" className="candidate-contact-card__button">
+          Открыть контакт
         </Button>
-        <CandidateActionCircle label="Написать контакт" icon={<MailIcon />} href="../contacts/contact-profile.html" />
+        <CandidateActionCircle label="Написать контакту" icon={<MailIcon />} href="/candidate/contacts" />
       </div>
     </Card>
   );
@@ -367,7 +363,7 @@ export function CandidateResponseCard({ item }) {
     <Card className="candidate-response-card">
       <div className="candidate-response-card__top">
         <Tag>{item.type}</Tag>
-        <StatusBadge statusKey={item.statusKey}>{item.statusLabel}</StatusBadge>
+        <StatusBadge tone={item.statusKey}>{item.statusLabel}</StatusBadge>
       </div>
 
       <div className="candidate-response-card__body">
@@ -386,7 +382,7 @@ export function CandidateResponseCard({ item }) {
           <Button
             key={action.label}
             as="a"
-            href="../opportunities/opportunity-detail-card.html"
+            href={buildOpportunityDetailRoute(item.opportunityId)}
             variant={action.variant}
             className="candidate-response-card__action"
           >
@@ -415,7 +411,7 @@ export function CandidatePreferenceCard({ panel, className }) {
         ))}
       </div>
 
-      <StatusBadge tone="success" className="candidate-preference-card__status">Обновлено 12 марта 2026</StatusBadge>
+      <StatusBadge tone="success" className="candidate-preference-card__status">Обновлено</StatusBadge>
     </Card>
   );
 }
@@ -445,28 +441,28 @@ export function CandidateSettingsPreviewCard({ section, className, isOpen = fals
       </div>
 
       <div className="candidate-settings-preview-card__collapsed" hidden={isOpen}>
-          <div className="candidate-settings-preview-card__body">
-            <span className={cn("candidate-settings-preview-card__status", section.statusTone === "success" && "is-success")}>
-              {section.status}
-            </span>
-            {section.summary ? <p className="candidate-settings-preview-card__summary">{section.summary}</p> : null}
-          </div>
+        <div className="candidate-settings-preview-card__body">
+          <span className={cn("candidate-settings-preview-card__status", section.statusTone === "success" && "is-success")}>
+            {section.status}
+          </span>
+          {section.summary ? <p className="candidate-settings-preview-card__summary">{section.summary}</p> : null}
+        </div>
 
-          <div className="candidate-settings-preview-card__actions">
-            <Button
-              variant="secondary"
-              className="candidate-settings-preview-card__action"
-              onClick={handleToggle}
-              aria-expanded={isOpen}
-              aria-controls={contentId}
-            >
-              {section.actionLabel ?? "Редактировать"}
-            </Button>
-          </div>
+        <div className="candidate-settings-preview-card__actions">
+          <Button
+            variant="secondary"
+            className="candidate-settings-preview-card__action"
+            onClick={handleToggle}
+            aria-expanded={isOpen}
+            aria-controls={contentId}
+          >
+            {section.actionLabel ?? "Редактировать"}
+          </Button>
+        </div>
       </div>
 
       <div id={contentId} className="candidate-settings-preview-card__expanded" hidden={!isOpen} aria-hidden={!isOpen}>
-          {children}
+        {children}
       </div>
     </Card>
   );
@@ -540,29 +536,8 @@ export function CandidateSettingsFields({ section }) {
         </FormField>
       </div>
 
-      <div className="candidate-settings-fields__subhead">Изменить пароль</div>
-
-      <div className="candidate-settings-fields__grid">
-        <FormField label="Старый пароль">
-          <Input defaultValue="" placeholder="Введите текущий пароль" type="password" />
-        </FormField>
-        <FormField label="Новый пароль">
-          <Input defaultValue="" placeholder="Введите новый пароль" type="password" />
-        </FormField>
-      </div>
-
-      <div className="candidate-settings-fields__logins">
-        <div className="candidate-settings-fields__subhead">Последние входы</div>
-        {section.lastLogins.map((item) => (
-          <button key={item} type="button" className="candidate-settings-fields__login">
-            <span>{item}</span>
-            <ChevronRightIcon />
-          </button>
-        ))}
-      </div>
-
       <div className="candidate-settings-fields__actions">
-        <Button>Сохранить</Button>
+        <Button>Открыть настройки доступа</Button>
       </div>
     </section>
   );

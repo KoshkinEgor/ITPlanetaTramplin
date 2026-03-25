@@ -10,6 +10,15 @@ function DefaultSearchIcon() {
   );
 }
 
+function ClearIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none">
+      <path d="M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export const SearchInput = forwardRef(function SearchInput(
   {
     value,
@@ -21,6 +30,9 @@ export const SearchInput = forwardRef(function SearchInput(
     clearable = true,
     icon = <DefaultSearchIcon />,
     iconPosition = "left",
+    appearance = "default",
+    size = "md",
+    disabled = false,
     className,
     inputClassName,
     ...props
@@ -32,7 +44,7 @@ export const SearchInput = forwardRef(function SearchInput(
   const isControlled = value !== undefined;
   const currentValue = isControlled ? value : internalValue;
   const hasIcon = iconPosition !== "none" && icon !== null;
-  const showClear = clearable && Boolean(currentValue);
+  const showClear = clearable && !disabled && Boolean(currentValue);
   const showIcon = hasIcon && !(showClear && iconPosition === "right");
 
   useImperativeHandle(ref, () => inputRef.current);
@@ -49,7 +61,14 @@ export const SearchInput = forwardRef(function SearchInput(
   };
 
   return (
-    <div className={cn("ui-search-input", className)}>
+    <div
+      className={cn(
+        "ui-search-input",
+        appearance === "elevated" && "ui-search-input--elevated",
+        size === "lg" && "ui-search-input--lg",
+        className
+      )}
+    >
       {showIcon ? (
         <span
           className={cn(
@@ -65,6 +84,7 @@ export const SearchInput = forwardRef(function SearchInput(
         ref={inputRef}
         type="search"
         value={currentValue}
+        disabled={disabled}
         className={cn(
           "ui-input",
           "ui-search-input__control",
@@ -86,6 +106,11 @@ export const SearchInput = forwardRef(function SearchInput(
         <button
           type="button"
           className="ui-search-input__clear"
+          aria-label={clearLabel}
+          title={clearLabel}
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
           onClick={() => {
             const dispatched = Boolean(onChange) && dispatchInputEvent("");
 
@@ -101,7 +126,9 @@ export const SearchInput = forwardRef(function SearchInput(
             inputRef.current?.focus();
           }}
         >
-          {clearLabel}
+          <span className="ui-search-input__clear-icon" aria-hidden="true">
+            <ClearIcon />
+          </span>
         </button>
       ) : null}
     </div>

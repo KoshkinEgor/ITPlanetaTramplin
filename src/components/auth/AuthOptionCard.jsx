@@ -22,6 +22,15 @@ function EmployerIcon() {
   );
 }
 
+function CuratorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 4.75L17.5 7V11.25C17.5 15.08 15.15 18.32 12 19.5C8.85 18.32 6.5 15.08 6.5 11.25V7L12 4.75Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9.75 11.75L11.25 13.25L14.5 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function getIcon(icon) {
   if (icon === "candidate") {
     return <CandidateIcon />;
@@ -29,6 +38,10 @@ function getIcon(icon) {
 
   if (icon === "employer") {
     return <EmployerIcon />;
+  }
+
+  if (icon === "curator") {
+    return <CuratorIcon />;
   }
 
   return null;

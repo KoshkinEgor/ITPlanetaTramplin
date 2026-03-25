@@ -1,32 +1,3 @@
-export const PROJECT_STORAGE_KEY = "tramplin.candidate.projects.v1";
-
-export const PROJECT_TYPE_OPTIONS = [
-  { value: "Учебный", label: "Учебный" },
-  { value: "Pet-проект", label: "Pet-проект" },
-  { value: "Коммерческий", label: "Коммерческий" },
-  { value: "Стажировка", label: "Стажировка" },
-  { value: "Хакатон", label: "Хакатон" },
-  { value: "Волонтерский", label: "Волонтерский" },
-];
-
-export const PROJECT_TAG_SUGGESTIONS = [
-  "Research",
-  "UX",
-  "UI",
-  "SQL",
-  "Python",
-  "Analytics",
-  "CJM",
-  "Figma",
-  "FigJam",
-  "Prototype",
-  "Dashboard",
-  "Presentation",
-  "A/B",
-  "Design System",
-  "Interview",
-];
-
 export function createInitialProjectDraft() {
   return {
     title: "",
@@ -68,14 +39,6 @@ function isValidUrl(value) {
   } catch {
     return false;
   }
-}
-
-function createProjectId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
-  return `candidate-project-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function normalizeProjectDraft(draft) {
@@ -174,54 +137,6 @@ export function validateProjectDraft(draft) {
   return { errors, normalized };
 }
 
-function isStoredProject(value) {
-  return Boolean(value) && typeof value === "object" && typeof value.id === "string" && typeof value.title === "string";
-}
-
-export function loadStoredProjects() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isStoredProject) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveStoredProjects(projects) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(projects));
-}
-
-export function appendStoredProject(project) {
-  const nextProjects = [project, ...loadStoredProjects()];
-  saveStoredProjects(nextProjects);
-  return nextProjects;
-}
-
-export function createProjectRecord(draft) {
-  const now = new Date().toISOString();
-  const normalized = normalizeProjectDraft(draft);
-
-  return {
-    id: createProjectId(),
-    createdAt: now,
-    updatedAt: now,
-    ...normalized,
-  };
-}
-
 export function formatProjectUpdatedLabel(updatedAt) {
   const value = updatedAt ? new Date(updatedAt) : new Date();
 
@@ -236,19 +151,6 @@ export function formatProjectUpdatedLabel(updatedAt) {
   }).format(value);
 
   return `Обновлено ${formatted}`;
-}
-
-export function mapProjectRecordToCardItem(project) {
-  return {
-    id: project.id,
-    type: project.projectType || "Проект",
-    status: formatProjectUpdatedLabel(project.updatedAt),
-    statusTone: "success",
-    title: project.title || "Новый проект",
-    description: project.shortDescription || "Добавьте краткое описание проекта.",
-    role: `Роль в проекте: ${project.role || "уточняется"}`,
-    chips: Array.isArray(project.tags) && project.tags.length ? project.tags.slice(0, 4) : ["Без тегов"],
-  };
 }
 
 export function createProjectPreviewItem(draft) {

@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { cn } from "../../../lib/cn";
 
+const DEFAULT_ARIA_LABEL = "Переключатель режимов";
+
 export function SegmentedControl({
   items,
   value,
   defaultValue,
   onChange,
   stretch = false,
+  size = "md",
+  ariaLabel = DEFAULT_ARIA_LABEL,
   className,
   itemClassName,
+  ...props
 }) {
   const fallbackValue = items?.[0]?.value;
   const [internalValue, setInternalValue] = useState(defaultValue ?? fallbackValue);
@@ -18,8 +23,21 @@ export function SegmentedControl({
     return null;
   }
 
+  const handleSelect = (nextValue) => {
+    if (value === undefined) {
+      setInternalValue(nextValue);
+    }
+
+    onChange?.(nextValue);
+  };
+
   return (
-    <div className={cn("ui-segmented", stretch && "ui-segmented--stretch", className)} role="tablist" aria-label="Переключатель разделов">
+    <div
+      className={cn("ui-segmented", stretch && "ui-segmented--stretch", size === "lg" && "ui-segmented--size-lg", className)}
+      role="group"
+      aria-label={ariaLabel}
+      {...props}
+    >
       {items.map((item) => {
         const isActive = item.value === currentValue;
         const commonClassName = cn("ui-segmented__item", isActive && "is-active", itemClassName, item.className);
@@ -31,6 +49,7 @@ export function SegmentedControl({
               href={item.href}
               className={commonClassName}
               aria-current={isActive ? "page" : undefined}
+              onClick={() => handleSelect(item.value)}
             >
               {item.label}
             </a>
@@ -43,12 +62,7 @@ export function SegmentedControl({
             type="button"
             className={commonClassName}
             aria-pressed={isActive}
-            onClick={() => {
-              if (value === undefined) {
-                setInternalValue(item.value);
-              }
-              onChange?.(item.value);
-            }}
+            onClick={() => handleSelect(item.value)}
           >
             {item.label}
           </button>

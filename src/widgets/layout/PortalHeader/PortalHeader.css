@@ -1,0 +1,118 @@
+.portal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 6px 0 28px;
+}
+
+.portal-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ui-color-text);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.portal-header__brand-mark {
+  width: 30px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d7ff44 0%, var(--ui-color-lime) 100%);
+  box-shadow: 0 12px 20px rgba(201, 255, 31, 0.26);
+}
+
+.portal-header__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  flex: 1 1 auto;
+}
+
+.portal-header__nav-link {
+  position: relative;
+  color: var(--ui-color-text-muted);
+  font-size: 0.96rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color var(--ui-transition-base);
+}
+
+.portal-header__nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color var(--ui-transition-base);
+}
+
+.portal-header__nav-link:hover,
+.portal-header__nav-link.is-active {
+  color: var(--ui-color-accent);
+}
+
+.portal-header__nav-link.is-active::after {
+  background: currentColor;
+}
+
+.portal-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-header__icon-button {
+  flex: 0 0 auto;
+}
+
+.portal-header__icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.portal-header__action {
+  min-width: 180px;
+}
+
+@media (max-width: 900px) {
+  .portal-header {
+    flex-wrap: wrap;
+  }
+
+  .portal-header__nav {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .portal-header__actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .portal-header__nav {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .portal-header__actions {
+    width: 100%;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .portal-header__action {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { AppLink } from "../../../app/AppLink";
 import { cn } from "../../../lib/cn";
 
 const variantClassMap = {
@@ -6,6 +7,7 @@ const variantClassMap = {
   secondary: "ui-button--secondary",
   ghost: "ui-button--ghost",
   danger: "ui-button--danger",
+  contrast: "ui-button--contrast",
 };
 
 const sizeClassMap = {
@@ -27,15 +29,18 @@ export const Button = forwardRef(function Button(
     disabled = false,
     iconStart,
     iconEnd,
+    accentColor,
     className,
     children,
     type = "button",
+    style,
     ...props
   },
   ref
 ) {
   const Element = href ? "a" : as;
   const isDisabled = disabled || loading;
+  const inlineStyle = accentColor ? { ...style, "--ui-button-accent": accentColor } : style;
   const classNames = cn(
     "ui-button",
     variantClassMap[variant] ?? variantClassMap.primary,
@@ -57,23 +62,39 @@ export const Button = forwardRef(function Button(
     </>
   );
 
-  if (Element === "a") {
+  if (href) {
+    if (isDisabled) {
+      return (
+        <a
+          ref={ref}
+          className={classNames}
+          style={inlineStyle}
+          href={undefined}
+          aria-disabled
+          aria-busy={loading || undefined}
+          {...props}
+        >
+          {content}
+        </a>
+      );
+    }
+
     return (
-      <a
+      <AppLink
         ref={ref}
         className={classNames}
-        href={isDisabled ? undefined : href}
-        aria-disabled={isDisabled || undefined}
+        style={inlineStyle}
+        href={href}
         aria-busy={loading || undefined}
         {...props}
       >
         {content}
-      </a>
+      </AppLink>
     );
   }
 
   return (
-    <Element ref={ref} className={classNames} type={type} disabled={isDisabled} aria-busy={loading || undefined} {...props}>
+    <Element ref={ref} className={classNames} style={inlineStyle} type={type} disabled={isDisabled} aria-busy={loading || undefined} {...props}>
       {content}
     </Element>
   );

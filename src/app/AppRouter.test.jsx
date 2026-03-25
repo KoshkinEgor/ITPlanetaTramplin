@@ -1,0 +1,41 @@
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it } from "vitest";
+import { AppRoutes } from "./AppRouter";
+import { routes } from "./routes";
+
+function renderRoutes(path, uiKitEnabled) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes uiKitEnabled={uiKitEnabled} />
+    </MemoryRouter>
+  );
+}
+
+describe("AppRoutes", () => {
+  it("renders the ui kit route when it is enabled", () => {
+    renderRoutes(routes.uiKit, true);
+
+    expect(screen.getByTestId("ui-kit-page")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "UI Kit Playground" })).toBeInTheDocument();
+  });
+
+  it("does not expose the ui kit route when it is disabled", () => {
+    renderRoutes(routes.uiKit, false);
+
+    expect(screen.queryByTestId("ui-kit-page")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Возможности рядом" })).toBeInTheDocument();
+  });
+
+  it("redirects the removed temporary ui kit route back to the app", () => {
+    renderRoutes("/ui-kit/typography-temp", true);
+
+    expect(screen.queryByTestId("ui-kit-page")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Возможности рядом" })).toBeInTheDocument();
+  });
+  it("renders the demo opportunity detail route", async () => {
+    renderRoutes(routes.opportunities.detailCard, false);
+
+    expect(await screen.findByRole("heading", { name: /UI\/UX/i, level: 1 })).toBeInTheDocument();
+  });
+});

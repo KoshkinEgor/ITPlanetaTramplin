@@ -1,1 +1,2 @@
-export { OpportunityBlockCard, OpportunityMiniCard, OpportunityRowCard } from "./OpportunityCard";
+export { OpportunityBlockCard, OpportunityRowCard } from "./OpportunityCard";
+export { OpportunityFilterSidebar } from "./OpportunityFilterSidebar";

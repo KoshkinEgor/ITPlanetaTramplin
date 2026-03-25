@@ -1,0 +1,281 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--ui-font-family-base);
+  color: var(--ui-color-text);
+}
+
+img,
+picture,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+code {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ui-color-text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(47, 128, 255, 0.24);
+  outline-offset: 4px;
+}
+
+.ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ui-color-text-primary {
+  color: var(--ui-color-text);
+}
+
+.ui-color-text-secondary {
+  color: var(--ui-color-text-muted);
+}
+
+.ui-typo-h1,
+.ui-typo-h2,
+.ui-typo-h3,
+.ui-typo-txt,
+.ui-typo-txt-regular,
+.ui-typo-txt-regular-small,
+.ui-typo-txt-regular-middle,
+.ui-typo-txt-select,
+.ui-typo-txt-select-small,
+.ui-typo-txt-select-middle,
+.ui-typo-txt-select-big {
+  margin: 0;
+  font-family: var(--ui-font-family-base);
+  font-style: normal;
+  color: inherit;
+}
+
+.ui-typo-h1 {
+  font-size: var(--ui-typo-h1-size);
+  line-height: var(--ui-typo-h1-line-height);
+  letter-spacing: var(--ui-typo-h1-letter-spacing);
+  font-weight: var(--ui-typo-h1-weight);
+}
+
+.ui-typo-h2 {
+  font-size: var(--ui-typo-h2-size);
+  line-height: var(--ui-typo-h2-line-height);
+  letter-spacing: var(--ui-typo-h2-letter-spacing);
+  font-weight: var(--ui-typo-h2-weight);
+}
+
+.ui-typo-h3 {
+  font-size: var(--ui-typo-h3-size);
+  line-height: var(--ui-typo-h3-line-height);
+  letter-spacing: var(--ui-typo-h3-letter-spacing);
+  font-weight: var(--ui-typo-h3-weight);
+}
+
+.ui-typo-txt {
+  font-size: var(--ui-typo-txt-size);
+  line-height: var(--ui-typo-txt-line-height);
+  letter-spacing: var(--ui-typo-txt-letter-spacing);
+  font-weight: var(--ui-typo-txt-weight);
+}
+
+.ui-typo-txt-regular {
+  font-size: var(--ui-typo-txt-regular-size);
+  line-height: var(--ui-typo-txt-regular-line-height);
+  letter-spacing: var(--ui-typo-txt-regular-letter-spacing);
+  font-weight: var(--ui-typo-txt-regular-weight);
+}
+
+.ui-typo-txt-regular-small {
+  font-size: var(--ui-typo-txt-regular-small-size);
+  line-height: var(--ui-typo-txt-regular-small-line-height);
+  letter-spacing: var(--ui-typo-txt-regular-small-letter-spacing);
+  font-weight: var(--ui-typo-txt-regular-small-weight);
+}
+
+.ui-typo-txt-regular-middle {
+  font-size: var(--ui-typo-txt-regular-middle-size);
+  line-height: var(--ui-typo-txt-regular-middle-line-height);
+  letter-spacing: var(--ui-typo-txt-regular-middle-letter-spacing);
+  font-weight: var(--ui-typo-txt-regular-middle-weight);
+}
+
+.ui-typo-txt-select {
+  font-size: var(--ui-typo-txt-select-size);
+  line-height: var(--ui-typo-txt-select-line-height);
+  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
+  font-weight: var(--ui-typo-txt-select-weight);
+}
+
+.ui-typo-txt-select-small {
+  font-size: var(--ui-typo-txt-select-small-size);
+  line-height: var(--ui-typo-txt-select-small-line-height);
+  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
+  font-weight: var(--ui-typo-txt-select-small-weight);
+}
+
+.ui-typo-txt-select-middle {
+  font-size: var(--ui-typo-txt-select-middle-size);
+  line-height: var(--ui-typo-txt-select-middle-line-height);
+  letter-spacing: var(--ui-typo-txt-select-middle-letter-spacing);
+  font-weight: var(--ui-typo-txt-select-middle-weight);
+}
+
+.ui-typo-txt-select-big {
+  font-size: var(--ui-typo-txt-select-big-size);
+  line-height: var(--ui-typo-txt-select-big-line-height);
+  letter-spacing: var(--ui-typo-txt-select-big-letter-spacing);
+  font-weight: var(--ui-typo-txt-select-big-weight);
+}
+
+.ui-type-display,
+.ui-type-h1,
+.ui-type-h2,
+.ui-type-h3,
+.ui-type-h4,
+.ui-type-h5,
+.ui-type-h6 {
+  margin: 0;
+  letter-spacing: -0.05em;
+  color: var(--ui-color-text);
+}
+
+.ui-type-display {
+  font-size: var(--ui-font-size-display);
+  line-height: var(--ui-line-height-tight);
+  font-weight: 500;
+}
+
+.ui-type-h1 {
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-tight);
+  font-weight: 500;
+}
+
+.ui-type-h2 {
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-heading);
+  font-weight: 500;
+}
+
+.ui-type-h3 {
+  font-size: var(--ui-font-size-h3);
+  line-height: var(--ui-line-height-heading);
+  font-weight: 500;
+}
+
+.ui-type-h4 {
+  font-size: var(--ui-font-size-h4);
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.ui-type-h5 {
+  font-size: var(--ui-font-size-h5);
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.ui-type-h6 {
+  font-size: var(--ui-font-size-h6);
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.ui-type-body-lg,
+.ui-type-body,
+.ui-type-caption,
+.ui-type-small,
+.ui-type-micro,
+.ui-type-overline {
+  margin: 0;
+}
+
+.ui-type-body-lg {
+  font-size: var(--ui-font-size-body-lg);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text-muted);
+  font-weight: 400;
+}
+
+.ui-type-body {
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text-muted);
+  font-weight: 400;
+}
+
+.ui-type-caption {
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text-muted);
+  font-weight: 400;
+}
+
+.ui-type-small {
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text);
+  font-weight: 400;
+}
+
+.ui-type-micro {
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text-muted);
+  font-weight: 400;
+}
+
+.ui-type-overline {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-micro);
+  line-height: 1.4;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

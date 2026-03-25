@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OpportunityBlockCard, OpportunityMiniCard, OpportunityRowCard } from "../components/opportunities";
-import { Button, Card, Checkbox, Input, Modal, SearchInput, Tag } from "../components/ui";
+import { buildOpportunityDetailRoute } from "../app/routes";
+import { AppLink } from "../app/AppLink";
+import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
+import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, Tag } from "../shared/ui";
+import { HomeOpportunityMap } from "./HomeOpportunityMap";
+import "./home.css";
 
 const navItems = [
   { label: "Возможности", href: "#discover" },
@@ -53,6 +57,7 @@ const SORT_OPTIONS = [
 ];
 
 const visibleFilterSelects = filterSelects.filter((filter) => filter.key !== "more");
+const defaultFilterValues = Object.fromEntries(filterSelects.map((filter) => [filter.key, filter.value]));
 
 const advancedSearchSections = {
   directions: ["Вакансии", "Стажировки", "Мероприятия"],
@@ -105,6 +110,37 @@ const nearbyCardSortMeta = [
   { popularity: 87, rating: 4.6, salary: 30000, responses: 74 },
   { popularity: 91, rating: 4.7, salary: 155, responses: 196 },
 ];
+
+const nearbyCardRuntimeData = [
+  {
+    id: "junior-security-analyst",
+    city: "Москва",
+    coordinates: [37.588893, 55.733842],
+    extraChips: ["SOC", "SIEM"],
+  },
+  {
+    id: "mobile-ui-ux-designer",
+    city: "Москва",
+    coordinates: [37.658581, 55.762994],
+    extraChips: ["UI/UX"],
+  },
+  {
+    id: "it-planeta-event",
+    city: "Москва",
+    coordinates: [37.541584, 55.804065],
+    extraChips: ["Мероприятие"],
+  },
+];
+
+const nearbyCardsCatalog = nearbyCards.map((item, index) => {
+  const runtimeData = nearbyCardRuntimeData[index] ?? {};
+
+  return {
+    ...item,
+    ...runtimeData,
+    chips: Array.from(new Set([...(runtimeData.extraChips ?? []), ...(item.chips ?? [])])),
+  };
+});
 
 const popularCards = [
   ["Вакансия", "Активно", "success"],
@@ -159,14 +195,15 @@ const recommendedCards = [
   },
 ];
 
-const mapLabels = [
-  { x: "43%", y: "14%", title: "Junior Security A..." },
-  { x: "72%", y: "24%", title: "IT - Планета" },
-  { x: "20%", y: "28%", title: "Junior Security A..." },
-  { x: "68%", y: "58%", title: "IT - Планета" },
-  { x: "36%", y: "74%", title: "Junior Security A..." },
-  { x: "74%", y: "84%", title: "Junior Security A..." },
-];
+const popularCardsWithDetails = popularCards.map((item, index) => ({
+  ...item,
+  id: index === 1 ? "design-ui-ux" : "junior-security-analyst",
+}));
+
+const recommendedCardsWithDetails = recommendedCards.map((item, index) => ({
+  ...item,
+  id: index === 0 ? "junior-security-analyst" : index === 1 ? "design-ui-ux" : "it-planeta-event",
+}));
 
 function ArrowIcon() {
   return (
@@ -751,14 +788,15 @@ function HomeSortControl({ options, value, direction, onSelect, onToggleDirectio
         <ChevronDownIcon />
       </button>
 
-      <button
+      <IconButton
         type="button"
         className="home-sort-control__direction"
+        size="2xl"
         aria-label={direction === "asc" ? "Порядок: по возрастанию" : "Порядок: по убыванию"}
         onClick={onToggleDirection}
       >
         <SortDirectionIcon direction={direction} />
-      </button>
+      </IconButton>
 
       {isOpen ? (
         <div className="home-sort-control__menu" role="listbox" aria-label="Сортировка">
@@ -801,17 +839,17 @@ function HomeHeader({ floating, visible }) {
       </nav>
 
       <div className="home-header__actions">
-        <button type="button" className="home-header__icon-button" aria-label="Избранное">
+        <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Избранное">
           <HeartIcon />
-        </button>
-        <button type="button" className="home-header__icon-button" aria-label="Уведомления">
+        </IconButton>
+        <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Уведомления">
           <BellIcon />
-        </button>
-        <a href="../auth/login.html" className="home-header__icon-button home-header__auth" aria-label="Войти или зарегистрироваться">
+        </IconButton>
+        <AppLink href="/auth/login" className="home-header__icon-button home-header__auth" aria-label="Войти или зарегистрироваться">
           Войти / Регистрация
           <GuestProfileIcon />
           <span className="ui-visually-hidden">Войти или зарегистрироваться</span>
-        </a>
+        </AppLink>
         </div>
       </header>
     </div>
@@ -954,9 +992,7 @@ export function HomeApp() {
   const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
   const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].key);
   const [sortDirection, setSortDirection] = useState("desc");
-  const [filterValues, setFilterValues] = useState(() =>
-    Object.fromEntries(filterSelects.map((filter) => [filter.key, filter.value]))
-  );
+  const [filterValues, setFilterValues] = useState(() => ({ ...defaultFilterValues }));
   const [openFilterKey, setOpenFilterKey] = useState(null);
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [isHeaderFloating, setIsHeaderFloating] = useState(false);
@@ -1020,13 +1056,49 @@ export function HomeApp() {
     setNewsletterSubmitted(true);
   };
 
+  const filteredNearbyCards = useMemo(() => {
+    const normalizedQuery = normalizeOptionValue(query);
+    const normalizedSelectedCity = normalizeOptionValue(selectedCity);
+    const normalizedSelectedType = normalizeOptionValue(filterValues.type);
+    const normalizedSelectedFormat = normalizeOptionValue(filterValues.format);
+    const normalizedSelectedLevel = normalizeOptionValue(filterValues.level);
+
+    return nearbyCardsCatalog.filter((item) => {
+      const searchContent = [
+        item.title,
+        item.meta,
+        item.accent,
+        item.note,
+        item.eyebrow,
+        item.status,
+        item.city,
+        ...item.chips,
+      ].join(" ");
+
+      const normalizedSearchContent = normalizeOptionValue(searchContent);
+      const matchesQuery = !normalizedQuery || normalizedSearchContent.includes(normalizedQuery);
+      const matchesCity = !normalizedSelectedCity || normalizeOptionValue(item.city) === normalizedSelectedCity;
+      const matchesType = filterValues.type === defaultFilterValues.type || normalizeOptionValue(item.eyebrow).includes(normalizedSelectedType);
+      const matchesFormat = filterValues.format === defaultFilterValues.format
+        || normalizeOptionValue(item.meta).includes(normalizedSelectedFormat)
+        || item.chips.some((chip) => normalizeOptionValue(chip).includes(normalizedSelectedFormat));
+      const matchesLevel = filterValues.level === defaultFilterValues.level
+        || normalizeOptionValue(item.status).includes(normalizedSelectedLevel)
+        || item.chips.some((chip) => normalizeOptionValue(chip).includes(normalizedSelectedLevel));
+      const matchesSkills = !selectedSkills.length
+        || selectedSkills.some((skill) => normalizedSearchContent.includes(normalizeOptionValue(skill)));
+
+      return matchesQuery && matchesCity && matchesType && matchesFormat && matchesLevel && matchesSkills;
+    });
+  }, [filterValues.format, filterValues.level, filterValues.type, query, selectedCity, selectedSkills]);
+
   const sortedNearbyCards = useMemo(() => {
     const directionFactor = sortDirection === "asc" ? 1 : -1;
 
-    return nearbyCards
-      .map((item, index) => ({
+    return filteredNearbyCards
+      .map((item) => ({
         item,
-        meta: nearbyCardSortMeta[index] ?? {},
+        meta: nearbyCardSortMeta[nearbyCardsCatalog.findIndex((candidate) => candidate.id === item.id)] ?? {},
       }))
       .sort((left, right) => {
         const leftValue = left.meta[sortKey] ?? 0;
@@ -1039,7 +1111,7 @@ export function HomeApp() {
         return (leftValue - rightValue) * directionFactor;
       })
       .map((entry) => entry.item);
-  }, [sortDirection, sortKey]);
+  }, [filteredNearbyCards, sortDirection, sortKey]);
 
   const lastScrollYRef = useRef(0);
 
@@ -1146,19 +1218,23 @@ export function HomeApp() {
               <h2>Возможности рядом</h2>
               <HomeCityCombobox value={selectedCity} options={CITY_OPTIONS} onSelect={setSelectedCity} />
               <button type="button" className="home-discovery__city">
-                Москва
+                {selectedCity}
                 <ChevronDownIcon />
               </button>
             </div>
 
-            <div className="home-discovery__view-switch" role="tablist" aria-label="Режим просмотра">
-              <button type="button" className={`home-discovery__view-button ${view === "map" ? "is-active" : ""}`.trim()} onClick={() => setView("map")}>
-                Карта возможностей
-              </button>
-              <button type="button" className={`home-discovery__view-button ${view === "list" ? "is-active" : ""}`.trim()} onClick={() => setView("list")}>
-                Список возможностей
-              </button>
-            </div>
+            <SegmentedControl
+              className="home-discovery__view-switch"
+              items={[
+                { value: "map", label: "Карта возможностей" },
+                { value: "list", label: "Список возможностей" },
+              ]}
+              value={view}
+              onChange={setView}
+              ariaLabel="Режим просмотра возможностей"
+              size="md"
+              stretch
+            />
           </div>
 
           <div className="home-discovery__toolbar">
@@ -1172,18 +1248,21 @@ export function HomeApp() {
                 onSelect={setSortKey}
                 onToggleDirection={() => setSortDirection((current) => (current === "asc" ? "desc" : "asc"))}
               />
-              <button type="button" className="home-discovery__toolbar-icon" aria-label="Показать регион">
+              <IconButton type="button" variant="accent" size="2xl" className="home-discovery__toolbar-icon" aria-label="Показать регион">
                 <PinIcon />
-              </button>
-              <button
+              </IconButton>
+              <IconButton
                 type="button"
+                variant="outline"
+                size="2xl"
                 className={`home-discovery__toolbar-icon home-discovery__toolbar-icon--outlined ${advancedSearchOpen ? "is-active" : ""}`.trim()}
                 aria-label="Переключить расширенный поиск"
                 aria-pressed={advancedSearchOpen}
+                active={advancedSearchOpen}
                 onClick={() => setAdvancedSearchOpen((current) => !current)}
               >
                 <SlidersIcon />
-              </button>
+              </IconButton>
             </div>
           </div>
 
@@ -1228,30 +1307,13 @@ export function HomeApp() {
             {view === "map" ? (
               <Card className="home-map-card">
                 <div className="home-map-card__legend">
-                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--blue" aria-hidden="true" />Возможность</Tag>
-                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--orange" aria-hidden="true" />Избранное</Tag>
-                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--green" aria-hidden="true" />Онлайн</Tag>
+                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--blue" aria-hidden="true" />Вакансия</Tag>
+                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--green" aria-hidden="true" />Стажировка</Tag>
+                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--orange" aria-hidden="true" />Мероприятие</Tag>
                 </div>
 
-                <div className="home-map-card__surface">
-                  <div className="home-map-card__placeholder">
-                    <strong>Место под карту</strong>
-                    <p>Здесь можно подключить embed карты или собственный canvas-слой с точками возможностей.</p>
-                  </div>
-
-                  {mapLabels.map((label, index) => (
-                    <div key={`${label.title}-${index}`} className="home-map-label" style={{ left: label.x, top: label.y }} tabIndex={0}>
-                      <span className={`home-map-label__pin home-map-label__pin--${index % 3 === 0 ? "blue" : index % 3 === 1 ? "green" : "orange"}`}>
-                        <PinIcon />
-                      </span>
-                      <small>{label.title}</small>
-                      <OpportunityMiniCard item={nearbyCards[index % nearbyCards.length]} surface="plain" className="home-map-label__preview" />
-                    </div>
-                  ))}
-
-                  <div className="home-map-cluster" style={{ left: "47%", top: "42%" }}>
-                    <span className="home-map-cluster__core">3</span>
-                  </div>
+                <div className="home-map-card__surface home-map-card__surface--interactive">
+                  <HomeOpportunityMap items={sortedNearbyCards} selectedCity={selectedCity} />
                 </div>
               </Card>
             ) : null}
@@ -1265,25 +1327,32 @@ export function HomeApp() {
               />
             ) : (
               <div className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
-                {sortedNearbyCards.map((item, index) => (
-                  <OpportunityRowCard
-                    key={`${item.title}-${index}`}
-                    item={item}
-                    surface="plain"
-                    size="sm"
-                    chipPlacement="split"
-                    className="home-opportunity-entry"
-                    primaryAction={{
-                      href: "../opportunities/opportunity-detail-card.html",
-                      label: item.primaryAction ?? "Откликнуться",
-                    }}
-                    secondaryAction={{
-                      href: "../contacts/contact-profile.html",
-                      label: item.secondaryAction ?? "Связаться",
-                      variant: "secondary",
-                    }}
-                  />
-                ))}
+                {sortedNearbyCards.length ? (
+                  sortedNearbyCards.map((item, index) => (
+                    <OpportunityRowCard
+                      key={`${item.id ?? item.title}-${index}`}
+                      item={item}
+                      surface="plain"
+                      size="sm"
+                      chipPlacement="split"
+                      className="home-opportunity-entry"
+                      primaryAction={{
+                        href: buildOpportunityDetailRoute(item.id),
+                        label: item.primaryAction ?? "Откликнуться",
+                      }}
+                      secondaryAction={{
+                        href: "/candidate/contacts",
+                        label: item.secondaryAction ?? "Связаться",
+                        variant: "secondary",
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Card className="home-results-empty">
+                    <strong>Ничего не найдено</strong>
+                    <p>Сбросьте часть фильтров, чтобы снова увидеть вакансии и мероприятия.</p>
+                  </Card>
+                )}
               </div>
             )}
 
@@ -1298,7 +1367,7 @@ export function HomeApp() {
           </div>
 
           <div className="home-discovery__more">
-            <Button as="a" href="../opportunities/opportunities-catalog.html" variant="secondary">
+            <Button as="a" href="/opportunities" variant="secondary">
               Больше возможностей
             </Button>
           </div>
@@ -1309,7 +1378,7 @@ export function HomeApp() {
             <h2>Популярные вакансии</h2>
           </div>
           <div className="home-section__rail home-section__rail--three">
-            {popularCards.map((item, index) => (
+            {popularCardsWithDetails.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${item.status}-${index}`}
                 item={item}
@@ -1317,7 +1386,7 @@ export function HomeApp() {
                 size="sm"
                 className="home-opportunity-entry"
                 detailAction={{
-                  href: "../opportunities/opportunity-detail-card.html",
+                  href: buildOpportunityDetailRoute(item.id),
                   label: "Подробнее",
                   variant: "secondary",
                 }}
@@ -1331,7 +1400,7 @@ export function HomeApp() {
             <h2>Рекомендуемые возможности</h2>
           </div>
           <div className="home-section__rail home-section__rail--recommend">
-            {recommendedCards.map((item, index) => (
+            {recommendedCardsWithDetails.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${index}`}
                 item={item}
@@ -1339,7 +1408,7 @@ export function HomeApp() {
                 size="sm"
                 className="home-opportunity-entry"
                 detailAction={{
-                  href: "../opportunities/opportunity-detail-card.html",
+                  href: buildOpportunityDetailRoute(item.id),
                   label: "Подробнее",
                   variant: "secondary",
                 }}
@@ -1375,9 +1444,9 @@ export function HomeApp() {
               <h2>Подпишись на рассылку</h2>
               <p>Новые стажировки, события и карьерные материалы без лишнего шума.</p>
             </div>
-            <button type="button" className="home-news-card__action" aria-label="Перейти к подписке">
+            <IconButton type="button" variant="accent" size="2xl" className="home-news-card__action" aria-label="Открыть форму подписки">
               <ArrowIcon />
-            </button>
+            </IconButton>
             <div className="home-news-card__footer">
               <span className="home-news-card__hint">Открыть форму подписки</span>
             </div>
@@ -1459,3 +1528,4 @@ export function HomeApp() {
     </main>
   );
 }
+

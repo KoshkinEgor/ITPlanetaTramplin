@@ -1,3 +1,5 @@
+import { buildAuthLoginRoute, routes } from "../app/routes";
+
 export const AUTH_DELAY_MS = 420;
 
 export const loginRoleOptions = [
@@ -13,20 +15,32 @@ export const loginRoleOptions = [
     description: "Профиль работодателя, команды и подбор",
     icon: "employer",
   },
+  {
+    value: "curator",
+    title: "Я курирую платформу",
+    description: "Проверка вакансий, компаний, жалоб и логов",
+    icon: "curator",
+  },
 ];
 
 export const loginRoleViews = {
   candidate: {
-    action: "../candidate/candidate-profile.html",
-    registerHref: "candidate-registration.html?role=candidate",
+    action: routes.candidate.profile,
+    registerHref: routes.auth.registerCandidate,
     title: "Кабинет соискателя",
     description: "После входа откроется рабочее пространство с откликами, сохранёнными вакансиями и профилем.",
   },
   employer: {
-    action: "../company/company-dashboard.html",
-    registerHref: "candidate-registration.html?role=employer",
+    action: routes.company.dashboard,
+    registerHref: routes.auth.registerCompany,
     title: "Кабинет работодателя",
     description: "После входа откроется кабинет компании с вакансиями, публикациями и следующими шагами верификации.",
+  },
+  curator: {
+    action: routes.moderator.dashboard,
+    registerHref: null,
+    title: "Кабинет куратора",
+    description: "После входа откроется модерационный кабинет с дашбордом, очередями и логами.",
   },
 };
 
@@ -139,8 +153,8 @@ export function getConfirmView(role, flow) {
       title: "Подтверждение регистрации",
       description: "Введите код подтверждения, который мы отправили на почту соискателя.",
       submitLabel: "Завершить регистрацию",
-      action: "../candidate/candidate-profile.html",
-      backHref: "candidate-registration.html?role=candidate",
+      action: routes.candidate.profile,
+      backHref: routes.auth.registerCandidate,
     };
   }
 
@@ -149,8 +163,8 @@ export function getConfirmView(role, flow) {
       title: "Подтвердите рабочий email",
       description: "Введите код из письма, чтобы продолжить верификацию компании.",
       submitLabel: "Открыть кабинет работодателя",
-      action: "../company/company-dashboard.html",
-      backHref: "company-registration-extended.html",
+      action: routes.company.dashboard,
+      backHref: routes.auth.registerCompanyExtended,
     };
   }
 
@@ -159,8 +173,8 @@ export function getConfirmView(role, flow) {
       title: "Подтвердите рабочий email",
       description: "Введите код подтверждения, который мы отправили на рабочую почту работодателя.",
       submitLabel: "Открыть кабинет работодателя",
-      action: "../company/company-dashboard.html",
-      backHref: "company-registration.html",
+      action: routes.company.dashboard,
+      backHref: routes.auth.registerCompany,
     };
   }
 
@@ -168,7 +182,7 @@ export function getConfirmView(role, flow) {
     title: "Подтвердите рабочий email",
     description: "Введите код подтверждения, который мы отправили на рабочую почту работодателя.",
     submitLabel: "Открыть кабинет работодателя",
-    action: "../company/company-dashboard.html",
-    backHref: "candidate-registration.html?role=employer",
+    action: routes.company.dashboard,
+    backHref: buildAuthLoginRoute({ role: "employer" }),
   };
 }
