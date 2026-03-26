@@ -1,0 +1,100 @@
+.ui-map-marker {
+  --ui-map-marker-size: 32px;
+  --ui-map-marker-color: #ff9f2d;
+  --ui-map-marker-pin-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 17'%3E%3Cpath fill='black' d='M8 16.5c-.22 0-.43-.08-.59-.24l-4.6-4.6A6.53 6.53 0 0 1 .9 7.05 6.6 6.6 0 0 1 7.5.45h1A6.6 6.6 0 0 1 15.1 7.05a6.53 6.53 0 0 1-1.91 4.61l-4.6 4.6a.83.83 0 0 1-.59.24Z'/%3E%3C/svg%3E");
+  display: inline-grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ui-color-text);
+  text-decoration: none;
+}
+
+.ui-map-marker--sm {
+  --ui-map-marker-size: 28px;
+}
+
+.ui-map-marker--md {
+  --ui-map-marker-size: 32px;
+}
+
+.ui-map-marker--lg {
+  --ui-map-marker-size: 40px;
+}
+
+.ui-map-marker--orange {
+  --ui-map-marker-color: #ff9f2d;
+}
+
+.ui-map-marker--green {
+  --ui-map-marker-color: #63cb69;
+}
+
+.ui-map-marker--blue {
+  --ui-map-marker-color: #327df2;
+}
+
+.ui-map-marker__pin {
+  width: var(--ui-map-marker-size);
+  height: var(--ui-map-marker-size);
+  display: grid;
+  place-items: center;
+}
+
+.ui-map-marker__pin-shape {
+  position: relative;
+  width: var(--ui-map-marker-size);
+  height: var(--ui-map-marker-size);
+}
+
+.ui-map-marker__pin-shape::before,
+.ui-map-marker__pin-shape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  -webkit-mask: var(--ui-map-marker-pin-mask) center / contain no-repeat;
+  mask: var(--ui-map-marker-pin-mask) center / contain no-repeat;
+}
+
+.ui-map-marker__pin-shape::after {
+  inset: max(2px, calc(var(--ui-map-marker-size) * 0.078125));
+  background: var(--ui-map-marker-color);
+}
+
+.ui-map-marker__label {
+  max-width: 92px;
+  color: #24314d;
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.96),
+    0 0 14px rgba(255, 255, 255, 0.72);
+}
+
+.ui-map-marker--cluster {
+  width: var(--ui-map-marker-size);
+  min-width: var(--ui-map-marker-size);
+  height: var(--ui-map-marker-size);
+  place-items: center;
+  border-radius: 999px;
+  border: max(2px, calc(var(--ui-map-marker-size) * 0.078125)) solid #a8b1c7;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 251, 0.98));
+  box-shadow:
+    0 10px 24px rgba(36, 49, 77, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.ui-map-marker__cluster-count {
+  color: #69758f;
+  font-size: calc(var(--ui-map-marker-size) * 0.56);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}

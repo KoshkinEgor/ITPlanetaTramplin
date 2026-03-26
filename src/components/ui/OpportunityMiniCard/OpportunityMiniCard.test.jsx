@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { OpportunityMiniCard } from "./OpportunityMiniCard";
 
 const item = {
@@ -31,5 +31,25 @@ describe("OpportunityMiniCard", () => {
     expect(card).toHaveClass("ui-opportunity-mini-card--compact");
     expect(favoriteButton).toHaveClass("ui-icon-button--xl");
     expect(screen.getByRole("link", { name: "Подробнее" })).not.toHaveClass("ui-button--lg");
+  });
+  it("supports an optional dismiss action in the top-right corner", () => {
+    const onDismiss = vi.fn();
+
+    render(
+      <OpportunityMiniCard
+        item={item}
+        variant="compact"
+        dismissAction={{ label: "Закрыть карточку", onClick: onDismiss }}
+        detailAction={{ href: "#details", label: "РџРѕРґСЂРѕР±РЅРµРµ", variant: "secondary" }}
+      />
+    );
+
+    const dismissButton = screen.getByRole("button", { name: "Закрыть карточку" });
+
+    expect(screen.queryByRole("button", { name: "РЎРѕС…СЂР°РЅРёС‚СЊ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ" })).not.toBeInTheDocument();
+
+    fireEvent.click(dismissButton);
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,17 +4,28 @@ import { OpportunityMiniCard } from "../shared/ui";
 
 const apiKey = import.meta.env.VITE_YANDEX_MAPS_API_KEY;
 const scriptId = "yandex-maps-js-api-v3";
+const clustererPackageName = "@yandex/ymaps3-clusterer";
+const clustererPackageVersion = "@yandex/ymaps3-clusterer@0.0";
+const clustererCdnUrl = "https://cdn.jsdelivr.net/npm/{package}";
+const markerSourceId = "home-opportunity-markers";
+const markerClusterGridSize = 128;
+const markerClusterMaxZoom = 13;
+const markerLabelZoomThreshold = 13.2;
+const markerLabelMaxLength = 16;
+const markerLabelMaxWords = 2;
 const defaultCenter = [37.617635, 55.755814];
 const cityCenters = {
-  "Москва": [37.617635, 55.755814],
-  "Чебоксары": [47.251942, 56.1439],
-  "Казань": [49.106414, 55.796127],
+  Москва: [37.617635, 55.755814],
+  Чебоксары: [47.251942, 56.1439],
+  Казань: [49.106414, 55.796127],
   "Санкт-Петербург": [30.315877, 59.939099],
   "Нижний Новгород": [44.005986, 56.326887],
-  "Екатеринбург": [60.597465, 56.838011],
-  "Новосибирск": [82.92043, 55.030204],
+  Екатеринбург: [60.597465, 56.838011],
+  Новосибирск: [82.92043, 55.030204],
 };
+
 let yandexMapsPromise;
+let yandexPackagesRegistered = false;
 
 function getFallbackCenter(selectedCity) {
   return cityCenters[selectedCity] ?? defaultCenter;
@@ -49,6 +60,15 @@ function buildLocation(points, fallbackCenter) {
   };
 }
 
+function registerYandexPackages(ymaps3) {
+  if (yandexPackagesRegistered || typeof ymaps3.import?.registerCdn !== "function") {
+    return;
+  }
+
+  ymaps3.import.registerCdn(clustererCdnUrl, [clustererPackageVersion]);
+  yandexPackagesRegistered = true;
+}
+
 function loadYandexMaps() {
   if (!apiKey) {
     return Promise.reject(new Error("missing-api-key"));
@@ -59,13 +79,21 @@ function loadYandexMaps() {
   }
 
   if (window.ymaps3?.ready) {
-    return window.ymaps3.ready.then(() => window.ymaps3);
+    return window.ymaps3.ready.then(() => {
+      registerYandexPackages(window.ymaps3);
+      return window.ymaps3;
+    });
   }
 
   if (!yandexMapsPromise) {
     yandexMapsPromise = new Promise((resolve, reject) => {
       const onLoad = () => {
-        window.ymaps3.ready.then(() => resolve(window.ymaps3)).catch(reject);
+        window.ymaps3.ready
+          .then(() => {
+            registerYandexPackages(window.ymaps3);
+            resolve(window.ymaps3);
+          })
+          .catch(reject);
       };
 
       const onError = () => {
@@ -110,35 +138,166 @@ function getMarkerTone(item) {
   return "blue";
 }
 
-export function HomeOpportunityMap({ items, selectedCity }) {
+function buildMarkerLabel(title) {
+  const normalizedTitle = String(title ?? "").replace(/\s+/g, " ").trim();
+
+  if (!normalizedTitle) {
+    return "";
+  }
+
+  if (normalizedTitle.length <= markerLabelMaxLength) {
+    return normalizedTitle;
+  }
+
+  const words = normalizedTitle.split(" ");
+  let shortenedTitle = "";
+
+  for (const word of words.slice(0, markerLabelMaxWords)) {
+    const nextValue = shortenedTitle ? `${shortenedTitle} ${word}` : word;
+
+    if (nextValue.length > markerLabelMaxLength - 1) {
+      break;
+    }
+
+    shortenedTitle = nextValue;
+  }
+
+  const labelBase = shortenedTitle || normalizedTitle.slice(0, markerLabelMaxLength - 1).trimEnd();
+  return `${labelBase.trimEnd()}…`;
+}
+
+function buildPointFeature(point) {
+  return {
+    type: "Feature",
+    id: point.id,
+    geometry: {
+      type: "Point",
+      coordinates: point.coordinates,
+    },
+    properties: {
+      point,
+    },
+  };
+}
+
+function createMarkerElement(point, isActive, onSelectPoint) {
+  const marker = document.createElement("button");
+  marker.type = "button";
+  marker.className = `ui-map-marker ui-map-marker--pin ui-map-marker--md ui-map-marker--${point.markerTone} ui-map-marker--with-label home-yandex-map__marker`;
+  marker.setAttribute("aria-label", point.title);
+  marker.setAttribute("aria-pressed", isActive ? "true" : "false");
+  marker.dataset.pointId = String(point.id);
+  marker.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onSelectPoint?.(point.id);
+  });
+
+  const markerPin = document.createElement("span");
+  markerPin.className = "ui-map-marker__pin";
+
+  const markerShape = document.createElement("span");
+  markerShape.className = "ui-map-marker__pin-shape";
+  markerPin.append(markerShape);
+
+  const markerLabel = document.createElement("span");
+  markerLabel.className = "ui-map-marker__label";
+  markerLabel.textContent = point.markerLabel;
+
+  marker.append(markerPin, markerLabel);
+
+  return marker;
+}
+
+function createClusterElement(count) {
+  const cluster = document.createElement("div");
+  cluster.className = "ui-map-marker ui-map-marker--cluster ui-map-marker--md home-yandex-map__marker home-yandex-map__cluster";
+  cluster.setAttribute("aria-label", `Группа из ${count} точек`);
+
+  const clusterCount = document.createElement("span");
+  clusterCount.className = "ui-map-marker__cluster-count";
+  clusterCount.textContent = String(count);
+
+  cluster.append(clusterCount);
+
+  return cluster;
+}
+
+export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSelectItem }) {
+  const rootRef = useRef(null);
   const containerRef = useRef(null);
+  const onSelectItemRef = useRef(onSelectItem);
+  const activeIdRef = useRef(activeId);
+  const markerElementsRef = useRef(new Map());
   const [status, setStatus] = useState(apiKey ? "loading" : "missing-key");
   const [errorMessage, setErrorMessage] = useState("");
-  const [activeId, setActiveId] = useState(() => items[0]?.id ?? null);
+  const fallbackCenter = useMemo(() => getFallbackCenter(selectedCity), [selectedCity]);
 
   const points = useMemo(
-    () => items.map((item) => ({
-      ...item,
-      markerTone: getMarkerTone(item),
-    })),
+    () =>
+      items.map((item) => ({
+        ...item,
+        markerTone: getMarkerTone(item),
+        markerLabel: buildMarkerLabel(item.title),
+      })),
     [items]
   );
 
-  const fallbackCenter = useMemo(() => getFallbackCenter(selectedCity), [selectedCity]);
+  const mapLocation = useMemo(() => buildLocation(points, fallbackCenter), [fallbackCenter, points]);
+  const pointFeatures = useMemo(() => points.map(buildPointFeature), [points]);
   const activeItem = useMemo(
-    () => points.find((point) => point.id === activeId) ?? points[0] ?? null,
+    () => points.find((point) => point.id === activeId) ?? null,
     [activeId, points]
   );
+  const [currentZoom, setCurrentZoom] = useState(mapLocation.zoom);
 
   useEffect(() => {
-    if (!points.length) {
-      setActiveId(null);
-      return;
+    onSelectItemRef.current = onSelectItem;
+  }, [onSelectItem]);
+
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  useEffect(() => {
+    setCurrentZoom(mapLocation.zoom);
+  }, [mapLocation.zoom]);
+
+  useEffect(() => {
+    const rootElement = rootRef.current;
+
+    if (!rootElement) {
+      return undefined;
     }
 
-    if (!points.some((point) => point.id === activeId)) {
-      setActiveId(points[0].id);
-    }
+    const handleRootClick = (event) => {
+      if (!activeIdRef.current) {
+        return;
+      }
+
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (target.closest(".home-yandex-map__marker") || target.closest(".home-yandex-map__preview")) {
+        return;
+      }
+
+      onSelectItemRef.current?.(null);
+    };
+
+    rootElement.addEventListener("click", handleRootClick);
+
+    return () => {
+      rootElement.removeEventListener("click", handleRootClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    markerElementsRef.current.forEach((markerElement, pointId) => {
+      markerElement.setAttribute("aria-pressed", pointId === activeId ? "true" : "false");
+    });
   }, [activeId, points]);
 
   useEffect(() => {
@@ -160,41 +319,78 @@ export function HomeOpportunityMap({ items, selectedCity }) {
 
       try {
         const ymaps3 = await loadYandexMaps();
+        const {
+          YMap,
+          YMapDefaultSchemeLayer,
+          YMapFeatureDataSource,
+          YMapLayer,
+          YMapListener,
+          YMapMarker,
+        } = ymaps3;
+        const { YMapClusterer, clusterByGrid } = await ymaps3.import(clustererPackageName);
 
         if (cancelled || !containerRef.current) {
           return;
         }
 
         containerRef.current.innerHTML = "";
-
-        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker } = ymaps3;
+        markerElementsRef.current = new Map();
 
         mapInstance = new YMap(containerRef.current, {
-          location: buildLocation(points, fallbackCenter),
+          location: mapLocation,
           mode: "vector",
         });
 
         mapInstance.addChild(new YMapDefaultSchemeLayer());
-        mapInstance.addChild(new YMapDefaultFeaturesLayer());
+        mapInstance.addChild(new YMapFeatureDataSource({ id: markerSourceId }));
+        mapInstance.addChild(new YMapLayer({ source: markerSourceId, type: "markers", zIndex: 1800 }));
+        mapInstance.addChild(
+          new YMapListener({
+            layer: "any",
+            onUpdate: ({ location }) => {
+              if (cancelled) {
+                return;
+              }
 
-        points.forEach((point) => {
-          const marker = document.createElement("button");
-          marker.type = "button";
-          marker.className = `home-yandex-map__marker home-yandex-map__marker--${point.markerTone}`;
-          marker.setAttribute("aria-label", point.title);
+              setCurrentZoom((previousZoom) =>
+                Math.abs(previousZoom - location.zoom) < 0.01 ? previousZoom : location.zoom
+              );
+            },
+          })
+        );
+        mapInstance.addChild(
+          new YMapClusterer({
+            method: clusterByGrid({ gridSize: markerClusterGridSize }),
+            maxZoom: markerClusterMaxZoom,
+            features: pointFeatures,
+            marker: (feature) => {
+              const point = feature.properties.point;
+              const markerElement = createMarkerElement(
+                point,
+                point.id === activeIdRef.current,
+                (nextId) => onSelectItemRef.current?.(nextId)
+              );
 
-          const markerCore = document.createElement("span");
-          markerCore.className = "home-yandex-map__marker-core";
+              markerElementsRef.current.set(point.id, markerElement);
 
-          const markerLabel = document.createElement("span");
-          markerLabel.className = "home-yandex-map__marker-label";
-          markerLabel.textContent = point.title;
-
-          marker.append(markerCore, markerLabel);
-          marker.addEventListener("click", () => setActiveId(point.id));
-
-          mapInstance.addChild(new YMapMarker({ coordinates: point.coordinates }, marker));
-        });
+              return new YMapMarker(
+                {
+                  coordinates: feature.geometry.coordinates,
+                  source: markerSourceId,
+                },
+                markerElement
+              );
+            },
+            cluster: (coordinates, features) =>
+              new YMapMarker(
+                {
+                  coordinates,
+                  source: markerSourceId,
+                },
+                createClusterElement(features.length)
+              ),
+          })
+        );
 
         setStatus("ready");
       } catch (error) {
@@ -222,43 +418,54 @@ export function HomeOpportunityMap({ items, selectedCity }) {
         mapInstance.destroy?.();
       }
 
+      markerElementsRef.current = new Map();
+
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
     };
-  }, [fallbackCenter, points]);
+  }, [mapLocation, pointFeatures]);
 
-  const overlayState = status === "error"
-    ? {
-        title: "Карта сейчас недоступна",
-        description: errorMessage || "Проверьте ключ, referer и статус активации API.",
-      }
-    : status === "missing-key"
+  const overlayState =
+    status === "error"
       ? {
-          title: "Не найден API-ключ",
-          description: "Добавьте VITE_YANDEX_MAPS_API_KEY в .env.local и перезапустите Vite.",
+          title: "Карта сейчас недоступна",
+          description: errorMessage || "Проверьте ключ, referer и статус активации API.",
         }
-      : status === "loading"
+      : status === "missing-key"
         ? {
-            title: "Подключаем Яндекс Карту",
-            description: "Загружаем слой карты и расставляем точки возможностей.",
+            title: "Не найден API-ключ",
+            description: "Добавьте VITE_YANDEX_MAPS_API_KEY в .env.local и перезапустите Vite.",
           }
-        : !points.length
+        : status === "loading"
           ? {
-              title: "Нет точек по текущим фильтрам",
-              description: "Сбросьте часть фильтров или выберите другой город.",
+              title: "Подключаем Яндекс Карту",
+              description: "Загружаем слой карты и расставляем точки возможностей.",
             }
-          : null;
+          : !points.length
+            ? {
+                title: "Нет точек по текущим фильтрам",
+                description: "Сбросьте часть фильтров или выберите другой город.",
+              }
+            : null;
 
   return (
-    <div className="home-yandex-map">
+    <div
+      ref={rootRef}
+      className={`home-yandex-map${currentZoom >= markerLabelZoomThreshold ? " is-marker-labels-visible" : ""}`}
+    >
       <div ref={containerRef} className="home-yandex-map__canvas" />
 
       {status === "ready" && activeItem ? (
         <div className="home-yandex-map__preview">
           <OpportunityMiniCard
             item={activeItem}
+            variant="compact"
             className="home-yandex-map__preview-card"
+            dismissAction={{
+              label: "Закрыть карточку",
+              onClick: () => onSelectItemRef.current?.(null),
+            }}
             detailAction={{
               href: activeItem.detailHref ?? activeItem.href ?? buildOpportunityDetailRoute(activeItem.id),
               label: "Подробнее",

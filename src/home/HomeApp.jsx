@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildOpportunityDetailRoute } from "../app/routes";
+import { useNavigate } from "react-router-dom";
+import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { AppLink } from "../app/AppLink";
+import { getCurrentAuthUser } from "../auth/api";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
+import { ApiError } from "../lib/http";
 import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, Tag } from "../shared/ui";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
 import "./home.css";
-
-const navItems = [
-  { label: "Возможности", href: "#discover" },
-  { label: "Как это работает", href: "#workflow" },
-  { label: "Для компаний", href: "#companies" },
-  { label: "О платформе", href: "#about" },
-];
 
 const heroTags = ["Вперёд к целям", "Карьера", "Новые контакты"];
 const filterSelects = [
@@ -204,6 +200,73 @@ const recommendedCardsWithDetails = recommendedCards.map((item, index) => ({
   ...item,
   id: index === 0 ? "junior-security-analyst" : index === 1 ? "design-ui-ux" : "it-planeta-event",
 }));
+
+function getHomeDetailActionLabel(item) {
+  if (item?.primaryAction) {
+    return item.primaryAction;
+  }
+
+  const type = String(item?.eyebrow ?? item?.type ?? "").trim().toLowerCase();
+  return type === "мероприятие" ? "Подать заявку" : "Откликнуться";
+}
+
+function createHomeRowActions(item) {
+  return {
+    primaryAction: {
+      href: "/candidate/contacts",
+      label: item?.secondaryAction ?? "Связаться",
+      variant: "secondary",
+    },
+    detailAction: {
+      href: buildOpportunityDetailRoute(item.id),
+      label: getHomeDetailActionLabel(item),
+      variant: "secondary",
+    },
+  };
+}
+
+function createHomeBlockDetailAction(item) {
+  return {
+    href: buildOpportunityDetailRoute(item.id),
+    label: "РџРѕРґСЂРѕР±РЅРµРµ",
+    variant: "secondary",
+    className: "home-opportunity-entry__action",
+  };
+}
+
+const HOME_CONTACT_ACTION_LABEL = "\u0421\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F";
+const HOME_APPLY_ACTION_LABEL = "\u041E\u0442\u043A\u043B\u0438\u043A\u043D\u0443\u0442\u044C\u0441\u044F";
+const HOME_EVENT_ACTION_LABEL = "\u041F\u043E\u0434\u0430\u0442\u044C \u0437\u0430\u044F\u0432\u043A\u0443";
+const HOME_DETAIL_ACTION_LABEL = "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435";
+
+function getSafeHomeDetailActionLabel(item) {
+  const type = String(item?.eyebrow ?? item?.type ?? "").trim().toLowerCase();
+  return type === "\u043C\u0435\u0440\u043E\u043F\u0440\u0438\u044F\u0442\u0438\u0435" ? HOME_EVENT_ACTION_LABEL : HOME_APPLY_ACTION_LABEL;
+}
+
+function createSafeHomeRowActions(item) {
+  return {
+    primaryAction: {
+      href: "/candidate/contacts",
+      label: HOME_CONTACT_ACTION_LABEL,
+      variant: "secondary",
+    },
+    detailAction: {
+      href: buildOpportunityDetailRoute(item.id),
+      label: getSafeHomeDetailActionLabel(item),
+      variant: "secondary",
+    },
+  };
+}
+
+function createSafeHomeBlockDetailAction(item) {
+  return {
+    href: buildOpportunityDetailRoute(item.id),
+    label: HOME_DETAIL_ACTION_LABEL,
+    variant: "secondary",
+    className: "home-opportunity-entry__action",
+  };
+}
 
 function ArrowIcon() {
   return (
@@ -831,10 +894,10 @@ function HomeHeader({ floating, visible }) {
       </div>
 
       <nav className="home-header__nav" aria-label="Основная навигация">
-        {navItems.map((item) => (
-          <a key={item.label} href={item.href} className="home-header__nav-link">
+        {PUBLIC_HEADER_NAV_ITEMS.map((item) => (
+          <AppLink key={item.key} href={item.href} className="home-header__nav-link">
             {item.label}
-          </a>
+          </AppLink>
         ))}
       </nav>
 
@@ -982,6 +1045,7 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) 
 }
 
 export function HomeApp() {
+  const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [query, setQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState(CITY_OPTIONS[0]);
@@ -997,7 +1061,10 @@ export function HomeApp() {
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [isHeaderFloating, setIsHeaderFloating] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
   const newsletterInputRef = useRef(null);
+  const resultsGridRef = useRef(null);
   const [advancedSearchValues, setAdvancedSearchValues] = useState({
     salaryFrom: "",
     salaryTo: "",
@@ -1113,7 +1180,66 @@ export function HomeApp() {
       .map((entry) => entry.item);
   }, [filteredNearbyCards, sortDirection, sortKey]);
 
+  const prioritizedNearbyCards = useMemo(() => {
+    if (!selectedOpportunityId) {
+      return sortedNearbyCards;
+    }
+
+    const selectedIndex = sortedNearbyCards.findIndex((item) => item.id === selectedOpportunityId);
+
+    if (selectedIndex <= 0) {
+      return sortedNearbyCards;
+    }
+
+    return [
+      sortedNearbyCards[selectedIndex],
+      ...sortedNearbyCards.slice(0, selectedIndex),
+      ...sortedNearbyCards.slice(selectedIndex + 1),
+    ];
+  }, [selectedOpportunityId, sortedNearbyCards]);
+
+  useEffect(() => {
+    if (!selectedOpportunityId) {
+      return;
+    }
+
+    if (!sortedNearbyCards.some((item) => item.id === selectedOpportunityId)) {
+      setSelectedOpportunityId(null);
+    }
+  }, [selectedOpportunityId, sortedNearbyCards]);
+
+  useEffect(() => {
+    if (!selectedOpportunityId || view !== "map") {
+      return;
+    }
+
+    resultsGridRef.current?.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [selectedOpportunityId, view]);
+
   const lastScrollYRef = useRef(0);
+
+  const handleHeroDiscoverClick = async () => {
+    if (isHeroActionLoading) {
+      return;
+    }
+
+    setIsHeroActionLoading(true);
+
+    try {
+      await getCurrentAuthUser();
+      navigate(routes.opportunities.catalog);
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        navigate(routes.auth.registerCandidate);
+        return;
+      }
+
+      navigate(routes.opportunities.catalog);
+    }
+  };
 
   useEffect(() => {
     let ticking = false;
@@ -1176,11 +1302,11 @@ export function HomeApp() {
             </p>
 
             <div className="home-hero__actions">
-              <Button as="a" href="#discover" className="home-hero__primary">
-                Перейти к возможностям
-              </Button>
               <Button as="a" href="#workflow" variant="secondary" className="home-hero__secondary">
                 Как это работает
+              </Button>
+              <Button className="home-hero__primary" loading={isHeroActionLoading} onClick={handleHeroDiscoverClick}>
+                Найти возможность для себя
               </Button>
             </div>
           </div>
@@ -1313,7 +1439,12 @@ export function HomeApp() {
                 </div>
 
                 <div className="home-map-card__surface home-map-card__surface--interactive">
-                  <HomeOpportunityMap items={sortedNearbyCards} selectedCity={selectedCity} />
+                  <HomeOpportunityMap
+                    items={prioritizedNearbyCards}
+                    selectedCity={selectedCity}
+                    activeId={selectedOpportunityId}
+                    onSelectItem={setSelectedOpportunityId}
+                  />
                 </div>
               </Card>
             ) : null}
@@ -1326,25 +1457,17 @@ export function HomeApp() {
                 onReset={resetAdvancedSearch}
               />
             ) : (
-              <div className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
-                {sortedNearbyCards.length ? (
-                  sortedNearbyCards.map((item, index) => (
+              <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
+                {prioritizedNearbyCards.length ? (
+                  prioritizedNearbyCards.map((item) => (
                     <OpportunityRowCard
-                      key={`${item.id ?? item.title}-${index}`}
+                      key={item.id ?? item.title}
                       item={item}
                       surface="plain"
                       size="sm"
-                      chipPlacement="split"
-                      className="home-opportunity-entry"
-                      primaryAction={{
-                        href: buildOpportunityDetailRoute(item.id),
-                        label: item.primaryAction ?? "Откликнуться",
-                      }}
-                      secondaryAction={{
-                        href: "/candidate/contacts",
-                        label: item.secondaryAction ?? "Связаться",
-                        variant: "secondary",
-                      }}
+                      className={`home-opportunity-entry ${selectedOpportunityId === item.id ? "is-selected" : ""}`.trim()}
+                      primaryAction={createSafeHomeRowActions(item).primaryAction}
+                      detailAction={createSafeHomeRowActions(item).detailAction}
                     />
                   ))
                 ) : (
@@ -1377,19 +1500,15 @@ export function HomeApp() {
           <div className="home-section__head">
             <h2>Популярные вакансии</h2>
           </div>
-          <div className="home-section__rail home-section__rail--three">
+          <div className="home-section__rail" aria-label="РџРѕРїСѓР»СЏСЂРЅС‹Рµ РІР°РєР°РЅСЃРёРё">
             {popularCardsWithDetails.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${item.status}-${index}`}
                 item={item}
                 surface="plain"
-                size="sm"
+                size="md"
                 className="home-opportunity-entry"
-                detailAction={{
-                  href: buildOpportunityDetailRoute(item.id),
-                  label: "Подробнее",
-                  variant: "secondary",
-                }}
+                detailAction={createSafeHomeBlockDetailAction(item)}
               />
             ))}
           </div>
@@ -1399,19 +1518,15 @@ export function HomeApp() {
           <div className="home-section__head">
             <h2>Рекомендуемые возможности</h2>
           </div>
-          <div className="home-section__rail home-section__rail--recommend">
+          <div className="home-section__rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
             {recommendedCardsWithDetails.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${index}`}
                 item={item}
                 surface="plain"
-                size="sm"
+                size="md"
                 className="home-opportunity-entry"
-                detailAction={{
-                  href: buildOpportunityDetailRoute(item.id),
-                  label: "Подробнее",
-                  variant: "secondary",
-                }}
+                detailAction={createSafeHomeBlockDetailAction(item)}
               />
             ))}
           </div>

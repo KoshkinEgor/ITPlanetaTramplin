@@ -21,6 +21,15 @@ function HeartIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 5 15 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function getCompactValueSuffix(item) {
   if (item.valueSuffix) {
     return String(item.valueSuffix).trim();
@@ -65,6 +74,7 @@ export function OpportunityMiniCard({
   variant = "featured",
   className,
   detailAction,
+  dismissAction,
   favoriteLabel = "Сохранить возможность",
   favoritePressed = false,
   onFavoriteClick,
@@ -92,17 +102,30 @@ export function OpportunityMiniCard({
           ) : null}
         </div>
 
-        <IconButton
-          type="button"
-          variant="surface"
-          size={isCompact ? "xl" : "2xl"}
-          className="ui-opportunity-mini-card__favorite"
-          label={favoriteLabel}
-          aria-pressed={favoritePressed}
-          onClick={onFavoriteClick}
-        >
-          <HeartIcon />
-        </IconButton>
+        {dismissAction ? (
+          <IconButton
+            type="button"
+            variant="surface"
+            size={isCompact ? "xl" : "2xl"}
+            className="ui-opportunity-mini-card__favorite ui-opportunity-mini-card__favorite--dismiss"
+            label={dismissAction.label}
+            onClick={dismissAction.onClick}
+          >
+            <CloseIcon />
+          </IconButton>
+        ) : (
+          <IconButton
+            type="button"
+            variant="surface"
+            size={isCompact ? "xl" : "2xl"}
+            className="ui-opportunity-mini-card__favorite"
+            label={favoriteLabel}
+            aria-pressed={favoritePressed}
+            onClick={onFavoriteClick}
+          >
+            <HeartIcon />
+          </IconButton>
+        )}
       </div>
 
       <div className="ui-opportunity-mini-card__body">

@@ -27,6 +27,7 @@ export { SegmentedControl } from "../../components/ui/SegmentedControl/Segmented
 export { PillButton } from "../../components/ui/PillButton/PillButton";
 export { ContentRail } from "../../components/ui/ContentRail/ContentRail";
 export { CompanyVacancyTile } from "../../components/ui/CompanyVacancyTile/CompanyVacancyTile";
+export { MapMarker } from "../../components/ui/MapMarker/MapMarker";
 export { OpportunityMiniCard } from "../../components/ui/OpportunityMiniCard/OpportunityMiniCard";
 export { PlaceholderAction } from "../../components/ui/PlaceholderAction/PlaceholderAction";
 export { PlaceholderBlock } from "../../components/ui/PlaceholderBlock/PlaceholderBlock";
