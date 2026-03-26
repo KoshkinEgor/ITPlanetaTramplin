@@ -9,7 +9,9 @@ import {
   ResetPasswordPage,
 } from "../pages/auth/index.jsx";
 import {
+  CandidateAccessGuard,
   CandidateCabinetPage,
+  CandidateCareerPage,
   CandidateContactsPage,
   CandidateOverviewPage,
   CandidateProjectEditPage,
@@ -56,17 +58,21 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
-      <Route path={routes.candidate.resumeEdit} element={<CandidateResumeEditPage />} />
-      <Route path={routes.candidate.projectEdit} element={<CandidateProjectEditPage />} />
+      <Route path={routes.candidate.career} element={<CandidateCareerPage />} />
 
-      <Route path="candidate" element={<CandidateCabinetPage />}>
-        <Route index element={<Navigate to="profile" replace />} />
-        <Route path="profile" element={<CandidateOverviewPage />} />
-        <Route path="resume" element={<CandidateResumePage />} />
-        <Route path="projects" element={<CandidateProjectsPage />} />
-        <Route path="responses" element={<CandidateResponsesPage />} />
-        <Route path="contacts" element={<CandidateContactsPage />} />
-        <Route path="settings" element={<CandidateSettingsPage />} />
+      <Route element={<CandidateAccessGuard />}>
+        <Route path={routes.candidate.resumeEdit} element={<CandidateResumeEditPage />} />
+        <Route path={routes.candidate.projectEdit} element={<CandidateProjectEditPage />} />
+
+        <Route path="candidate" element={<CandidateCabinetPage />}>
+          <Route index element={<Navigate to="profile" replace />} />
+          <Route path="profile" element={<CandidateOverviewPage />} />
+          <Route path="resume" element={<CandidateResumePage />} />
+          <Route path="projects" element={<CandidateProjectsPage />} />
+          <Route path="responses" element={<CandidateResponsesPage />} />
+          <Route path="contacts" element={<CandidateContactsPage />} />
+          <Route path="settings" element={<CandidateSettingsPage />} />
+        </Route>
       </Route>
 
       <Route path="company/dashboard" element={<CompanyCabinetPage />}>

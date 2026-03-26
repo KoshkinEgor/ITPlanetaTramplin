@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PUBLIC_HEADER_NAV_ITEMS } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Loader, ResponseCard, SectionHeader, Select, Textarea } from "../shared/ui";
 import { createOpportunity, deleteOpportunity, updateOpportunity } from "../api/opportunities";
@@ -12,11 +13,7 @@ import {
 import { ApiError } from "../lib/http";
 import "./company-dashboard.css";
 
-const navItems = [
-  { key: "company", label: "Кабинет компании", href: "/company/dashboard" },
-  { key: "catalog", label: "Каталог возможностей", href: "/opportunities" },
-  { key: "candidate", label: "Профиль соискателя", href: "/candidate/profile" },
-];
+const navItems = PUBLIC_HEADER_NAV_ITEMS;
 
 const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "vacancy", label: "Вакансия" },
@@ -403,7 +400,7 @@ export function CompanyDashboardApp() {
       <div className="company-dashboard-page__shell">
         <PortalHeader
           navItems={navItems}
-          currentKey="company"
+          currentKey={undefined}
           actionHref="/opportunities"
           actionLabel="Каталог"
         />

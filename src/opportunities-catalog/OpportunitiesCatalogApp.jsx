@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
@@ -22,11 +22,7 @@ import "./opportunities-catalog.css";
 
 const BODY_CLASS = "opportunities-browser-react-body";
 
-const NAV_ITEMS = [
-  { key: "opportunities", label: "Все возможности", href: "/opportunities" },
-  { key: "career", label: "Карьера", href: "/candidate/profile" },
-  { key: "about", label: "О платформе", href: "/#about" },
-];
+const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
 
 const TYPE_FILTERS = [
   { value: "all", label: "Все" },

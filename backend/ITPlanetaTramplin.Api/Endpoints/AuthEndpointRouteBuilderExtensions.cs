@@ -11,6 +11,8 @@ namespace ITPlanetaTramplin.Api.Endpoints;
 
 internal static class AuthEndpointRouteBuilderExtensions
 {
+    private static readonly DateTime EmailVerificationRolloutUtc = new(2026, 3, 24, 18, 45, 26, DateTimeKind.Utc);
+
     public static RouteGroupBuilder MapAuthEndpoints(this RouteGroupBuilder api)
     {
         api.MapPost("/auth/login", HandleLoginAsync);
@@ -117,9 +119,16 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.InvalidCredentialsResult();
         }
 
-        if (passwordUpgraded)
+        var userStateChanged = passwordUpgraded;
+
+        if (role is PublicRoles.Candidate or PublicRoles.Company && PromoteLegacyVerifiedUser(user))
         {
-            await db.SaveChangesAsync();
+            userStateChanged = true;
+        }
+
+        if (userStateChanged)
+        {
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         if (role is PublicRoles.Candidate or PublicRoles.Company && user.IsVerified != true)
@@ -138,6 +147,31 @@ internal static class AuthEndpointRouteBuilderExtensions
 
         return AuthEndpointSupport.SignInUser(context, user, role, authRuntimeOptions);
     }
+
+    private static bool PromoteLegacyVerifiedUser(User user)
+    {
+        if (user.IsVerified == true || !WasCreatedBeforeEmailVerificationRollout(user) || !HasNoEmailVerificationState(user))
+        {
+            return false;
+        }
+
+        // Legacy accounts created before email confirmation rollout should not be blocked on login.
+        user.IsVerified = true;
+        user.EmailVerificationCodeHash = null;
+        user.EmailVerificationExpiresAt = null;
+        user.EmailVerificationSentAt = null;
+        user.EmailVerificationAttemptCount = 0;
+        return true;
+    }
+
+    private static bool HasNoEmailVerificationState(User user) =>
+        string.IsNullOrWhiteSpace(user.EmailVerificationCodeHash)
+        && user.EmailVerificationExpiresAt is null
+        && user.EmailVerificationSentAt is null
+        && user.EmailVerificationAttemptCount == 0;
+
+    private static bool WasCreatedBeforeEmailVerificationRollout(User user) =>
+        user.CreatedAt is DateTime createdAt && createdAt < EmailVerificationRolloutUtc;
 
     private static async Task<IResult> HandleCurrentUserAsync(HttpContext context, ApplicationDBContext db)
     {

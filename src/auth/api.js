@@ -33,6 +33,14 @@ function normalizeRole(role) {
   }
 }
 
+export async function getCurrentAuthUser() {
+  try {
+    return await apiRequest("/auth/me");
+  } catch (error) {
+    throw mapApiError(error);
+  }
+}
+
 export async function submitLogin({ role, email, identifier, password }) {
   try {
     const apiRole = normalizeRole(role);

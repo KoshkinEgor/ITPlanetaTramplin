@@ -1,5 +1,5 @@
 import { AppLink } from "../app/AppLink";
-import { buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
 import { Avatar, Button, Card, FormField, Input, PillButton, SearchInput, SectionHeader, SegmentedControl, StatusBadge, Tag } from "../shared/ui";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
@@ -7,11 +7,7 @@ import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SIDEBAR_ITEMS } from "./config";
 import { getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "./mappers";
 import "./candidate-portal.css";
 
-const CANDIDATE_HEADER_NAV = [
-  { key: "opportunities", label: "Возможности", href: "/opportunities" },
-  { key: "career", label: "Карьера", href: CANDIDATE_PAGE_ROUTES.overview },
-  { key: "about", label: "О платформе", href: "/#about" },
-];
+const CANDIDATE_HEADER_NAV = PUBLIC_HEADER_NAV_ITEMS;
 
 function MailIcon() {
   return (
@@ -86,7 +82,7 @@ export function CandidateFrame({ activeKey, hero, children }) {
       <div className="candidate-portal__shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
-          currentKey="opportunities"
+          currentKey="career"
           actionHref={CANDIDATE_PAGE_ROUTES.overview}
           actionLabel="Профиль"
           className="candidate-portal__header"
@@ -113,7 +109,7 @@ export function CandidateStandaloneFrame({ children }) {
       <div className="candidate-portal__shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
-          currentKey="opportunities"
+          currentKey="career"
           actionHref={CANDIDATE_PAGE_ROUTES.overview}
           actionLabel="Профиль"
           className="candidate-portal__header"

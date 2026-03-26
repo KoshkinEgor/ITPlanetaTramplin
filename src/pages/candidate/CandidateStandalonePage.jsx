@@ -1,12 +1,8 @@
-import { routes } from "../../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
 import "../../candidate-portal/candidate-portal.css";
 import { PortalHeader } from "../../widgets/layout";
 
-const headerNav = [
-  { key: "opportunities", label: "Возможности", href: routes.opportunities.catalog },
-  { key: "career", label: "Карьера", href: routes.candidate.profile },
-  { key: "about", label: "О платформе", href: routes.homeAbout },
-];
+const headerNav = PUBLIC_HEADER_NAV_ITEMS;
 
 export function CandidateStandalonePage({ children }) {
   return (
@@ -14,7 +10,7 @@ export function CandidateStandalonePage({ children }) {
       <div className="candidate-portal__shell">
         <PortalHeader
           navItems={headerNav}
-          currentKey="opportunities"
+          currentKey="career"
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
           className="candidate-portal__header"

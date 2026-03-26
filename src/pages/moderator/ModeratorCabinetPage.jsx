@@ -79,11 +79,7 @@ export function ModeratorCabinetPage() {
     return () => controller.abort();
   }, []);
 
-  const navItems = HEADER_NAV.map((item) => ({
-    key: item.label,
-    label: item.label,
-    href: item.href,
-  }));
+  const navItems = HEADER_NAV;
 
   const summary = state.status === "ready"
     ? (
@@ -108,7 +104,7 @@ export function ModeratorCabinetPage() {
       header={(
         <PortalHeader
           navItems={navItems}
-          currentKey={HEADER_NAV.find((item) => item.active)?.label}
+          currentKey={undefined}
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
         />

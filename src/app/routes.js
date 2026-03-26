@@ -20,6 +20,7 @@ export const routes = {
     detailCard: "/opportunities/design-ui-ux",
   },
   candidate: {
+    career: "/career",
     root: "/candidate",
     profile: "/candidate/profile",
     resume: "/candidate/resume",
@@ -51,6 +52,13 @@ export const routes = {
     profile: "/candidate/contacts",
   },
 };
+
+export const PUBLIC_HEADER_NAV_ITEMS = [
+  { key: "home", label: "Главная", href: routes.home },
+  { key: "opportunities", label: "Возможности", href: routes.opportunities.catalog },
+  { key: "career", label: "Карьера", href: routes.candidate.career },
+  { key: "about", label: "О платформе", href: routes.homeAbout },
+];
 
 export function withSearch(path, params = {}) {
   const searchParams = new URLSearchParams();

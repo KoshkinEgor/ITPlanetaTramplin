@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { routes } from "../../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
 import {
   getCandidateAchievements,
   getCandidateApplications,
@@ -16,11 +16,7 @@ import { CandidateProfileSummary } from "../../features/candidate";
 import { Card, Loader } from "../../shared/ui";
 import { CabinetShell, CabinetSidebar, PortalHeader } from "../../widgets/layout";
 
-const headerNav = [
-  { key: "opportunities", label: "Возможности", href: routes.opportunities.catalog },
-  { key: "career", label: "Карьера", href: routes.candidate.profile },
-  { key: "about", label: "О платформе", href: routes.homeAbout },
-];
+const headerNav = PUBLIC_HEADER_NAV_ITEMS;
 
 function resolveCandidateActiveKey(pathname) {
   if (pathname.startsWith("/candidate/resume") || pathname.startsWith("/candidate/projects")) {
@@ -133,7 +129,7 @@ export function CandidateCabinetPage() {
       header={(
         <PortalHeader
           navItems={headerNav}
-          currentKey="opportunities"
+          currentKey="career"
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
         />

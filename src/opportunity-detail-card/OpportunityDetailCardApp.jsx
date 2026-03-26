@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
-import { buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
 import { cn } from "../lib/cn";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
@@ -10,11 +10,7 @@ import "./opportunity-detail-card.css";
 
 const BODY_CLASS = "opportunity-card-react-body";
 
-const NAV_ITEMS = [
-  { key: "opportunities", label: "Возможности", href: "/opportunities" },
-  { key: "career", label: "Карьера", href: "/candidate/profile" },
-  { key: "about", label: "О платформе", href: "/#about" },
-];
+const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
 
 const PRESETS = {
   design: {

@@ -6,7 +6,7 @@ describe("getConfirmView", () => {
   it("returns the candidate confirmation flow by default", () => {
     const view = getConfirmView("candidate", "register-candidate");
 
-    expect(view.action).toBe(routes.candidate.profile);
+    expect(view.action).toBe(routes.candidate.career);
     expect(view.backHref).toBe(routes.auth.registerCandidate);
   });
 

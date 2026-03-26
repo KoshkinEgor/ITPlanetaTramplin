@@ -93,17 +93,10 @@ export function ModeratorFrame({ activeKey, children }) {
 }
 
 export function ModeratorHeader() {
-  const navItems = HEADER_NAV.map((item) => ({
-    key: item.label,
-    label: item.label,
-    href: item.href,
-  }));
-  const currentKey = HEADER_NAV.find((item) => item.active)?.label;
-
   return (
     <PortalHeader
-      navItems={navItems}
-      currentKey={currentKey}
+      navItems={HEADER_NAV}
+      currentKey={undefined}
       actionHref="/auth/login"
       actionLabel="Войти / Регистрация"
       iconButtons={MODERATOR_ICON_BUTTONS}

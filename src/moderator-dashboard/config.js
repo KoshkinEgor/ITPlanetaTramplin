@@ -1,10 +1,6 @@
-import { routes } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, routes } from "../app/routes";
 
-export const HEADER_NAV = [
-  { label: "Возможности", href: routes.opportunities.catalog, active: true },
-  { label: "Работодатели / Компании", href: routes.company.dashboard },
-  { label: "Соискатели", href: routes.candidate.profile },
-];
+export const HEADER_NAV = PUBLIC_HEADER_NAV_ITEMS;
 
 export const SIDEBAR_ITEMS = [
   { key: "dashboard", label: "Дашборд", href: routes.moderator.dashboard },

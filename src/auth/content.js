@@ -25,7 +25,7 @@ export const loginRoleOptions = [
 
 export const loginRoleViews = {
   candidate: {
-    action: routes.candidate.profile,
+    action: routes.candidate.career,
     registerHref: routes.auth.registerCandidate,
     title: "Кабинет соискателя",
     description: "После входа откроется рабочее пространство с откликами, сохранёнными вакансиями и профилем.",
@@ -153,7 +153,7 @@ export function getConfirmView(role, flow) {
       title: "Подтверждение регистрации",
       description: "Введите код подтверждения, который мы отправили на почту соискателя.",
       submitLabel: "Завершить регистрацию",
-      action: routes.candidate.profile,
+      action: routes.candidate.career,
       backHref: routes.auth.registerCandidate,
     };
   }

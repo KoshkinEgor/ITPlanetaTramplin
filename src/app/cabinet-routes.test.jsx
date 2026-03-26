@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getCurrentAuthUser } from "../auth/api";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
 
@@ -11,6 +12,20 @@ const candidateProfile = {
   email: "anna@example.com",
   description: "Candidate profile description",
   skills: ["SQL", "UX", "Figma"],
+  links: {
+    onboarding: {
+      profession: "Дизайнер интерфейсов",
+      gender: "female",
+      birthDate: "2004-02-21",
+      phone: "+7 927 563 89 41",
+      city: "Чебоксары",
+      citizenship: "Россия",
+      experience: {
+        noExperience: true,
+      },
+      goal: "Пройти стажировку на позицию UX/UI дизайнера",
+    },
+  },
 };
 
 const companyProfile = {
@@ -23,7 +38,15 @@ const companyProfile = {
 vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(() => Promise.resolve(candidateProfile)),
   updateCandidateProfile: vi.fn(() => Promise.resolve(candidateProfile)),
-  getCandidateEducation: vi.fn(() => Promise.resolve([])),
+  getCandidateEducation: vi.fn(() => Promise.resolve([
+    {
+      id: 1,
+      institutionName: "ЧГУ им. И. Н. Ульянова",
+      faculty: "Информатика",
+      specialization: "Дизайн интерфейсов",
+      graduationYear: 2027,
+    },
+  ])),
   createCandidateEducation: vi.fn(() => Promise.resolve({ id: 1 })),
   updateCandidateEducation: vi.fn(() => Promise.resolve({ id: 1 })),
   deleteCandidateEducation: vi.fn(() => Promise.resolve({})),
@@ -40,6 +63,14 @@ vi.mock("../api/candidate", () => ({
   createCandidateContact: vi.fn(() => Promise.resolve({ id: 1 })),
   deleteCandidateContact: vi.fn(() => Promise.resolve({})),
   getCandidateRecommendations: vi.fn(() => Promise.resolve([])),
+}));
+
+vi.mock("../auth/api", () => ({
+  getCurrentAuthUser: vi.fn(() => Promise.resolve({
+    id: 1,
+    role: "candidate",
+    email: "anna@example.com",
+  })),
 }));
 
 vi.mock("../api/company", () => ({
@@ -83,6 +114,11 @@ function renderRoute(path) {
 describe("cabinet shell routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentAuthUser.mockResolvedValue({
+      id: 1,
+      role: "candidate",
+      email: "anna@example.com",
+    });
   });
 
   it("renders candidate section routes inside the cabinet shell", async () => {
@@ -97,6 +133,14 @@ describe("cabinet shell routes", () => {
 
     expect(await screen.findByTestId("candidate-standalone-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("candidate-cabinet-shell")).not.toBeInTheDocument();
+  });
+
+  it("redirects guests from candidate routes to the career entry page", async () => {
+    getCurrentAuthUser.mockRejectedValue({ status: 401 });
+
+    renderRoute(routes.candidate.profile);
+
+    expect(await screen.findByRole("heading", { name: "Хочешь построить карьеру?" })).toBeInTheDocument();
   });
 
   it("renders company section routes inside the company shell", async () => {

@@ -1,4 +1,6 @@
 import { CandidateCabinetPage } from "./CandidateCabinetPage";
+import { CandidateAccessGuard } from "./CandidateAccessGuard";
+import { CandidateCareerPage } from "./CandidateCareerPage";
 import { CandidateStandalonePage } from "./CandidateStandalonePage";
 import { CandidateContactsApp } from "../../candidate-portal/CandidateContactsApp";
 import { CandidateOverviewApp } from "../../candidate-portal/CandidateOverviewApp";
@@ -8,7 +10,7 @@ import { CandidateResponsesApp } from "../../candidate-portal/CandidateResponses
 import { CandidateResumeEditorApp } from "../../candidate-portal/CandidateResumeEditorApp";
 import { CandidateSettingsApp } from "../../candidate-portal/CandidateSettingsApp";
 
-export { CandidateCabinetPage };
+export { CandidateAccessGuard, CandidateCabinetPage, CandidateCareerPage };
 
 export function CandidateOverviewPage() {
   return <CandidateOverviewApp />;

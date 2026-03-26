@@ -104,7 +104,7 @@ export function CompanyCabinetPage() {
       header={(
         <PortalHeader
           navItems={COMPANY_HEADER_NAV}
-          currentKey="opportunities"
+          currentKey={undefined}
           actionHref={routes.company.dashboard}
           actionLabel="Кабинет компании"
         />
