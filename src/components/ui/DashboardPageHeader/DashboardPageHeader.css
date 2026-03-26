@@ -1,0 +1,20 @@
+.ui-dashboard-page-header {
+  display: grid;
+  gap: 14px;
+}
+
+.ui-dashboard-page-header__copy {
+  display: grid;
+  gap: 12px;
+  max-width: 64rem;
+}
+
+.ui-dashboard-page-header__copy h1,
+.ui-dashboard-page-header__copy p {
+  margin: 0;
+}
+
+.ui-dashboard-page-header__copy p {
+  max-width: 72ch;
+  color: var(--ui-color-text-muted);
+}

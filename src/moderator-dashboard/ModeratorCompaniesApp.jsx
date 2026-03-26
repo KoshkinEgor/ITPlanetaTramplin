@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { decideCompanyModeration, getModerationCompanies } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Button, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import {
-  ModeratorDecisionStack,
-  ModeratorFilterPill,
-  ModeratorPageIntro,
-  ModeratorSearchBar,
-  ModeratorStatusBadge,
-} from "./shared";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, ModerationDecisionSelect, Tag } from "../shared/ui";
+import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
+import { MODERATION_DECISION_OPTIONS } from "./moderationDecisionOptions";
 
 const COMPANY_FILTERS = [
   { value: "all", label: "Все" },
@@ -50,6 +45,41 @@ function formatDate(value) {
     month: "long",
     year: "numeric",
   }).format(parsed);
+}
+
+function getCompanyDecisionDialog(option, item) {
+  const actionLabelByDecision = {
+    approved: "Одобрить компанию",
+    revision: "Отправить компанию на доработку",
+    rejected: "Отклонить компанию",
+  };
+
+  const descriptionByDecision = item?.companyName
+    ? {
+        approved: `Компания «${item.companyName}» будет подтверждена сразу после подтверждения действия.`,
+        revision: `Компания «${item.companyName}» вернется на доработку после подтверждения действия.`,
+        rejected: `Компания «${item.companyName}» получит статус «Отклонена» после подтверждения действия.`,
+      }
+    : {
+        approved: "Выбранная компания будет подтверждена сразу после подтверждения действия.",
+        revision: "Выбранная компания вернется на доработку после подтверждения действия.",
+        rejected: "Выбранная компания получит статус «Отклонена» после подтверждения действия.",
+      };
+
+  return {
+    actionLabel: actionLabelByDecision[option.value] ?? option.label,
+    question: "Вы уверены?",
+    description: descriptionByDecision[option.value] ?? "Изменение будет применено после подтверждения.",
+    confirmLabel: option.confirmationButtonLabel ?? option.label,
+    reasonLabel: option.value === "approved" ? undefined : "Причина отказа",
+    reasonPlaceholder:
+      option.value === "revision"
+        ? "Например, не подтвержден домен компании"
+        : option.value === "rejected"
+          ? "Например, указаны некорректные юридические данные"
+          : undefined,
+    reasonResetLabel: option.value === "approved" ? undefined : "Сбросить",
+  };
 }
 
 function CompanyRow({ item, selected, onSelect }) {
@@ -109,7 +139,7 @@ export function ModeratorCompaniesApp() {
 
   const activeItem = filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
 
-  async function handleDecisionSubmit() {
+  async function handleDecisionSubmit(nextDecision) {
     if (!activeItem) {
       return;
     }
@@ -117,7 +147,8 @@ export function ModeratorCompaniesApp() {
     setDecisionState({ status: "saving", error: "" });
 
     try {
-      await decideCompanyModeration(activeItem.id, decision);
+      await decideCompanyModeration(activeItem.id, nextDecision);
+      setDecision(nextDecision);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -125,14 +156,15 @@ export function ModeratorCompaniesApp() {
         status: "error",
         error: error?.message ?? "Не удалось применить решение модерации.",
       });
+      throw error;
     }
   }
 
   return (
     <>
-      <ModeratorPageIntro
+      <DashboardPageHeader
         title="Верификация компаний"
-        description="Реальный список компаний из `/api/moderation/companies` и применение решений через `/api/moderation/companies/{id}/decision`."
+        description="Проверка профиля работодателя, домена, юридических данных и итогового статуса в одном рабочем потоке."
       />
 
       <div className="moderator-toolbar-stack">
@@ -186,8 +218,8 @@ export function ModeratorCompaniesApp() {
             <div className="moderator-panel__head moderator-panel__head--queue">
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Компании</Tag>
-                <h2 className="ui-type-h1">Список компаний</h2>
-                <p className="ui-type-body-lg">Выберите компанию слева и примените решение в правой панели.</p>
+                <h2 className="ui-type-h2">Список компаний</h2>
+                <p className="ui-type-body">Выберите компанию слева и примените решение в правой панели.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -214,7 +246,7 @@ export function ModeratorCompaniesApp() {
 
           <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
             <div className="moderator-panel__copy">
-              <h2 className="ui-type-h1">Детальная проверка</h2>
+              <h2 className="ui-type-h2">Детальная проверка</h2>
             </div>
 
             {activeItem ? (
@@ -225,7 +257,7 @@ export function ModeratorCompaniesApp() {
                 </div>
 
                 <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h1">{activeItem.companyName}</h3>
+                  <h3 className="ui-type-h3">{activeItem.companyName}</h3>
                   <p className="ui-type-body moderator-detail-surface__description">
                     {activeItem.description || "Описание компании пока не заполнено."}
                   </p>
@@ -260,18 +292,15 @@ export function ModeratorCompaniesApp() {
 
                 <section className="moderator-detail-group">
                   <h4 className="ui-type-h3">Решение модерации</h4>
-                  <ModeratorDecisionStack
-                    items={[
-                      { key: "rejected", label: "Отклонить", tone: "reject", active: decision === "rejected", onClick: () => setDecision("rejected") },
-                      { key: "revision", label: "На доработку", tone: "revision", active: decision === "revision", onClick: () => setDecision("revision") },
-                      { key: "approved", label: "Одобрить", tone: "approve", active: decision === "approved", onClick: () => setDecision("approved") },
-                    ]}
+                  <ModerationDecisionSelect
+                    value={decision}
+                    options={MODERATION_DECISION_OPTIONS}
+                    disabled={!activeItem}
+                    busy={decisionState.status === "saving"}
+                    onConfirm={handleDecisionSubmit}
+                    getDialogProps={(option) => getCompanyDecisionDialog(option, activeItem)}
                   />
                 </section>
-
-                <Button className="moderator-detail-surface__submit" onClick={handleDecisionSubmit} disabled={decisionState.status === "saving"}>
-                  {decisionState.status === "saving" ? "Применяем..." : "Применить решение"}
-                </Button>
               </div>
             ) : (
               <EmptyState title="Компания не выбрана" description="Выберите строку в таблице, чтобы открыть детали." tone="neutral" compact />

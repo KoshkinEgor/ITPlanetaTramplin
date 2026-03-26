@@ -398,7 +398,7 @@ function OpportunityDetailLayout({
           </div>
 
           <div className="opportunity-focus-card__copy">
-            <h1 className="ui-type-h1">{item.title}</h1>
+            <h1 className="ui-type-h2">{item.title}</h1>
             <p className="ui-type-body">{viewModel.metaLine}</p>
           </div>
 
@@ -604,7 +604,7 @@ export function OpportunityDetailCardApp() {
 
   return (
     <main className="opportunity-card-page" data-testid="opportunity-detail-page">
-      <div className="opportunity-card-page__shell">
+      <div className="opportunity-card-page__shell ui-page-shell">
         <PortalHeader navItems={NAV_ITEMS} currentKey="opportunities" actionHref="/candidate/profile" actionLabel="Профиль" className="opportunity-card-header opportunity-card-fade-up" />
         {state.status === "loading" ? <Loader label="Загружаем карточку возможности" surface /> : null}
         {state.status === "error" ? <Alert tone="error" title="Не удалось загрузить карточку" showIcon>{state.error?.message ?? "Попробуйте открыть возможность позже."}</Alert> : null}

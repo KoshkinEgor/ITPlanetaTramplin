@@ -30,8 +30,6 @@
 .company-dashboard-page__shell {
   position: relative;
   z-index: 1;
-  width: min(1180px, calc(100% - 40px));
-  margin: 0 auto;
   padding: 24px 0 56px;
 }
 
@@ -81,8 +79,8 @@
 }
 
 .company-dashboard-metric strong {
-  font-size: clamp(2rem, 3vw, 2.8rem);
-  line-height: 1;
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
   letter-spacing: -0.06em;
   color: var(--ui-color-text);
 }
@@ -183,7 +181,6 @@
 
 @media (max-width: 640px) {
   .company-dashboard-page__shell {
-    width: min(100% - 24px, 1180px);
     padding: 16px 0 40px;
   }
 

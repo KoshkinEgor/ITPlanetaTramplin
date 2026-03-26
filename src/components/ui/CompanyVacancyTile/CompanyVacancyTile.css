@@ -19,9 +19,10 @@
   width: 44px;
   height: 44px;
   border-radius: var(--ui-radius-pill);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-company-vacancy-tile--lime .ui-company-vacancy-tile__avatar {
@@ -49,11 +50,15 @@
 
 .ui-company-vacancy-tile__copy strong {
   color: var(--ui-color-text);
-  font-size: 1.02rem;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-company-vacancy-tile__copy span {
   color: var(--ui-color-text-soft);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }

@@ -15,4 +15,33 @@ describe("Button", () => {
     expect(button).toHaveClass("ui-button--contrast");
     expect(button).toHaveStyle("--ui-button-accent: #3ddc72");
   });
+
+  it("supports the shared medium font weight and full width props", () => {
+    render(
+      <Button fontWeight="medium" width="full">
+        Continue
+      </Button>
+    );
+
+    const button = screen.getByRole("button", { name: "Continue" });
+
+    expect(button).toHaveClass("ui-font-weight-medium");
+    expect(button).toHaveClass("ui-width-full");
+  });
+
+  it("renders non-button elements without button-only attributes", () => {
+    render(
+      <Button as="span" disabled>
+        Map CTA
+      </Button>
+    );
+
+    const button = screen.getByText("Map CTA").closest(".ui-button");
+
+    expect(button).not.toBeNull();
+    expect(button.tagName).toBe("SPAN");
+    expect(button).not.toHaveAttribute("type");
+    expect(button).not.toHaveAttribute("disabled");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+  });
 });

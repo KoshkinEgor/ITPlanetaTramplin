@@ -19,6 +19,7 @@ describe("UiKitApp", () => {
     expect(screen.getByRole("heading", { name: "Surfaces" })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { name: "Buttons" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Actions" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "Complaint Card" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Form Controls" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Navigation" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "FormField" }).length).toBeGreaterThan(0);
@@ -29,15 +30,24 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-placeholder-action")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-placeholder-media")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-editable-summary")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-settings-section")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-dashboard-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-search-preview-elevated")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-pill-preview-lg")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-complaint-cards")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-row")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-content-rail")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-slider-uniform")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-slider-featured")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-opportunity-slider-raised")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-tile")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-filter-sidebar")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Дашборд модерации" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Confirm Action Select" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Moderation Action Dialog" })).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-moderation-action-dialogs")).toBeInTheDocument();
 
     unmount();
 
@@ -110,6 +120,30 @@ describe("UiKitApp", () => {
     expect(actionSelectScope.getByRole("button", { name: "Удалить" })).toHaveClass("ui-action-select--danger");
   });
 
+  it("confirms the selected action inside the ui kit preview", () => {
+    render(<UiKitApp />);
+
+    const confirmPreview = screen.getByTestId("ui-kit-confirm-action-select-preview");
+    const confirmScope = within(confirmPreview);
+
+    fireEvent.click(confirmScope.getByRole("button", { name: "Одобрить" }));
+    const rejectOption = screen
+      .getAllByRole("option", { name: "Отклонить" })
+      .find((element) => element.tagName === "BUTTON");
+
+    expect(rejectOption).toBeTruthy();
+    fireEvent.click(rejectOption);
+
+    const dialog = screen.getByRole("dialog");
+
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("heading", { name: "Подтвердить: Отклонить?" })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Отклонить" }));
+
+    expect(confirmScope.getByRole("button", { name: "Отклонить" })).toHaveClass("ui-action-select--reject");
+  });
+
   it("updates the segmented control preview state inside the ui kit", () => {
     render(<UiKitApp />);
 
@@ -150,5 +184,23 @@ describe("UiKitApp", () => {
     expect(variantsScope.getByText("Icon right")).toBeInTheDocument();
     expect(variantsScope.getByDisplayValue("IT - Планета")).toBeInTheDocument();
     expect(variantsScope.getAllByText("Сбросить")).toHaveLength(3);
+  });
+
+  it("updates the moderation revision reason inside the ui kit showcase", () => {
+    render(<UiKitApp />);
+
+    fireEvent.change(screen.getByLabelText("Текст причины"), { target: { value: "Нужно уточнить программу мероприятия" } });
+
+    const moderationDialogs = within(screen.getByTestId("ui-kit-moderation-action-dialogs"));
+
+    expect(moderationDialogs.getByLabelText("Причина отказа")).toHaveValue("Нужно уточнить программу мероприятия");
+  });
+
+  it("switches the complaint card preview to md size", () => {
+    render(<UiKitApp />);
+
+    fireEvent.change(screen.getByLabelText("Размер"), { target: { value: "md" } });
+
+    expect(screen.getByTestId("ui-kit-complaint-card-preview")).toHaveClass("ui-complaint-card--md");
   });
 });

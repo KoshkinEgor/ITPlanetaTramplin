@@ -23,6 +23,12 @@ body.auth-react-body {
   isolation: isolate;
 }
 
+.auth-stage__frame {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
 .auth-stage__backdrop {
   position: absolute;
   inset: clamp(10px, 1.4vw, 18px);
@@ -91,7 +97,8 @@ body.auth-react-body {
 }
 
 .auth-stage__shell {
-  width: min(100%, 1180px);
+  width: 100%;
+  max-width: var(--ui-layout-shell-max);
   display: grid;
   gap: var(--ui-space-5);
   align-items: start;
@@ -404,10 +411,6 @@ body.auth-react-body {
 
 .auth-stage--register .auth-register-field .ui-label {
   color: rgba(24, 29, 45, 0.5);
-  font-size: var(--ui-typo-txt-select-small-size);
-  line-height: var(--ui-typo-txt-select-small-line-height);
-  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
-  font-weight: var(--ui-typo-txt-select-small-weight);
 }
 
 .auth-stage--register .auth-register-field .ui-label span {
@@ -465,7 +468,6 @@ body.auth-react-body {
 .auth-stage--register .auth-register-button.ui-button {
   min-height: 48px;
   border-radius: 999px;
-  font-size: var(--ui-typo-txt-select-small-size);
   background: #3f83f8;
   box-shadow: none;
 }
@@ -505,16 +507,12 @@ body.auth-react-body {
 
 .auth-confirm-hero .ui-type-display {
   max-width: 8.8ch;
-  font-size: clamp(3rem, 7vw, 3.8rem);
-  line-height: 0.9;
   text-align: center;
 }
 
 .auth-confirm-hero .ui-type-body-lg {
   max-width: 28ch;
   color: #6f7b98;
-  font-size: 0.98rem;
-  line-height: 1.52;
   text-align: center;
 }
 
@@ -539,7 +537,6 @@ body.auth-react-body {
 .auth-confirm-button.ui-button {
   min-height: 58px;
   border-radius: 999px;
-  font-size: 1rem;
   background: #3f83f8;
   box-shadow: none;
 }
@@ -586,9 +583,10 @@ body.auth-react-body {
   gap: 10px;
   margin-inline: auto;
   color: #25314b;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 800;
-  letter-spacing: 0.02em;
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -618,14 +616,10 @@ body.auth-react-body {
   gap: 12px;
 }
 
-.auth-screen__copy .ui-type-h1,
+.auth-screen__copy .ui-type-h2,
 .auth-screen__copy .ui-type-display {
   color: #25314b;
-  letter-spacing: -0.06em;
-}
-
-.auth-screen__copy .ui-type-display {
-  font-size: clamp(2.8rem, 6vw, 4.1rem);
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .auth-screen__copy .ui-type-body,
@@ -726,14 +720,16 @@ body.auth-react-body {
 
 .auth-option-card__body strong {
   color: #25314b;
-  font-size: 0.95rem;
-  line-height: 1.22;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .auth-option-card__body span {
   color: rgba(104, 113, 135, 0.92);
-  font-size: 0.78rem;
-  line-height: 1.52;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
+  letter-spacing: var(--ui-letter-spacing-micro);
   font-weight: 600;
 }
 
@@ -799,15 +795,17 @@ body.auth-react-body {
 
 .auth-note strong {
   color: #25314b;
-  font-size: 0.96rem;
-  line-height: 1.3;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .auth-note p {
   margin: 0;
   color: rgba(37, 49, 75, 0.84);
-  font-size: 0.82rem;
-  line-height: 1.56;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
   font-weight: 600;
 }
 
@@ -826,16 +824,17 @@ body.auth-react-body {
 
 .auth-metric strong {
   color: #25314b;
-  font-size: clamp(2rem, 5vw, 2.8rem);
-  line-height: 0.92;
-  letter-spacing: -0.06em;
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
+  letter-spacing: var(--ui-letter-spacing-h1);
 }
 
 .auth-metric span {
   max-width: 18ch;
   color: rgba(104, 113, 135, 0.9);
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
+  letter-spacing: var(--ui-letter-spacing-micro);
   text-align: right;
   font-weight: 700;
 }
@@ -859,14 +858,16 @@ body.auth-react-body {
 
 .auth-support-list strong {
   color: #25314b;
-  font-size: 0.88rem;
-  line-height: 1.3;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .auth-support-list span {
   color: rgba(104, 113, 135, 0.92);
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
+  letter-spacing: var(--ui-letter-spacing-micro);
   font-weight: 600;
 }
 
@@ -882,8 +883,9 @@ body.auth-react-body {
 .auth-inline-link,
 .auth-inline-button {
   color: var(--ui-color-accent);
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
   font-weight: 800;
   text-decoration: none;
 }
@@ -911,10 +913,10 @@ body.auth-react-body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
   text-align: center;
   color: #1f2740;
-  font-size: 2rem;
-  line-height: 1;
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ui-letter-spacing-overline);
   transition:
     border-color var(--ui-transition-base),
     box-shadow var(--ui-transition-base),
@@ -1031,10 +1033,6 @@ body.auth-react-body {
     border-radius: 30px;
   }
 
-  .auth-confirm-hero .ui-type-display {
-    font-size: clamp(3.3rem, 12vw, 4.2rem);
-  }
-
   .auth-confirm-code.auth-code-group {
     gap: 16px;
   }
@@ -1042,7 +1040,6 @@ body.auth-react-body {
   .auth-confirm-code .auth-code-group__input {
     min-height: 88px;
     border-radius: 24px;
-    font-size: 1.9rem;
   }
 
   .auth-confirm-button.ui-button {
@@ -1072,10 +1069,6 @@ body.auth-react-body {
     width: 42px;
     height: 42px;
     flex-basis: 42px;
-  }
-
-  .auth-screen__copy .ui-type-display {
-    font-size: clamp(2.2rem, 11vw, 3rem);
   }
 
   .auth-code-group {
@@ -1173,7 +1166,7 @@ body.auth-react-body {
   }
 
   .auth-confirm-hero .ui-type-display {
-    font-size: clamp(2.9rem, 13vw, 3.8rem);
+    max-width: 8.8ch;
   }
 
   .auth-confirm-code.auth-code-group {
@@ -1183,12 +1176,10 @@ body.auth-react-body {
   .auth-confirm-code .auth-code-group__input {
     min-height: 72px;
     border-radius: 20px;
-    font-size: 1.5rem;
   }
 
   .auth-confirm-button.ui-button {
     min-height: 58px;
-    font-size: 0.96rem;
   }
 }
 

@@ -21,8 +21,8 @@ export function CandidateProfileSummary({
       <div className="candidate-profile-summary__cover">
         <PlaceholderAction
           className="candidate-profile-summary__cover-action"
-          label="Слот шапки профиля"
-          description="Будущий shared uploader для обложки."
+          label="Загрузить шапку профиля"
+          description="После загрузки здесь появится обложка профиля."
         />
 
         <div className="candidate-profile-summary__badges">
@@ -44,7 +44,7 @@ export function CandidateProfileSummary({
             />
 
             <div className="candidate-profile-summary__copy">
-              <h1 className="ui-type-h1 candidate-profile-summary__title">{displayName}</h1>
+              <h1 className="ui-type-h2 candidate-profile-summary__title">{displayName}</h1>
               <p className="ui-type-body candidate-profile-summary__meta">{meta}</p>
             </div>
           </div>

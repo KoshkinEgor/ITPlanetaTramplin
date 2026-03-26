@@ -108,8 +108,8 @@ export function CandidateResumeApp() {
           <Card className="candidate-resume-panel">
             <div className="candidate-resume-panel__intro">
               <Tag tone="accent">Р РµР·СЋРјРµ</Tag>
-              <h2 className="ui-type-h1">РџСЂРѕС„РёР»СЊ РєР°РЅРґРёРґР°С‚Р°</h2>
-              <p className="ui-type-body-lg">{state.profile?.description || "РћРїРёСЃР°РЅРёРµ РїСЂРѕС„РёР»СЏ РїРѕРєР° РїСѓСЃС‚РѕРµ."}</p>
+              <h2 className="ui-type-h2">РџСЂРѕС„РёР»СЊ РєР°РЅРґРёРґР°С‚Р°</h2>
+              <p className="ui-type-body">{state.profile?.description || "РћРїРёСЃР°РЅРёРµ РїСЂРѕС„РёР»СЏ РїРѕРєР° РїСѓСЃС‚РѕРµ."}</p>
             </div>
 
             <div className="candidate-resume-record__tags">

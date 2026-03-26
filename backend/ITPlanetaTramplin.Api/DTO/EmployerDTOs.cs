@@ -12,7 +12,7 @@ namespace DTO
     public class EmployerRegistrationDTO
     {
         public string Password { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;       
+        public string? Email { get; set; }
         public string CompanyName { get; set; } = null!;
         public string? Inn { get; set; }
         public string? VerificationData { get; set; }

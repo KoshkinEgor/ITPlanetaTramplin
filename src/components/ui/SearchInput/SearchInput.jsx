@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 function DefaultSearchIcon() {
   return (
@@ -33,8 +34,10 @@ export const SearchInput = forwardRef(function SearchInput(
     appearance = "default",
     size = "md",
     disabled = false,
+    fontWeight,
     className,
     inputClassName,
+    width,
     ...props
   },
   ref
@@ -46,6 +49,7 @@ export const SearchInput = forwardRef(function SearchInput(
   const hasIcon = iconPosition !== "none" && icon !== null;
   const showClear = clearable && !disabled && Boolean(currentValue);
   const showIcon = hasIcon && !(showClear && iconPosition === "right");
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useImperativeHandle(ref, () => inputRef.current);
 
@@ -66,6 +70,7 @@ export const SearchInput = forwardRef(function SearchInput(
         "ui-search-input",
         appearance === "elevated" && "ui-search-input--elevated",
         size === "lg" && "ui-search-input--lg",
+        sharedClassName,
         className
       )}
     >

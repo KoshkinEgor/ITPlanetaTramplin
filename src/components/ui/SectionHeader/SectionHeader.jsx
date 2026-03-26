@@ -21,6 +21,9 @@ export function SectionHeader({
   ...props
 }) {
   const TitleTag = titleAs || (size === "sm" || compact ? "h3" : "h2");
+  const titleClassName = compact || size === "sm"
+    ? "ui-type-h3"
+    : "ui-type-h2";
 
   return (
     <div
@@ -36,7 +39,7 @@ export function SectionHeader({
     >
       <div className="ui-section-header__copy">
         {eyebrow ? <span className="ui-section-header__eyebrow">{eyebrow}</span> : null}
-        {title ? <TitleTag className={cn(size === "sm" || compact ? "ui-type-h3" : size === "md" ? "ui-type-h2" : "ui-type-h1")}>{title}</TitleTag> : null}
+        {title ? <TitleTag className={titleClassName}>{title}</TitleTag> : null}
         {description ? <p className="ui-type-body">{description}</p> : null}
       </div>
       {meta || actions ? (

@@ -68,10 +68,12 @@ export function Modal({
   onClose,
   title,
   description,
+  ariaLabel,
   size = "md",
   tone = "default",
   showIcon = false,
   icon,
+  showDismiss = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   closeLabel = "Close dialog",
@@ -84,6 +86,7 @@ export function Modal({
   const descriptionId = useId();
   const dialogRef = useRef(null);
   const previousActiveElementRef = useRef(null);
+  const hasHeader = Boolean(title || description || showIcon || showDismiss);
 
   const getFocusableElements = () => {
     if (!dialogRef.current) {
@@ -162,35 +165,40 @@ export function Modal({
         className={cn("ui-modal__dialog", sizeClassMap[size], toneClassMap[tone], className)}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabel ? undefined : title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
       >
-        <div className="ui-modal__header">
-          <div className="ui-modal__lead">
-            {showIcon ? <span className="ui-modal__icon">{icon ?? <ModalIcon tone={tone} />}</span> : null}
-            <div className="ui-modal__copy">
-              {title ? (
-                <h2 id={titleId} className="ui-type-h3">
-                  {title}
-                </h2>
-              ) : null}
-              {description ? (
-                <p id={descriptionId} className="ui-type-body">
-                  {description}
-                </p>
-              ) : null}
+        {hasHeader ? (
+          <div className="ui-modal__header">
+            <div className="ui-modal__lead">
+              {showIcon ? <span className="ui-modal__icon">{icon ?? <ModalIcon tone={tone} />}</span> : null}
+              <div className="ui-modal__copy">
+                {title ? (
+                  <h2 id={titleId} className="ui-type-h3">
+                    {title}
+                  </h2>
+                ) : null}
+                {description ? (
+                  <p id={descriptionId} className="ui-type-body">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
             </div>
+            {showDismiss ? (
+              <button
+                type="button"
+                className="ui-modal__dismiss"
+                aria-label={closeLabel}
+                onClick={() => onClose?.()}
+              >
+                <DismissIcon />
+              </button>
+            ) : null}
           </div>
-          <button
-            type="button"
-            className="ui-modal__dismiss"
-            aria-label={closeLabel}
-            onClick={() => onClose?.()}
-          >
-            <DismissIcon />
-          </button>
-        </div>
+        ) : null}
         <div className="ui-modal__content">{children}</div>
         {actions ? <div className="ui-modal__footer">{actions}</div> : null}
       </div>

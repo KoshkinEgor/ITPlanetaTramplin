@@ -1,5 +1,5 @@
-import { AppLink } from "../app/AppLink";
-import { Button, Card, PillButton, StatusBadge, Tag } from "../shared/ui";
+import { DecisionButton, FilterPill, SearchBar, SidebarNav, SortControl, StatTile, StatusBadge, Tag } from "../shared/ui";
+import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
 import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "./config";
@@ -47,16 +47,6 @@ function SearchIcon() {
   );
 }
 
-function ClearIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="10" cy="10" r="8.2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="m6.7 6.7 6.6 6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m13.3 6.7-6.6 6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function StreamIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -77,9 +67,11 @@ function ChevronDownIcon() {
 }
 
 export function ModeratorFrame({ activeKey, children }) {
+  useBodyClass("moderator-dashboard-react-body");
+
   return (
     <main className="moderator-dashboard">
-      <div className="moderator-dashboard__shell">
+      <div className="moderator-dashboard__shell ui-page-shell">
         <ModeratorHeader />
         <div className="moderator-layout">
           <aside className="moderator-layout__sidebar">
@@ -106,107 +98,78 @@ export function ModeratorHeader() {
 }
 
 export function ModeratorSidebar({ activeKey }) {
-  return (
-    <Card className="moderator-sidebar moderator-fade-up moderator-fade-up--delay-1">
-      <div className="moderator-sidebar__head">
-        <p className="ui-type-body">Кабинет модератора</p>
-      </div>
-
-      <nav className="moderator-sidebar__menu" aria-label="Разделы кабинета">
-        {SIDEBAR_ITEMS.map((item) =>
-          item.href ? (
-            <AppLink
-              key={item.key}
-              href={item.href}
-              className={`moderator-sidebar__link ${item.key === activeKey ? "is-active" : ""}`.trim()}
-              aria-current={item.key === activeKey ? "page" : undefined}
-            >
-              {item.label}
-            </AppLink>
-          ) : (
-            <button key={item.key} type="button" className="moderator-sidebar__link">
-              {item.label}
-            </button>
-          )
-        )}
-      </nav>
-
-      <div className="moderator-sidebar__summary">
-        <span className="ui-type-caption">{MODERATOR_SUMMARY.eyebrow}</span>
-        <strong>{MODERATOR_SUMMARY.count}</strong>
-        <p className="ui-type-body">{MODERATOR_SUMMARY.text}</p>
-      </div>
-    </Card>
+  const summary = (
+    <>
+      <span className="ui-type-caption">{MODERATOR_SUMMARY.eyebrow}</span>
+      <strong>{MODERATOR_SUMMARY.count}</strong>
+      <p className="ui-type-body">{MODERATOR_SUMMARY.text}</p>
+    </>
   );
-}
 
-export function ModeratorPageIntro({ title, description }) {
   return (
-    <section className="moderator-hero moderator-fade-up moderator-fade-up--delay-1">
-      <Tag tone="accent">
-        Кабинет модератора
-      </Tag>
-      <div className="moderator-hero__copy">
-        <h1 className="ui-type-display">{title}</h1>
-        {description ? <p className="ui-type-body-lg">{description}</p> : null}
-      </div>
-    </section>
+    <SidebarNav
+      title="Кабинет модератора"
+      items={SIDEBAR_ITEMS}
+      activeKey={activeKey}
+      summary={summary}
+      className="moderator-sidebar moderator-fade-up moderator-fade-up--delay-1"
+      headClassName="moderator-sidebar__head"
+      menuClassName="moderator-sidebar__menu"
+      linkClassName="moderator-sidebar__link"
+      summaryClassName="moderator-sidebar__summary"
+    />
   );
 }
 
 export function ModeratorMetricCard({ item, delayIndex }) {
   return (
-    <Card className={`moderator-metric-card moderator-fade-up moderator-fade-up--delay-${delayIndex}`.trim()}>
-      <div className="moderator-metric-card__top">
-        <span className="moderator-metric-card__icon" aria-hidden="true">
-          <StreamIcon />
-        </span>
-        <strong>{item.value}</strong>
-      </div>
-      <div className="moderator-metric-card__copy">
-        <h2 className="ui-type-h3">{item.title}</h2>
-        <p className="ui-type-body">{item.note}</p>
-      </div>
-    </Card>
+    <StatTile
+      icon={<StreamIcon />}
+      value={item.value}
+      title={item.title}
+      note={item.note}
+      className={`moderator-metric-card moderator-fade-up moderator-fade-up--delay-${delayIndex}`.trim()}
+      topClassName="moderator-metric-card__top"
+      iconClassName="moderator-metric-card__icon"
+      copyClassName="moderator-metric-card__copy"
+    />
   );
 }
 
 export function ModeratorSearchBar({ value, onChange, placeholder }) {
   return (
-    <label className="moderator-search moderator-fade-up moderator-fade-up--delay-1">
-      <span className="moderator-search__icon" aria-hidden="true">
-        <SearchIcon />
-      </span>
-      <input
-        type="search"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="moderator-search__control"
-        placeholder={placeholder}
-      />
-      <button type="button" className="moderator-search__clear" aria-label="Очистить поиск" onClick={() => onChange("")}>
-        <ClearIcon />
-      </button>
-    </label>
+    <SearchBar
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      clearLabel="Очистить поиск"
+      icon={<SearchIcon />}
+      appearance="elevated"
+      size="lg"
+      className="moderator-search moderator-fade-up moderator-fade-up--delay-1"
+    />
   );
 }
 
 export function ModeratorFilterPill({ active, label, onClick }) {
-  return (
-    <PillButton active={active} onClick={onClick} className="moderator-pill">
-      {label}
-    </PillButton>
-  );
+  return <FilterPill active={active} onClick={onClick} className="moderator-pill" label={label} />;
 }
 
 export function ModeratorSortControl() {
   return (
     <div className="moderator-panel__sort">
       <span>Сортировать по</span>
-      <button type="button" className="moderator-sort-button">
-        <span>Дате</span>
-        <ChevronDownIcon />
-      </button>
+      <SortControl
+        label="Сортировка"
+        value="date"
+        options={[{ value: "date", label: "Дате" }]}
+        open={false}
+        onOpenChange={() => {}}
+        onSelect={() => {}}
+        triggerClassName="moderator-sort-button"
+        triggerLabel="Дате"
+        endIcon={<ChevronDownIcon />}
+      />
     </div>
   );
 }
@@ -220,22 +183,20 @@ export function ModeratorMediaCard({ label }) {
     <article className="moderator-media-card" aria-hidden="true">
       <span className="moderator-media-card__glow moderator-media-card__glow--lime" />
       <span className="moderator-media-card__glow moderator-media-card__glow--blue" />
-      <Tag className="moderator-media-card__badge">
-        {label}
-      </Tag>
+      <Tag className="moderator-media-card__badge">{label}</Tag>
     </article>
   );
 }
 
 export function ModeratorDecisionButton({ label, tone, active = false, onClick, className }) {
   return (
-    <button
-      type="button"
-      className={cn("moderator-decision", `moderator-decision--${tone}`, active && "is-active", className)}
+    <DecisionButton
+      label={label}
+      tone="neutral"
+      active={active}
       onClick={onClick}
-    >
-      {label}
-    </button>
+      className={cn("moderator-decision", `moderator-decision--${tone}`, className)}
+    />
   );
 }
 

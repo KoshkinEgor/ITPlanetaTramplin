@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Checkbox, FormField, Input, Select } from "../ui";
+import { Button, Card, Checkbox, FormField, Input, Select } from "../ui";
 import { cn } from "../../lib/cn";
 import "./OpportunityFilterSidebar.css";
 
@@ -13,7 +13,9 @@ function MapTeaser() {
         <span className="opportunity-filter-sidebar__teaser-pin opportunity-filter-sidebar__teaser-pin--center" />
         <span className="opportunity-filter-sidebar__teaser-pin opportunity-filter-sidebar__teaser-pin--right" />
       </div>
-      <span className="ui-button ui-button--secondary opportunity-filter-sidebar__teaser-action">Вакансии на карте</span>
+      <Button as="span" variant="secondary" width="full" className="opportunity-filter-sidebar__teaser-action">
+        Вакансии на карте
+      </Button>
     </a>
   );
 }

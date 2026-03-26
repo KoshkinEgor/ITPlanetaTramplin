@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export const Input = forwardRef(function Input(
   {
@@ -30,6 +31,8 @@ export const Input = forwardRef(function Input(
     iconEnd,
     shellClassName,
     className,
+    fontWeight,
+    width,
     disabled = false,
     type = "text",
     ...props
@@ -54,6 +57,7 @@ export const Input = forwardRef(function Input(
   const showCopy = copyable && !disabled && type !== "password" && type !== "file" && Boolean(resolvedCopyValue) && !showClear && !showPasswordToggle;
   const hasEndAction = showClear || showPasswordToggle || showCopy;
   const resolvedType = showPasswordToggle && isPasswordVisible ? "text" : type;
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useImperativeHandle(ref, () => inputRef.current);
 
@@ -88,7 +92,7 @@ export const Input = forwardRef(function Input(
       type={resolvedType}
       value={currentValue}
       disabled={disabled}
-      className={cn("ui-input", focused && "is-focused", hovered && "is-hovered", className)}
+      className={cn("ui-input", focused && "is-focused", hovered && "is-hovered", sharedClassName, className)}
       onChange={(event) => {
         if (!isControlled) {
           setInternalValue(event.target.value);
@@ -115,6 +119,7 @@ export const Input = forwardRef(function Input(
         hasEndAction && "ui-control-shell--has-action",
         hasEndAdornment && hasEndAction && "ui-control-shell--has-end-and-action",
         hasEndAddon && hasEndAction && "ui-control-shell--has-end-addon-and-action",
+        sharedClassName,
         shellClassName
       )}
     >

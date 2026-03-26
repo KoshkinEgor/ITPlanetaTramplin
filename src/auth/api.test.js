@@ -25,7 +25,7 @@ describe("auth api", () => {
 
     await submitLogin({
       role: "employer",
-      identifier: "1234567890",
+      inn: "1234567890",
       email: "",
       password: "Password1",
     });
@@ -45,7 +45,7 @@ describe("auth api", () => {
 
     await submitLogin({
       role: "curator",
-      identifier: "",
+      inn: "",
       email: "demo-curator@tramplin.local",
       password: "Curator1234",
     });
@@ -93,6 +93,29 @@ describe("auth api", () => {
         email: "candidate@tramplin.local",
         role: "candidate",
         code: "1234",
+      },
+    });
+  });
+
+  it("omits company email for inn-based registration", async () => {
+    apiRequest.mockResolvedValue({ ok: true });
+
+    await submitRegistration({
+      role: "employer",
+      password: "Password1",
+      companyName: "Sever Co",
+      inn: "5408114123",
+      legalAddress: "Novosibirsk",
+    });
+
+    expect(apiRequest).toHaveBeenCalledWith("/auth/register/company", {
+      method: "POST",
+      body: {
+        password: "Password1",
+        companyName: "Sever Co",
+        inn: "5408114123",
+        verificationData: null,
+        legalAddress: "Novosibirsk",
       },
     });
   });

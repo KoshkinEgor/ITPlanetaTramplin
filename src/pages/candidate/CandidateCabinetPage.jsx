@@ -9,10 +9,12 @@ import {
   getCandidateProfile,
   getCandidateProjects,
 } from "../../api/candidate";
+import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
 import { CANDIDATE_SIDEBAR_ITEMS } from "../../candidate-portal/config";
 import { getProfileCompletion } from "../../candidate-portal/mappers";
 import { CandidateProgressCard } from "../../candidate-portal/shared";
 import { CandidateProfileSummary } from "../../features/candidate";
+import { useBodyClass } from "../../shared/lib/useBodyClass";
 import { Card, Loader } from "../../shared/ui";
 import { CabinetShell, CabinetSidebar, PortalHeader } from "../../widgets/layout";
 
@@ -64,6 +66,8 @@ function SummaryFallback({ status }) {
 }
 
 export function CandidateCabinetPage() {
+  useBodyClass("candidate-portal-react-body");
+
   const location = useLocation();
   const activeKey = resolveCandidateActiveKey(location.pathname);
   const [state, setState] = useState({
@@ -140,10 +144,13 @@ export function CandidateCabinetPage() {
           items={CANDIDATE_SIDEBAR_ITEMS}
           activeKey={activeKey}
           footerSummary={(
-            <CandidateProgressCard
-              value={completion}
-              note="Чем полнее профиль, тем точнее рекомендации и отклики работодателей."
-            />
+            <div className="cabinet-sidebar__footer-stack">
+              <CandidateProgressCard
+                value={completion}
+                note="Чем полнее профиль, тем точнее рекомендации и отклики работодателей."
+              />
+              <SessionLogoutButton />
+            </div>
           )}
         />
       )}

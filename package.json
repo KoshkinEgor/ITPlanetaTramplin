@@ -12,6 +12,7 @@
     "lint": "eslint . --quiet",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:typography": "node ./scripts/check-typography.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },

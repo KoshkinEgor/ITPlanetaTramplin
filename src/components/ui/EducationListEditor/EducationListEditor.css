@@ -1,0 +1,74 @@
+.ui-education-editor,
+.ui-education-editor__list {
+  display: grid;
+  gap: 18px;
+}
+
+.ui-education-editor__item {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.ui-education-editor__item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ui-education-editor__item-title {
+  color: var(--ui-color-text);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.ui-education-editor__grid {
+  display: grid;
+  gap: 16px;
+}
+
+.ui-education-editor__grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ui-education-editor__grid--graduation {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  align-items: end;
+}
+
+.ui-education-editor__hint {
+  margin: 0;
+  padding-bottom: 14px;
+  color: var(--ui-color-text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.ui-education-editor__actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.ui-education-editor__add.ui-button {
+  min-height: 48px;
+}
+
+@media (max-width: 820px) {
+  .ui-education-editor__grid--two,
+  .ui-education-editor__grid--graduation {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .ui-education-editor__item {
+    padding: 16px;
+    border-radius: 20px;
+  }
+}

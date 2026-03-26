@@ -13,7 +13,7 @@ export function ModeratorProfileSummary({
           <StatusBadge statusKey="approved">{summary?.status || "Активная смена"}</StatusBadge>
         </div>
 
-        <h1 className="ui-type-h1 moderator-profile-summary__title">{summary?.title || "Модерация платформы"}</h1>
+        <h1 className="ui-type-h2 moderator-profile-summary__title">{summary?.title || "Модерация платформы"}</h1>
         <p className="ui-type-body moderator-profile-summary__description">
           {summary?.description || "Краткая сводка кабинета, которая остается на месте при переключении разделов."}
         </p>

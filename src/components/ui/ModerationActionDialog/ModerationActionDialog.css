@@ -1,0 +1,261 @@
+.ui-moderation-action-dialog {
+  --ui-moderation-action-accent: var(--ui-color-accent);
+  --ui-moderation-action-surface: rgba(231, 240, 255, 0.96);
+  --ui-moderation-action-button-border: rgba(47, 128, 255, 0.14);
+  --ui-moderation-action-button-bg: linear-gradient(180deg, rgba(235, 243, 255, 0.98), rgba(226, 238, 255, 0.98));
+  --ui-moderation-action-button-bg-hover: linear-gradient(180deg, rgba(228, 239, 255, 1), rgba(218, 233, 255, 1));
+  --ui-moderation-action-button-shadow: 0 14px 30px rgba(47, 128, 255, 0.12);
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 251, 255, 0.98));
+  box-shadow: 0 24px 60px rgba(36, 49, 77, 0.14);
+}
+
+.ui-moderation-action-dialog--lg {
+  gap: 24px;
+  padding: clamp(24px, 3vw, 40px);
+  border-radius: 32px;
+}
+
+.ui-moderation-action-dialog--approve {
+  --ui-moderation-action-accent: #2c9949;
+  --ui-moderation-action-surface: rgba(219, 241, 223, 0.96);
+  --ui-moderation-action-button-border: rgba(46, 168, 82, 0.14);
+  --ui-moderation-action-button-bg: linear-gradient(180deg, rgba(227, 244, 230, 0.98), rgba(217, 238, 221, 0.98));
+  --ui-moderation-action-button-bg-hover: linear-gradient(180deg, rgba(221, 242, 225, 1), rgba(208, 235, 214, 1));
+  --ui-moderation-action-button-shadow: 0 14px 30px rgba(46, 168, 82, 0.12);
+}
+
+.ui-moderation-action-dialog--revision {
+  --ui-moderation-action-accent: var(--ui-color-accent);
+  --ui-moderation-action-surface: rgba(231, 240, 255, 0.96);
+  --ui-moderation-action-button-border: rgba(47, 128, 255, 0.14);
+  --ui-moderation-action-button-bg: linear-gradient(180deg, #4b98ff 0%, var(--ui-color-accent) 100%);
+  --ui-moderation-action-button-bg-hover: linear-gradient(180deg, #4293ff 0%, var(--ui-color-accent-strong) 100%);
+  --ui-moderation-action-button-shadow: var(--ui-shadow-accent);
+}
+
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary {
+  color: #ffffff;
+}
+
+.ui-moderation-action-dialog--reject {
+  --ui-moderation-action-accent: #d0821c;
+  --ui-moderation-action-surface: rgba(255, 241, 219, 0.98);
+  --ui-moderation-action-button-border: rgba(236, 154, 26, 0.16);
+  --ui-moderation-action-button-bg: linear-gradient(180deg, rgba(255, 241, 219, 0.98), rgba(255, 235, 204, 0.98));
+  --ui-moderation-action-button-bg-hover: linear-gradient(180deg, rgba(255, 236, 208, 1), rgba(255, 229, 191, 1));
+  --ui-moderation-action-button-shadow: 0 14px 30px rgba(236, 154, 26, 0.1);
+}
+
+.ui-moderation-action-dialog__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 14px 22px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-moderation-action-surface);
+  color: var(--ui-moderation-action-accent);
+  font-size: var(--ui-font-size-h4);
+  line-height: var(--ui-line-height-h4);
+  letter-spacing: var(--ui-letter-spacing-h4);
+  font-weight: var(--ui-font-weight-strong);
+  text-align: center;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__badge {
+  min-height: 72px;
+  padding: 18px 28px;
+  font-size: var(--ui-font-size-h3);
+  line-height: var(--ui-line-height-h3);
+  letter-spacing: var(--ui-letter-spacing-h3);
+}
+
+.ui-moderation-action-dialog__copy {
+  display: grid;
+  gap: 12px;
+}
+
+.ui-moderation-action-dialog__question,
+.ui-moderation-action-dialog__description {
+  margin: 0;
+}
+
+.ui-moderation-action-dialog__question {
+  color: #73809f;
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-h2);
+  letter-spacing: var(--ui-letter-spacing-h2);
+  font-weight: var(--ui-font-weight-heading);
+}
+
+.ui-moderation-action-dialog__description {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__copy {
+  gap: 16px;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__question {
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
+  letter-spacing: var(--ui-letter-spacing-h1);
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__description {
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.ui-moderation-action-dialog__field {
+  gap: 12px;
+}
+
+.ui-moderation-action-dialog__field .ui-field__head {
+  align-items: center;
+}
+
+.ui-moderation-action-dialog__field .ui-label,
+.ui-moderation-action-dialog__field .ui-field__action-button--quiet {
+  color: #7d88a3;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-regular);
+}
+
+.ui-moderation-action-dialog__field .ui-input {
+  min-height: 58px;
+  padding-inline: 18px;
+  border-radius: 16px;
+}
+
+.ui-moderation-action-dialog__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ui-moderation-action-dialog__button {
+  width: 100%;
+  min-height: 58px;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__field {
+  gap: 14px;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__field .ui-label,
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__field .ui-field__action-button--quiet {
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__field .ui-input {
+  min-height: 72px;
+  padding-inline: 24px;
+  border-radius: 18px;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__actions {
+  gap: 16px;
+}
+
+.ui-moderation-action-dialog--lg .ui-moderation-action-dialog__button {
+  min-height: 72px;
+}
+
+.ui-moderation-action-dialog__confirm.ui-button--secondary {
+  color: var(--ui-moderation-action-accent);
+  border-color: var(--ui-moderation-action-button-border);
+  background: var(--ui-moderation-action-button-bg);
+  box-shadow: var(--ui-moderation-action-button-shadow);
+}
+
+.ui-moderation-action-dialog__confirm.ui-button--secondary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.ui-moderation-action-dialog__confirm.ui-button--secondary.is-hovered:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog__confirm.ui-button--secondary.is-active {
+  color: inherit;
+  border-color: var(--ui-moderation-action-button-border);
+  background: var(--ui-moderation-action-button-bg-hover);
+  box-shadow: var(--ui-moderation-action-button-shadow);
+}
+
+.ui-moderation-action-dialog--approve .ui-moderation-action-dialog__confirm.ui-button--secondary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.ui-moderation-action-dialog--approve .ui-moderation-action-dialog__confirm.ui-button--secondary.is-hovered:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--approve .ui-moderation-action-dialog__confirm.ui-button--secondary.is-active,
+.ui-moderation-action-dialog--reject .ui-moderation-action-dialog__confirm.ui-button--secondary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.ui-moderation-action-dialog--reject .ui-moderation-action-dialog__confirm.ui-button--secondary.is-hovered:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--reject .ui-moderation-action-dialog__confirm.ui-button--secondary.is-active {
+  color: var(--ui-moderation-action-accent);
+}
+
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary.is-hovered:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary.is-active {
+  color: #ffffff;
+}
+
+.ui-moderation-action-dialog__confirm.ui-button--secondary:focus-visible:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog__confirm.ui-button--secondary.is-focused:not(:disabled):not(.is-disabled) {
+  border-color: var(--ui-moderation-action-button-border);
+  background: var(--ui-moderation-action-button-bg-hover);
+  box-shadow: var(--ui-shadow-focus), var(--ui-moderation-action-button-shadow);
+}
+
+.ui-moderation-action-dialog--approve .ui-moderation-action-dialog__confirm.ui-button--secondary:focus-visible:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--approve .ui-moderation-action-dialog__confirm.ui-button--secondary.is-focused:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--reject .ui-moderation-action-dialog__confirm.ui-button--secondary:focus-visible:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--reject .ui-moderation-action-dialog__confirm.ui-button--secondary.is-focused:not(:disabled):not(.is-disabled) {
+  color: var(--ui-moderation-action-accent);
+}
+
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary:focus-visible:not(:disabled):not(.is-disabled),
+.ui-moderation-action-dialog--revision .ui-moderation-action-dialog__confirm.ui-button--secondary.is-focused:not(:disabled):not(.is-disabled) {
+  color: #ffffff;
+}
+
+.ui-modal__dialog.ui-moderation-action-dialog-shell {
+  width: min(100%, 720px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ui-modal__dialog.ui-moderation-action-dialog-shell--lg {
+  width: min(100%, 980px);
+}
+
+.ui-modal__dialog.ui-moderation-action-dialog-shell .ui-modal__content {
+  gap: 0;
+  color: inherit;
+}
+
+@media (max-width: 720px) {
+  .ui-moderation-action-dialog {
+    gap: 18px;
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .ui-moderation-action-dialog__badge,
+  .ui-moderation-action-dialog__button,
+  .ui-moderation-action-dialog__field .ui-input {
+    min-height: 54px;
+  }
+
+  .ui-moderation-action-dialog__actions {
+    grid-template-columns: 1fr;
+  }
+}

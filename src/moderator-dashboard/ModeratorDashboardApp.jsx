@@ -1,17 +1,64 @@
 import { useEffect, useMemo, useState } from "react";
-import { getModerationCompanies, getModerationDashboard, getModerationOpportunities } from "../api/moderation";
+import { routes } from "../app/routes";
+import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import { ModeratorMetricCard, ModeratorPageIntro } from "./shared";
+import {
+  Alert,
+  Card,
+  DashboardActivityCard,
+  DashboardFocusCard,
+  DashboardPageHeader,
+  DashboardQueueCard,
+  DashboardSectionHeader,
+  EmptyState,
+  Loader,
+} from "../shared/ui";
+import { ModeratorFilterPill, ModeratorSortControl } from "./shared";
 
-function formatDate(value) {
+const ACTIVITY_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "complaints", label: "Жалобы" },
+  { value: "opportunities", label: "Возможности" },
+  { value: "users", label: "Пользователи" },
+  { value: "companies", label: "Компании" },
+];
+
+const QUEUE_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "complaints", label: "Жалобы" },
+  { value: "opportunities", label: "Возможности" },
+  { value: "verification", label: "Верификация" },
+];
+
+function parseDateValue(value) {
   if (!value) {
-    return "Дата не указана";
+    return null;
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return String(value);
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const normalizedValue = String(value).trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const dateOnlyMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0);
+  }
+
+  const parsed = new Date(normalizedValue);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value) {
+  const parsed = parseDateValue(value);
+
+  if (!parsed) {
+    return "Дата не указана";
   }
 
   return new Intl.DateTimeFormat("ru-RU", {
@@ -19,6 +66,48 @@ function formatDate(value) {
     month: "long",
     year: "numeric",
   }).format(parsed);
+}
+
+function formatActivityTimestamp(value) {
+  const parsed = parseDateValue(value);
+
+  if (!parsed) {
+    return "Дата не указана";
+  }
+
+  const dateLabel = new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+  }).format(parsed);
+
+  const hasTime = typeof value === "string" && (value.includes("T") || /\d{2}:\d{2}/.test(value));
+
+  if (!hasTime) {
+    return dateLabel;
+  }
+
+  const timeLabel = new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+
+  return `${dateLabel} · ${timeLabel}`;
+}
+
+function getTimestamp(value) {
+  return parseDateValue(value)?.getTime() ?? 0;
+}
+
+function isPendingOpportunity(item) {
+  return item?.deletedAt == null && (item?.moderationStatus === "pending" || item?.moderationStatus === "revision");
+}
+
+function isPendingCompany(item) {
+  return item?.verificationStatus === "pending" || item?.verificationStatus === "revision";
+}
+
+function isAttentionUser(item) {
+  return !item?.isVerified || !item?.preVerify;
 }
 
 function translateModerationStatus(status) {
@@ -47,31 +136,180 @@ function translateCompanyStatus(status) {
   }
 }
 
+function translateOpportunityType(value) {
+  switch (value) {
+    case "vacancy":
+      return "Вакансия";
+    case "internship":
+      return "Стажировка";
+    case "event":
+      return "Событие";
+    default:
+      return "Возможность";
+  }
+}
+
+function translateUserRole(role) {
+  switch (role) {
+    case "candidate":
+      return "соискатель";
+    case "company":
+      return "работодатель";
+    case "moderator":
+      return "куратор";
+    default:
+      return "пользователь";
+  }
+}
+
+function getActivityEmptyState(filter) {
+  switch (filter) {
+    case "complaints":
+      return {
+        title: "Жалобы пока не подключены",
+        description: "Структура блока готова. После появления moderation API жалобы появятся в этой ленте.",
+      };
+    case "users":
+      return {
+        title: "Нет новых пользователей",
+        description: "Когда появятся профили, требующие внимания, они отобразятся здесь.",
+      };
+    case "companies":
+      return {
+        title: "Нет новых компаний",
+        description: "Очередь компаний появится после новых заявок на верификацию.",
+      };
+    default:
+      return {
+        title: "Лента действий пока пуста",
+        description: "Новые изменения появятся здесь, когда компании, пользователи или публикации потребуют проверки.",
+      };
+  }
+}
+
+function getQueueEmptyState(filter) {
+  switch (filter) {
+    case "complaints":
+      return {
+        title: "Очередь жалоб пуста",
+        description: "После подключения раздела жалоб карточки появятся в этом приоритетном списке.",
+      };
+    case "verification":
+      return {
+        title: "Нет компаний на верификации",
+        description: "Когда компании отправят данные на проверку, они появятся здесь.",
+      };
+    case "opportunities":
+      return {
+        title: "Нет возможностей в очереди",
+        description: "Новые вакансии, стажировки и события появятся после отправки на модерацию.",
+      };
+    default:
+      return {
+        title: "Очередь задач сейчас пустая",
+        description: "Когда появятся новые кейсы на проверку, они соберутся в этом блоке.",
+      };
+  }
+}
+
+function buildOpportunityActivity(item) {
+  const typeLabel = translateOpportunityType(item.opportunityType).toLowerCase();
+
+  return {
+    id: `activity-opportunity-${item.id}`,
+    kind: "opportunities",
+    badge: "Возможность",
+    timestamp: formatActivityTimestamp(item.publishAt),
+    sortValue: getTimestamp(item.publishAt),
+    title: `${translateOpportunityType(item.opportunityType)} отправлена на проверку`,
+    description: `${item.companyName} добавила ${typeLabel} «${item.title}».`,
+  };
+}
+
+function buildCompanyActivity(item) {
+  return {
+    id: `activity-company-${item.id}`,
+    kind: "companies",
+    badge: "Компания",
+    timestamp: formatActivityTimestamp(item.createdAt),
+    sortValue: getTimestamp(item.createdAt),
+    title: item.verificationStatus === "revision" ? "Профиль компании обновлён" : "Компания ожидает верификацию",
+    description: `${item.companyName} прислала данные для проверки. Статус: ${translateCompanyStatus(item.verificationStatus).toLowerCase()}.`,
+  };
+}
+
+function buildUserActivity(item) {
+  return {
+    id: `activity-user-${item.id}`,
+    kind: "users",
+    badge: "Пользователь",
+    timestamp: formatActivityTimestamp(item.createdAt),
+    sortValue: getTimestamp(item.createdAt),
+    title: item.isVerified ? "Пользователь обновил профиль" : "Новый пользователь требует внимания",
+    description: `${item.email} зарегистрирован как ${translateUserRole(item.role)} и ещё не завершил подтверждение.`,
+  };
+}
+
+function buildOpportunityQueueItem(item) {
+  return {
+    id: `queue-opportunity-${item.id}`,
+    kind: "opportunities",
+    badge: translateOpportunityType(item.opportunityType),
+    title: item.title,
+    description: `${item.companyName}${item.locationCity ? ` · ${item.locationCity}` : ""} · ${translateModerationStatus(item.moderationStatus)}`,
+    dateLabel: formatDateLabel(item.publishAt),
+    sortValue: getTimestamp(item.publishAt),
+    actionHref: routes.moderator.opportunities,
+    actionLabel: "Подробнее",
+    actionVariant: "primary",
+  };
+}
+
+function buildVerificationQueueItem(item) {
+  return {
+    id: `queue-company-${item.id}`,
+    kind: "verification",
+    badge: "Верификация",
+    title: item.companyName,
+    description:
+      item.legalAddress || item.email
+        ? `${item.legalAddress || item.email} · ${translateCompanyStatus(item.verificationStatus)}`
+        : "Требуется верификация компании",
+    dateLabel: formatDateLabel(item.createdAt),
+    sortValue: getTimestamp(item.createdAt),
+    actionHref: routes.moderator.companies,
+    actionLabel: "Подробнее",
+    actionVariant: "primary",
+  };
+}
+
 export function ModeratorDashboardApp() {
   const [state, setState] = useState({
     status: "loading",
-    dashboard: null,
     companies: [],
     opportunities: [],
+    users: [],
     error: null,
   });
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [queueFilter, setQueueFilter] = useState("all");
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
       try {
-        const [dashboard, companies, opportunities] = await Promise.all([
-          getModerationDashboard(controller.signal),
+        const [companies, opportunities, users] = await Promise.all([
           getModerationCompanies(controller.signal),
           getModerationOpportunities(controller.signal),
+          getModerationUsers(controller.signal),
         ]);
 
         setState({
           status: "ready",
-          dashboard,
           companies: Array.isArray(companies) ? companies : [],
           opportunities: Array.isArray(opportunities) ? opportunities : [],
+          users: Array.isArray(users) ? users : [],
           error: null,
         });
       } catch (error) {
@@ -81,9 +319,9 @@ export function ModeratorDashboardApp() {
 
         setState({
           status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
-          dashboard: null,
           companies: [],
           opportunities: [],
+          users: [],
           error,
         });
       }
@@ -93,44 +331,65 @@ export function ModeratorDashboardApp() {
     return () => controller.abort();
   }, []);
 
-  const metrics = useMemo(() => {
-    const dashboard = state.dashboard ?? {};
+  const pendingCompanies = useMemo(() => state.companies.filter(isPendingCompany), [state.companies]);
+  const pendingOpportunities = useMemo(() => state.opportunities.filter(isPendingOpportunity), [state.opportunities]);
+  const attentionUsers = useMemo(() => state.users.filter(isAttentionUser), [state.users]);
 
-    return [
+  const activityItems = useMemo(
+    () =>
+      [...pendingOpportunities.map(buildOpportunityActivity), ...pendingCompanies.map(buildCompanyActivity), ...attentionUsers.map(buildUserActivity)]
+        .sort((left, right) => right.sortValue - left.sortValue)
+        .slice(0, 6),
+    [attentionUsers, pendingCompanies, pendingOpportunities]
+  );
+
+  const filteredActivityItems = useMemo(
+    () => activityItems.filter((item) => activityFilter === "all" || item.kind === activityFilter),
+    [activityFilter, activityItems]
+  );
+
+  const queueItems = useMemo(
+    () =>
+      [...pendingOpportunities.map(buildOpportunityQueueItem), ...pendingCompanies.map(buildVerificationQueueItem)]
+        .sort((left, right) => right.sortValue - left.sortValue)
+        .slice(0, 8),
+    [pendingCompanies, pendingOpportunities]
+  );
+
+  const filteredQueueItems = useMemo(
+    () => queueItems.filter((item) => queueFilter === "all" || item.kind === queueFilter),
+    [queueFilter, queueItems]
+  );
+
+  const focusItems = useMemo(
+    () => [
       {
-        value: String(dashboard.opportunitiesPending ?? 0),
+        id: "opportunities",
         title: "Возможности на проверке",
-        note: "Количество карточек, ожидающих решения модератора.",
+        description: "В очереди вакансии, стажировки и события, которые ждут решения модератора.",
+        countLabel: `${pendingOpportunities.length} в работе`,
       },
       {
-        value: String(dashboard.companiesPending ?? 0),
+        id: "companies",
         title: "Компании на верификации",
-        note: "Работодатели, чьи данные и документы еще не подтверждены.",
+        description: "Проверяем сайт, описание, домен и юридические данные работодателей.",
+        countLabel: `${pendingCompanies.length} в работе`,
       },
       {
-        value: String(dashboard.totalUsers ?? 0),
-        title: "Пользователи платформы",
-        note: "Общее количество активных профилей в системе.",
+        id: "users",
+        title: "Пользователи без подтверждения",
+        description: "Отслеживаем новые регистрации и профили, которым ещё требуется подтверждение email.",
+        countLabel: `${attentionUsers.length} в работе`,
       },
-    ];
-  }, [state.dashboard]);
+    ],
+    [attentionUsers.length, pendingCompanies.length, pendingOpportunities.length]
+  );
 
-  const pendingCompanies = useMemo(
-    () => state.companies.filter((item) => item.verificationStatus === "pending" || item.verificationStatus === "revision").slice(0, 5),
-    [state.companies]
-  );
-  const pendingOpportunities = useMemo(
-    () => state.opportunities.filter((item) => item.moderationStatus === "pending" || item.moderationStatus === "revision").slice(0, 5),
-    [state.opportunities]
-  );
+  const activityEmptyState = getActivityEmptyState(activityFilter);
+  const queueEmptyState = getQueueEmptyState(queueFilter);
 
   return (
     <>
-      <ModeratorPageIntro
-        title="Дашборд модерации"
-        description="Экран строится на реальных агрегатах `/api/moderation/dashboard` и очередях компаний и возможностей, которые ожидают решения."
-      />
-
       {state.status === "loading" ? <Loader label="Загружаем дашборд модератора" surface /> : null}
 
       {state.status === "error" ? (
@@ -151,70 +410,94 @@ export function ModeratorDashboardApp() {
       ) : null}
 
       {state.status === "ready" ? (
-        <>
-          <section className="moderator-metrics">
-            {metrics.map((item, index) => (
-              <ModeratorMetricCard key={item.title} item={item} delayIndex={index + 1} />
-            ))}
-          </section>
+        <div className="moderator-dashboard-stack">
+          <DashboardPageHeader
+            title="Дашборд модерации"
+            description="Общий список последних откликов по вакансиям и событиям с быстрым контекстом по статусу, роли и способу связи."
+            className="moderator-fade-up moderator-fade-up--delay-1"
+          />
 
-          <section className="moderator-main-grid">
-            <Card className="moderator-panel moderator-panel--activity moderator-fade-up moderator-fade-up--delay-2">
-              <div className="moderator-panel__head">
-                <Tag tone="accent">Компании</Tag>
-                <div className="moderator-panel__copy">
-                  <h2 className="ui-type-h1">Очередь верификации компаний</h2>
-                  <p className="ui-type-body-lg">Первые компании, которые требуют проверки профиля и документов.</p>
-                </div>
+          <section className="moderator-dashboard-overview">
+            <Card className="moderator-panel moderator-panel--activity-feed moderator-fade-up moderator-fade-up--delay-2">
+              <DashboardSectionHeader
+                eyebrow="Активность"
+                title="Последние действия"
+                description="Здесь представлены последние изменения, которые нуждаются в проверке."
+              />
+
+              <div className="moderator-panel__filters moderator-panel__filters--dashboard">
+                {ACTIVITY_FILTERS.map((filter) => (
+                  <ModeratorFilterPill
+                    key={filter.value}
+                    label={filter.label}
+                    active={filter.value === activityFilter}
+                    onClick={() => setActivityFilter(filter.value)}
+                  />
+                ))}
               </div>
 
-              {pendingCompanies.length ? (
+              <ModeratorSortControl />
+
+              {filteredActivityItems.length ? (
                 <div className="moderator-activity-list">
-                  {pendingCompanies.map((item) => (
-                    <article key={item.id} className="moderator-activity-item">
-                      <div className="moderator-activity-item__top">
-                        <Tag>{translateCompanyStatus(item.verificationStatus)}</Tag>
-                        <span>{formatDate(item.createdAt)}</span>
-                      </div>
-                      <div className="moderator-activity-item__copy">
-                        <h3 className="ui-type-h3">{item.companyName}</h3>
-                        <p className="ui-type-body">{item.email}</p>
-                      </div>
-                    </article>
+                  {filteredActivityItems.slice(0, 3).map((item) => (
+                    <DashboardActivityCard key={item.id} item={item} />
                   ))}
                 </div>
               ) : (
-                <EmptyState title="Компаний в очереди нет" description="Когда новые работодатели отправят данные на проверку, они появятся здесь." tone="neutral" compact />
+                <EmptyState title={activityEmptyState.title} description={activityEmptyState.description} tone="neutral" compact />
               )}
             </Card>
 
-            <Card className="moderator-panel moderator-panel--summary moderator-fade-up moderator-fade-up--delay-3">
-              <div className="moderator-panel__head">
-                <Tag tone="accent">Возможности</Tag>
-                <div className="moderator-panel__copy">
-                  <h2 className="ui-type-h1">Очередь публикаций</h2>
-                  <p className="ui-type-body-lg">Последние карточки, которые ждут модерации или доработки.</p>
-                </div>
+            <aside className="moderator-focus-rail moderator-fade-up moderator-fade-up--delay-3">
+              <DashboardSectionHeader
+                eyebrow="Фокус"
+                title="Сводка смены"
+                description="Здесь представлены незавершённые задачи, которые остаются в работе."
+              />
+
+              <div className="moderator-focus-rail__list">
+                {focusItems.map((item) => (
+                  <DashboardFocusCard key={item.id} item={item} />
+                ))}
+              </div>
+            </aside>
+          </section>
+
+          <Card className="moderator-panel moderator-panel--queue-stack moderator-fade-up moderator-fade-up--delay-3">
+            <DashboardSectionHeader
+              eyebrow="Приоритет"
+              title="Очередь задач"
+              description="Проверьте заявки, отправленные на модерацию."
+              counter={filteredQueueItems.length}
+            />
+
+            <div className="moderator-panel__queue-toolbar">
+              <div className="moderator-panel__filters moderator-panel__filters--dashboard">
+                {QUEUE_FILTERS.map((filter) => (
+                  <ModeratorFilterPill
+                    key={filter.value}
+                    label={filter.label}
+                    active={filter.value === queueFilter}
+                    onClick={() => setQueueFilter(filter.value)}
+                  />
+                ))}
               </div>
 
-              {pendingOpportunities.length ? (
-                <div className="moderator-summary-list">
-                  {pendingOpportunities.map((item) => (
-                    <article key={item.id} className="moderator-summary-item">
-                      <div className="moderator-summary-item__copy">
-                        <h3 className="ui-type-h3">{item.title}</h3>
-                        <p className="ui-type-body">{item.companyName}</p>
-                      </div>
-                      <span className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</span>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Очередь возможностей пуста" description="Новые публикации появятся после действий компаний." tone="neutral" compact />
-              )}
-            </Card>
-          </section>
-        </>
+              <ModeratorSortControl />
+            </div>
+
+            {filteredQueueItems.length ? (
+              <div className="moderator-queue-list">
+                {filteredQueueItems.slice(0, 3).map((item) => (
+                  <DashboardQueueCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title={queueEmptyState.title} description={queueEmptyState.description} tone="neutral" compact />
+            )}
+          </Card>
+        </div>
       ) : null}
     </>
   );

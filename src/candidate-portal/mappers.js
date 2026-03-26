@@ -21,6 +21,23 @@ export function getCandidateMeta(profile) {
     return "Личный кабинет соискателя";
   }
 
+  const links = isRecord(profile.links) ? profile.links : {};
+  const onboarding = isRecord(links.onboarding) ? links.onboarding : {};
+  const education = Array.isArray(onboarding.educations) && onboarding.educations.length && isRecord(onboarding.educations[0])
+    ? onboarding.educations[0]
+    : isRecord(onboarding.education)
+      ? onboarding.education
+      : {};
+  const metaParts = [
+    normalizeMetaPart(onboarding.profession),
+    normalizeMetaPart(onboarding.city),
+    education.graduationYear ? `выпуск ${education.graduationYear}` : "",
+  ].filter(Boolean);
+
+  if (metaParts.length) {
+    return metaParts.join(" · ");
+  }
+
   if (profile.email) {
     return profile.email;
   }
@@ -188,4 +205,12 @@ export function mapApplicationTone(value) {
     default:
       return "neutral";
   }
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeMetaPart(value) {
+  return typeof value === "string" ? value.trim() : "";
 }

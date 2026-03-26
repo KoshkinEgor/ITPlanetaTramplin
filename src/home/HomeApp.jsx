@@ -5,7 +5,9 @@ import { AppLink } from "../app/AppLink";
 import { getCurrentAuthUser } from "../auth/api";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { ApiError } from "../lib/http";
-import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, Tag } from "../shared/ui";
+import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
+import { useBodyClass } from "../shared/lib/useBodyClass";
+import { PortalHeader } from "../widgets/layout";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
 import "./home.css";
 
@@ -230,6 +232,7 @@ function createHomeBlockDetailAction(item) {
     href: buildOpportunityDetailRoute(item.id),
     label: "РџРѕРґСЂРѕР±РЅРµРµ",
     variant: "secondary",
+    width: "full",
     className: "home-opportunity-entry__action",
   };
 }
@@ -264,6 +267,7 @@ function createSafeHomeBlockDetailAction(item) {
     href: buildOpportunityDetailRoute(item.id),
     label: HOME_DETAIL_ACTION_LABEL,
     variant: "secondary",
+    width: "full",
     className: "home-opportunity-entry__action",
   };
 }
@@ -344,44 +348,6 @@ function SortDirectionIcon({ direction }) {
   );
 }
 
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 3.5a4 4 0 0 0-4 4v1.3c0 .8-.2 1.6-.7 2.2L4.3 12a1 1 0 0 0 .7 1.7h10a1 1 0 0 0 .7-1.7l-1-.9a3.4 3.4 0 0 1-.7-2.2V7.5a4 4 0 0 0-4-4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M8.2 15.5a2 2 0 0 0 3.6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function GuestProfileIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="10" cy="6.7" r="3.1" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M4.5 16c1-2.5 3-4 5.5-4s4.5 1.5 5.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function PinIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -414,68 +380,21 @@ function SlidersIcon() {
 }
 
 function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
-  const rootRef = useRef(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) {
-        onToggle(false);
-      }
-    };
-
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        onToggle(false);
-      }
-    };
-
-    window.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onToggle]);
-
   return (
-    <div ref={rootRef} className={`home-filter-dropdown ${isOpen ? "is-open" : ""}`.trim()}>
-      <button
-        type="button"
-        className="home-filter-dropdown__trigger"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label={label}
-        onClick={() => onToggle(!isOpen)}
-      >
-        <span>{value}</span>
-        <ChevronDownIcon />
-      </button>
-
-      {isOpen ? (
-        <div className="home-filter-dropdown__menu" role="listbox" aria-label={label}>
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="option"
-              aria-selected={option === value}
-              className={`home-filter-dropdown__option ${option === value ? "is-selected" : ""}`.trim()}
-              onClick={() => {
-                onSelect(option);
-                onToggle(false);
-              }}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <SortControl
+      label={label}
+      value={value}
+      options={options.map((option) => ({ value: option, label: option }))}
+      open={isOpen}
+      onOpenChange={onToggle}
+      onSelect={onSelect}
+      className="home-filter-dropdown"
+      triggerClassName="home-filter-dropdown__trigger"
+      menuClassName="home-filter-dropdown__menu"
+      optionClassName="home-filter-dropdown__option"
+      triggerLabel={value}
+      endIcon={<ChevronDownIcon />}
+    />
   );
 }
 
@@ -806,125 +725,91 @@ function HomeCityCombobox({ value, options, onSelect }) {
 }
 
 function HomeSortControl({ options, value, direction, onSelect, onToggleDirection }) {
-  const rootRef = useRef(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find((option) => option.key === value) ?? options[0];
-
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen]);
-
   return (
-    <div ref={rootRef} className={`home-sort-control ${isOpen ? "is-open" : ""}`.trim()}>
-      <button
-        type="button"
-        className="home-sort-control__trigger"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label="Выбрать способ сортировки"
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <SortIcon />
-        <span>{selectedOption.label}</span>
-        <ChevronDownIcon />
-      </button>
-
-      <IconButton
-        type="button"
-        className="home-sort-control__direction"
-        size="2xl"
-        aria-label={direction === "asc" ? "Порядок: по возрастанию" : "Порядок: по убыванию"}
-        onClick={onToggleDirection}
-      >
-        <SortDirectionIcon direction={direction} />
-      </IconButton>
-
-      {isOpen ? (
-        <div className="home-sort-control__menu" role="listbox" aria-label="Сортировка">
-          {options.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              role="option"
-              aria-selected={option.key === value}
-              className={`home-sort-control__option ${option.key === value ? "is-selected" : ""}`.trim()}
-              onClick={() => {
-                onSelect(option.key);
-                setIsOpen(false);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <SortControl
+      label="Выбрать способ сортировки"
+      value={value}
+      onSelect={onSelect}
+      options={options.map((option) => ({ value: option.key, label: option.label }))}
+      className="home-sort-control"
+      triggerClassName="home-sort-control__trigger"
+      menuClassName="home-sort-control__menu"
+      optionClassName="home-sort-control__option"
+      startIcon={<SortIcon />}
+      endIcon={<ChevronDownIcon />}
+      action={(
+        <IconButton
+          type="button"
+          className="home-sort-control__direction"
+          size="2xl"
+          aria-label={direction === "asc" ? "Порядок: по возрастанию" : "Порядок: по убыванию"}
+          onClick={onToggleDirection}
+        >
+          <SortDirectionIcon direction={direction} />
+        </IconButton>
+      )}
+      menuAlignment="end"
+    />
   );
 }
 
-function HomeHeader({ floating, visible }) {
+/* function HomeHeader({ floating, visible }) {
+  const authSession = useAuthSession();
+  const authUser = authSession.status === "authenticated" ? authSession.user : null;
+
   return (
     <div className={`home-header-shell ${floating ? "is-floating" : ""} ${visible ? "is-visible" : "is-hidden"}`.trim()}>
       <header className="home-header">
-      <div className="home-header__brand">
-        <span className="home-header__mark" aria-hidden="true" />
-        <span className="home-header__brand-text">TRAMPLIN</span>
-      </div>
+        <div className="home-header__brand">
+          <span className="home-header__mark" aria-hidden="true" />
+          <span className="home-header__brand-text">TRAMPLIN</span>
+        </div>
 
-      <nav className="home-header__nav" aria-label="Основная навигация">
-        {PUBLIC_HEADER_NAV_ITEMS.map((item) => (
-          <AppLink key={item.key} href={item.href} className="home-header__nav-link">
-            {item.label}
-          </AppLink>
-        ))}
-      </nav>
+        <nav className="home-header__nav" aria-label="Основная навигация">
+          {PUBLIC_HEADER_NAV_ITEMS.map((item) => (
+            <AppLink key={item.key} href={item.href} className="home-header__nav-link">
+              {item.label}
+            </AppLink>
+          ))}
+        </nav>
 
-      <div className="home-header__actions">
-        <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Избранное">
-          <HeartIcon />
-        </IconButton>
-        <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Уведомления">
-          <BellIcon />
-        </IconButton>
-        <AppLink href="/auth/login" className="home-header__icon-button home-header__auth" aria-label="Войти или зарегистрироваться">
-          Войти / Регистрация
-          <GuestProfileIcon />
-          <span className="ui-visually-hidden">Войти или зарегистрироваться</span>
-        </AppLink>
+        <div className="home-header__actions">
+          <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Избранное">
+            <HeartIcon />
+          </IconButton>
+          <IconButton type="button" size="lg" className="home-header__icon-button" aria-label="Уведомления">
+            <BellIcon />
+          </IconButton>
+          {authUser ? (
+            <AuthAccountMenu
+              user={authUser}
+              className="home-header__account"
+              triggerClassName="home-header__account-trigger"
+              panelClassName="home-header__account-panel"
+              showText={false}
+              avatarSize="sm"
+              cabinetLabel="Мой кабинет"
+              logoutLabel="Выйти"
+            />
+          ) : (
+            <AppLink href={routes.auth.login} className="home-header__icon-button home-header__auth" aria-label="Войти или зарегистрироваться">
+              Войти / Регистрация
+              <GuestProfileIcon />
+              <span className="ui-visually-hidden">Войти или зарегистрироваться</span>
+            </AppLink>
+          )}
         </div>
       </header>
     </div>
   );
-}
+} */
 
 function HubCard({ title, description }) {
   return (
     <Card className="home-hub-card">
       <div className="home-hub-card__copy">
-        <h3>{title}</h3>
-        <p>{description}</p>
+        <h3 className="ui-type-h1">{title}</h3>
+        <p className="ui-type-body">{description}</p>
       </div>
 
       <div className="home-hub-card__avatars" aria-hidden="true">
@@ -942,8 +827,8 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) 
     <Card className="home-advanced-search">
       <div className="home-advanced-search__header">
         <div>
-          <p>Расширенный поиск</p>
-          <h3>Уточни параметры</h3>
+          <p className="ui-type-overline">Расширенный поиск</p>
+          <h3 className="ui-type-h2">Уточни параметры</h3>
         </div>
         <Button type="button" variant="ghost" className="home-advanced-search__reset" onClick={onReset}>
           Сбросить
@@ -1036,7 +921,7 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) 
       </div>
 
       <div className="home-advanced-search__footer">
-        <Button type="button" className="home-advanced-search__apply">
+        <Button type="button" width="full" className="home-advanced-search__apply">
           Показать результаты
         </Button>
       </div>
@@ -1045,6 +930,8 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) 
 }
 
 export function HomeApp() {
+  useBodyClass("home-react-body");
+
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [query, setQuery] = useState("");
@@ -1283,12 +1170,20 @@ export function HomeApp() {
 
   return (
     <main className="home-page">
-      <div className="home-page__shell">
-        <HomeHeader floating={isHeaderFloating} visible={isHeaderVisible} />
+      <div className="home-page__shell ui-page-shell">
+        <PortalHeader
+          navItems={PUBLIC_HEADER_NAV_ITEMS}
+          actionHref={routes.auth.login}
+          actionLabel="Войти / Регистрация"
+          shellClassName="home-page__header-shell"
+          className="home-page__header"
+          floating={isHeaderFloating}
+          visible={isHeaderVisible}
+        />
 
         <section className="home-hero" aria-labelledby="home-hero-title">
           <div className="home-hero__copy">
-            <h1 id="home-hero-title" className="home-hero__title">
+            <h1 id="home-hero-title" className="ui-type-display home-hero__title">
               Построй
               <br />
               карьеру
@@ -1297,7 +1192,7 @@ export function HomeApp() {
               <ArrowIcon />
             </h1>
 
-            <p className="home-hero__description">
+            <p className="ui-type-body home-hero__description">
               Находи стажировки, вакансии, компании и менторов в одном аккуратном интерфейсе, который помогает быстро стартовать и расти.
             </p>
 
@@ -1336,12 +1231,12 @@ export function HomeApp() {
 
         <section className="home-discovery" id="discover">
           <div className="home-discovery__intro">
-            <p>Изучай возможности на карте, сохраняй интересное и строй карьеру через контакты и отклики.</p>
+            <p className="ui-type-body">Изучай возможности на карте, сохраняй интересное и строй карьеру через контакты и отклики.</p>
           </div>
 
           <div className="home-discovery__header">
             <div className="home-discovery__title-row">
-              <h2>Возможности рядом</h2>
+              <h2 className="ui-type-h1">Возможности рядом</h2>
               <HomeCityCombobox value={selectedCity} options={CITY_OPTIONS} onSelect={setSelectedCity} />
               <button type="button" className="home-discovery__city">
                 {selectedCity}
@@ -1498,7 +1393,7 @@ export function HomeApp() {
 
         <section className="home-section">
           <div className="home-section__head">
-            <h2>Популярные вакансии</h2>
+            <h2 className="ui-type-h1">Популярные вакансии</h2>
           </div>
           <div className="home-section__rail" aria-label="РџРѕРїСѓР»СЏСЂРЅС‹Рµ РІР°РєР°РЅСЃРёРё">
             {popularCardsWithDetails.map((item, index) => (
@@ -1516,7 +1411,7 @@ export function HomeApp() {
 
         <section className="home-section" id="workflow">
           <div className="home-section__head">
-            <h2>Рекомендуемые возможности</h2>
+            <h2 className="ui-type-h1">Рекомендуемые возможности</h2>
           </div>
           <div className="home-section__rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
             {recommendedCardsWithDetails.map((item, index) => (
@@ -1556,8 +1451,8 @@ export function HomeApp() {
               Раз в неделю
             </Tag>
             <div className="home-news-card__copy">
-              <h2>Подпишись на рассылку</h2>
-              <p>Новые стажировки, события и карьерные материалы без лишнего шума.</p>
+              <h2 className="ui-type-h1">Подпишись на рассылку</h2>
+              <p className="ui-type-body">Новые стажировки, события и карьерные материалы без лишнего шума.</p>
             </div>
             <IconButton type="button" variant="accent" size="2xl" className="home-news-card__action" aria-label="Открыть форму подписки">
               <ArrowIcon />

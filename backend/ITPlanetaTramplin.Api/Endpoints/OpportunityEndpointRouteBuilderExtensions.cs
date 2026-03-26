@@ -284,7 +284,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        var applicant = await db.ApplicantProfiles.FirstOrDefaultAsync(item => item.UserId == userId.Value);
+        var applicant = await db.ApplicantProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.UserId == userId.Value);
         var opportunity = await db.Opportunities.FirstOrDefaultAsync(item =>
             item.Id == request.opportunityId &&
             item.DeletedAt == null &&
@@ -293,6 +295,13 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (applicant is null || opportunity is null)
         {
             return Results.NotFound();
+        }
+
+        if (applicant.User.IsVerified != true)
+        {
+            return AuthEndpointSupport.MessageResult(
+                "Подтвердите аккаунт полностью, чтобы отправлять отклики на возможности.",
+                StatusCodes.Status403Forbidden);
         }
 
         var alreadyExists = await db.Applications.AnyAsync(item => item.ApplicantId == applicant.Id && item.OpportunityId == opportunity.Id);

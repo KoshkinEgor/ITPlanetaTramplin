@@ -14,11 +14,11 @@
 
 .ui-placeholder-block__eyebrow {
   color: var(--ui-color-accent);
-  font-size: 0.82rem;
-  line-height: 1.2;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ui-letter-spacing-overline);
 }
 
 .ui-placeholder-block__copy h3,

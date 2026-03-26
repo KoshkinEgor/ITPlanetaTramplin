@@ -13,6 +13,8 @@ public partial class User
 
     public bool? IsVerified { get; set; }
 
+    public bool? PreVerify { get; set; }
+
     public string? EmailVerificationCodeHash { get; set; }
 
     public DateTime? EmailVerificationExpiresAt { get; set; }

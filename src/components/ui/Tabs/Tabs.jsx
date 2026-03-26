@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export function Tabs({
   items = [],
@@ -8,9 +9,11 @@ export function Tabs({
   onChange,
   orientation = "horizontal",
   stretch = false,
+  fontWeight,
   tabListLabel = "Content sections",
   className,
   panelClassName,
+  width,
   ...props
 }) {
   const instanceId = useId();
@@ -19,6 +22,7 @@ export function Tabs({
   const [internalValue, setInternalValue] = useState(defaultValue ?? fallbackValue);
   const currentValue = value ?? internalValue ?? fallbackValue;
   const activeItem = items.find((item) => item.value === currentValue) ?? items[0];
+  const isFullWidth = stretch || width === "full";
 
   if (!items.length) {
     return null;
@@ -46,9 +50,18 @@ export function Tabs({
   };
 
   return (
-    <div className={cn("ui-tabs", orientation === "vertical" && "ui-tabs--vertical", className)} {...props}>
+    <div
+      className={cn(
+        "ui-tabs",
+        orientation === "vertical" && "ui-tabs--vertical",
+        getFontWeightClassName(fontWeight),
+        getWidthClassName(width),
+        className
+      )}
+      {...props}
+    >
       <div
-        className={cn("ui-tabs__list", stretch && "ui-tabs__list--stretch")}
+        className={cn("ui-tabs__list", isFullWidth && "ui-tabs__list--stretch")}
         role="tablist"
         aria-label={tabListLabel}
         aria-orientation={orientation}

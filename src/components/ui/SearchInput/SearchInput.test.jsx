@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { SearchInput } from "./SearchInput";
 
 function ControlledSearchInput() {
-  const [value, setValue] = useState("Поиск возможностей");
+  const [value, setValue] = useState("РџРѕРёСЃРє РІРѕР·РјРѕР¶РЅРѕСЃС‚РµР№");
 
-  return <SearchInput value={value} onValueChange={setValue} clearLabel="Очистить поиск" />;
+  return <SearchInput value={value} onValueChange={setValue} clearLabel="РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє" />;
 }
 
 describe("SearchInput", () => {
@@ -14,7 +14,7 @@ describe("SearchInput", () => {
     render(<ControlledSearchInput />);
 
     const input = screen.getByRole("searchbox");
-    const clearButton = screen.getByRole("button", { name: "Очистить поиск" });
+    const clearButton = screen.getByRole("button", { name: "РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє" });
 
     input.focus();
     fireEvent.mouseDown(clearButton);
@@ -25,9 +25,9 @@ describe("SearchInput", () => {
   });
 
   it("does not render the clear action when the field is disabled", () => {
-    render(<SearchInput value="Поиск возможностей" clearLabel="Очистить поиск" disabled />);
+    render(<SearchInput value="РџРѕРёСЃРє РІРѕР·РјРѕР¶РЅРѕСЃС‚РµР№" clearLabel="РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє" disabled />);
 
-    expect(screen.queryByRole("button", { name: "Очистить поиск" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє" })).not.toBeInTheDocument();
   });
 
   it("applies elevated appearance and lg size classes on the shared shell", () => {
@@ -37,5 +37,14 @@ describe("SearchInput", () => {
 
     expect(shell).toHaveClass("ui-search-input--elevated");
     expect(shell).toHaveClass("ui-search-input--lg");
+  });
+
+  it("applies the shared medium font weight and full width classes on the shell", () => {
+    render(<SearchInput value="" fontWeight="medium" width="full" placeholder="Search" />);
+
+    const shell = screen.getByRole("searchbox").closest(".ui-search-input");
+
+    expect(shell).toHaveClass("ui-font-weight-medium");
+    expect(shell).toHaveClass("ui-width-full");
   });
 });

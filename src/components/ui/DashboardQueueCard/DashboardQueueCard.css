@@ -1,0 +1,60 @@
+.ui-dashboard-queue-card {
+  display: grid;
+  gap: 14px;
+  padding: 24px 26px;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.ui-dashboard-queue-card__badge {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+
+.ui-dashboard-queue-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ui-dashboard-queue-card__top span {
+  color: var(--ui-color-text-soft);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ui-dashboard-queue-card__bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.ui-dashboard-queue-card__copy {
+  display: grid;
+  gap: 8px;
+}
+
+.ui-dashboard-queue-card__copy h3,
+.ui-dashboard-queue-card__copy p {
+  margin: 0;
+}
+
+.ui-dashboard-queue-card__action {
+  min-width: 206px;
+}
+
+@media (max-width: 720px) {
+  .ui-dashboard-queue-card__bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ui-dashboard-queue-card__action {
+    width: 100%;
+    min-width: 0;
+  }
+}

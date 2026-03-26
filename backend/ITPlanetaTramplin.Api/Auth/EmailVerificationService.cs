@@ -115,6 +115,7 @@ internal sealed class EmailVerificationService
         }
 
         user.IsVerified = true;
+        user.PreVerify = true;
         user.EmailVerificationCodeHash = null;
         user.EmailVerificationExpiresAt = null;
         user.EmailVerificationSentAt = null;

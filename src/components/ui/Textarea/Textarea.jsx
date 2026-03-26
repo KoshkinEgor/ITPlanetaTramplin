@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export const Textarea = forwardRef(function Textarea(
   {
@@ -25,6 +26,8 @@ export const Textarea = forwardRef(function Textarea(
     resize = "vertical",
     shellClassName,
     className,
+    fontWeight,
+    width,
     style,
     disabled = false,
     readOnly = false,
@@ -45,6 +48,7 @@ export const Textarea = forwardRef(function Textarea(
     : typeof maxLength === "number"
       ? `${currentLength}/${maxLength}`
       : `${currentLength}`;
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
   const showClear = clearable && !disabled && !readOnly && Boolean(currentValue);
   const showCopy = copyable && !disabled && Boolean(resolvedCopyValue);
   const hasToolbar = showCount || showCopy || showClear;
@@ -92,7 +96,7 @@ export const Textarea = forwardRef(function Textarea(
   const control = (
     <textarea
       ref={textareaRef}
-      className={cn("ui-textarea", focused && "is-focused", hovered && "is-hovered", className)}
+      className={cn("ui-textarea", focused && "is-focused", hovered && "is-hovered", sharedClassName, className)}
       style={{ resize: autoResize ? "none" : resize, ...style }}
       disabled={disabled}
       readOnly={readOnly}
@@ -115,7 +119,7 @@ export const Textarea = forwardRef(function Textarea(
   }
 
   return (
-    <span className={cn("ui-textarea-shell", shellClassName)}>
+    <span className={cn("ui-textarea-shell", sharedClassName, shellClassName)}>
       <span className="ui-textarea-shell__toolbar">
         <span className="ui-textarea-shell__meta">
           {showCount ? (

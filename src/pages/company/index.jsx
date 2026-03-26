@@ -1,9 +1,10 @@
+import { CompanyAccessGuard } from "./CompanyAccessGuard";
 import { CompanyCabinetPage } from "./CompanyCabinetPage";
 import { CompanyOpportunitiesSection } from "../../company-dashboard/CompanyOpportunitiesSection";
 import { CompanyProfileSection } from "../../company-dashboard/CompanyProfileSection";
 import { CompanyResponsesSection } from "../../company-dashboard/CompanyResponsesSection";
 
-export { CompanyCabinetPage };
+export { CompanyAccessGuard, CompanyCabinetPage };
 
 export function CompanyDashboardPage() {
   return <CompanyProfileSection />;

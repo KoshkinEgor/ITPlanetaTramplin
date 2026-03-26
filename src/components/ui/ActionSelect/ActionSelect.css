@@ -1,4 +1,4 @@
-.ui-action-select-shell {
+﻿.ui-action-select-shell {
   position: relative;
   display: inline-flex;
   width: 100%;
@@ -37,10 +37,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight, var(--ui-font-weight-strong));
 }
 
 .ui-action-select__chevron {
@@ -127,9 +127,10 @@
   padding: 10px 14px;
   border-radius: 14px;
   color: var(--ui-color-text);
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: var(--ui-font-size-body);
+  font-weight: var(--ui-font-weight, 600);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
   text-align: left;
   transition:
     background-color var(--ui-transition-base),
@@ -177,10 +178,11 @@
   }
 
   .ui-action-select__label {
-    font-size: var(--ui-typo-txt-select-size);
+    font-size: var(--ui-font-size-body);
   }
 
   .ui-action-select__chevron {
     right: 16px;
   }
 }
+

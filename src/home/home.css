@@ -8,7 +8,7 @@ body.home-react-body {
 }
 
 .home-page {
-  --home-shell-width: min(100% - 64px, 1496px);
+  --home-shell-width: var(--ui-layout-shell-width);
   --home-header-height: 84px;
   min-height: 100vh;
   color: #1d2540;
@@ -16,10 +16,16 @@ body.home-react-body {
 }
 
 .home-page__shell {
-  width: var(--home-shell-width);
-  margin: 0 auto;
   padding: 30px 0 72px;
   overflow-x: clip;
+}
+
+.home-page__header-shell {
+  margin-bottom: 34px;
+}
+
+.home-page__header {
+  padding: 0;
 }
 
 .home-header-shell {
@@ -72,9 +78,10 @@ body.home-react-body {
   min-width: 0;
   flex: 0 0 auto;
   color: #1e2641;
-  font-size: 1.08rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
-  letter-spacing: 0.02em;
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .home-header__brand-text {
@@ -102,8 +109,10 @@ body.home-react-body {
 .home-header__nav-link {
   white-space: nowrap;
   color: #55627f;
-  font-size: 0.95rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 600;
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
   text-decoration: none;
 }
 
@@ -118,6 +127,20 @@ body.home-react-body {
   gap: 12px;
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+.home-header__account {
+  flex: 0 0 auto;
+}
+
+.home-header__account-trigger {
+  min-height: 48px;
+  padding: 2px 8px 2px 2px;
+  gap: 8px;
+}
+
+.home-header__account-panel {
+  right: 0;
 }
 
 .home-header__icon-button {
@@ -147,9 +170,10 @@ body.home-react-body {
   gap: 10px;
   flex-direction: row-reverse;
   color: #33415f;
-  font-size: 0.94rem;
-  line-height: 1;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
   font-weight: 700;
+  letter-spacing: var(--ui-letter-spacing-caption);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -175,9 +199,7 @@ body.home-react-body {
 .home-hero__title {
   margin: 0;
   color: #1f2740;
-  font-size: clamp(3.9rem, 7.4vw, 6.8rem);
-  line-height: 0.88;
-  letter-spacing: -0.08em;
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .home-hero__title span {
@@ -196,9 +218,7 @@ body.home-react-body {
 .home-hero__description {
   max-width: 540px;
   margin: 24px 0 0;
-  color: #687187;
-  font-size: 1.05rem;
-  line-height: 1.5;
+  color: var(--ui-color-text-muted);
 }
 
 .home-hero__actions {
@@ -341,9 +361,7 @@ body.home-react-body {
 .home-discovery__intro p {
   max-width: 620px;
   margin: 0 0 18px;
-  color: #687187;
-  font-size: 1.1rem;
-  line-height: 1.45;
+  color: var(--ui-color-text-muted);
 }
 
 .home-discovery__header {
@@ -367,8 +385,6 @@ body.home-react-body {
 .home-section__head h2 {
   margin: 0;
   color: #202841;
-  font-size: clamp(1.95rem, 4vw, 2.7rem);
-  letter-spacing: -0.06em;
   white-space: nowrap;
 }
 
@@ -716,6 +732,7 @@ body.home-react-body {
 .home-filter-dropdown,
 .home-skills-filter {
   position: relative;
+  display: block;
 }
 
 .home-filter-dropdown__trigger,
@@ -916,7 +933,6 @@ body.home-react-body {
 .home-skills-filter__search .ui-input {
   min-height: 46px;
   padding-left: 44px;
-  font-size: 0.92rem;
   font-weight: 600;
 }
 
@@ -984,13 +1000,15 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.88);
   color: currentColor;
-  font-size: 0.72rem;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
   font-weight: 800;
 }
 
 .home-skills-filter__empty {
   color: #6f7a92;
-  font-size: 0.88rem;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
   font-weight: 600;
 }
 
@@ -1110,13 +1128,15 @@ body.home-react-body {
 
 .home-yandex-map__overlay strong {
   color: #1f2740;
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
 }
 
 .home-yandex-map__overlay p {
   margin: 0;
-  color: #69758f;
-  line-height: 1.5;
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
 }
 
 .home-yandex-map__preview {
@@ -1150,8 +1170,8 @@ body.home-react-body {
 .home-yandex-map__marker .ui-map-marker__label {
   display: none;
   max-width: min(76px, 18vw);
-  font-size: 10px;
-  line-height: 1.1;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
 }
 
 .home-yandex-map.is-marker-labels-visible .home-yandex-map__marker .ui-map-marker__label {
@@ -1191,8 +1211,7 @@ body.home-react-body {
 .home-hub-card__copy p,
 .home-news-card__copy p {
   margin: 0;
-  color: #69758f;
-  line-height: 1.5;
+  color: var(--ui-color-text-muted);
 }
 
 .home-map-label {
@@ -1229,8 +1248,8 @@ body.home-react-body {
 
 .home-map-label small {
   color: rgba(52, 71, 102, 0.72);
-  font-size: 0.74rem;
-  line-height: 1.25;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
   text-align: center;
 }
 
@@ -1312,13 +1331,15 @@ body.home-react-body {
 
 .home-results-empty.ui-card strong {
   color: #1f2740;
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
 }
 
 .home-results-empty.ui-card p {
   margin: 0;
-  color: #69758f;
-  line-height: 1.5;
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
 }
 
 .home-discovery__grid--map .home-results-grid {
@@ -1378,18 +1399,12 @@ body.home-react-body {
 
 .home-advanced-search__header p {
   margin: 0 0 6px;
-  color: #6c7892;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--ui-color-text-muted);
 }
 
 .home-advanced-search__header h3 {
   margin: 0;
   color: #1f2740;
-  font-size: 1.5rem;
-  letter-spacing: -0.05em;
 }
 
 .home-advanced-search__reset.ui-button {
@@ -1432,7 +1447,6 @@ body.home-react-body {
   box-shadow: none;
   padding-inline: 16px;
   color: #2a3550;
-  font-size: 0.94rem;
   font-weight: 600;
 }
 
@@ -1490,7 +1504,6 @@ body.home-react-body {
 }
 
 .home-advanced-search__apply.ui-button {
-  width: 100%;
   min-height: 48px;
   border-radius: 999px;
   box-shadow: none;
@@ -1501,7 +1514,6 @@ body.home-react-body {
 .home-news-card__copy h2 {
   margin: 0;
   color: #1f2740;
-  letter-spacing: -0.04em;
 }
 
 .home-discovery__more {
@@ -1563,10 +1575,6 @@ body.home-react-body {
   scroll-snap-align: start;
 }
 
-.home-section__rail .home-opportunity-entry__action.ui-button {
-  width: 100%;
-}
-
 .home-hubs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1587,10 +1595,6 @@ body.home-react-body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-}
-
-.home-hub-card__copy h3 {
-  font-size: clamp(2rem, 4vw, 3rem);
 }
 
 .home-hub-card__avatars {
@@ -1690,14 +1694,10 @@ body.home-react-body {
   margin: 0;
   max-width: none;
   color: rgba(48, 57, 80, 0.74);
-  font-size: 1rem;
-  line-height: 1.45;
 }
 
 .home-news-card__copy h2 {
   max-width: none;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.96;
 }
 
 .home-news-card__footer {
@@ -1780,7 +1780,8 @@ body.home-react-body {
 
 .home-news-modal__label {
   color: #5f6d88;
-  font-size: 0.84rem;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
   font-weight: 800;
 }
 
@@ -1790,15 +1791,14 @@ body.home-react-body {
   border-color: rgba(24, 29, 45, 0.08);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: none;
-  font-size: 0.98rem;
   font-weight: 600;
 }
 
 .home-news-modal__caption,
 .home-news-modal__error {
   margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.5;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
 }
 
 .home-news-modal__caption {
@@ -1921,11 +1921,10 @@ body.home-react-body {
 
 @media (max-width: 760px) {
   .home-page {
-    --home-shell-width: min(100% - 24px, 1496px);
+    --home-shell-width: var(--ui-layout-shell-width-mobile);
   }
 
   .home-page__shell {
-    width: var(--home-shell-width);
     padding-top: 18px;
   }
 
@@ -2084,7 +2083,6 @@ body.home-react-body {
 
   .home-news-card__copy h2 {
     max-width: none;
-    font-size: clamp(2rem, 10vw, 3rem);
   }
 
   .home-news-card__footer {

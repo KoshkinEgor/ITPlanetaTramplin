@@ -186,6 +186,7 @@ function OpportunityCardBase({
           onClick={action.onClick}
           variant={action.variant}
           size={actionButtonSize}
+          width={action.width ?? (variant === "row" ? "full" : undefined)}
           className={cn("ui-opportunity-card__action", action.className)}
         >
           {action.label}

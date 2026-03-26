@@ -54,6 +54,7 @@ internal static class AuthEndpointSupport
             Email = user.Email,
             Role = role,
             IsVerified = user.IsVerified ?? false,
+            PreVerify = user.PreVerify ?? false,
             DisplayName = BuildDisplayName(user, role),
         };
 

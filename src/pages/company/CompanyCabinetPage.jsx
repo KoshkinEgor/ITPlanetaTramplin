@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { routes } from "../../app/routes";
 import { getCompanyOpportunities, getCompanyProfile } from "../../api/company";
+import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
 import { COMPANY_HEADER_NAV, COMPANY_SIDEBAR_ITEMS } from "../../company-dashboard/config";
 import { buildCompanySummaryStats, loadCompanyApplications, translateVerificationStatus } from "../../company-dashboard/utils";
 import { CompanyProfileSummary } from "../../features/company";
@@ -114,6 +115,7 @@ export function CompanyCabinetPage() {
           title="Кабинет компании"
           items={COMPANY_SIDEBAR_ITEMS}
           activeKey={activeKey}
+          footerSummary={<SessionLogoutButton />}
         />
       )}
       summary={summary}

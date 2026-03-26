@@ -1,0 +1,39 @@
+.ui-dashboard-activity-card {
+  display: grid;
+  gap: 14px;
+  padding: 24px 26px;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.ui-dashboard-activity-card__badge {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+
+.ui-dashboard-activity-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ui-dashboard-activity-card__top span {
+  color: var(--ui-color-text-soft);
+  font-size: var(--ui-font-size-caption);
+  font-weight: 700;
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+}
+
+.ui-dashboard-activity-card__copy {
+  display: grid;
+  gap: 8px;
+}
+
+.ui-dashboard-activity-card__copy h3,
+.ui-dashboard-activity-card__copy p {
+  margin: 0;
+}

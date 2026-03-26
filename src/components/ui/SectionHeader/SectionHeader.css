@@ -10,14 +10,6 @@
   gap: 12px;
 }
 
-.ui-section-header--medium .ui-type-h1 {
-  font-size: var(--ui-font-size-h2);
-}
-
-.ui-section-header--compact .ui-type-h1 {
-  font-size: var(--ui-font-size-h2);
-}
-
 .ui-section-header--centered {
   justify-content: center;
   text-align: center;
@@ -46,8 +38,9 @@
 .ui-section-header__eyebrow {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-micro);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  line-height: var(--ui-line-height-micro);
+  font-weight: var(--ui-font-weight-strong);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 

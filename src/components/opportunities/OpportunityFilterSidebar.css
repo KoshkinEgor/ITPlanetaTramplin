@@ -141,10 +141,6 @@
   background: linear-gradient(180deg, #7bda6f 0%, #43b05a 100%);
 }
 
-.opportunity-filter-sidebar__teaser-action.ui-button {
-  width: 100%;
-}
-
 .opportunity-filter-sidebar__content {
   display: grid;
   gap: 18px;

@@ -1,0 +1,37 @@
+.ui-dashboard-focus-card {
+  gap: 18px;
+  padding: 24px;
+  border-radius: 28px;
+  border-color: rgba(129, 156, 198, 0.14);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(47, 128, 255, 0.04), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 255, 0.98));
+}
+
+.ui-dashboard-focus-card__copy {
+  display: grid;
+  gap: 12px;
+}
+
+.ui-dashboard-focus-card__copy h3,
+.ui-dashboard-focus-card__copy p {
+  margin: 0;
+}
+
+.ui-dashboard-focus-card__copy p {
+  color: var(--ui-color-text-muted);
+}
+
+.ui-dashboard-focus-card__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(24, 29, 45, 0.06);
+  color: var(--ui-color-text-soft);
+  font-size: 0.98rem;
+  font-weight: 800;
+}

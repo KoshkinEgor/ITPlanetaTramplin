@@ -27,23 +27,23 @@
 }
 
 .ui-response-card__title {
-  font-size: clamp(1.9rem, 2.6vw, 2.15rem);
-  line-height: 1.08;
-  letter-spacing: -0.05em;
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
+  letter-spacing: var(--ui-letter-spacing-h1);
 }
 
 .ui-response-card__subtitle {
   color: #6a7897;
-  font-size: 1rem;
-  line-height: 1.35;
-  font-weight: 600;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight-regular);
 }
 
 .ui-response-card__status {
   min-width: 144px;
   min-height: 54px;
   padding-inline: 26px;
-  font-size: 0.98rem;
 }
 
 .ui-response-card__tags {
@@ -55,8 +55,10 @@
 .ui-response-card__tag {
   min-height: 44px;
   padding-inline: 20px;
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-strong);
   color: #6f7c99;
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(24, 29, 45, 0.08);
@@ -65,8 +67,9 @@
 .ui-response-card__description {
   max-width: 980px;
   color: #6a7897;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-response-card__actions {
@@ -82,8 +85,6 @@
   width: 100%;
   min-height: 64px;
   border-width: 2px;
-  font-size: 1rem;
-  font-weight: 800;
 }
 
 .ui-response-card__action--accent {

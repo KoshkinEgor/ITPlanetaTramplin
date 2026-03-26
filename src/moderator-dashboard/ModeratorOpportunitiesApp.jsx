@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { decideOpportunityModeration, getModerationOpportunities } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Button, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import {
-  ModeratorDecisionStack,
-  ModeratorFilterPill,
-  ModeratorPageIntro,
-  ModeratorSearchBar,
-  ModeratorStatusBadge,
-} from "./shared";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, ModerationDecisionSelect, Tag } from "../shared/ui";
+import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
+import { MODERATION_DECISION_OPTIONS } from "./moderationDecisionOptions";
 
 const MODERATION_FILTERS = [
   { value: "all", label: "Все" },
@@ -65,9 +60,57 @@ function formatDate(value) {
   }).format(parsed);
 }
 
+function getOpportunityLocation(item) {
+  return item.locationCity || item.locationAddress || "Не указана";
+}
+
+function getInitialDecision(item) {
+  return MODERATION_DECISION_OPTIONS.some((option) => option.value === item?.moderationStatus) ? item.moderationStatus : "approved";
+}
+
+function getOpportunityDecisionDialog(option, item) {
+  const actionLabelByDecision = {
+    approved: "Одобрить публикацию",
+    revision: "Отправить публикацию на доработку",
+    rejected: "Отклонить публикацию",
+  };
+
+  const descriptionByDecision = item?.title
+    ? {
+        approved: `Публикация «${item.title}» будет одобрена сразу после подтверждения.`,
+        revision: `Публикация «${item.title}» вернется компании со статусом «Доработка».`,
+        rejected: `Публикация «${item.title}» получит статус «Отклонено» после подтверждения.`,
+      }
+    : {
+        approved: "Выбранная публикация будет одобрена сразу после подтверждения.",
+        revision: "Выбранная публикация вернется компании со статусом «Доработка».",
+        rejected: "Выбранная публикация получит статус «Отклонено» после подтверждения.",
+      };
+
+  return {
+    actionLabel: actionLabelByDecision[option.value] ?? option.label,
+    question: "Вы уверены?",
+    description: descriptionByDecision[option.value] ?? "Изменение будет применено после подтверждения.",
+    confirmLabel: option.confirmationButtonLabel ?? option.label,
+    reasonLabel: option.value === "approved" ? undefined : "Причина отказа",
+    reasonPlaceholder:
+      option.value === "revision"
+        ? "Например, не указан формат мероприятия"
+        : option.value === "rejected"
+          ? "Например, публикация нарушает правила платформы"
+          : undefined,
+    reasonResetLabel: option.value === "approved" ? undefined : "Сбросить",
+  };
+}
+
 function OpportunityRow({ item, selected, onSelect }) {
   return (
-    <button type="button" className={`moderator-table__row ${selected ? "is-active" : ""}`.trim()} onClick={() => onSelect(item.id)}>
+    <button
+      type="button"
+      className={`moderator-table__row ${selected ? "is-active" : ""}`.trim()}
+      aria-pressed={selected}
+      onClick={() => onSelect(item.id)}
+    >
       <span className="moderator-table__cell moderator-table__cell--title">{item.title}</span>
       <span className="moderator-table__cell">{item.companyName}</span>
       <span className="moderator-table__cell">
@@ -77,6 +120,32 @@ function OpportunityRow({ item, selected, onSelect }) {
       <span className="moderator-table__cell moderator-table__cell--status">
         <ModeratorStatusBadge label={translateStatus(item.moderationStatus)} tone={item.moderationStatus} />
       </span>
+    </button>
+  );
+}
+
+function OpportunityCompactCard({ item, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      className={`moderator-opportunity-compact ${selected ? "is-active" : ""}`.trim()}
+      aria-pressed={selected}
+      onClick={() => onSelect(item.id)}
+    >
+      <div className="moderator-opportunity-compact__top">
+        <Tag>{translateOpportunityType(item.opportunityType)}</Tag>
+        <ModeratorStatusBadge label={translateStatus(item.moderationStatus)} tone={item.moderationStatus} />
+      </div>
+
+      <div className="moderator-opportunity-compact__copy">
+        <strong className="moderator-opportunity-compact__title">{item.title}</strong>
+        <span className="moderator-opportunity-compact__company">{item.companyName}</span>
+      </div>
+
+      <div className="moderator-opportunity-compact__meta">
+        <span>{getOpportunityLocation(item)}</span>
+        <span>{formatDate(item.publishAt)}</span>
+      </div>
     </button>
   );
 }
@@ -98,7 +167,6 @@ export function ModeratorOpportunitiesApp() {
         const items = await getModerationOpportunities(controller.signal);
         const normalizedItems = Array.isArray(items) ? items : [];
         setState({ status: "ready", items: normalizedItems, error: null });
-        setSelectedId((current) => current ?? normalizedItems[0]?.id ?? null);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -122,9 +190,31 @@ export function ModeratorOpportunitiesApp() {
     });
   }, [query, state.items, statusFilter]);
 
-  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
+  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? null;
 
-  async function handleDecisionSubmit() {
+  useEffect(() => {
+    if (selectedId === null) {
+      return;
+    }
+
+    if (!filteredItems.some((item) => item.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [filteredItems, selectedId]);
+
+  useEffect(() => {
+    setDecision(getInitialDecision(activeItem));
+  }, [activeItem]);
+
+  function handleOpportunitySelect(nextId) {
+    setSelectedId((current) => (current === nextId ? null : nextId));
+
+    if (decisionState.status !== "idle") {
+      setDecisionState({ status: "idle", error: "" });
+    }
+  }
+
+  async function handleDecisionSubmit(nextDecision) {
     if (!activeItem) {
       return;
     }
@@ -132,7 +222,8 @@ export function ModeratorOpportunitiesApp() {
     setDecisionState({ status: "saving", error: "" });
 
     try {
-      await decideOpportunityModeration(activeItem.id, decision);
+      await decideOpportunityModeration(activeItem.id, nextDecision);
+      setDecision(nextDecision);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -140,14 +231,15 @@ export function ModeratorOpportunitiesApp() {
         status: "error",
         error: error?.message ?? "Не удалось применить решение модерации.",
       });
+      throw error;
     }
   }
 
   return (
     <>
-      <ModeratorPageIntro
+      <DashboardPageHeader
         title="Модерация возможностей"
-        description="Список и решения читаются из реальных moderation endpoints, без статических карточек и демо-медиа."
+        description="Проверка вакансий, стажировок и мероприятий с быстрыми решениями и детальной карточкой."
       />
 
       <div className="moderator-toolbar-stack">
@@ -189,44 +281,65 @@ export function ModeratorOpportunitiesApp() {
         </Alert>
       ) : null}
 
+      {decisionState.status === "success" ? (
+        <Alert tone="success" title="Решение применено" showIcon>
+          Статус публикации обновлен в backend.
+        </Alert>
+      ) : null}
+
       {state.status === "ready" ? (
-        <section className="moderator-review-grid">
+        <section className={`moderator-review-grid ${activeItem ? "moderator-review-grid--with-detail" : ""}`.trim()}>
           <Card className="moderator-panel moderator-panel--list moderator-fade-up moderator-fade-up--delay-2">
             <div className="moderator-panel__head moderator-panel__head--queue">
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Возможности</Tag>
-                <h2 className="ui-type-h1">Список публикаций</h2>
-                <p className="ui-type-body-lg">Выберите карточку слева и примените решение модерации справа.</p>
+                <h2 className="ui-type-h2">Список публикаций</h2>
+                <p className="ui-type-body">Выберите карточку слева и примените решение модерации справа.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
 
             {filteredItems.length ? (
-              <div className="moderator-table moderator-table--opportunities">
-                <div className="moderator-table__header">
-                  <span>Название</span>
-                  <span>Компания</span>
-                  <span>Тип</span>
-                  <span>Дата</span>
-                  <span>Статус</span>
+              <>
+                <div className="moderator-table-shell moderator-table-shell--opportunities">
+                  <div className="moderator-table moderator-table--opportunities">
+                    <div className="moderator-table__header">
+                      <span>Название</span>
+                      <span>Компания</span>
+                      <span>Тип</span>
+                      <span>Дата</span>
+                      <span>Статус</span>
+                    </div>
+                    <div className="moderator-table__body">
+                      {filteredItems.map((item) => (
+                        <OpportunityRow key={item.id} item={item} selected={item.id === selectedId} onSelect={handleOpportunitySelect} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="moderator-table__body">
+
+                <div className="moderator-opportunity-compact-list">
                   {filteredItems.map((item) => (
-                    <OpportunityRow key={item.id} item={item} selected={item.id === activeItem?.id} onSelect={setSelectedId} />
+                    <OpportunityCompactCard
+                      key={item.id}
+                      item={item}
+                      selected={item.id === selectedId}
+                      onSelect={handleOpportunitySelect}
+                    />
                   ))}
                 </div>
-              </div>
+              </>
             ) : (
               <EmptyState title="Публикации не найдены" description="Попробуйте изменить фильтр или поисковый запрос." tone="neutral" compact />
             )}
           </Card>
 
-          <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
-            <div className="moderator-panel__copy">
-              <h2 className="ui-type-h1">Детальная проверка</h2>
-            </div>
+          {activeItem ? (
+            <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
+              <div className="moderator-panel__copy">
+                <h2 className="ui-type-h2">Детальная проверка</h2>
+              </div>
 
-            {activeItem ? (
               <div className="moderator-detail-surface">
                 <div className="moderator-detail-surface__top">
                   <Tag>{translateOpportunityType(activeItem.opportunityType)}</Tag>
@@ -234,14 +347,14 @@ export function ModeratorOpportunitiesApp() {
                 </div>
 
                 <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h1">{activeItem.title}</h3>
-                  <p className="ui-type-body-lg moderator-detail-surface__company">{activeItem.companyName}</p>
+                  <h3 className="ui-type-h3">{activeItem.title}</h3>
+                  <p className="ui-type-body moderator-detail-surface__company">{activeItem.companyName}</p>
                 </div>
 
                 <dl className="moderator-detail-facts">
                   <div>
                     <dt>Локация:</dt>
-                    <dd>{activeItem.locationCity || activeItem.locationAddress || "Не указана"}</dd>
+                    <dd>{getOpportunityLocation(activeItem)}</dd>
                   </div>
                   <div>
                     <dt>Дата публикации:</dt>
@@ -259,23 +372,18 @@ export function ModeratorOpportunitiesApp() {
 
                 <section className="moderator-detail-group">
                   <h4 className="ui-type-h3">Решение модерации</h4>
-                  <ModeratorDecisionStack
-                    items={[
-                      { key: "rejected", label: "Отклонить", tone: "reject", active: decision === "rejected", onClick: () => setDecision("rejected") },
-                      { key: "revision", label: "На доработку", tone: "revision", active: decision === "revision", onClick: () => setDecision("revision") },
-                      { key: "approved", label: "Одобрить", tone: "approve", active: decision === "approved", onClick: () => setDecision("approved") },
-                    ]}
+                  <ModerationDecisionSelect
+                    value={decision}
+                    options={MODERATION_DECISION_OPTIONS}
+                    disabled={!activeItem}
+                    busy={decisionState.status === "saving"}
+                    onConfirm={handleDecisionSubmit}
+                    getDialogProps={(option) => getOpportunityDecisionDialog(option, activeItem)}
                   />
                 </section>
-
-                <Button className="moderator-detail-surface__submit" onClick={handleDecisionSubmit} disabled={decisionState.status === "saving"}>
-                  {decisionState.status === "saving" ? "Применяем..." : "Применить решение"}
-                </Button>
               </div>
-            ) : (
-              <EmptyState title="Публикация не выбрана" description="Выберите строку в таблице, чтобы открыть детали." tone="neutral" compact />
-            )}
-          </Card>
+            </Card>
+          ) : null}
         </section>
       ) : null}
     </>

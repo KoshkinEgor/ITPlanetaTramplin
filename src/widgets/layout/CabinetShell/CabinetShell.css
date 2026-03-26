@@ -15,11 +15,6 @@
     radial-gradient(circle at 10% 100%, rgba(47, 128, 255, 0.1), transparent 24%);
 }
 
-.cabinet-shell__frame {
-  width: min(1480px, calc(100% - 48px));
-  margin: 0 auto;
-}
-
 .cabinet-shell__header {
   margin-bottom: 10px;
 }
@@ -81,8 +76,10 @@
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--ui-color-text);
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight-strong);
   text-decoration: none;
   transition:
     border-color var(--ui-transition-base),
@@ -103,13 +100,33 @@
 
 .cabinet-sidebar__badge {
   color: var(--ui-color-text-muted);
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .cabinet-sidebar__footer {
   display: grid;
   gap: 12px;
+}
+
+.cabinet-sidebar__footer-stack,
+.session-logout-button {
+  display: grid;
+  gap: 12px;
+}
+
+.cabinet-sidebar__footer .ui-button {
+  width: 100%;
+}
+
+.session-logout-button__error {
+  margin: 0;
+  color: var(--ui-color-danger);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .cabinet-content-section {
@@ -137,11 +154,11 @@
 
 .cabinet-content-section__eyebrow {
   color: var(--ui-color-accent);
-  font-size: 0.82rem;
-  line-height: 1.2;
-  font-weight: 800;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
+  font-weight: var(--ui-font-weight-strong);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ui-letter-spacing-overline);
 }
 
 .cabinet-content-section__actions,
@@ -163,9 +180,5 @@
 @media (max-width: 680px) {
   .cabinet-shell {
     padding-top: 18px;
-  }
-
-  .cabinet-shell__frame {
-    width: min(100% - 24px, 1480px);
   }
 }

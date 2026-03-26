@@ -1,5 +1,6 @@
 import { cloneElement, isValidElement, useId } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export function ChoiceGroup({
   as = "fieldset",
@@ -13,6 +14,8 @@ export function ChoiceGroup({
   disabled = false,
   orientation = "vertical",
   compact = false,
+  fontWeight,
+  width,
   className,
   legendClassName,
   contentClassName,
@@ -91,7 +94,7 @@ export function ChoiceGroup({
   if (Element === "fieldset") {
     return (
       <fieldset
-        className={cn("ui-choice-group", stateClass, className)}
+        className={cn("ui-choice-group", stateClass, getFontWeightClassName(fontWeight), getWidthClassName(width), className)}
         disabled={disabled}
         aria-describedby={messageId}
         aria-invalid={error ? true : undefined}
@@ -104,7 +107,7 @@ export function ChoiceGroup({
 
   return (
     <Element
-      className={cn("ui-choice-group", stateClass, className)}
+      className={cn("ui-choice-group", stateClass, getFontWeightClassName(fontWeight), getWidthClassName(width), className)}
       role={props.role ?? "group"}
       aria-labelledby={legendId}
       aria-describedby={messageId}

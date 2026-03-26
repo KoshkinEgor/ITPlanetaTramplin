@@ -25,6 +25,7 @@ import {
   loginRoleOptions,
   loginRoleViews,
 } from "./content";
+import { useBodyClass } from "../shared/lib/useBodyClass";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const innPattern = /^\d{10,12}$/;
@@ -186,9 +187,8 @@ function buildEmployerVerificationData(payload) {
   return JSON.stringify(payload);
 }
 
-function isEmployerIdentifierValid(value) {
-  const normalizedValue = value.trim();
-  return emailPattern.test(normalizedValue) || /^\d{10,12}$/.test(normalizedValue);
+function isEmployerInnValid(value) {
+  return innPattern.test(value.trim());
 }
 
 function isEmployerRole(role) {
@@ -299,7 +299,7 @@ function LoginDetailsScreen() {
     password: "",
   });
   const [employerForm, setEmployerForm] = useState({
-    identifier: "",
+    inn: "",
     password: "",
   });
   const [errors, setErrors] = useState({});
@@ -315,7 +315,7 @@ function LoginDetailsScreen() {
     if (isEmployerRole(role)) {
       setEmployerForm((current) => ({
         ...current,
-        [field]: field === "identifier" && /^\d+$/.test(nextValue) ? nextValue.slice(0, 12) : nextValue,
+        [field]: field === "inn" ? normalizeInnInput(nextValue) : nextValue,
       }));
       return;
     }
@@ -327,8 +327,8 @@ function LoginDetailsScreen() {
     const nextErrors = {};
 
     if (isEmployerRole(role)) {
-      if (!isEmployerIdentifierValid(activeForm.identifier)) {
-        nextErrors.identifier = "Введите рабочий email или ИНН";
+      if (!isEmployerInnValid(activeForm.inn)) {
+        nextErrors.inn = "Введите ИНН компании";
       }
     } else if (!emailPattern.test(activeForm.email.trim())) {
       nextErrors.email = "Введите корректный email";
@@ -345,7 +345,7 @@ function LoginDetailsScreen() {
     role === "curator"
       ? "Введите Email и пароль, чтобы открыть кабинет куратора."
       : isEmployerRole(role)
-      ? "Введите Email или ИНН и пароль, чтобы открыть кабинет работодателя."
+      ? "Введите ИНН и пароль, чтобы открыть кабинет работодателя."
       : "Введите Email и пароль, чтобы открыть личный кабинет соискателя.";
 
   return (
@@ -382,7 +382,7 @@ function LoginDetailsScreen() {
                 await submitLogin({
                   role,
                   email: activeForm.email,
-                  identifier: activeForm.identifier,
+                  inn: activeForm.inn,
                   password: activeForm.password,
                 });
 
@@ -409,13 +409,14 @@ function LoginDetailsScreen() {
           >
             <div className="auth-field-grid auth-field-grid--single auth-login-details-field-grid">
               {isEmployerRole(role) ? (
-                <FormField label="Email или ИНН" error={errors.identifier} required className="auth-register-field auth-login-details-field">
+                <FormField label="ИНН" error={errors.inn} required className="auth-register-field auth-login-details-field">
                   <Input
-                    value={activeForm.identifier}
-                    autoComplete="username"
+                    value={activeForm.inn}
+                    autoComplete="off"
+                    inputMode="numeric"
                     className="auth-register-input auth-login-details-input"
-                    placeholder="Введите Email или ИНН"
-                    onChange={(event) => updateActiveForm("identifier", event.target.value)}
+                    placeholder="Введите ИНН"
+                    onChange={(event) => updateActiveForm("inn", event.target.value)}
                   />
                 </FormField>
               ) : (
@@ -1680,7 +1681,6 @@ function CompanyExtendedScreen() {
     companyName: "",
     legalName: "",
     taxId: "",
-    email: "",
     password: "",
     website: "",
     phone: "",
@@ -1760,10 +1760,6 @@ function CompanyExtendedScreen() {
       nextErrors.taxId = "Введите ИНН компании";
     }
 
-    if (!emailPattern.test(form.email.trim())) {
-      nextErrors.email = "Введите корпоративный email";
-    }
-
     const passwordError = validateRegistrationPassword(form.password);
     if (passwordError) {
       nextErrors.password = passwordError;
@@ -1796,7 +1792,7 @@ function CompanyExtendedScreen() {
           <AuthHero
             badge="Расширенная регистрация компании"
             title="Подтвердите компанию сразу"
-            description="Эта версия собирает больше данных о компании и контактном лице. После подтверждения почты можно запустить экспресс-проверку без дополнительного шага в личном кабинете."
+            description="Эта версия собирает больше данных о компании и контактном лице. После сверки ИНН кабинет откроется сразу, а расширенные сведения попадут в профиль и очередь проверки."
           />
 
           <form
@@ -1816,7 +1812,6 @@ function CompanyExtendedScreen() {
                 action: () =>
                   submitRegistration({
                     role: "employer",
-                    email: form.email,
                     password: form.password,
                     companyName: form.companyName,
                     inn: form.taxId,
@@ -1833,12 +1828,7 @@ function CompanyExtendedScreen() {
                       firstPublish: form.firstPublish,
                     }),
                   }),
-                resolveTarget: (result) =>
-                  buildConfirmationTarget({
-                    role: "employer",
-                    flow: result?.verificationFlow || "employer-verify",
-                    email: result?.email || form.email,
-                  }),
+                target: routes.company.dashboard,
                 navigate,
                 setLoading,
                 setSubmitError,
@@ -1894,16 +1884,6 @@ function CompanyExtendedScreen() {
                       void runCompanyInnLookup(form.taxId);
                     }
                   }}
-                />
-              </FormField>
-
-              <FormField label="Корпоративная почта" error={errors.email} required>
-                <Input
-                  type="email"
-                  value={form.email}
-                  autoComplete="email"
-                  placeholder="careers@orbitlabs.ai"
-                  onChange={(event) => updateField("email", event.target.value)}
                 />
               </FormField>
 
@@ -2010,7 +1990,7 @@ function CompanyExtendedScreen() {
             </div>
 
             <AuthNote title="Экспресс-проверка" accent>
-              После подтверждения email заявка будет считаться полной: это сокращает путь до публикации и убирает отдельный шаг подтверждения компании в кабинете.
+              После регистрации вы сразу попадёте в кабинет компании. Данные из этой формы сохранятся в профиле и помогут пройти ручную проверку быстрее.
             </AuthNote>
 
             <FormField error={errors.terms} className="auth-screen__checkbox-field">
@@ -2018,7 +1998,7 @@ function CompanyExtendedScreen() {
                 checked={form.terms}
                 onChange={(event) => updateField("terms", event.target.checked)}
                 label="Подтверждаю, что могу представлять компанию в сервисе"
-                hint="Домен, почта и контактные данные принадлежат работодателю или используются с его согласия."
+                hint="Контактные данные и сведения о компании принадлежат работодателю или используются с его согласия."
               />
             </FormField>
 
@@ -2030,7 +2010,7 @@ function CompanyExtendedScreen() {
 
             <div className="auth-screen__actions">
               <Button type="submit" loading={loading}>
-                Подтвердить почту и отправить на проверку
+                Создать кабинет и отправить данные на проверку
               </Button>
               <Button as="a" href="/auth/register/company" variant="secondary">
                 Вернуться к короткой форме
@@ -2516,7 +2496,6 @@ function CompanyQuickScreenCompact() {
   const [form, setForm] = useState({
     companyName: "",
     inn: "",
-    email: "",
     password: "",
   });
   const [innLookup, setInnLookup] = useState(null);
@@ -2587,22 +2566,12 @@ function CompanyQuickScreenCompact() {
       nextErrors.inn = "Введите ИНН компании";
     }
 
-    if (!emailPattern.test(form.email.trim())) {
-      nextErrors.email = "Введите рабочий email";
-    }
-
     const passwordError = validateRegistrationPassword(form.password);
     if (passwordError) {
       nextErrors.password = passwordError;
     }
 
     return nextErrors;
-  };
-
-  const validateEmailAgainstInn = (emailValue, lookupValue = innLookup) => {
-    const mismatchReason = getCompanyEmailMismatchReason(emailValue, lookupValue);
-    setErrors((current) => ({ ...current, email: mismatchReason || "" }));
-    return mismatchReason;
   };
 
   return (
@@ -2614,7 +2583,7 @@ function CompanyQuickScreenCompact() {
             centered
             className="auth-register-hero"
             title="Регистрация"
-            description="Выберите роль и заполните форму компании. После сверки ИНН и email отправим код подтверждения на почту."
+            description="Выберите роль и заполните форму компании. После сверки ИНН кабинет работодателя откроется сразу."
             titleClassName="ui-type-h2"
             descriptionClassName="ui-type-body"
           />
@@ -2646,28 +2615,16 @@ function CompanyQuickScreenCompact() {
                 return;
               }
 
-              const emailMismatchReason = validateEmailAgainstInn(form.email, resolvedInnLookup);
-              if (emailMismatchReason) {
-                setSubmitError(emailMismatchReason);
-                return;
-              }
-
               await submitAndNavigate({
                 action: () =>
                   submitRegistration({
                     role: "employer",
-                    email: form.email,
                     password: form.password,
                     companyName: form.companyName.trim() || resolvedInnLookup.companyName || "",
                     inn: resolvedInnLookup.inn,
                     legalAddress: resolvedInnLookup.legalAddress || "",
                   }),
-                resolveTarget: (result) =>
-                  buildConfirmationTarget({
-                    role: "employer",
-                    flow: result?.verificationFlow || "employer-start",
-                    email: result?.email || form.email,
-                  }),
+                target: routes.company.dashboard,
                 navigate,
                 setLoading,
                 setSubmitError,
@@ -2752,20 +2709,6 @@ function CompanyQuickScreenCompact() {
                 />
               </FormField>
 
-              <FormField label="Корпоративный Email" error={errors.email} required className="auth-register-field">
-                <Input
-                  type="email"
-                  value={form.email}
-                  autoComplete="email"
-                  className="auth-register-input"
-                  placeholder="Введите корпоративный Email"
-                  onChange={(event) => updateField("email", event.target.value)}
-                  onBlur={() => {
-                    validateEmailAgainstInn(form.email, innLookup);
-                  }}
-                />
-              </FormField>
-
               <FormField
                 label="Пароль"
                 error={errors.password}
@@ -2798,7 +2741,7 @@ function CompanyQuickScreenCompact() {
 
             <div className="auth-screen__actions auth-register-actions">
               <Button type="submit" size="sm" loading={loading} className="auth-register-button">
-                Зарегистрироваться
+                Создать кабинет
               </Button>
             </div>
 
@@ -2832,6 +2775,8 @@ const screenMap = {
 };
 
 export function AuthApp({ page = "login" }) {
+  useBodyClass("auth-react-body");
+
   const Screen = screenMap[page] ?? LoginScreen;
   return <Screen />;
 }

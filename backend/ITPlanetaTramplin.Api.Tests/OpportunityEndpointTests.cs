@@ -1,4 +1,5 @@
 using Application.DBContext;
+using DTO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -18,7 +19,7 @@ public class OpportunityEndpointTests
         var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
         {
             role = "company",
-            login = "demo-company@tramplin.local",
+            login = "7707083893",
             password = "Demo1234",
         });
 
@@ -56,5 +57,73 @@ public class OpportunityEndpointTests
             var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
             Assert.Equal("remote", opportunity.EmploymentType);
         }
+    }
+
+    [Fact]
+    public async Task ApplyToOpportunity_RequiresFullAccountVerification()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var companyLoginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, companyLoginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Verification required opportunity",
+            description = "Created from test",
+            opportunityType = "internship",
+            employmentType = "part-time",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Verification required opportunity");
+            opportunity.ModerationStatus = "approved";
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
+        }
+
+        await client.PostAsync("/api/auth/logout", null);
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/candidate", new
+        {
+            email = "apply-unverified@tramplin.local",
+            password = "Password1",
+            name = "Apply",
+            surname = "Candidate",
+            thirdname = "User",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+        var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(registrationPayload);
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "candidate",
+            login = registrationPayload!.Email,
+            password = "Password1",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var applyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, applyResponse.StatusCode);
+
+        var applyError = await applyResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(applyError);
+        Assert.Contains("Подтвердите аккаунт", applyError!.Message);
     }
 }

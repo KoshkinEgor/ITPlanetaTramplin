@@ -425,7 +425,7 @@ export function OpportunitiesCatalogApp() {
 
   return (
     <main className="opportunities-browser">
-      <div className="opportunities-browser__shell">
+      <div className="opportunities-browser__shell ui-page-shell">
         <PortalHeader
           navItems={NAV_ITEMS}
           currentKey="opportunities"
@@ -489,6 +489,7 @@ export function OpportunitiesCatalogApp() {
                   clearLabel="Очистить поиск"
                   appearance="elevated"
                   size="lg"
+                  width="full"
                   className="opportunities-browser__search"
                 />
 
@@ -549,7 +550,7 @@ export function OpportunitiesCatalogApp() {
                 )}
 
                 {filteredItems.length > visibleCount ? (
-                  <Button variant="secondary" size="lg" className="opportunities-browser__more-button" onClick={() => setVisibleCount((current) => current + 3)}>
+                  <Button variant="secondary" size="lg" width="full" className="opportunities-browser__more-button" onClick={() => setVisibleCount((current) => current + 3)}>
                     Больше возможностей
                   </Button>
                 ) : null}

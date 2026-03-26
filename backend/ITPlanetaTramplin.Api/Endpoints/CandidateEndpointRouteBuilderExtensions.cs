@@ -36,16 +36,16 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
 
         api.MapGet("/applicant", GetLegacyCandidateProfileAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/applicant/education", CreateCandidateEducationAsync).RequireAuthorization("requireCandidateRole");
-        api.MapGet("/applicant/{applicantId:int}/education", GetCandidateEducationByApplicantIdAsync);
+        api.MapGet("/applicant/{applicantId:int}/education", GetCandidateEducationByApplicantIdAsync).RequireAuthorization("requireCandidateRole");
         api.MapPut("/applicant/education", UpdateCandidateEducationAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/applicant/education/{educationId:int}", DeleteCandidateEducationAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/applicant/achievement", CreateCandidateAchievementAsync).RequireAuthorization("requireCandidateRole");
-        api.MapGet("/applicant/{applicantId:int}/achievement", GetCandidateAchievementsByApplicantIdAsync);
+        api.MapGet("/applicant/{applicantId:int}/achievement", GetCandidateAchievementsByApplicantIdAsync).RequireAuthorization("requireCandidateRole");
         api.MapPut("/applicant/achievement", UpdateCandidateAchievementAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/applicant/achievement/{achievementId:int}", DeleteCandidateAchievementAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/contact", CreateCandidateContactAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/contact/{contactId:int}", DeleteCandidateContactAsync).RequireAuthorization("requireCandidateRole");
-        api.MapGet("/applicant/{userId:int}/contact", GetCandidateContactsByUserIdAsync);
+        api.MapGet("/applicant/{userId:int}/contact", GetCandidateContactsByUserIdAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/recommendation", CreateCandidateRecommendationAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/recommendation", GetCurrentCandidateRecommendationsAsync).RequireAuthorization("requireCandidateRole");
 
@@ -527,14 +527,44 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         });
     }
 
-    private static async Task<IResult> GetCandidateEducationByApplicantIdAsync(int applicantId, ApplicationDBContext db) =>
-        Results.Ok(await GetCandidateEducationsAsync(db, applicantId));
+    private static async Task<IResult> GetCandidateEducationByApplicantIdAsync(int applicantId, HttpContext context, ApplicationDBContext db)
+    {
+        var profile = await GetCurrentCandidateProfileAsync(context, db);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
 
-    private static async Task<IResult> GetCandidateAchievementsByApplicantIdAsync(int applicantId, ApplicationDBContext db) =>
-        Results.Ok(await GetCandidateAchievementsAsync(db, applicantId));
+        return profile.Id != applicantId
+            ? Results.NotFound()
+            : Results.Ok(await GetCandidateEducationsAsync(db, applicantId));
+    }
 
-    private static async Task<IResult> GetCandidateContactsByUserIdAsync(int userId, ApplicationDBContext db) =>
-        Results.Ok(await GetCandidateContactsAsync(db, userId));
+    private static async Task<IResult> GetCandidateAchievementsByApplicantIdAsync(int applicantId, HttpContext context, ApplicationDBContext db)
+    {
+        var profile = await GetCurrentCandidateProfileAsync(context, db);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        return profile.Id != applicantId
+            ? Results.NotFound()
+            : Results.Ok(await GetCandidateAchievementsAsync(db, applicantId));
+    }
+
+    private static async Task<IResult> GetCandidateContactsByUserIdAsync(int userId, HttpContext context, ApplicationDBContext db)
+    {
+        var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        return currentUserId.Value != userId
+            ? Results.NotFound()
+            : Results.Ok(await GetCandidateContactsAsync(db, userId));
+    }
 
     private static async Task<ApplicantProfile?> GetCurrentCandidateProfileAsync(HttpContext context, ApplicationDBContext db)
     {

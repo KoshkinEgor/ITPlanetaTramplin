@@ -1,0 +1,178 @@
+.ui-complaint-card {
+  --ui-complaint-card-gap: 24px;
+  --ui-complaint-card-padding: clamp(24px, 2.5vw, 38px);
+  --ui-complaint-card-radius: 34px;
+  --ui-complaint-card-meta-gap: 14px;
+  --ui-complaint-card-content-gap: 18px;
+  --ui-complaint-card-badge-min-height: 44px;
+  --ui-complaint-card-badge-padding: 10px 20px;
+  --ui-complaint-card-badge-font-size: clamp(1rem, 1.25vw, 1.125rem);
+  --ui-complaint-card-count-min-width: 144px;
+  --ui-complaint-card-count-min-height: 64px;
+  --ui-complaint-card-count-padding: 12px 24px;
+  --ui-complaint-card-count-font-size: clamp(2rem, 2.6vw, 2.4rem);
+  --ui-complaint-card-action-min-height: 78px;
+  --ui-complaint-card-action-padding: 18px 64px 18px 24px;
+  --ui-complaint-card-action-radius: 18px;
+  --ui-complaint-card-action-label-size: clamp(1.1rem, 1.35vw, 1.375rem);
+  --ui-complaint-card-chevron-right: 22px;
+  --ui-complaint-card-chevron-size: 18px;
+
+  gap: 24px;
+  gap: var(--ui-complaint-card-gap);
+  padding: var(--ui-complaint-card-padding);
+  border-radius: var(--ui-complaint-card-radius);
+  border-color: rgba(129, 156, 198, 0.16);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(47, 128, 255, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.985));
+  box-shadow: 0 24px 50px rgba(36, 49, 77, 0.08);
+  z-index: 0;
+}
+
+.ui-complaint-card--menu-open {
+  z-index: 20;
+}
+
+.ui-complaint-card__top,
+.ui-complaint-card__meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-complaint-card-meta-gap);
+  flex-wrap: wrap;
+}
+
+.ui-complaint-card__top {
+  align-items: center;
+}
+
+.ui-complaint-card__content {
+  display: grid;
+  gap: var(--ui-complaint-card-content-gap);
+}
+
+.ui-complaint-card__title,
+.ui-complaint-card__description {
+  margin: 0;
+}
+
+.ui-complaint-card__description {
+  max-width: 68ch;
+  color: var(--ui-color-text-muted);
+}
+
+.ui-complaint-card__eyebrow,
+.ui-complaint-card__meta-badge {
+  min-height: var(--ui-complaint-card-badge-min-height);
+  padding: var(--ui-complaint-card-badge-padding);
+  border-color: rgba(24, 29, 45, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  color: #6c7894;
+  font-size: var(--ui-complaint-card-badge-font-size);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.ui-complaint-card__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ui-complaint-card-count-min-width);
+  min-height: var(--ui-complaint-card-count-min-height);
+  padding: var(--ui-complaint-card-count-padding);
+  border: 1px solid rgba(47, 128, 255, 0.12);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(233, 241, 255, 0.98), rgba(226, 236, 255, 0.96));
+  color: var(--ui-color-accent);
+  font-size: var(--ui-complaint-card-count-font-size);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.ui-complaint-card__action-shell {
+  width: 100%;
+}
+
+.ui-confirm-action-select.ui-complaint-card__action {
+  min-height: var(--ui-complaint-card-action-min-height);
+  padding: var(--ui-complaint-card-action-padding);
+  border-radius: var(--ui-complaint-card-action-radius);
+  border-color: rgba(24, 29, 45, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(252, 253, 255, 0.99));
+  box-shadow:
+    inset 0 0 0 1px rgba(24, 29, 45, 0.04),
+    0 8px 18px rgba(36, 49, 77, 0.04);
+}
+
+.ui-confirm-action-select.ui-complaint-card__action.ui-confirm-action-select--split-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ui-confirm-action-select.ui-complaint-card__action-toggle {
+  width: var(--ui-complaint-card-action-min-height);
+  min-width: var(--ui-complaint-card-action-min-height);
+  min-height: var(--ui-complaint-card-action-min-height);
+  border-radius: 0 var(--ui-complaint-card-action-radius) var(--ui-complaint-card-action-radius) 0;
+}
+
+.ui-complaint-card__action-shell .ui-action-select__label {
+  font-size: var(--ui-complaint-card-action-label-size);
+  letter-spacing: -0.03em;
+}
+
+.ui-complaint-card__action-shell .ui-action-select__chevron {
+  right: var(--ui-complaint-card-chevron-right);
+  width: var(--ui-complaint-card-chevron-size);
+  height: var(--ui-complaint-card-chevron-size);
+}
+
+.ui-complaint-card--md {
+  --ui-complaint-card-gap: 18px;
+  --ui-complaint-card-padding: 20px;
+  --ui-complaint-card-radius: 28px;
+  --ui-complaint-card-meta-gap: 10px;
+  --ui-complaint-card-content-gap: 14px;
+  --ui-complaint-card-badge-min-height: 36px;
+  --ui-complaint-card-badge-padding: 8px 16px;
+  --ui-complaint-card-badge-font-size: 0.95rem;
+  --ui-complaint-card-count-min-width: 90px;
+  --ui-complaint-card-count-min-height: 46px;
+  --ui-complaint-card-count-padding: 8px 16px;
+  --ui-complaint-card-count-font-size: 1.625rem;
+  --ui-complaint-card-action-min-height: 58px;
+  --ui-complaint-card-action-padding: 12px 48px 12px 18px;
+  --ui-complaint-card-action-radius: 16px;
+  --ui-complaint-card-action-label-size: 1rem;
+  --ui-complaint-card-chevron-right: 18px;
+  --ui-complaint-card-chevron-size: 16px;
+}
+
+.ui-complaint-card--md .ui-complaint-card__description {
+  max-width: 72ch;
+}
+
+@media (max-width: 720px) {
+  .ui-complaint-card {
+    --ui-complaint-card-gap: 20px;
+    --ui-complaint-card-padding: 22px;
+    --ui-complaint-card-count-min-width: 96px;
+    --ui-complaint-card-count-min-height: 56px;
+    --ui-complaint-card-count-font-size: 1.875rem;
+    --ui-complaint-card-action-min-height: 64px;
+    --ui-complaint-card-action-padding: 16px 58px 16px 20px;
+    --ui-complaint-card-action-label-size: 1.0625rem;
+  }
+
+  .ui-complaint-card__top {
+    align-items: stretch;
+  }
+
+  .ui-complaint-card__count {
+    margin-left: auto;
+  }
+}

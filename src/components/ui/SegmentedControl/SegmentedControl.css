@@ -1,11 +1,11 @@
-.ui-segmented {
+﻿.ui-segmented {
   --ui-segmented-min-width: 140px;
   --ui-segmented-height: 48px;
   --ui-segmented-padding-x: var(--ui-space-3);
   --ui-segmented-radius: 20px;
-  --ui-segmented-font-size: var(--ui-typo-txt-select-size);
-  --ui-segmented-line-height: var(--ui-typo-txt-select-line-height);
-  --ui-segmented-font-weight: var(--ui-typo-txt-select-weight);
+  --ui-segmented-font-size: var(--ui-font-size-body);
+  --ui-segmented-line-height: var(--ui-line-height-body);
+  --ui-segmented-font-weight: var(--ui-font-weight-strong);
 
   display: inline-flex;
   align-items: stretch;
@@ -46,7 +46,7 @@
   font-size: var(--ui-segmented-font-size);
   line-height: var(--ui-segmented-line-height);
   letter-spacing: 0;
-  font-weight: var(--ui-segmented-font-weight);
+  font-weight: var(--ui-font-weight, var(--ui-segmented-font-weight));
   font-family: inherit;
   text-decoration: none;
   text-align: center;
@@ -113,3 +113,4 @@
     --ui-segmented-font-size: 1.75rem;
   }
 }
+

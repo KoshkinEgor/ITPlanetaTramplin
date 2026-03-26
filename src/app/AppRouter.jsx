@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { GuestOnlyRoute } from "../auth/route-guards";
 import {
   AuthLoginPage,
   CandidateRegistrationPage,
@@ -22,6 +23,7 @@ import {
   CandidateSettingsPage,
 } from "../pages/candidate/index.jsx";
 import {
+  CompanyAccessGuard,
   CompanyCabinetPage,
   CompanyDashboardPage,
   CompanyOpportunitiesPage,
@@ -30,6 +32,7 @@ import {
 import { HomePage } from "../pages/home/HomePage";
 import {
   ModeratorCabinetPage,
+  ModeratorAccessGuard,
   ModeratorCompaniesPage,
   ModeratorComplaintsPage,
   ModeratorDashboardPage,
@@ -48,13 +51,15 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
     <Routes>
       <Route path={routes.home} element={<HomePage />} />
 
-      <Route path={routes.auth.login} element={<AuthLoginPage />} />
-      <Route path={routes.auth.registerCandidate} element={<CandidateRegistrationPage />} />
-      <Route path={routes.auth.registerCompany} element={<CompanyQuickRegistrationPage />} />
-      <Route path={routes.auth.registerCompanyExtended} element={<CompanyExtendedRegistrationPage />} />
-      <Route path={routes.auth.confirmEmail} element={<ConfirmEmailPage />} />
-      <Route path={routes.auth.forgotPassword} element={<ForgotPasswordPage />} />
-      <Route path={routes.auth.resetPassword} element={<ResetPasswordPage />} />
+      <Route element={<GuestOnlyRoute />}>
+        <Route path={routes.auth.login} element={<AuthLoginPage />} />
+        <Route path={routes.auth.registerCandidate} element={<CandidateRegistrationPage />} />
+        <Route path={routes.auth.registerCompany} element={<CompanyQuickRegistrationPage />} />
+        <Route path={routes.auth.registerCompanyExtended} element={<CompanyExtendedRegistrationPage />} />
+        <Route path={routes.auth.confirmEmail} element={<ConfirmEmailPage />} />
+        <Route path={routes.auth.forgotPassword} element={<ForgotPasswordPage />} />
+        <Route path={routes.auth.resetPassword} element={<ResetPasswordPage />} />
+      </Route>
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
@@ -75,22 +80,26 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
         </Route>
       </Route>
 
-      <Route path="company/dashboard" element={<CompanyCabinetPage />}>
-        <Route index element={<CompanyDashboardPage />} />
-        <Route path="opportunities" element={<CompanyOpportunitiesPage />} />
-        <Route path="responses" element={<CompanyResponsesPage />} />
+      <Route element={<CompanyAccessGuard />}>
+        <Route path="company/dashboard" element={<CompanyCabinetPage />}>
+          <Route index element={<CompanyDashboardPage />} />
+          <Route path="opportunities" element={<CompanyOpportunitiesPage />} />
+          <Route path="responses" element={<CompanyResponsesPage />} />
+        </Route>
       </Route>
 
-      <Route path="moderator" element={<ModeratorCabinetPage />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<ModeratorDashboardPage />} />
-        <Route path="opportunities" element={<ModeratorOpportunitiesPage />} />
-        <Route path="companies" element={<ModeratorCompaniesPage />} />
-        <Route path="users" element={<ModeratorUsersPage />} />
-        <Route path="complaints" element={<ModeratorComplaintsPage />} />
-        <Route path="tags-system" element={<ModeratorTagsSystemPage />} />
-        <Route path="logs" element={<ModeratorLogsPage />} />
-        <Route path="settings" element={<ModeratorSettingsPage />} />
+      <Route element={<ModeratorAccessGuard />}>
+        <Route path="moderator" element={<ModeratorCabinetPage />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<ModeratorDashboardPage />} />
+          <Route path="opportunities" element={<ModeratorOpportunitiesPage />} />
+          <Route path="companies" element={<ModeratorCompaniesPage />} />
+          <Route path="users" element={<ModeratorUsersPage />} />
+          <Route path="complaints" element={<ModeratorComplaintsPage />} />
+          <Route path="tags-system" element={<ModeratorTagsSystemPage />} />
+          <Route path="logs" element={<ModeratorLogsPage />} />
+          <Route path="settings" element={<ModeratorSettingsPage />} />
+        </Route>
       </Route>
 
       {uiKitEnabled ? <Route path={routes.uiKit} element={<UiKitPage />} /> : null}

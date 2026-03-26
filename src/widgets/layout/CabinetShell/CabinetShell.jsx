@@ -7,7 +7,7 @@ export function CabinetShell({ header, sidebar, summary, children, className, ..
   return (
     <main className={cn("cabinet-shell", className)} {...props}>
       <div className="cabinet-shell__backdrop" aria-hidden="true" />
-      <div className="cabinet-shell__frame">
+      <div className="cabinet-shell__frame ui-page-shell">
         {header ? <div className="cabinet-shell__header">{header}</div> : null}
 
         <div className="cabinet-shell__layout">

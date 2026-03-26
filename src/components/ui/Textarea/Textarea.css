@@ -1,4 +1,4 @@
-.ui-textarea-shell {
+﻿.ui-textarea-shell {
   display: grid;
   gap: 10px;
 }
@@ -19,8 +19,9 @@
 .ui-textarea-shell__count {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -42,10 +43,10 @@
   border-radius: var(--ui-radius-pill);
   background: rgba(255, 255, 255, 0.88);
   color: var(--ui-color-text-muted);
-  font-size: var(--ui-typo-txt-select-small-size);
-  line-height: var(--ui-typo-txt-select-small-line-height);
-  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
-  font-weight: var(--ui-typo-txt-select-small-weight);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight, var(--ui-font-weight-strong));
   transition:
     transform var(--ui-transition-fast),
     background-color var(--ui-transition-base),
@@ -78,3 +79,4 @@
   resize: vertical;
   overflow: hidden;
 }
+

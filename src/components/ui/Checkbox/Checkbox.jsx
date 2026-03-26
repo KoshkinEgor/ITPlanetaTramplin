@@ -1,8 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export const Checkbox = forwardRef(function Checkbox(
-  { label, hint, className, controlClassName, children, hovered = false, focused = false, indeterminate = false, disabled = false, ...props },
+  { label, hint, className, controlClassName, children, hovered = false, focused = false, fontWeight, indeterminate = false, width, disabled = false, ...props },
   ref
 ) {
   const inputRef = useRef(null);
@@ -16,7 +17,7 @@ export const Checkbox = forwardRef(function Checkbox(
   }, [indeterminate]);
 
   return (
-    <label className={cn("ui-check", disabled && "is-disabled", className)}>
+    <label className={cn("ui-check", disabled && "is-disabled", getFontWeightClassName(fontWeight), getWidthClassName(width), className)}>
       <input
         ref={inputRef}
         type="checkbox"

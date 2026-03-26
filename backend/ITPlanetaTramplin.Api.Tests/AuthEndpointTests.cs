@@ -52,10 +52,11 @@ public class AuthEndpointTests
         Assert.NotNull(me);
         Assert.Equal("candidate", me!.Role);
         Assert.True(me.IsVerified);
+        Assert.True(me.PreVerify);
     }
 
     [Fact]
-    public async Task LegacyEmployerLoginAlias_ReturnsNormalizedCompanyRole()
+    public async Task LegacyEmployerLoginAlias_UsesInnAndReturnsNormalizedCompanyRole()
     {
         await using var factory = new TestApplicationFactory();
         using var client = factory.CreateClient();
@@ -88,7 +89,7 @@ public class AuthEndpointTests
 
         var legacyLoginResponse = await client.PostAsJsonAsync("/api/login/employer", new
         {
-            login = payload.Email,
+            login = "5408114123",
             password = "Password1",
         });
 
@@ -97,6 +98,89 @@ public class AuthEndpointTests
         var authResponse = await legacyLoginResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
         Assert.NotNull(authResponse);
         Assert.Equal("company", authResponse!.User.Role);
+    }
+
+    [Fact]
+    public async Task CompanyLogin_DoesNotAcceptEmail_WhenInnIsRequired()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/company", new
+        {
+            email = "login-only-inn@sever.local",
+            password = "Password1",
+            companyName = "Sever Co",
+            inn = "5408114123",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+        var payload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(payload);
+
+        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
+        {
+            email = payload!.Email,
+            role = payload.Role,
+            code = payload.DebugCode,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        var logoutResponse = await client.PostAsync("/api/auth/logout", null);
+        Assert.Equal(HttpStatusCode.OK, logoutResponse.StatusCode);
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = payload.Email,
+            password = "Password1",
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompanyRegistration_WithoutEmail_SignsInImmediately()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/company", new
+        {
+            password = "Password1",
+            companyName = "Sever Co",
+            inn = "5408114123",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, registrationResponse.StatusCode);
+
+        var authResponse = await registrationResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
+        Assert.NotNull(authResponse);
+        Assert.Equal("company", authResponse!.User.Role);
+        Assert.True(authResponse.User.IsVerified);
+        Assert.True(authResponse.User.PreVerify);
+
+        var meResponse = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+
+        var me = await meResponse.Content.ReadFromJsonAsync<AuthUserDTO>();
+        Assert.NotNull(me);
+        Assert.Equal("company", me!.Role);
+        Assert.True(me.IsVerified);
+        Assert.True(me.PreVerify);
+
+        await client.PostAsync("/api/auth/logout", null);
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "5408114123",
+            password = "Password1",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
     }
 
     [Fact]
@@ -184,7 +268,7 @@ public class AuthEndpointTests
     }
 
     [Fact]
-    public async Task Login_ForUnverifiedCandidate_IssuesEmailVerificationCode()
+    public async Task Login_ForUnverifiedCandidateWithPreVerify_Succeeds()
     {
         await using var factory = new TestApplicationFactory();
         using var client = factory.CreateClient();
@@ -203,11 +287,48 @@ public class AuthEndpointTests
         var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
         Assert.NotNull(registrationPayload);
 
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "candidate",
+            login = registrationPayload!.Email,
+            password = "Password1",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
+        Assert.NotNull(authResponse);
+        Assert.True(authResponse!.User.PreVerify);
+        Assert.False(authResponse.User.IsVerified);
+    }
+
+    [Fact]
+    public async Task Login_WhenPreVerifyDisabled_IssuesEmailVerificationCode()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/candidate", new
+        {
+            email = "preverify-off@tramplin.local",
+            password = "Password1",
+            name = "Pending",
+            surname = "Login",
+            thirdname = "User",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+        var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(registrationPayload);
+
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var user = await db.Users.SingleAsync(item => item.Email == registrationPayload!.Email);
 
+            user.PreVerify = false;
+            user.IsVerified = false;
             user.EmailVerificationCodeHash = null;
             user.EmailVerificationExpiresAt = null;
             user.EmailVerificationSentAt = null;
@@ -241,61 +362,13 @@ public class AuthEndpointTests
         });
 
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task Login_ForLegacyCandidateWithoutVerificationState_SignsIn_AndMarksVerified()
-    {
-        await using var factory = new TestApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/candidate", new
-        {
-            email = "legacy-login@tramplin.local",
-            password = "Password1",
-            name = "Legacy",
-            surname = "Candidate",
-            thirdname = "User",
-        });
-
-        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
-
-        var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
-        Assert.NotNull(registrationPayload);
-
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
-            var user = await db.Users.SingleAsync(item => item.Email == registrationPayload!.Email);
-
-            user.IsVerified = false;
-            user.CreatedAt = new DateTime(2026, 3, 20, 0, 0, 0, DateTimeKind.Utc);
-            user.EmailVerificationCodeHash = null;
-            user.EmailVerificationExpiresAt = null;
-            user.EmailVerificationSentAt = null;
-            user.EmailVerificationAttemptCount = 0;
-
-            await db.SaveChangesAsync();
-        }
-
-        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
-        {
-            role = "candidate",
-            login = registrationPayload!.Email,
-            password = "Password1",
-        });
-
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
-
-        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
-        Assert.NotNull(authResponse);
-        Assert.True(authResponse!.User.IsVerified);
 
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var user = await db.Users.SingleAsync(item => item.Email == registrationPayload.Email);
 
+            Assert.True(user.PreVerify);
             Assert.True(user.IsVerified);
             Assert.Null(user.EmailVerificationCodeHash);
             Assert.Null(user.EmailVerificationExpiresAt);

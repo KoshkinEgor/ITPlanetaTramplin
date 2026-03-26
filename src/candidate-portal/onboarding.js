@@ -1,4 +1,10 @@
 import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
+import {
+  buildCandidateEducationLinkItems,
+  createCandidateEducationDraftList,
+  getCandidateEducationDraftErrors,
+  getStoredCandidateEducationItems,
+} from "./education";
 import { getCandidateSkills } from "./mappers";
 
 export const CANDIDATE_ONBOARDING_STEPS = [
@@ -112,8 +118,7 @@ export function getCandidateOnboardingData(profile) {
 
 export function createCandidateOnboardingDraft({ profile, education = [] }) {
   const onboarding = getCandidateOnboardingData(profile);
-  const primaryEducation = Array.isArray(education) && education.length ? education[0] : null;
-  const storedEducation = toRecord(onboarding.education);
+  const storedEducationItems = getStoredCandidateEducationItems(onboarding);
   const storedExperience = toRecord(onboarding.experience);
 
   return {
@@ -126,16 +131,7 @@ export function createCandidateOnboardingDraft({ profile, education = [] }) {
     phone: normalizeString(onboarding.phone),
     city: normalizeString(onboarding.city),
     citizenship: normalizeString(onboarding.citizenship),
-    education: {
-      id: primaryEducation?.id ?? null,
-      institutionName: normalizeString(primaryEducation?.institutionName) || normalizeString(storedEducation.institutionName),
-      faculty: normalizeString(primaryEducation?.faculty) || normalizeString(storedEducation.faculty),
-      specialization: normalizeString(primaryEducation?.specialization) || normalizeString(storedEducation.specialization),
-      graduationYear:
-        primaryEducation?.graduationYear != null
-          ? String(primaryEducation.graduationYear)
-          : normalizeString(storedEducation.graduationYear),
-    },
+    educations: createCandidateEducationDraftList(education, storedEducationItems),
     skills: normalizeStringArray(getCandidateSkills(profile)),
     experience: {
       company: normalizeString(storedExperience.company),
@@ -166,16 +162,10 @@ export function getCandidateOnboardingStepError(stepKey, draft) {
       }
 
       return "";
-    case "education":
-      if (!draft.education?.institutionName) {
-        return "Укажите учебное заведение.";
-      }
-
-      if (!draft.education?.graduationYear || !/^\d{4}$/.test(draft.education.graduationYear)) {
-        return "Укажите корректный год окончания.";
-      }
-
-      return "";
+    case "education": {
+      const { formError } = getCandidateEducationDraftErrors(draft.educations, { requireAtLeastOne: true });
+      return formError;
+    }
     case "skills":
       return Array.isArray(draft.skills) && draft.skills.length ? "" : "Добавьте хотя бы один навык.";
     case "experience":
@@ -211,6 +201,7 @@ export function getCandidateOnboardingProgress(draft) {
 export function buildCandidateOnboardingLinks(profile, draft) {
   const currentLinks = getCandidateProfileLinks(profile);
   const currentOnboarding = toRecord(currentLinks.onboarding);
+  const educationItems = buildCandidateEducationLinkItems(draft.educations);
 
   return {
     ...currentLinks,
@@ -222,12 +213,8 @@ export function buildCandidateOnboardingLinks(profile, draft) {
       phone: normalizeString(draft.phone),
       city: normalizeString(draft.city),
       citizenship: normalizeString(draft.citizenship),
-      education: {
-        institutionName: normalizeString(draft.education?.institutionName),
-        faculty: normalizeString(draft.education?.faculty),
-        specialization: normalizeString(draft.education?.specialization),
-        graduationYear: normalizeString(draft.education?.graduationYear),
-      },
+      education: educationItems[0] ?? null,
+      educations: educationItems,
       experience: {
         company: normalizeString(draft.experience?.company),
         role: normalizeString(draft.experience?.role),

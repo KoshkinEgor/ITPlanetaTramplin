@@ -1,4 +1,4 @@
-.ui-alert {
+﻿.ui-alert {
   display: grid;
   gap: 8px;
   padding: 16px 18px;
@@ -34,10 +34,10 @@
 }
 
 .ui-alert strong {
-  font-size: var(--ui-typo-txt-select-small-size);
-  line-height: var(--ui-typo-txt-select-small-line-height);
-  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
-  font-weight: var(--ui-typo-txt-select-small-weight);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-alert__body {
@@ -48,10 +48,10 @@
 .ui-alert__body p {
   margin: 0;
   color: var(--ui-color-text-muted);
-  font-size: var(--ui-typo-txt-regular-small-size);
-  line-height: var(--ui-typo-txt-regular-small-line-height);
-  letter-spacing: var(--ui-typo-txt-regular-small-letter-spacing);
-  font-weight: var(--ui-typo-txt-regular-small-weight);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-regular);
 }
 
 .ui-alert__actions {
@@ -70,8 +70,8 @@
   border-radius: 999px;
   background: rgba(24, 29, 45, 0.06);
   color: inherit;
-  font-size: 1rem;
-  line-height: 1;
+  font-size: 0;
+  line-height: 0;
   cursor: pointer;
   transition:
     transform var(--ui-transition-fast),
@@ -128,3 +128,4 @@
 .ui-alert--error strong {
   color: var(--ui-color-danger);
 }
+

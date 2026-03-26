@@ -66,6 +66,7 @@ function resolveDetailAction(detailAction, item) {
     label: detailAction?.label ?? item?.detailLabel ?? "Подробнее",
     variant: detailAction?.variant ?? "secondary",
     onClick: detailAction?.onClick,
+    width: detailAction?.width ?? item?.detailWidth ?? "full",
   };
 }
 
@@ -163,6 +164,7 @@ export function OpportunityMiniCard({
         onClick={action.onClick}
         variant={action.variant}
         size={isCompact ? "md" : "lg"}
+        width={action.width}
         className="ui-opportunity-mini-card__action"
       >
         {action.label}

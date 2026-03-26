@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 const DEFAULT_ARIA_LABEL = "Переключатель режимов";
 
@@ -9,15 +10,18 @@ export function SegmentedControl({
   defaultValue,
   onChange,
   stretch = false,
+  fontWeight,
   size = "md",
   ariaLabel = DEFAULT_ARIA_LABEL,
   className,
   itemClassName,
+  width,
   ...props
 }) {
   const fallbackValue = items?.[0]?.value;
   const [internalValue, setInternalValue] = useState(defaultValue ?? fallbackValue);
   const currentValue = value ?? internalValue ?? fallbackValue;
+  const isFullWidth = stretch || width === "full";
 
   if (!items?.length) {
     return null;
@@ -33,7 +37,14 @@ export function SegmentedControl({
 
   return (
     <div
-      className={cn("ui-segmented", stretch && "ui-segmented--stretch", size === "lg" && "ui-segmented--size-lg", className)}
+      className={cn(
+        "ui-segmented",
+        isFullWidth && "ui-segmented--stretch",
+        size === "lg" && "ui-segmented--size-lg",
+        getFontWeightClassName(fontWeight),
+        getWidthClassName(width),
+        className
+      )}
       role="group"
       aria-label={ariaLabel}
       {...props}

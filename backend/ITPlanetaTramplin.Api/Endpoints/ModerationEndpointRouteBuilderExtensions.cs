@@ -57,6 +57,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
                 item.VerificationMethod,
                 item.VerificationData,
                 item.User.Email,
+                item.User.PreVerify,
                 item.User.IsVerified,
                 item.User.CreatedAt,
                 OpportunitiesCount = item.Opportunities.Count,
@@ -98,23 +99,27 @@ internal static class ModerationEndpointRouteBuilderExtensions
             .Include(item => item.EmployerProfile)
             .Include(item => item.CuratorProfile)
             .Where(item => item.DeletedAt == null)
-            .Select(item => new
-            {
-                item.Id,
-                item.Email,
-                item.IsVerified,
-                item.CreatedAt,
-                Role = item.ApplicantProfile != null
-                    ? PublicRoles.Candidate
-                    : item.EmployerProfile != null
-                        ? PublicRoles.Company
-                        : item.CuratorProfile != null
-                            ? PublicRoles.Moderator
-                            : string.Empty,
-            })
             .ToListAsync();
 
-        return Results.Ok(users);
+        var response = users
+            .Select(item =>
+            {
+                var role = AuthEndpointSupport.GetPublicRole(item) ?? string.Empty;
+
+                return new
+                {
+                    item.Id,
+                    item.Email,
+                    item.PreVerify,
+                    item.IsVerified,
+                    item.CreatedAt,
+                    Role = role,
+                    DisplayName = AuthEndpointSupport.BuildDisplayName(item, role),
+                };
+            })
+            .ToList();
+
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> ApplyCompanyDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)

@@ -24,6 +24,9 @@ internal static class AuthSupport
     public static bool IsValidEmail(string? email) =>
         !string.IsNullOrWhiteSpace(email) && EmailValidator.IsValid(email.Trim());
 
+    public static string BuildCompanySystemEmail(string inn) =>
+        $"company-{NormalizeInn(inn)}@company.tramplin.local";
+
     public static bool IsValidInn(string? inn)
     {
         var normalizedInn = NormalizeInn(inn);

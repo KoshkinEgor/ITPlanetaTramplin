@@ -5,10 +5,18 @@ import {
   Button,
   Card,
   Checkbox,
+  ComplaintCard,
   CompanyVacancyTile,
+  ConfirmActionSelect,
   ContentRail,
+  DashboardActivityCard,
+  DashboardFocusCard,
+  DashboardPageHeader,
+  DashboardQueueCard,
+  DashboardSectionHeader,
   FormField,
   Input,
+  ModerationActionDialog,
   OpportunityMiniCard,
   PlaceholderAction,
   PlaceholderBlock,
@@ -19,10 +27,12 @@ import {
   SearchInput,
   SegmentedControl,
   Select,
+  SettingsSectionCard,
   Switch,
   Textarea,
 } from "../shared/ui";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { formatComplaintDate, moderatorComplaintActionOptions, moderatorComplaintExamples } from "../moderator-dashboard/complaints.mock";
 import { OpportunityDetailPreview } from "../opportunity-detail-card/OpportunityDetailCardApp";
 
 const UI_KIT_BODY_CLASS = "ui-kit-react-body";
@@ -32,6 +42,7 @@ const sectionLinks = [
   { id: "ui-kit-buttons", label: "Buttons" },
   { id: "ui-kit-map-markers", label: "Map" },
   { id: "ui-kit-actions", label: "Actions" },
+  { id: "ui-kit-complaints", label: "Complaint Card" },
   { id: "ui-kit-form-controls", label: "Form Controls" },
   { id: "ui-kit-navigation", label: "Navigation" },
   { id: "ui-kit-form-field", label: "FormField" },
@@ -111,6 +122,12 @@ const formatOptions = [
   { value: "remote", label: "Remote" },
 ];
 
+const settingsVisibilityOptions = [
+  { value: "employers-and-contacts", label: "Employers and contacts" },
+  { value: "contacts", label: "Contacts only" },
+  { value: "everyone", label: "Everyone" },
+];
+
 const segmentOptions = [
   { value: "resume", label: "Резюме" },
   { value: "portfolio", label: "Портфолио" },
@@ -137,6 +154,43 @@ const mapMarkerCountOptions = [
 const actionSelectOptions = [
   { value: "block", label: "Заблокировать" },
   { value: "delete", label: "Удалить", tone: "danger" },
+];
+
+const confirmActionSelectOptions = [
+  {
+    value: "approved",
+    label: "Одобрить",
+    tone: "approve",
+    confirmationTone: "success",
+    confirmationButtonLabel: "Одобрить",
+    confirmationButtonVariant: "primary",
+  },
+  {
+    value: "revision",
+    label: "Отправить на доработку",
+    tone: "revision",
+    confirmationTone: "warning",
+    confirmationButtonLabel: "Отправить",
+    confirmationButtonVariant: "secondary",
+  },
+  {
+    value: "rejected",
+    label: "Отклонить",
+    tone: "reject",
+    confirmationTone: "warning",
+    confirmationButtonLabel: "Отклонить",
+    confirmationButtonVariant: "danger",
+  },
+];
+
+const complaintExampleOptions = moderatorComplaintExamples.map((item) => ({
+  value: item.id,
+  label: item.title,
+}));
+
+const complaintSizeOptions = [
+  { value: "lg", label: "lg" },
+  { value: "md", label: "md" },
 ];
 
 const opportunityShowcaseRow = {
@@ -593,6 +647,176 @@ function ActionSelectPlayground() {
   );
 }
 
+function ConfirmActionSelectPlayground() {
+  const [value, setValue] = useState("approved");
+  const [lastApplied, setLastApplied] = useState("Одобрить");
+
+  return (
+    <UiKitDemoCard
+      eyebrow="Action System"
+      title="Confirm Action Select"
+      description="Shared action select with a built-in confirmation modal for moderation and other high-risk flows."
+      footer="Use this when the action should be chosen from a dropdown but only committed after an explicit confirmation step."
+      controls={
+        <div className="ui-kit-control-grid">
+          <UiKitSelectControl label="Applied action" value={value} onChange={setValue} options={confirmActionSelectOptions} />
+        </div>
+      }
+    >
+      <div className="ui-kit-action-select-stack">
+        <div className="ui-kit-action-select-frame">
+          <div data-testid="ui-kit-confirm-action-select-preview">
+            <ConfirmActionSelect
+              value={value}
+              options={confirmActionSelectOptions}
+              onConfirm={(nextValue, option) => {
+                setValue(nextValue);
+                setLastApplied(option.label);
+              }}
+              getConfirmation={(option) => ({
+                title: `Подтвердить: ${option.label}?`,
+                description: "Действие будет применено после подтверждения.",
+              })}
+            />
+          </div>
+        </div>
+
+        <div className="ui-kit-action-system">
+          <div className="ui-kit-action-system__row">
+            <span className="ui-kit-action-system__label">last applied</span>
+            <span className="ui-kit-note">{lastApplied}</span>
+          </div>
+          <div className="ui-kit-action-system__row">
+            <span className="ui-kit-action-system__label">disabled</span>
+            <ConfirmActionSelect value="approved" options={confirmActionSelectOptions} disabled />
+          </div>
+        </div>
+      </div>
+    </UiKitDemoCard>
+  );
+}
+
+function ModerationActionDialogPlayground() {
+  const [revisionReason, setRevisionReason] = useState("Не указан формат мероприятия");
+
+  return (
+    <UiKitDemoCard
+      eyebrow="Moderation"
+      title="Moderation Action Dialog"
+      description="Reusable moderation window with approve, reject, and revision variants. The revision flow can request a moderator note without inventing a separate layout."
+      footer="Use the same component for embedded previews in the ui-kit and inside a real modal when the dashboard confirms a moderation decision."
+      className="ui-kit-specimen--wide"
+      controls={
+        <>
+          <UiKitTextControl label="Текст причины" value={revisionReason} onChange={setRevisionReason} placeholder="Комментарий модератора" />
+          <div className="ui-kit-foundation-stack">
+            <span className="ui-kit-note">
+              <code>approve</code> и <code>reject</code> остаются компактными и сфокусированными на действии.
+            </span>
+            <span className="ui-kit-note">
+              <code>revision</code> добавляет сбрасываемое поле для комментария модератора.
+            </span>
+          </div>
+        </>
+      }
+    >
+      <div className="ui-kit-moderation-dialog-grid" data-testid="ui-kit-moderation-action-dialogs">
+        <ModerationActionDialog
+          variant="reject"
+          actionLabel="Отклонить заявку"
+          question="Вы уверены?"
+          description="Заявка будет отклонена. Возможность не будет добавлена для публичного просмотра."
+          confirmLabel="Отклонить"
+          onCancel={() => {}}
+          onConfirm={() => {}}
+        />
+
+        <ModerationActionDialog
+          variant="approve"
+          actionLabel="Одобрить заявку"
+          question="Вы уверены?"
+          description="Заявка будет одобрена. Возможность будет добавлена для публичного просмотра."
+          confirmLabel="Одобрить"
+          onCancel={() => {}}
+          onConfirm={() => {}}
+        />
+
+        <ModerationActionDialog
+          variant="revision"
+          className="ui-kit-moderation-dialog-card--center"
+          actionLabel="Отправить заявку на доработку"
+          question="Вы уверены?"
+          description="Заявка будет отправлена на доработку. Возможность не будет добавлена для публичного просмотра до момента одобрения."
+          reasonLabel="Причина отказа"
+          reasonValue={revisionReason}
+          onReasonChange={setRevisionReason}
+          confirmLabel="Отправить на доработку"
+          onCancel={() => {}}
+          onConfirm={() => {}}
+        />
+      </div>
+    </UiKitDemoCard>
+  );
+}
+
+function ComplaintCardPlayground() {
+  const [activeExampleId, setActiveExampleId] = useState(moderatorComplaintExamples[0]?.id ?? "");
+  const [size, setSize] = useState("md");
+  const [actionById, setActionById] = useState(() =>
+    Object.fromEntries(moderatorComplaintExamples.map((item) => [item.id, moderatorComplaintActionOptions[0]?.value ?? ""]))
+  );
+
+  return (
+    <UiKitDemoCard
+      eyebrow="Moderation"
+      title="Complaint Card"
+      description="Universal card for grouped complaints in the curator queue: reason, date, summary, counter, and moderation action in one reusable block."
+      footer="Use this card on the complaints route and in any moderation queue where several reports are merged into one decision point."
+      className="ui-kit-specimen--wide"
+      controls={
+        <>
+          <UiKitSelectControl label="Активный пример" value={activeExampleId} onChange={setActiveExampleId} options={complaintExampleOptions} />
+          <UiKitSelectControl label="Размер" value={size} onChange={setSize} options={complaintSizeOptions} />
+          <UiKitSelectControl
+            label="Действие"
+            value={actionById[activeExampleId] ?? moderatorComplaintActionOptions[0]?.value ?? ""}
+            onChange={(nextValue) =>
+              setActionById((current) => ({
+                ...current,
+                [activeExampleId]: nextValue,
+              }))
+            }
+            options={moderatorComplaintActionOptions}
+          />
+        </>
+      }
+    >
+      <div className="ui-kit-complaints-preview" data-testid="ui-kit-complaint-cards">
+        {moderatorComplaintExamples.map((item) => (
+          <ComplaintCard
+            key={item.id}
+            size={size}
+            title={item.title}
+            meta={[item.reason, formatComplaintDate(item.createdAt)]}
+            description={item.description}
+            count={item.count}
+            actionOptions={moderatorComplaintActionOptions}
+            actionValue={actionById[item.id]}
+            onActionChange={(nextValue) =>
+              setActionById((current) => ({
+                ...current,
+                [item.id]: nextValue,
+              }))
+            }
+            className={item.id !== activeExampleId ? "ui-kit-complaint-card--muted" : undefined}
+            data-testid={item.id === activeExampleId ? "ui-kit-complaint-card-preview" : undefined}
+          />
+        ))}
+      </div>
+    </UiKitDemoCard>
+  );
+}
+
 function InputPlayground() {
   const [value, setValue] = useState("hello@tramplin.ru");
   const [clearable, setClearable] = useState(true);
@@ -846,7 +1070,7 @@ function OpportunitySliderAssembly() {
       <div className="ui-kit-foundation-card__copy">
         <span className="ui-kit-eyebrow">Assembly</span>
         <h3 className="ui-type-h3">Opportunity block sliders</h3>
-        <p className="ui-type-body">Two slider variants share the same block card: a steady medium rail and a rail where the left-most visible item expands into the large block state.</p>
+        <p className="ui-type-body">Three slider variants share the same block card: a steady medium rail, a width-led featured rail, and a raised featured rail with arrows and mouse drag.</p>
       </div>
 
       <div className="ui-kit-slider-showcase">
@@ -877,6 +1101,23 @@ function OpportunitySliderAssembly() {
             ariaLabel="Leading featured opportunity block slider"
             items={opportunityShowcaseSliderItems}
             variant="leading-featured"
+            surface="plain"
+            cardClassName="ui-kit-opportunity-slider__card"
+            cardPropsBuilder={createUiKitSliderCardProps}
+          />
+        </div>
+
+        <div className="ui-kit-slider-showcase__section">
+          <div className="ui-kit-slider-showcase__copy">
+            <strong>Raised featured rail</strong>
+            <p className="ui-type-body">This variant removes the bottom scrollbar, moves with arrows or mouse drag, and lifts the active card both in width and height so it visually steps forward.</p>
+          </div>
+
+          <OpportunityBlockSlider
+            data-testid="ui-kit-opportunity-slider-raised"
+            ariaLabel="Raised featured opportunity block slider"
+            items={opportunityShowcaseSliderItems}
+            variant="raised-featured"
             surface="plain"
             cardClassName="ui-kit-opportunity-slider__card"
             cardPropsBuilder={createUiKitSliderCardProps}
@@ -1345,6 +1586,56 @@ function PreferencesAssembly() {
   );
 }
 
+function SettingsSectionAssembly() {
+  const [isOpen, setIsOpen] = useState(true);
+  const [form, setForm] = useState({
+    phone: "+7 927 563 89 41",
+    visibility: "employers-and-contacts",
+    notifications: true,
+  });
+
+  return (
+    <div className="ui-kit-settings-assembly" data-testid="ui-kit-settings-section">
+      <SettingsSectionCard
+        id="ui-kit-settings-section-card"
+        eyebrow="Assembly"
+        title="Settings section card"
+        summary="Reusable collapsible surface for dense account settings, profile forms, and preference groups."
+        status="Ready for shared use"
+        statusTone="success"
+        actionLabel="Open section"
+        isOpen={isOpen}
+        onToggle={() => setIsOpen((current) => !current)}
+      >
+        <form className="ui-kit-form-stack" onSubmit={(event) => event.preventDefault()}>
+          <p className="ui-type-body">
+            Use one shared accordion card when the collapsed state needs a short summary and the expanded state opens a full form.
+          </p>
+          <FormField label="Phone">
+            <Input value={form.phone} onValueChange={(phone) => setForm((current) => ({ ...current, phone }))} />
+          </FormField>
+          <FormField label="Profile visibility">
+            <Select
+              value={form.visibility}
+              onValueChange={(visibility) => setForm((current) => ({ ...current, visibility }))}
+              options={settingsVisibilityOptions}
+            />
+          </FormField>
+          <Switch
+            checked={form.notifications}
+            onChange={(event) => setForm((current) => ({ ...current, notifications: event.target.checked }))}
+            label="Notifications"
+            hint="The body can mix fields, switches, helper copy, and actions."
+          />
+          <div className="ui-kit-form-actions">
+            <Button type="submit">Save section</Button>
+          </div>
+        </form>
+      </SettingsSectionCard>
+    </div>
+  );
+}
+
 function EditableResumeField({ label, title, subtitle, active = false, compact = false, testId }) {
   return (
     <div className="ui-kit-editable-field">
@@ -1397,6 +1688,105 @@ function EditableResumeAssembly() {
   );
 }
 
+function ModeratorDashboardAssembly() {
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-dashboard-assembly">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Assembly</span>
+        <h3 className="ui-type-h3">Moderator dashboard surfaces</h3>
+        <p className="ui-type-body">Shared page header, section header, activity cards, focus cards, and queue cards used by the moderator cabinet.</p>
+      </div>
+
+      <div className="ui-kit-dashboard-assembly">
+        <DashboardPageHeader
+          title="Дашборд модерации"
+          description="Общий список последних откликов по вакансиям и событиям с быстрым контекстом по статусу, роли и способу связи."
+        />
+
+        <div className="ui-kit-dashboard-assembly__grid">
+          <div className="ui-kit-dashboard-assembly__surface">
+            <DashboardSectionHeader
+              eyebrow="Активность"
+              title="Последние действия"
+              description="Здесь представлены последние изменения, которые нуждаются в проверке."
+            />
+
+            <div className="ui-kit-dashboard-assembly__stack">
+              <DashboardActivityCard
+                badge="Возможность"
+                timestamp="19 марта · 11:20"
+                title="Создана вакансия Signal Hub"
+                description="Компания отправила на проверку стажировку в продуктовой аналитике."
+              />
+              <DashboardActivityCard
+                badge="Компания"
+                timestamp="19 марта · 11:20"
+                title="Профиль компании обновлён"
+                description="Cloud Orbit HR изменил описание команды и контактное лицо."
+              />
+            </div>
+          </div>
+
+          <div className="ui-kit-dashboard-assembly__rail">
+            <DashboardSectionHeader
+              eyebrow="Фокус"
+              title="Сводка смены"
+              description="Здесь представлены незавершённые задачи, которые остаются в работе."
+            />
+
+            <div className="ui-kit-dashboard-assembly__stack">
+              <DashboardFocusCard
+                title="Возможности на проверке"
+                description="В очереди приоритетные вакансии и стажировки."
+                countLabel="4 в работе"
+              />
+              <DashboardFocusCard
+                title="Компании на верификации"
+                description="Проверяем сайт, домен и документы."
+                countLabel="4 в работе"
+              />
+              <DashboardFocusCard
+                title="Жалобы по объектам"
+                description="Повторяющиеся репорты собраны в единые кейсы."
+                countLabel="6 в работе"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-kit-dashboard-assembly__surface">
+          <DashboardSectionHeader
+            eyebrow="Приоритет"
+            title="Очередь задач"
+            description="Проверьте заявки, отправленные на модерацию."
+            counter={16}
+          />
+
+          <div className="ui-kit-dashboard-assembly__stack">
+            <DashboardQueueCard
+              badge="Жалоба"
+              dateLabel="19 марта 2026"
+              title="Junior Security Analyst"
+              description="Недостоверная зарплата: 6 жалоб"
+              actionHref="#ui-kit-assemblies"
+              actionLabel="Подробнее"
+              actionVariant="secondary"
+            />
+            <DashboardQueueCard
+              badge="Вакансия"
+              dateLabel="19 марта 2026"
+              title="DevRel Assistant"
+              description="Трамплин Platform · Высокий приоритет"
+              actionHref="#ui-kit-assemblies"
+              actionLabel="Подробнее"
+            />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function UiKitApp() {
   useEffect(() => {
     document.body.classList.add(UI_KIT_BODY_CLASS);
@@ -1408,7 +1798,7 @@ export function UiKitApp() {
 
   return (
     <main className="ui-kit-body" data-testid="ui-kit-page">
-      <div className="ui-kit-page">
+      <div className="ui-kit-page ui-page-shell">
         <Card className="ui-kit-hero">
           <div className="ui-kit-hero__copy">
             <span className="ui-kit-eyebrow">Shared foundation</span>
@@ -1569,7 +1959,20 @@ export function UiKitApp() {
           title="Actions"
           description="Administrative and row-level controls where the selected action itself can be neutral or destructive."
         >
-          <ActionSelectPlayground />
+          <div className="ui-kit-demo-grid">
+            <ActionSelectPlayground />
+            <ConfirmActionSelectPlayground />
+            <ModerationActionDialogPlayground />
+          </div>
+        </UiKitSection>
+
+        <UiKitSection
+          id="ui-kit-complaints"
+          eyebrow="Moderation"
+          title="Complaint Card"
+          description="Shared complaint card for curator queues, grouped reports, and route-backed moderation lists."
+        >
+          <ComplaintCardPlayground />
         </UiKitSection>
 
         <UiKitSection
@@ -1621,9 +2024,11 @@ export function UiKitApp() {
           description="Reference layouts composed entirely from shared primitives and reusable opportunity widgets."
         >
           <div className="ui-kit-assembly-grid">
+            <ModeratorDashboardAssembly />
             <LoginAssembly />
             <RegistrationAssembly />
             <PreferencesAssembly />
+            <SettingsSectionAssembly />
             <EditableResumeAssembly />
             <OpportunityCatalogAssembly />
             <OpportunitySliderAssembly />

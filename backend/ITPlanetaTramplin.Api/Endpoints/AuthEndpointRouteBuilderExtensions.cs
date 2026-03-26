@@ -11,8 +11,6 @@ namespace ITPlanetaTramplin.Api.Endpoints;
 
 internal static class AuthEndpointRouteBuilderExtensions
 {
-    private static readonly DateTime EmailVerificationRolloutUtc = new(2026, 3, 24, 18, 45, 26, DateTimeKind.Utc);
-
     public static RouteGroupBuilder MapAuthEndpoints(this RouteGroupBuilder api)
     {
         api.MapPost("/auth/login", HandleLoginAsync);
@@ -119,19 +117,12 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.InvalidCredentialsResult();
         }
 
-        var userStateChanged = passwordUpgraded;
-
-        if (role is PublicRoles.Candidate or PublicRoles.Company && PromoteLegacyVerifiedUser(user))
-        {
-            userStateChanged = true;
-        }
-
-        if (userStateChanged)
+        if (passwordUpgraded)
         {
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        if (role is PublicRoles.Candidate or PublicRoles.Company && user.IsVerified != true)
+        if (role is PublicRoles.Candidate or PublicRoles.Company && user.PreVerify != true)
         {
             var payload = await BuildLoginVerificationPayloadAsync(
                 user,
@@ -147,31 +138,6 @@ internal static class AuthEndpointRouteBuilderExtensions
 
         return AuthEndpointSupport.SignInUser(context, user, role, authRuntimeOptions);
     }
-
-    private static bool PromoteLegacyVerifiedUser(User user)
-    {
-        if (user.IsVerified == true || !WasCreatedBeforeEmailVerificationRollout(user) || !HasNoEmailVerificationState(user))
-        {
-            return false;
-        }
-
-        // Legacy accounts created before email confirmation rollout should not be blocked on login.
-        user.IsVerified = true;
-        user.EmailVerificationCodeHash = null;
-        user.EmailVerificationExpiresAt = null;
-        user.EmailVerificationSentAt = null;
-        user.EmailVerificationAttemptCount = 0;
-        return true;
-    }
-
-    private static bool HasNoEmailVerificationState(User user) =>
-        string.IsNullOrWhiteSpace(user.EmailVerificationCodeHash)
-        && user.EmailVerificationExpiresAt is null
-        && user.EmailVerificationSentAt is null
-        && user.EmailVerificationAttemptCount == 0;
-
-    private static bool WasCreatedBeforeEmailVerificationRollout(User user) =>
-        user.CreatedAt is DateTime createdAt && createdAt < EmailVerificationRolloutUtc;
 
     private static async Task<IResult> HandleCurrentUserAsync(HttpContext context, ApplicationDBContext db)
     {
@@ -416,6 +382,7 @@ internal static class AuthEndpointRouteBuilderExtensions
         {
             Email = normalizedEmail,
             IsVerified = false,
+            PreVerify = true,
             ApplicantProfile = new ApplicantProfile
             {
                 Name = request.Name.Trim(),
@@ -445,6 +412,8 @@ internal static class AuthEndpointRouteBuilderExtensions
 
     private static async Task<IResult> HandleRegisterCompanyAsync(
         [FromBody] EmployerRegistrationDTO request,
+        HttpContext context,
+        AuthRuntimeOptions authRuntimeOptions,
         EmailVerificationService verificationService,
         SmtpEmailSender emailSender,
         DadataService dadataService,
@@ -452,11 +421,6 @@ internal static class AuthEndpointRouteBuilderExtensions
         CancellationToken cancellationToken,
         ILoggerFactory loggerFactory)
     {
-        if (!AuthSupport.IsValidEmail(request.Email))
-        {
-            return AuthEndpointSupport.MessageResult("Введите корректный email.", StatusCodes.Status400BadRequest);
-        }
-
         if (!AuthSupport.TryValidatePassword(request.Password, out var passwordError))
         {
             return AuthEndpointSupport.MessageResult(passwordError, StatusCodes.Status400BadRequest);
@@ -467,56 +431,56 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.MessageResult("Название компании обязательно.", StatusCodes.Status400BadRequest);
         }
 
-        if (!AuthSupport.IsValidInn(request.Inn))
-        {
-            return AuthEndpointSupport.MessageResult("ИНН должен содержать 10 или 12 цифр.", StatusCodes.Status400BadRequest);
-        }
-
-        if (string.IsNullOrWhiteSpace(AuthSupport.NormalizeInn(request.Inn)))
+        var normalizedInn = AuthSupport.NormalizeInn(request.Inn);
+        if (string.IsNullOrWhiteSpace(normalizedInn))
         {
             return AuthEndpointSupport.MessageResult("ИНН компании обязателен.", StatusCodes.Status400BadRequest);
         }
 
-        if (!AuthSupport.IsValidInn(request.Inn))
+        if (!AuthSupport.IsValidInn(normalizedInn))
         {
             return AuthEndpointSupport.MessageResult("ИНН должен содержать 10 или 12 цифр.", StatusCodes.Status400BadRequest);
         }
 
-        var normalizedEmail = AuthSupport.NormalizeEmail(request.Email);
-        var normalizedInn = AuthSupport.NormalizeInn(request.Inn);
-        EmployerInnLookupDTO? innLookup = null;
-
-        if (!string.IsNullOrEmpty(normalizedInn))
+        var hasExplicitEmail = !string.IsNullOrWhiteSpace(request.Email);
+        if (hasExplicitEmail && !AuthSupport.IsValidEmail(request.Email))
         {
-            try
-            {
-                innLookup = await dadataService.FindPartyByInnAsync(normalizedInn, cancellationToken);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return AuthEndpointSupport.MessageResult(ex.Message, StatusCodes.Status503ServiceUnavailable);
-            }
-            catch (HttpRequestException ex)
-            {
-                loggerFactory.CreateLogger("AuthEndpoints")
-                    .LogWarning(ex, "DaData lookup failed during company registration for INN {Inn}.", normalizedInn);
-                return AuthEndpointSupport.MessageResult("Сервис проверки ИНН временно недоступен.", StatusCodes.Status503ServiceUnavailable);
-            }
-
-            if (innLookup is null)
-            {
-                return AuthEndpointSupport.MessageResult("Организация с таким ИНН не найдена в DaData.", StatusCodes.Status400BadRequest);
-            }
-
-            if (!innLookup.IsActive)
-            {
-                return AuthEndpointSupport.MessageResult(
-                    "Компания по указанному ИНН найдена, но не находится в активном статусе.",
-                    StatusCodes.Status400BadRequest);
-            }
+            return AuthEndpointSupport.MessageResult("Введите корректный email.", StatusCodes.Status400BadRequest);
         }
 
-        if (!TryMatchCompanyEmail(normalizedEmail, innLookup!, out var emailValidationError))
+        var normalizedEmail = hasExplicitEmail
+            ? AuthSupport.NormalizeEmail(request.Email!)
+            : AuthSupport.BuildCompanySystemEmail(normalizedInn);
+        EmployerInnLookupDTO? innLookup = null;
+
+        try
+        {
+            innLookup = await dadataService.FindPartyByInnAsync(normalizedInn, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return AuthEndpointSupport.MessageResult(ex.Message, StatusCodes.Status503ServiceUnavailable);
+        }
+        catch (HttpRequestException ex)
+        {
+            loggerFactory.CreateLogger("AuthEndpoints")
+                .LogWarning(ex, "DaData lookup failed during company registration for INN {Inn}.", normalizedInn);
+            return AuthEndpointSupport.MessageResult("Сервис проверки ИНН временно недоступен.", StatusCodes.Status503ServiceUnavailable);
+        }
+
+        if (innLookup is null)
+        {
+            return AuthEndpointSupport.MessageResult("Организация с таким ИНН не найдена в DaData.", StatusCodes.Status400BadRequest);
+        }
+
+        if (!innLookup.IsActive)
+        {
+            return AuthEndpointSupport.MessageResult(
+                "Компания по указанному ИНН найдена, но не находится в активном статусе.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        if (hasExplicitEmail && !TryMatchCompanyEmail(normalizedEmail, innLookup, out var emailValidationError))
         {
             return AuthEndpointSupport.MessageResult(emailValidationError, StatusCodes.Status400BadRequest);
         }
@@ -536,7 +500,8 @@ internal static class AuthEndpointRouteBuilderExtensions
         var user = new User
         {
             Email = normalizedEmail,
-            IsVerified = false,
+            IsVerified = !hasExplicitEmail,
+            PreVerify = true,
             EmployerProfile = new EmployerProfile
             {
                 CompanyName = request.CompanyName.Trim(),
@@ -556,6 +521,11 @@ internal static class AuthEndpointRouteBuilderExtensions
 
         db.Users.Add(user);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!hasExplicitEmail)
+        {
+            return AuthEndpointSupport.SignInUser(context, user, PublicRoles.Company, authRuntimeOptions);
+        }
 
         var payload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
             user,
@@ -595,19 +565,18 @@ internal static class AuthEndpointRouteBuilderExtensions
             }
             case PublicRoles.Company:
             {
-                var normalizedLogin = login.Trim();
-                var normalizedEmail = AuthSupport.IsValidEmail(normalizedLogin)
-                    ? AuthSupport.NormalizeEmail(normalizedLogin)
-                    : null;
-                var normalizedInn = AuthSupport.NormalizeInn(normalizedLogin);
+                var normalizedInn = AuthSupport.NormalizeInn(login);
+                if (!AuthSupport.IsValidInn(normalizedInn))
+                {
+                    return null;
+                }
 
                 return await db.Users
                     .Include(item => item.EmployerProfile)
                     .FirstOrDefaultAsync(item =>
                         item.DeletedAt == null &&
                         item.EmployerProfile != null &&
-                        ((normalizedEmail != null && item.Email.ToLower() == normalizedEmail)
-                        || (!string.IsNullOrEmpty(normalizedInn) && item.EmployerProfile.Inn == normalizedInn)));
+                        item.EmployerProfile.Inn == normalizedInn);
             }
             case PublicRoles.Moderator:
             {

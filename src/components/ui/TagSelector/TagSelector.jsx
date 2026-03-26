@@ -4,6 +4,7 @@ import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
 import { SearchInput } from "../SearchInput/SearchInput";
 import { Tag } from "../Tag/Tag";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 function CloseIcon() {
   return (
@@ -18,7 +19,7 @@ function RemovableChip({ label, onRemove }) {
   return (
     <span className="ui-tag-selector__chip ui-tag-selector__chip--removable">
       <span>{label}</span>
-      <button type="button" className="ui-tag-selector__chip-remove" aria-label={`Удалить ${label}`} onClick={onRemove}>
+      <button type="button" className="ui-tag-selector__chip-remove" aria-label={`РЈРґР°Р»РёС‚СЊ ${label}`} onClick={onRemove}>
         <CloseIcon />
       </button>
     </span>
@@ -42,19 +43,22 @@ export function TagSelector({
   value = [],
   suggestions = [],
   title,
-  suggestionsLabel = "Рекомендованные теги",
-  searchPlaceholder = "Поиск тегов",
-  editLabel = "Редактировать",
-  saveLabel = "Сохранить",
-  cancelLabel = "Отмена",
-  emptyLabel = "Пока ничего не добавлено",
-  clearLabel = "Очистить поиск",
+  suggestionsLabel = "Р РµРєРѕРјРµРЅРґРѕРІР°РЅРЅС‹Рµ С‚РµРіРё",
+  searchPlaceholder = "РџРѕРёСЃРє С‚РµРіРѕРІ",
+  editLabel = "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ",
+  saveLabel = "РЎРѕС…СЂР°РЅРёС‚СЊ",
+  cancelLabel = "РћС‚РјРµРЅР°",
+  emptyLabel = "РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ",
+  clearLabel = "РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє",
+  fontWeight,
+  width,
   className,
   onSave,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState(value);
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useEffect(() => {
     setDraft(value);
@@ -80,7 +84,7 @@ export function TagSelector({
   };
 
   return (
-    <Card className={cn("ui-tag-selector", className)}>
+    <Card className={cn("ui-tag-selector", sharedClassName, className)}>
       {isEditing ? (
         <>
           {title ? (

@@ -1,0 +1,137 @@
+.ui-confirm-action-select-shell {
+  width: 100%;
+}
+
+.ui-confirm-action-select-shell--split {
+  position: relative;
+  display: inline-flex;
+}
+
+.ui-confirm-action-select-shell--split.is-open {
+  z-index: 40;
+}
+
+.ui-confirm-action-select__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.ui-confirm-action-select {
+  min-height: 58px;
+  padding: 16px 56px 16px 20px;
+  border-radius: 22px;
+  box-shadow: 0 16px 32px rgba(36, 49, 77, 0.08);
+}
+
+.ui-confirm-action-select--split-main {
+  justify-content: flex-start;
+  padding-right: 18px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ui-confirm-action-select--split-toggle {
+  width: 58px;
+  min-width: 58px;
+  padding: 0;
+  justify-content: center;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.ui-confirm-action-select--split-toggle .ui-action-select__chevron {
+  position: static;
+  transform: none;
+}
+
+.ui-confirm-action-select--split-toggle.is-open .ui-action-select__chevron {
+  transform: rotate(180deg);
+}
+
+.ui-confirm-action-select.ui-action-select--approve {
+  --ui-action-select-border: rgba(129, 156, 198, 0.22);
+  --ui-action-select-shadow: 0 16px 32px rgba(36, 49, 77, 0.08);
+  --ui-action-select-color: #6f7896;
+  --ui-action-select-chevron: #1f2d45;
+  --ui-action-select-hover-border: rgba(129, 156, 198, 0.34);
+  --ui-action-select-hover-shadow: 0 18px 36px rgba(36, 49, 77, 0.12);
+}
+
+.ui-confirm-action-select.ui-action-select--revision {
+  --ui-action-select-border: rgba(47, 128, 255, 0.2);
+  --ui-action-select-shadow: 0 16px 32px rgba(47, 128, 255, 0.08);
+  --ui-action-select-color: var(--ui-color-accent);
+  --ui-action-select-chevron: var(--ui-color-accent-strong);
+  --ui-action-select-hover-border: rgba(47, 128, 255, 0.32);
+  --ui-action-select-hover-shadow: 0 18px 36px rgba(47, 128, 255, 0.12);
+}
+
+.ui-confirm-action-select.ui-action-select--reject {
+  --ui-action-select-border: rgba(234, 154, 43, 0.24);
+  --ui-action-select-shadow: 0 16px 32px rgba(234, 154, 43, 0.1);
+  --ui-action-select-color: #d0821c;
+  --ui-action-select-chevron: #d0821c;
+  --ui-action-select-hover-border: rgba(234, 154, 43, 0.34);
+  --ui-action-select-hover-shadow: 0 18px 36px rgba(234, 154, 43, 0.14);
+}
+
+.ui-confirm-action-select-shell .ui-action-select__menu {
+  top: calc(100% + 10px);
+  z-index: 50;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 24px;
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option {
+  min-height: 56px;
+  padding: 14px 18px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  font-weight: var(--ui-font-weight, 700);
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--approve {
+  color: #6f7896;
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--approve:hover:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--approve.is-highlighted:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--approve.is-selected:not(:disabled) {
+  border-color: rgba(129, 156, 198, 0.22);
+  background: rgba(241, 245, 252, 0.96);
+  color: #56607c;
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--revision {
+  color: var(--ui-color-accent);
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--revision:hover:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--revision.is-highlighted:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--revision.is-selected:not(:disabled) {
+  border-color: rgba(47, 128, 255, 0.22);
+  background: rgba(240, 247, 255, 0.96);
+  color: var(--ui-color-accent-strong);
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--reject {
+  color: #d0821c;
+}
+
+.ui-confirm-action-select-shell .ui-action-select__option--reject:hover:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--reject.is-highlighted:not(:disabled),
+.ui-confirm-action-select-shell .ui-action-select__option--reject.is-selected:not(:disabled) {
+  border-color: rgba(234, 154, 43, 0.24);
+  background: rgba(255, 246, 234, 0.96);
+  color: #d0821c;
+}
+
+@media (max-width: 720px) {
+  .ui-confirm-action-select--split-toggle {
+    width: 52px;
+    min-width: 52px;
+  }
+}

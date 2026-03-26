@@ -749,6 +749,12 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_verified");
 
+                    b.Property<bool?>("PreVerify")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("pre_verify");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)

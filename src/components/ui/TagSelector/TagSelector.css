@@ -30,9 +30,10 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
   color: var(--ui-color-text-muted);
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1;
+  font-size: var(--ui-font-size-caption);
+  font-weight: var(--ui-font-weight, 600);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 button.ui-tag-selector__chip {
@@ -89,8 +90,7 @@ button.ui-tag-selector__chip:hover {
 .ui-tag-selector__search .ui-input {
   min-height: 72px;
   padding-left: 56px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-weight: var(--ui-font-weight, 600);
 }
 
 .ui-tag-selector__search .ui-search-input__icon {
@@ -118,8 +118,9 @@ button.ui-tag-selector__chip:hover {
 
 .ui-tag-selector__search .ui-search-input__clear::before {
   content: "×";
-  font-size: 2.25rem;
-  line-height: 1;
+  font-size: var(--ui-font-size-h1);
+  line-height: var(--ui-line-height-h1);
+  letter-spacing: var(--ui-letter-spacing-h1);
 }
 
 .ui-tag-selector__recommendations {
@@ -129,8 +130,10 @@ button.ui-tag-selector__chip:hover {
 
 .ui-tag-selector__subtitle {
   color: var(--ui-color-text-muted);
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: var(--ui-font-size-caption);
+  font-weight: var(--ui-font-weight, 700);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .ui-tag-selector__list,
@@ -150,8 +153,10 @@ button.ui-tag-selector__chip:hover {
 
 .ui-tag-selector__empty {
   color: var(--ui-color-text-muted);
-  font-size: 0.96rem;
-  font-weight: 600;
+  font-size: var(--ui-font-size-caption);
+  font-weight: var(--ui-font-weight, 600);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 @media (max-width: 640px) {

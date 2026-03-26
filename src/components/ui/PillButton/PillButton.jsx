@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { AppLink } from "../../../app/AppLink";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export const PillButton = forwardRef(function PillButton(
   {
@@ -8,6 +9,8 @@ export const PillButton = forwardRef(function PillButton(
     href,
     active = false,
     size = "md",
+    fontWeight,
+    width,
     className,
     children,
     type = "button",
@@ -16,7 +19,14 @@ export const PillButton = forwardRef(function PillButton(
   ref
 ) {
   const Element = href ? "a" : as;
-  const classNames = cn("ui-pill-button", size === "lg" && "ui-pill-button--lg", active && "is-active", className);
+  const classNames = cn(
+    "ui-pill-button",
+    size === "lg" && "ui-pill-button--lg",
+    active && "is-active",
+    getFontWeightClassName(fontWeight),
+    getWidthClassName(width),
+    className
+  );
 
   if (href) {
     return (

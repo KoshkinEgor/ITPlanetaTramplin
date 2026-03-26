@@ -13,6 +13,8 @@ body {
   min-height: 100vh;
   font-family: var(--ui-font-family-base);
   color: var(--ui-color-text);
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
 }
 
 img,
@@ -71,12 +73,31 @@ code {
   border: 0;
 }
 
+.ui-width-full {
+  width: 100%;
+}
+
+.ui-page-shell {
+  width: var(--ui-layout-shell-width);
+  margin-inline: auto;
+}
+
+.ui-font-weight-medium {
+  --ui-font-weight: 500;
+}
+
 .ui-color-text-primary {
   color: var(--ui-color-text);
 }
 
 .ui-color-text-secondary {
   color: var(--ui-color-text-muted);
+}
+
+@media (max-width: 760px) {
+  .ui-page-shell {
+    width: var(--ui-layout-shell-width-mobile);
+  }
 }
 
 .ui-typo-h1,
@@ -94,6 +115,7 @@ code {
   font-family: var(--ui-font-family-base);
   font-style: normal;
   color: inherit;
+  font-kerning: normal;
 }
 
 .ui-typo-h1 {
@@ -181,50 +203,57 @@ code {
 .ui-type-h5,
 .ui-type-h6 {
   margin: 0;
-  letter-spacing: -0.05em;
   color: var(--ui-color-text);
+  font-kerning: normal;
 }
 
 .ui-type-display {
   font-size: var(--ui-font-size-display);
-  line-height: var(--ui-line-height-tight);
-  font-weight: 500;
+  line-height: var(--ui-line-height-display);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .ui-type-h1 {
   font-size: var(--ui-font-size-h1);
-  line-height: var(--ui-line-height-tight);
-  font-weight: 500;
+  line-height: var(--ui-line-height-h1);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h1);
 }
 
 .ui-type-h2 {
   font-size: var(--ui-font-size-h2);
-  line-height: var(--ui-line-height-heading);
-  font-weight: 500;
+  line-height: var(--ui-line-height-h2);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h2);
 }
 
 .ui-type-h3 {
   font-size: var(--ui-font-size-h3);
-  line-height: var(--ui-line-height-heading);
-  font-weight: 500;
+  line-height: var(--ui-line-height-h3);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h3);
 }
 
 .ui-type-h4 {
   font-size: var(--ui-font-size-h4);
-  line-height: 1.2;
-  font-weight: 500;
+  line-height: var(--ui-line-height-h4);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h4);
 }
 
 .ui-type-h5 {
   font-size: var(--ui-font-size-h5);
-  line-height: 1.25;
-  font-weight: 500;
+  line-height: var(--ui-line-height-h5);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h5);
 }
 
 .ui-type-h6 {
   font-size: var(--ui-font-size-h6);
-  line-height: 1.3;
-  font-weight: 500;
+  line-height: var(--ui-line-height-h6);
+  font-weight: var(--ui-font-weight-heading);
+  letter-spacing: var(--ui-letter-spacing-h6);
 }
 
 .ui-type-body-lg,
@@ -234,48 +263,54 @@ code {
 .ui-type-micro,
 .ui-type-overline {
   margin: 0;
+  font-kerning: normal;
 }
 
 .ui-type-body-lg {
   font-size: var(--ui-font-size-body-lg);
   line-height: var(--ui-line-height-body);
   color: var(--ui-color-text-muted);
-  font-weight: 400;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-body-lg);
 }
 
 .ui-type-body {
   font-size: var(--ui-font-size-body);
   line-height: var(--ui-line-height-body);
   color: var(--ui-color-text-muted);
-  font-weight: 400;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-type-caption {
   font-size: var(--ui-font-size-caption);
-  line-height: var(--ui-line-height-body);
+  line-height: var(--ui-line-height-caption);
   color: var(--ui-color-text-muted);
-  font-weight: 400;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .ui-type-small {
   font-size: var(--ui-font-size-caption);
-  line-height: var(--ui-line-height-body);
+  line-height: var(--ui-line-height-caption);
   color: var(--ui-color-text);
-  font-weight: 400;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .ui-type-micro {
   font-size: var(--ui-font-size-micro);
-  line-height: var(--ui-line-height-body);
+  line-height: var(--ui-line-height-micro);
   color: var(--ui-color-text-muted);
-  font-weight: 400;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-micro);
 }
 
 .ui-type-overline {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-micro);
   line-height: 1.4;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: var(--ui-font-weight-regular);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }

@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCurrentAuthUser } from "../auth/api";
+import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../auth/api";
+import { getModerationDashboard } from "../api/moderation";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
 
@@ -14,16 +15,16 @@ const candidateProfile = {
   skills: ["SQL", "UX", "Figma"],
   links: {
     onboarding: {
-      profession: "Дизайнер интерфейсов",
+      profession: "Designer",
       gender: "female",
       birthDate: "2004-02-21",
       phone: "+7 927 563 89 41",
-      city: "Чебоксары",
-      citizenship: "Россия",
+      city: "Cheboksary",
+      citizenship: "Russia",
       experience: {
         noExperience: true,
       },
-      goal: "Пройти стажировку на позицию UX/UI дизайнера",
+      goal: "Get an internship in UX/UI design",
     },
   },
 };
@@ -38,15 +39,17 @@ const companyProfile = {
 vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(() => Promise.resolve(candidateProfile)),
   updateCandidateProfile: vi.fn(() => Promise.resolve(candidateProfile)),
-  getCandidateEducation: vi.fn(() => Promise.resolve([
-    {
-      id: 1,
-      institutionName: "ЧГУ им. И. Н. Ульянова",
-      faculty: "Информатика",
-      specialization: "Дизайн интерфейсов",
-      graduationYear: 2027,
-    },
-  ])),
+  getCandidateEducation: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: 1,
+        institutionName: "State University",
+        faculty: "Design",
+        specialization: "Interface design",
+        graduationYear: 2027,
+      },
+    ])
+  ),
   createCandidateEducation: vi.fn(() => Promise.resolve({ id: 1 })),
   updateCandidateEducation: vi.fn(() => Promise.resolve({ id: 1 })),
   deleteCandidateEducation: vi.fn(() => Promise.resolve({})),
@@ -65,13 +68,30 @@ vi.mock("../api/candidate", () => ({
   getCandidateRecommendations: vi.fn(() => Promise.resolve([])),
 }));
 
-vi.mock("../auth/api", () => ({
-  getCurrentAuthUser: vi.fn(() => Promise.resolve({
-    id: 1,
-    role: "candidate",
-    email: "anna@example.com",
-  })),
-}));
+vi.mock("../auth/api", async (importOriginal) => {
+  const actual = await importOriginal();
+
+  return {
+    ...actual,
+    getCurrentAuthUser: vi.fn(() =>
+      Promise.resolve({
+        id: 1,
+        role: "candidate",
+        email: "anna@example.com",
+      })
+    ),
+    useAuthSession: vi.fn(() => ({
+      status: "authenticated",
+      user: {
+        id: 1,
+        role: "candidate",
+        email: "anna@example.com",
+      },
+      error: null,
+    })),
+    logoutCurrentAuthUser: vi.fn(() => Promise.resolve({})),
+  };
+});
 
 vi.mock("../api/company", () => ({
   getCompanyProfile: vi.fn(() => Promise.resolve(companyProfile)),
@@ -91,16 +111,27 @@ vi.mock("../api/opportunities", () => ({
 }));
 
 vi.mock("../api/moderation", () => ({
-  getModerationDashboard: vi.fn(() => Promise.resolve({
-    opportunitiesPending: 4,
-    companiesPending: 2,
-    totalUsers: 16,
-  })),
+  getModerationDashboard: vi.fn(() =>
+    Promise.resolve({
+      opportunitiesPending: 4,
+      companiesPending: 2,
+      totalUsers: 16,
+    })
+  ),
   getModerationCompanies: vi.fn(() => Promise.resolve([])),
   getModerationOpportunities: vi.fn(() => Promise.resolve([])),
   getModerationUsers: vi.fn(() => Promise.resolve([])),
   decideCompanyModeration: vi.fn(() => Promise.resolve({})),
   decideOpportunityModeration: vi.fn(() => Promise.resolve({})),
+}));
+
+vi.mock("../widgets/layout/PortalHeader/PortalHeader", () => ({
+  PortalHeader: ({ className, actionHref, actionLabel }) => (
+    <header className={className}>
+      <span>PortalHeader</span>
+      {actionHref && actionLabel ? <a href={actionHref}>{actionLabel}</a> : null}
+    </header>
+  ),
 }));
 
 function renderRoute(path) {
@@ -111,14 +142,24 @@ function renderRoute(path) {
   );
 }
 
+function setSession(user, status = "authenticated") {
+  getCurrentAuthUser.mockResolvedValue(user);
+  useAuthSession.mockReturnValue({
+    status,
+    user,
+    error: null,
+  });
+}
+
 describe("cabinet shell routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getCurrentAuthUser.mockResolvedValue({
+    setSession({
       id: 1,
       role: "candidate",
       email: "anna@example.com",
     });
+    logoutCurrentAuthUser.mockResolvedValue({});
   });
 
   it("renders candidate section routes inside the cabinet shell", async () => {
@@ -137,22 +178,144 @@ describe("cabinet shell routes", () => {
 
   it("redirects guests from candidate routes to the career entry page", async () => {
     getCurrentAuthUser.mockRejectedValue({ status: 401 });
+    useAuthSession.mockReturnValue({
+      status: "guest",
+      user: null,
+      error: null,
+    });
 
     renderRoute(routes.candidate.profile);
 
-    expect(await screen.findByRole("heading", { name: "Хочешь построить карьеру?" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector(".candidate-career-page")).toBeInTheDocument();
+      expect(screen.queryByTestId("candidate-cabinet-shell")).not.toBeInTheDocument();
+    });
   });
 
-  it("renders company section routes inside the company shell", async () => {
+  it("renders company section routes inside the company shell for company users", async () => {
+    setSession({
+      id: 2,
+      role: "company",
+      email: "company@example.com",
+    });
+
     renderRoute(routes.company.opportunities);
 
     expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
   });
 
-  it("renders moderator placeholder routes inside the moderator shell", async () => {
+  it("redirects guests from company routes to the login page", async () => {
+    getCurrentAuthUser.mockRejectedValue({ status: 401 });
+    useAuthSession.mockReturnValue({
+      status: "guest",
+      user: null,
+      error: null,
+    });
+
+    renderRoute(routes.company.dashboard);
+
+    await waitFor(() => {
+      expect(document.querySelector(".auth-login-card")).toBeInTheDocument();
+    });
+  });
+
+  it("redirects non-company users from company routes to their own cabinet", async () => {
+    setSession({
+      id: 1,
+      role: "candidate",
+      email: "anna@example.com",
+    });
+
+    renderRoute(routes.company.dashboard);
+
+    expect(await screen.findByTestId("candidate-cabinet-shell")).toBeInTheDocument();
+    expect(screen.queryByTestId("company-cabinet-shell")).not.toBeInTheDocument();
+  });
+
+  it("renders moderator logs inside the moderator shell", async () => {
+    setSession({
+      id: 7,
+      role: "moderator",
+      email: "moderator@example.com",
+    });
+
     renderRoute(routes.moderator.logs);
 
     expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
-    expect(await screen.findByText(/content placeholder/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("moderator-activity-log")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Signal Hub/i })).toBeInTheDocument();
+  });
+
+  it("shows the moderator summary only on the dashboard route", async () => {
+    setSession({
+      id: 7,
+      role: "moderator",
+      email: "moderator@example.com",
+    });
+
+    const { container } = renderRoute(routes.moderator.dashboard);
+
+    await waitFor(() => {
+      expect(getModerationDashboard).toHaveBeenCalledTimes(1);
+    });
+
+    expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
+    expect(container.querySelector(".moderator-profile-summary")).toBeInTheDocument();
+    expect(container.querySelector(".moderator-dashboard-stack")).toBeInTheDocument();
+  });
+
+  it("skips the moderator summary fetch outside the dashboard route", async () => {
+    setSession({
+      id: 7,
+      role: "moderator",
+      email: "moderator@example.com",
+    });
+
+    const { container } = renderRoute(routes.moderator.logs);
+
+    expect(await screen.findByTestId("moderator-activity-log")).toBeInTheDocument();
+    expect(container.querySelector(".moderator-profile-summary")).not.toBeInTheDocument();
+    expect(getModerationDashboard).not.toHaveBeenCalled();
+  });
+
+  it("redirects guests from moderator routes to the login page", async () => {
+    getCurrentAuthUser.mockRejectedValue({ status: 401 });
+    useAuthSession.mockReturnValue({
+      status: "guest",
+      user: null,
+      error: null,
+    });
+
+    renderRoute(routes.moderator.dashboard);
+
+    await waitFor(() => {
+      expect(document.querySelector(".auth-login-card")).toBeInTheDocument();
+    });
+  });
+
+  it("redirects non-moderators from moderator routes to their own cabinet", async () => {
+    setSession({
+      id: 9,
+      role: "company",
+      email: "company@example.com",
+    });
+
+    renderRoute(routes.moderator.dashboard);
+
+    expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
+    expect(screen.queryByTestId("moderator-cabinet-shell")).not.toBeInTheDocument();
+  });
+
+  it("redirects authenticated users away from the login page", async () => {
+    setSession({
+      id: 7,
+      role: "moderator",
+      email: "moderator@example.com",
+    });
+
+    renderRoute(routes.auth.login);
+
+    expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
+    expect(screen.queryByTestId("auth-page")).not.toBeInTheDocument();
   });
 });

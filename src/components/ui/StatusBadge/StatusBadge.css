@@ -1,4 +1,4 @@
-.ui-status-badge {
+﻿.ui-status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8,10 +8,10 @@
   padding: 8px 16px;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-pill);
-  font-size: var(--ui-typo-txt-select-small-size);
-  font-weight: var(--ui-typo-txt-select-small-weight);
-  line-height: var(--ui-typo-txt-select-small-line-height);
-  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
+  font-size: var(--ui-font-size-caption);
+  font-weight: var(--ui-font-weight-strong);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
   white-space: nowrap;
 }
 
@@ -54,7 +54,8 @@
 .ui-status-badge--feedback {
   min-height: 48px;
   padding-inline: 28px;
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
+

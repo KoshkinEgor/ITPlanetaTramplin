@@ -183,6 +183,32 @@ Frontend будет доступен по адресу:
 
 - `http://127.0.0.1:3000`
 
+### Демо-данные для local dev
+
+`DevelopmentDataSeeder` при запуске backend в окружении `Development` создаёт демо-компании, кандидатов, кураторов и набор возможностей.
+
+Для компаний логин в форме входа это ИНН, а не email.
+
+Кураторы:
+
+- `demo-curator@tramplin.local` / `Curator1234` - `Demo Curator`
+- `olga.curator@tramplin.local` / `Moderator1234` - `Olga Morozova`
+
+Компании:
+
+- `7707083893` / `Demo1234` - `Sber`
+- `7743001840` / `VkTeam1234` - `VK`
+- `7736207543` / `Yandex1234` - `Yandex`
+- `7707049388` / `Rostelecom1234` - `Rostelecom`
+
+Кандидаты:
+
+- `anna.petrova@tramplin.local` / `Candidate1234` - `Anna Petrova`
+- `ivan.smirnov@tramplin.local` / `Analyst1234` - `Ivan Smirnov`
+- `polina.sokolova@tramplin.local` / `Designer1234` - `Polina Sokolova`
+
+Сидер идемпотентный: при повторном запуске backend он добавляет недостающие demo-записи и обновляет пароли для этих аккаунтов.
+
 ### Перезапустить backend и frontend
 
 Если backend или frontend уже запущены и нужно применить изменения в конфиге или окружении, перезапуск выполняется вручную в тех же окнах `PowerShell`.

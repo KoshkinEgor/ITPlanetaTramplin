@@ -1,4 +1,4 @@
-.ui-button {
+﻿.ui-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9,10 +9,10 @@
   border-radius: var(--ui-radius-pill);
   background: rgba(255, 255, 255, 0.88);
   color: var(--ui-color-text);
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight, var(--ui-font-weight-strong));
   cursor: pointer;
   text-decoration: none;
   transition:
@@ -144,9 +144,9 @@
 .ui-button--sm {
   min-height: 40px;
   padding: 8px 14px;
-  font-size: var(--ui-typo-txt-select-small-size);
-  line-height: var(--ui-typo-txt-select-small-line-height);
-  letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
 }
 
 .ui-button--lg {
@@ -182,3 +182,4 @@
 .ui-button.is-loading .ui-button__label {
   opacity: 0.8;
 }
+

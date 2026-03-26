@@ -1,11 +1,11 @@
-.ui-tag-token {
+﻿.ui-tag-token {
   --ui-tag-height: 38px;
   --ui-tag-padding-inline: 14px;
   --ui-tag-padding-block: 8px;
-  --ui-tag-font-size: var(--ui-typo-txt-select-small-size);
-  --ui-tag-font-weight: var(--ui-typo-txt-select-small-weight);
-  --ui-tag-line-height: var(--ui-typo-txt-select-small-line-height);
-  --ui-tag-letter-spacing: var(--ui-typo-txt-select-small-letter-spacing);
+  --ui-tag-font-size: var(--ui-font-size-caption);
+  --ui-tag-font-weight: var(--ui-font-weight-strong);
+  --ui-tag-line-height: var(--ui-line-height-caption);
+  --ui-tag-letter-spacing: var(--ui-letter-spacing-caption);
   --ui-tag-solid-bg: var(--ui-color-tag-neutral-fill);
   --ui-tag-solid-border: transparent;
   --ui-tag-solid-color: var(--ui-color-tag-neutral-fill-text);
@@ -85,10 +85,10 @@
   --ui-tag-height: 62px;
   --ui-tag-padding-inline: 24px;
   --ui-tag-padding-block: 18px;
-  --ui-tag-font-size: var(--ui-typo-txt-select-size);
-  --ui-tag-font-weight: var(--ui-typo-txt-select-weight);
-  --ui-tag-line-height: var(--ui-typo-txt-select-line-height);
-  --ui-tag-letter-spacing: var(--ui-typo-txt-select-letter-spacing);
+  --ui-tag-font-size: var(--ui-font-size-body);
+  --ui-tag-font-weight: var(--ui-font-weight-strong);
+  --ui-tag-line-height: var(--ui-line-height-body);
+  --ui-tag-letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-tag-token--tone-default,
@@ -187,3 +187,4 @@
     --ui-tag-padding-block: 14px;
   }
 }
+

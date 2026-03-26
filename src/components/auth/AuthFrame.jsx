@@ -17,7 +17,7 @@ export function AuthStage({ layout = "flow", className, children }) {
         <div className="auth-stage__backdrop" aria-hidden="true" />
         <div className="auth-stage__media auth-stage__media--left" aria-hidden="true" />
         <div className="auth-stage__media auth-stage__media--right" aria-hidden="true" />
-        {children}
+        <div className="auth-stage__frame ui-page-shell">{children}</div>
       </section>
     </main>
   );
@@ -69,7 +69,7 @@ export function AuthHero({
         </Badge>
       ) : null}
       <div className="auth-screen__copy-body">
-        <h1 className={cn(titleClassName || (centered ? "ui-type-display" : "ui-type-h1"))}>{title}</h1>
+        <h1 className={cn(titleClassName || (centered ? "ui-type-display" : "ui-type-h2"))}>{title}</h1>
         <p className={cn(descriptionClassName || (centered ? "ui-type-body-lg" : "ui-type-body"))}>{description}</p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Children, forwardRef, isValidElement, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 function ChevronIcon() {
   return (
@@ -80,9 +81,11 @@ export const ActionSelect = forwardRef(function ActionSelect(
     hovered = false,
     focused = false,
     disabled = false,
+    fontWeight,
     tone,
     shellClassName,
     className,
+    width,
     "aria-describedby": ariaDescribedBy,
     "aria-invalid": ariaInvalid,
     "aria-required": ariaRequired,
@@ -102,6 +105,7 @@ export const ActionSelect = forwardRef(function ActionSelect(
   const [highlightedIndex, setHighlightedIndex] = useState(selectedIndex >= 0 ? selectedIndex : findFirstEnabledIndex(normalizedOptions));
   const selectedOption = selectedIndex >= 0 ? normalizedOptions[selectedIndex] : normalizedOptions[0];
   const resolvedTone = tone ?? (selectedOption?.isPlaceholder ? "default" : selectedOption?.tone ?? "default");
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useImperativeHandle(ref, () => nativeSelectRef.current);
 
@@ -152,7 +156,7 @@ export const ActionSelect = forwardRef(function ActionSelect(
   };
 
   return (
-    <span ref={rootRef} className={cn("ui-action-select-shell", shellClassName)}>
+    <span ref={rootRef} className={cn("ui-action-select-shell", sharedClassName, shellClassName)}>
       <select
         ref={nativeSelectRef}
         className="ui-visually-hidden"
@@ -189,6 +193,7 @@ export const ActionSelect = forwardRef(function ActionSelect(
           focused && "is-focused",
           open && "is-open",
           selectedOption?.isPlaceholder && "ui-action-select--placeholder",
+          sharedClassName,
           className
         )}
         aria-haspopup="listbox"
@@ -284,7 +289,7 @@ export const ActionSelect = forwardRef(function ActionSelect(
                 disabled={option.disabled}
                 className={cn(
                   "ui-action-select__option",
-                  option.tone === "danger" && "ui-action-select__option--danger",
+                  option.tone && option.tone !== "default" && `ui-action-select__option--${option.tone}`,
                   isSelected && "is-selected",
                   index === highlightedIndex && "is-highlighted",
                   option.isPlaceholder && "is-placeholder"

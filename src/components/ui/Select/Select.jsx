@@ -1,5 +1,6 @@
 import { Children, forwardRef, isValidElement, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 function ChevronIcon() {
   return (
@@ -79,9 +80,11 @@ export const Select = forwardRef(function Select(
     clearText = "Clear",
     focused = false,
     hovered = false,
+    fontWeight,
     iconStart,
     shellClassName,
     className,
+    width,
     disabled = false,
     required,
     form,
@@ -105,6 +108,7 @@ export const Select = forwardRef(function Select(
   const selectedIndex = normalizedOptions.findIndex((option) => option.value === currentValue);
   const [highlightedIndex, setHighlightedIndex] = useState(selectedIndex >= 0 ? selectedIndex : findFirstEnabledIndex(normalizedOptions));
   const showClear = clearable && !disabled && currentValue !== "";
+  const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useImperativeHandle(ref, () => selectRef.current);
 
@@ -165,6 +169,7 @@ export const Select = forwardRef(function Select(
         "ui-select-shell",
         iconStart && "ui-control-shell--has-start",
         showClear && "ui-control-shell--has-action",
+        sharedClassName,
         shellClassName
       )}
     >
@@ -215,6 +220,7 @@ export const Select = forwardRef(function Select(
           iconStart && "ui-select--with-start-icon",
           showClear && "ui-select--with-action",
           currentValue === "" && placeholder && "ui-select--placeholder",
+          sharedClassName,
           className
         )}
         aria-haspopup="listbox"

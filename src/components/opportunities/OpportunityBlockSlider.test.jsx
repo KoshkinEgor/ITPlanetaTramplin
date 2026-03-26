@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OpportunityBlockSlider } from "./OpportunityBlockSlider";
 
@@ -9,8 +9,8 @@ const items = [
     status: "Open",
     statusTone: "success",
     title: "Junior Security Analyst",
-    meta: "Acme Security · Moscow + remote",
-    accent: "from 90 000 ₽",
+    meta: "Acme Security В· Moscow + remote",
+    accent: "from 90 000 в‚Ѕ",
     chips: ["Junior", "SOC", "SIEM"],
   },
   {
@@ -19,7 +19,7 @@ const items = [
     status: "Soon",
     statusTone: "warning",
     title: "Mobile UI/UX",
-    meta: "White Tiger Soft · remote",
+    meta: "White Tiger Soft В· remote",
     accent: "starts in April",
     chips: ["Design", "Paid"],
   },
@@ -29,7 +29,7 @@ const items = [
     status: "Open",
     statusTone: "success",
     title: "IT Planet",
-    meta: "IT Planet · online",
+    meta: "IT Planet В· online",
     accent: "155 registrations",
     chips: ["Students", "Community"],
   },
@@ -48,9 +48,11 @@ describe("OpportunityBlockSlider", () => {
     );
 
     const rail = screen.getByRole("region", { name: "Opportunity slider" });
+    const [firstAction] = within(rail).getAllByRole("link", { name: "More" });
 
     expect(rail.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(3);
     expect(rail.querySelectorAll(".ui-opportunity-card--md")).toHaveLength(3);
+    expect(firstAction).toHaveClass("ui-width-full");
   });
 
   it("promotes the card nearest to the left edge in the leading-featured variant", async () => {
@@ -97,5 +99,37 @@ describe("OpportunityBlockSlider", () => {
 
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
+  });
+
+  it("renders arrow controls and advances the active card in the raised-featured variant", async () => {
+    render(
+      <OpportunityBlockSlider
+        ariaLabel="Raised featured opportunity slider"
+        items={items}
+        variant="raised-featured"
+        cardPropsBuilder={(item) => ({
+          detailAction: { href: `#${item.id}`, label: "More", variant: "secondary" },
+        })}
+      />
+    );
+
+    const rail = screen.getByRole("region", { name: "Raised featured opportunity slider" });
+    const sliderItems = Array.from(rail.querySelectorAll(".opportunity-block-slider__item"));
+
+    sliderItems.forEach((item, index) => {
+      Object.defineProperty(item, "offsetLeft", {
+        configurable: true,
+        value: index * 420,
+      });
+    });
+
+    rail.scrollTo = vi.fn();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next card" }));
+
+    await waitFor(() => {
+      expect(sliderItems[1]).toHaveClass("is-active");
+      expect(rail.scrollTo).toHaveBeenCalledWith({ left: 420, behavior: "smooth" });
+    });
   });
 });

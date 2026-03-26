@@ -282,7 +282,6 @@
 }
 
 .ui-opportunity-card--row .ui-opportunity-card__action.ui-button {
-  width: 100%;
   min-width: 0;
   min-height: 56px;
 }
@@ -335,7 +334,6 @@
   }
 
   .ui-opportunity-card--row .ui-opportunity-card__action.ui-button {
-    width: 100%;
     min-width: 0;
   }
 }

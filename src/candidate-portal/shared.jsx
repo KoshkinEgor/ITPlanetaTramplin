@@ -1,6 +1,7 @@
 import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
-import { Avatar, Button, Card, FormField, Input, PillButton, SearchInput, SectionHeader, SegmentedControl, StatusBadge, Tag } from "../shared/ui";
+import { Avatar, Button, Card, FilterPill, FormField, Input, SearchBar, SectionHeader, SegmentedControl, SidebarNav, SortControl, StatusBadge, Tag } from "../shared/ui";
+import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SIDEBAR_ITEMS } from "./config";
@@ -77,9 +78,11 @@ function HeartLineIcon() {
 }
 
 export function CandidateFrame({ activeKey, hero, children }) {
+  useBodyClass("candidate-portal-react-body");
+
   return (
     <main className="candidate-portal">
-      <div className="candidate-portal__shell">
+      <div className="candidate-portal__shell ui-page-shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
           currentKey="career"
@@ -104,9 +107,11 @@ export function CandidateFrame({ activeKey, hero, children }) {
 }
 
 export function CandidateStandaloneFrame({ children }) {
+  useBodyClass("candidate-portal-react-body");
+
   return (
     <main className="candidate-portal">
-      <div className="candidate-portal__shell">
+      <div className="candidate-portal__shell ui-page-shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
           currentKey="career"
@@ -125,29 +130,20 @@ export function CandidateStandaloneFrame({ children }) {
 
 export function CandidateSidebar({ activeKey }) {
   return (
-    <Card className="candidate-sidebar">
-      <div className="candidate-sidebar__head">
-        <p className="ui-type-body">Личный кабинет</p>
-      </div>
-
-      <nav className="candidate-sidebar__menu" aria-label="Разделы кабинета">
-        {CANDIDATE_SIDEBAR_ITEMS.map((item) => (
-          <AppLink
-            key={item.key}
-            href={item.href}
-            className={cn("candidate-sidebar__link", item.key === activeKey && "is-active")}
-            aria-current={item.key === activeKey ? "page" : undefined}
-          >
-            {item.label}
-          </AppLink>
-        ))}
-      </nav>
-
-      <CandidateProgressCard
-        className="candidate-sidebar__summary"
-        note="Чем полнее профиль, тем точнее рекомендации и тем понятнее ваши сильные стороны для работодателя."
-      />
-    </Card>
+    <SidebarNav
+      title="Личный кабинет"
+      items={CANDIDATE_SIDEBAR_ITEMS}
+      activeKey={activeKey}
+      summary={(
+        <CandidateProgressCard
+          className="candidate-sidebar__summary"
+          note="Чем полнее профиль, тем точнее рекомендации и тем понятнее ваши сильные стороны для работодателя."
+        />
+      )}
+      className="candidate-sidebar"
+      menuClassName="candidate-sidebar__menu"
+      linkClassName="candidate-sidebar__link"
+    />
   );
 }
 
@@ -169,7 +165,7 @@ export function CandidateProfileHero({
     <>
       <CandidateProgressCard value={completion} className="candidate-hero__progress" />
       <CandidateStatTiles items={stats} className="candidate-hero__stats" />
-      <Button href={buildCandidateSettingsRoute("settings-profile")} variant="secondary" className="candidate-hero__action candidate-hero__aside-action">
+      <Button href={buildCandidateSettingsRoute("settings-profile")} variant="secondary" width="full" className="candidate-hero__action candidate-hero__aside-action">
         Редактировать профиль
       </Button>
     </>
@@ -205,7 +201,7 @@ export function CandidateProfileHero({
             />
 
             <div className="candidate-hero__heading">
-              <h1 className="ui-type-h1 candidate-hero__title">
+              <h1 className="ui-type-h2 candidate-hero__title">
                 <span>{firstName}</span>
                 {lastName ? <span>{lastName}</span> : null}
               </h1>
@@ -336,7 +332,7 @@ export function CandidateProjectCard({ item }) {
       </div>
 
       <div className="candidate-project-card__body">
-        <h3 className="ui-type-h1">{item.title}</h3>
+        <h3 className="ui-type-h3">{item.title}</h3>
         <p className="ui-type-body">{item.description}</p>
         <p className="candidate-project-card__role">{item.role}</p>
       </div>
@@ -347,7 +343,7 @@ export function CandidateProjectCard({ item }) {
         ))}
       </div>
 
-      <Button as="a" href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary" className="candidate-project-card__action">
+      <Button as="a" href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary" width="full" className="candidate-project-card__action">
         Подробнее
       </Button>
     </Card>
@@ -363,7 +359,7 @@ export function CandidateResponseCard({ item }) {
       </div>
 
       <div className="candidate-response-card__body">
-        <h3 className="ui-type-h1">{item.title}</h3>
+        <h3 className="ui-type-h3">{item.title}</h3>
         <p className="ui-type-body">{item.company}</p>
         <div className="candidate-response-card__details">
           {item.details.map((detail) => (
@@ -447,6 +443,7 @@ export function CandidateSettingsPreviewCard({ section, className, isOpen = fals
         <div className="candidate-settings-preview-card__actions">
           <Button
             variant="secondary"
+            width="full"
             className="candidate-settings-preview-card__action"
             onClick={handleToggle}
             aria-expanded={isOpen}
@@ -479,22 +476,30 @@ export function CandidateSectionHeader({ eyebrow, title, description, actions, c
 
 export function CandidateSearchBar({ value, onChange, placeholder }) {
   return (
-    <SearchInput
+    <SearchBar
       value={value}
-      onValueChange={onChange}
+      onChange={onChange}
       placeholder={placeholder}
       clearLabel="Очистить поиск"
       className="candidate-search-bar"
+      appearance="elevated"
     />
   );
 }
 
 export function CandidateSortButton({ label = "По новизне" }) {
   return (
-    <button type="button" className="candidate-sort-button">
-      <span>{label}</span>
-      <SortIcon />
-    </button>
+    <SortControl
+      label="Сортировка"
+      value={label}
+      options={[{ value: label, label }]}
+      open={false}
+      onOpenChange={() => {}}
+      onSelect={() => {}}
+      triggerClassName="candidate-sort-button"
+      triggerLabel={label}
+      endIcon={<SortIcon />}
+    />
   );
 }
 
@@ -504,14 +509,13 @@ export function CandidateSegmentNav({ items, value, className }) {
 
 export function CandidateFilterPill({ label, active = false, onClick, href, className }) {
   return (
-    <PillButton
+    <FilterPill
       href={href}
       active={active}
       onClick={onClick}
       className={cn("candidate-filter-pill", className)}
-    >
-      {label}
-    </PillButton>
+      label={label}
+    />
   );
 }
 

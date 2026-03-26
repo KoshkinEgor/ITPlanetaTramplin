@@ -1,6 +1,8 @@
 import { Button, IconButton } from "../../../shared/ui";
 import { AppLink } from "../../../app/AppLink";
 import { routes } from "../../../app/routes";
+import { useAuthSession } from "../../../auth/api";
+import { AuthAccountMenu } from "../../../auth/AuthAccountMenu";
 import { cn } from "../../../shared/lib/cn";
 import "./PortalHeader.css";
 
@@ -33,9 +35,18 @@ function BellIcon() {
   );
 }
 
+function GuestProfileIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="6.7" r="3.1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4.5 16c1-2.5 3-4 5.5-4s4.5 1.5 5.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const DEFAULT_ICON_BUTTONS = [
-  { key: "favorites", label: "РР·Р±СЂР°РЅРЅРѕРµ", icon: <HeartIcon /> },
-  { key: "notifications", label: "РЈРІРµРґРѕРјР»РµРЅРёСЏ", icon: <BellIcon /> },
+  { key: "favorites", label: "Избранное", icon: <HeartIcon /> },
+  { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
 ];
 
 export function PortalHeader({
@@ -48,39 +59,69 @@ export function PortalHeader({
   actionVariant = "primary",
   iconButtons = DEFAULT_ICON_BUTTONS,
   className,
+  shellClassName,
+  floating = false,
+  visible = true,
 }) {
+  const authSession = useAuthSession();
+  const authUser = authSession.status === "authenticated" ? authSession.user : null;
+  const showActionButton = Boolean(actionHref && actionLabel && (!authUser || actionHref !== routes.auth.login));
+  const isLoginAction = actionHref === routes.auth.login;
+
   return (
-    <header className={cn("portal-header", className)}>
-      <AppLink href={brandHref} className="portal-header__brand" aria-label="Tramplin">
-        <span className="portal-header__brand-mark" aria-hidden="true" />
-        <span>{brandLabel}</span>
-      </AppLink>
+    <div className={cn("portal-header-shell", floating && "is-floating", visible ? "is-visible" : "is-hidden", shellClassName)}>
+      <header className={cn("portal-header", className)}>
+        <AppLink href={brandHref} className="portal-header__brand" aria-label="Tramplin">
+          <span className="portal-header__brand-mark" aria-hidden="true" />
+          <span className="portal-header__brand-text">{brandLabel}</span>
+        </AppLink>
 
-      <nav className="portal-header__nav" aria-label="РћСЃРЅРѕРІРЅР°СЏ РЅР°РІРёРіР°С†РёСЏ">
-        {navItems.map((item) => (
-          <AppLink
-            key={item.key ?? item.label}
-            href={item.href}
-            className={cn("portal-header__nav-link", item.key === currentKey && "is-active")}
-            aria-current={item.key === currentKey ? "page" : undefined}
-          >
-            {item.label}
-          </AppLink>
-        ))}
-      </nav>
+        <nav className="portal-header__nav" aria-label="Основная навигация">
+          {navItems.map((item) => (
+            <AppLink
+              key={item.key ?? item.label}
+              href={item.href}
+              className={cn("portal-header__nav-link", item.key === currentKey && "is-active")}
+              aria-current={item.key === currentKey ? "page" : undefined}
+            >
+              {item.label}
+            </AppLink>
+          ))}
+        </nav>
 
-      <div className="portal-header__actions">
-        {iconButtons.map((item) => (
-          <IconButton key={item.key ?? item.label} label={item.label} href={item.href} size="xl" className="portal-header__icon-button">
-            {item.icon}
-          </IconButton>
-        ))}
-        {actionHref && actionLabel ? (
-          <Button as="a" href={actionHref} variant={actionVariant} className="portal-header__action">
-            {actionLabel}
-          </Button>
-        ) : null}
-      </div>
-    </header>
+        <div className="portal-header__actions">
+          {iconButtons.map((item) => (
+            <IconButton key={item.key ?? item.label} label={item.label} href={item.href} size="lg" className="portal-header__icon-button">
+              {item.icon}
+            </IconButton>
+          ))}
+          {showActionButton ? (
+            isLoginAction ? (
+              <AppLink href={actionHref} className="portal-header__icon-button portal-header__auth" aria-label={actionLabel}>
+                {actionLabel}
+                <GuestProfileIcon />
+                <span className="ui-visually-hidden">{actionLabel}</span>
+              </AppLink>
+            ) : (
+              <Button as="a" href={actionHref} variant={actionVariant} className="portal-header__action">
+                {actionLabel}
+              </Button>
+            )
+          ) : null}
+          {authUser ? (
+            <AuthAccountMenu
+              user={authUser}
+              className="portal-header__account-menu"
+              triggerClassName="portal-header__account-trigger"
+              panelClassName="portal-header__account-panel"
+              showText={false}
+              avatarSize="sm"
+              cabinetLabel="Мой кабинет"
+              logoutLabel="Выйти"
+            />
+          ) : null}
+        </div>
+      </header>
+    </div>
   );
 }

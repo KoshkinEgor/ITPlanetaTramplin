@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { buildAuthLoginRoute, PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
 import {
   createCandidateEducation,
+  deleteCandidateEducation,
+  getCandidateApplications,
+  getCandidateContacts,
   getCandidateEducation,
   getCandidateProfile,
+  getCandidateRecommendations,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
+import { getOpportunities } from "../../api/opportunities";
+import {
+  createCandidateEducationDraft,
+  createEducationDraftListAfterRemove,
+  getActiveCandidateEducationDrafts,
+  getCandidateEducationDraftErrors,
+} from "../../candidate-portal/education";
 import {
   buildCandidateOnboardingLinks,
   CANDIDATE_CITIZENSHIP_OPTIONS,
@@ -21,7 +32,21 @@ import {
   getCandidateOnboardingStepError,
 } from "../../candidate-portal/onboarding";
 import { PortalHeader } from "../../widgets/layout";
-import { Alert, Button, Card, Checkbox, FormField, Input, Loader, SearchInput, Select, Tag, Textarea } from "../../shared/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  EducationListEditor,
+  FormField,
+  Input,
+  Loader,
+  SearchInput,
+  Select,
+  Tag,
+  Textarea,
+} from "../../shared/ui";
+import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
 import { loadCandidateCareerContext } from "./candidate-access";
 import "./candidate-career.css";
 
@@ -32,47 +57,16 @@ function normalizeSearchValue(value) {
   return String(value ?? "").trim().toLowerCase();
 }
 
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function CloseIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M4 4 12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M12 4 4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function CareerHero() {
-  return (
-    <section className="candidate-career-hero" aria-labelledby="candidate-career-title">
-      <div className="candidate-career-hero__content">
-        <Tag className="candidate-career-hero__tag">Карьерный маршрут для соискателя</Tag>
-        <h1 id="candidate-career-title" className="candidate-career-hero__title">
-          Хочешь построить карьеру?
-        </h1>
-        <p className="candidate-career-hero__description">
-          Пройди регистрацию и заполни простую форму. Мы соберём минимальное резюме, поймём твои навыки и откроем доступ к карьерным возможностям.
-        </p>
-
-        <div className="candidate-career-hero__actions">
-          <Button as="a" href={routes.auth.registerCandidate} className="candidate-career-hero__primary">
-            Зарегистрироваться
-          </Button>
-          <Button as="a" href={candidateLoginHref} variant="secondary">
-            Уже зарегистрирован
-          </Button>
-        </div>
-      </div>
-
-      <Card className="candidate-career-hero__aside">
-        <strong>Регистрация соискателя</strong>
-        <p>После регистрации собираем доп. информацию, которая формирует стартовое резюме и открывает карьерный кабинет.</p>
-        <ul className="candidate-career-hero__aside-list">
-          <li>Профессия и цели</li>
-          <li>Базовые контакты и образование</li>
-          <li>Навыки и опыт</li>
-        </ul>
-      </Card>
-    </section>
   );
 }
 
@@ -93,22 +87,21 @@ function StepProgress({ activeIndex }) {
 function ProfessionStep({ draft, professionQuery, onProfessionQueryChange, onProfessionSelect }) {
   const filteredOptions = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(professionQuery);
-    return CANDIDATE_PROFESSION_OPTIONS.filter((option) => (
-      !normalizedQuery || normalizeSearchValue(option).includes(normalizedQuery)
-    ));
+    return CANDIDATE_PROFESSION_OPTIONS.filter((option) => !normalizedQuery || normalizeSearchValue(option).includes(normalizedQuery));
   }, [professionQuery]);
 
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
         <h2>Выберите или укажите профессию</h2>
-        <p>Это нужно, чтобы рекомендации и карьерный кабинет сразу открывались в правильном контексте.</p>
+        <p>Это поможет открыть карьерный раздел в правильном контексте и собрать релевантные рекомендации.</p>
       </div>
 
       <SearchInput
         value={professionQuery}
         onValueChange={onProfessionQueryChange}
         placeholder="Поиск профессии"
+        width="full"
         className="candidate-career-search"
         clearLabel="Очистить поиск профессии"
       />
@@ -116,7 +109,6 @@ function ProfessionStep({ draft, professionQuery, onProfessionQueryChange, onPro
       <div className="candidate-career-option-list" role="radiogroup" aria-label="Профессия">
         {filteredOptions.map((option) => {
           const checked = draft.profession === option;
-
           return (
             <button
               key={option}
@@ -141,7 +133,7 @@ function BasicsStep({ draft, onFieldChange }) {
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
         <h2>Заполните основную информацию</h2>
-        <p>Эти данные сохраняются в профиль и используются как база для резюме кандидата.</p>
+        <p>Эти данные сохраняются в профиль и формируют стартовую карточку кандидата для карьерного раздела.</p>
       </div>
 
       <div className="candidate-career-grid candidate-career-grid--two">
@@ -159,12 +151,7 @@ function BasicsStep({ draft, onFieldChange }) {
 
       <div className="candidate-career-grid candidate-career-grid--two">
         <FormField label="Пол" required>
-          <Select
-            value={draft.gender}
-            onValueChange={(value) => onFieldChange("gender", value)}
-            placeholder="Выберите пол"
-            options={CANDIDATE_GENDER_OPTIONS}
-          />
+          <Select value={draft.gender} onValueChange={(value) => onFieldChange("gender", value)} placeholder="Выберите пол" options={CANDIDATE_GENDER_OPTIONS} />
         </FormField>
         <FormField label="Дата рождения" required>
           <Input type="date" value={draft.birthDate} onValueChange={(value) => onFieldChange("birthDate", value)} />
@@ -197,43 +184,21 @@ function BasicsStep({ draft, onFieldChange }) {
   );
 }
 
-function EducationStep({ draft, onEducationFieldChange }) {
+function EducationStep({ draft, educationErrors, onEducationFieldChange, onEducationAdd, onEducationRemove }) {
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Какое учебное заведение включить в резюме</h2>
-        <p>Добавь хотя бы одну запись об образовании. Этого достаточно, чтобы сформировать стартовое резюме соискателя.</p>
+        <h2>Какие учебные заведения включить в резюме</h2>
+        <p>Добавьте одно или несколько мест обучения. Они сразу попадут в профиль и повлияют на рекомендации.</p>
       </div>
 
-      <div className="candidate-career-grid candidate-career-grid--two">
-        <FormField label="Учебное заведение" required>
-          <Input
-            value={draft.education.institutionName}
-            onValueChange={(value) => onEducationFieldChange("institutionName", value)}
-            placeholder="ЧГУ им. И. Н. Ульянова"
-          />
-        </FormField>
-        <FormField label="Год окончания" required>
-          <Input
-            value={draft.education.graduationYear}
-            onValueChange={(value) => onEducationFieldChange("graduationYear", value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="2027"
-          />
-        </FormField>
-      </div>
-
-      <div className="candidate-career-grid candidate-career-grid--two">
-        <FormField label="Факультет">
-          <Input value={draft.education.faculty} onValueChange={(value) => onEducationFieldChange("faculty", value)} placeholder="Факультет" />
-        </FormField>
-        <FormField label="Специализация">
-          <Input
-            value={draft.education.specialization}
-            onValueChange={(value) => onEducationFieldChange("specialization", value)}
-            placeholder="Направление подготовки"
-          />
-        </FormField>
-      </div>
+      <EducationListEditor
+        items={draft.educations}
+        errorsByKey={educationErrors}
+        onItemChange={onEducationFieldChange}
+        onAddItem={onEducationAdd}
+        onRemoveItem={onEducationRemove}
+      />
     </div>
   );
 }
@@ -241,42 +206,32 @@ function EducationStep({ draft, onEducationFieldChange }) {
 function SkillsStep({ draft, skillQuery, onSkillQueryChange, onAddSkill, onRemoveSkill }) {
   const filteredSkills = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(skillQuery);
-
-    return CANDIDATE_SKILL_OPTIONS.filter((option) => {
-      if (draft.skills.includes(option)) {
-        return false;
-      }
-
-      return !normalizedQuery || normalizeSearchValue(option).includes(normalizedQuery);
-    });
+    return CANDIDATE_SKILL_OPTIONS.filter((option) => !draft.skills.includes(option) && (!normalizedQuery || normalizeSearchValue(option).includes(normalizedQuery)));
   }, [draft.skills, skillQuery]);
 
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
         <h2>Какими навыками владеете</h2>
-        <p>Добавьте ключевые навыки. Их мы используем для подбора возможностей и карточки кандидата.</p>
+        <p>Добавьте ключевые навыки. Они используются для карьерных подборок и персональных рекомендаций.</p>
       </div>
 
       <SearchInput
         value={skillQuery}
         onValueChange={onSkillQueryChange}
         placeholder="Поиск навыков"
+        width="full"
         className="candidate-career-search"
         clearLabel="Очистить поиск навыков"
       />
 
       <div className="candidate-career-chip-cloud candidate-career-chip-cloud--selected">
-        {draft.skills.length ? (
-          draft.skills.map((skill) => (
-            <button key={skill} type="button" className="candidate-career-chip candidate-career-chip--selected" onClick={() => onRemoveSkill(skill)}>
-              <span>{skill}</span>
-              <CloseIcon />
-            </button>
-          ))
-        ) : (
-          <p className="candidate-career-empty">Пока не выбрано ни одного навыка.</p>
-        )}
+        {draft.skills.length ? draft.skills.map((skill) => (
+          <button key={skill} type="button" className="candidate-career-chip candidate-career-chip--selected" onClick={() => onRemoveSkill(skill)}>
+            <span>{skill}</span>
+            <CloseIcon />
+          </button>
+        )) : <p className="candidate-career-empty">Пока не выбрано ни одного навыка.</p>}
       </div>
 
       <div className="candidate-career-recommendations">
@@ -298,17 +253,13 @@ function ExperienceStep({ draft, onExperienceFieldChange }) {
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
         <h2>Ваш опыт работы</h2>
-        <p>Если опыта нет, просто отметьте это. Если есть, добавьте минимум одну рабочую историю.</p>
+        <p>Если опыта нет, отметьте это. Если есть, добавьте хотя бы одну запись, чтобы рекомендации были точнее.</p>
       </div>
 
-      <Checkbox
-        checked={draft.experience.noExperience}
-        onChange={(event) => onExperienceFieldChange("noExperience", event.target.checked)}
-        className="candidate-career-checkbox"
-      >
+      <Checkbox checked={draft.experience.noExperience} onChange={(event) => onExperienceFieldChange("noExperience", event.target.checked)} className="candidate-career-checkbox">
         <>
           <span className="ui-check__label">Нет опыта работы</span>
-          <span className="ui-check__hint">Под этот сценарий мы подберём стажировки, джуниор-позиции и карьерные события.</span>
+          <span className="ui-check__hint">Под этот сценарий мы подберем стажировки, джуниор-позиции и карьерные события.</span>
         </>
       </Checkbox>
 
@@ -317,21 +268,12 @@ function ExperienceStep({ draft, onExperienceFieldChange }) {
           <FormField label="Компания" required>
             <Input value={draft.experience.company} onValueChange={(value) => onExperienceFieldChange("company", value)} placeholder="IT-Планета" />
           </FormField>
-
           <FormField label="Должность или профессия" required>
             <Input value={draft.experience.role} onValueChange={(value) => onExperienceFieldChange("role", value)} placeholder="UX/UI дизайнер" />
           </FormField>
-
           <FormField label="Обязанности и достижения" required>
-            <Textarea
-              value={draft.experience.summary}
-              onValueChange={(value) => onExperienceFieldChange("summary", value)}
-              rows={4}
-              autoResize
-              placeholder="Кратко опишите, что делали и за что отвечали."
-            />
+            <Textarea value={draft.experience.summary} onValueChange={(value) => onExperienceFieldChange("summary", value)} rows={4} autoResize placeholder="Кратко опишите, что делали и за что отвечали." />
           </FormField>
-
           <FormField label="Срок работы" required>
             <Input value={draft.experience.period} onValueChange={(value) => onExperienceFieldChange("period", value)} placeholder="Июнь 2024 — Январь 2025" />
           </FormField>
@@ -350,23 +292,21 @@ function GoalStep({ draft, onFieldChange }) {
       </div>
 
       <FormField label="Цель" required>
-        <Textarea
-          value={draft.goal}
-          onValueChange={(value) => onFieldChange("goal", value)}
-          rows={5}
-          autoResize
-          placeholder="Например: пройти стажировку на должность ux/ui дизайнера."
-        />
+        <Textarea value={draft.goal} onValueChange={(value) => onFieldChange("goal", value)} rows={5} autoResize placeholder="Например: пройти стажировку на позицию UX/UI дизайнера и собрать сильное портфолио." />
       </FormField>
     </div>
   );
 }
 
 export function CandidateCareerPage() {
-  const navigate = useNavigate();
-  const [contextState, setContextState] = useState({
-    status: "loading",
-    data: null,
+  const [contextState, setContextState] = useState({ status: "loading", data: null, error: null });
+  const [dashboardState, setDashboardState] = useState({
+    status: "idle",
+    applications: [],
+    contacts: [],
+    recommendations: [],
+    opportunities: [],
+    degraded: false,
     error: null,
   });
   const [draft, setDraft] = useState(null);
@@ -382,12 +322,8 @@ export function CandidateCareerPage() {
 
     loadCandidateCareerContext(controller.signal)
       .then((data) => {
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         setContextState({ status: "ready", data, error: null });
-
         if (data.kind === "candidate" && !data.onboardingComplete) {
           setDraft(createCandidateOnboardingDraft({ profile: data.profile, education: data.education }));
         }
@@ -404,18 +340,68 @@ export function CandidateCareerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (contextState.status !== "ready" || contextState.data?.kind !== "candidate" || !contextState.data.onboardingComplete) {
+      return undefined;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+
+    setDashboardState((current) => ({ ...current, status: "loading", error: null }));
+
+    Promise.allSettled([
+      getCandidateApplications(controller.signal),
+      getCandidateContacts(controller.signal),
+      getCandidateRecommendations(controller.signal),
+      getOpportunities(controller.signal),
+    ]).then((results) => {
+      if (!active || controller.signal.aborted) return;
+
+      const [applicationsResult, contactsResult, recommendationsResult, opportunitiesResult] = results;
+      const failedCount = results.filter((item) => item.status === "rejected").length;
+
+      setDashboardState({
+        status: "ready",
+        applications: applicationsResult.status === "fulfilled" ? safeArray(applicationsResult.value) : [],
+        contacts: contactsResult.status === "fulfilled" ? safeArray(contactsResult.value) : [],
+        recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
+        opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
+        degraded: failedCount > 0,
+        error: failedCount === results.length
+          ? (applicationsResult.reason ?? contactsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
+          : null,
+      });
+    }).catch((error) => {
+      if (!active || controller.signal.aborted) return;
+
+      setDashboardState({
+        status: "error",
+        applications: [],
+        contacts: [],
+        recommendations: [],
+        opportunities: [],
+        degraded: false,
+        error,
+      });
+    });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [contextState]);
+
   const activeStep = CANDIDATE_ONBOARDING_STEPS[activeStepIndex];
-  const stepError = useMemo(
-    () => (draft && activeStep ? getCandidateOnboardingStepError(activeStep.key, draft) : ""),
-    [activeStep, draft]
-  );
+  const stepError = useMemo(() => (draft && activeStep ? getCandidateOnboardingStepError(activeStep.key, draft) : ""), [activeStep, draft]);
+  const educationValidation = useMemo(() => getCandidateEducationDraftErrors(draft?.educations, { requireAtLeastOne: true }), [draft]);
   const onboardingProgress = useMemo(() => (draft ? getCandidateOnboardingProgress(draft) : 0), [draft]);
 
   if (contextState.status === "loading") {
     return (
       <main className="candidate-career-page candidate-career-page--loading">
-        <div className="candidate-career-page__shell">
-          <Loader label="Подготавливаем карьерный маршрут" surface />
+        <div className="candidate-career-page__shell ui-page-shell">
+          <Loader label="Подготавливаем карьерный раздел" surface />
         </div>
       </main>
     );
@@ -424,17 +410,10 @@ export function CandidateCareerPage() {
   if (contextState.status === "error") {
     return (
       <main className="candidate-career-page">
-        <div className="candidate-career-page__shell">
-          <PortalHeader
-            navItems={headerNav}
-            currentKey="career"
-            actionHref={routes.auth.login}
-            actionLabel="Войти / Регистрация"
-            className="candidate-career-page__header"
-          />
-
+        <div className="candidate-career-page__shell ui-page-shell">
+          <PortalHeader navItems={headerNav} currentKey="career" actionHref={routes.auth.login} actionLabel="Войти / Регистрация" className="candidate-career-page__header" />
           <section className="candidate-career-page__content">
-            <Alert tone="error" title="Не удалось открыть карьерный маршрут" showIcon>
+            <Alert tone="error" title="Не удалось открыть карьерный раздел" showIcon>
               {contextState.error?.message ?? "Попробуйте обновить страницу или зайти позже."}
             </Alert>
           </section>
@@ -447,16 +426,16 @@ export function CandidateCareerPage() {
     return <Navigate to={contextState.data.redirectTo} replace />;
   }
 
-  if (contextState.data?.kind === "candidate" && contextState.data.onboardingComplete) {
-    return <Navigate to={routes.candidate.profile} replace />;
+  if (contextState.data?.kind === "guest") {
+    return <Navigate to={candidateLoginHref} replace />;
   }
 
-  const isGuest = contextState.data?.kind === "guest";
+  const showDashboard = contextState.data?.kind === "candidate" && contextState.data.onboardingComplete;
 
-  if (!isGuest && !draft) {
+  if (!showDashboard && !draft) {
     return (
       <main className="candidate-career-page candidate-career-page--loading">
-        <div className="candidate-career-page__shell">
+        <div className="candidate-career-page__shell ui-page-shell">
           <Loader label="Загружаем анкету кандидата" surface />
         </div>
       </main>
@@ -468,41 +447,39 @@ export function CandidateCareerPage() {
     setMessage(null);
   };
 
-  const updateEducationField = (field, value) => {
+  const updateEducationField = (draftKey, field, value) => {
     setDraft((current) => ({
       ...current,
-      education: {
-        ...current.education,
-        [field]: value,
-      },
+      educations: current.educations.map((item) => (item.draftKey === draftKey ? { ...item, [field]: value } : item)),
     }));
+    setMessage(null);
+  };
+
+  const addEducationItem = () => {
+    setDraft((current) => ({ ...current, educations: [...current.educations, createCandidateEducationDraft()] }));
+    setMessage(null);
+  };
+
+  const removeEducationItem = (draftKey) => {
+    setDraft((current) => ({ ...current, educations: createEducationDraftListAfterRemove(current.educations, draftKey) }));
     setMessage(null);
   };
 
   const updateExperienceField = (field, value) => {
     setDraft((current) => ({
       ...current,
-      experience: {
-        ...current.experience,
-        [field]: field === "noExperience" ? Boolean(value) : value,
-      },
+      experience: { ...current.experience, [field]: field === "noExperience" ? Boolean(value) : value },
     }));
     setMessage(null);
   };
 
   const addSkill = (skill) => {
-    setDraft((current) => ({
-      ...current,
-      skills: current.skills.includes(skill) ? current.skills : [...current.skills, skill],
-    }));
+    setDraft((current) => ({ ...current, skills: current.skills.includes(skill) ? current.skills : [...current.skills, skill] }));
     setMessage(null);
   };
 
   const removeSkill = (skill) => {
-    setDraft((current) => ({
-      ...current,
-      skills: current.skills.filter((item) => item !== skill),
-    }));
+    setDraft((current) => ({ ...current, skills: current.skills.filter((item) => item !== skill) }));
     setMessage(null);
   };
 
@@ -513,105 +490,71 @@ export function CandidateCareerPage() {
 
     const links = buildCandidateOnboardingLinks(contextState.data.profile, draft);
 
-    switch (activeStep.key) {
-      case "basics": {
-        const profile = await updateCandidateProfile({
-          name: draft.name,
-          surname: draft.surname,
-          thirdname: draft.thirdname || null,
-          links,
-        });
-
-        setContextState((current) => ({
-          ...current,
-          data: {
-            ...current.data,
-            profile,
-          },
-        }));
-        return;
-      }
-      case "skills": {
-        const profile = await updateCandidateProfile({
-          skills: draft.skills,
-          links,
-        });
-
-        setContextState((current) => ({
-          ...current,
-          data: {
-            ...current.data,
-            profile,
-          },
-        }));
-        return;
-      }
-      case "education": {
-        const payload = {
-          institutionName: draft.education.institutionName,
-          faculty: draft.education.faculty || null,
-          specialization: draft.education.specialization || null,
-          graduationYear: draft.education.graduationYear ? Number(draft.education.graduationYear) : null,
-          startYear: null,
-          isCompleted: Boolean(draft.education.graduationYear),
-          description: null,
-        };
-
-        let educationId = draft.education.id;
-
-        if (educationId) {
-          await updateCandidateEducation(educationId, payload);
-        } else {
-          const result = await createCandidateEducation(payload);
-          educationId = typeof result === "number" ? result : result?.id ?? null;
-        }
-
-        const profile = await updateCandidateProfile({ links });
-        const refreshedEducation = await getCandidateEducation();
-        const refreshedProfile = await getCandidateProfile();
-
-        setDraft((current) => ({
-          ...current,
-          education: {
-            ...current.education,
-            id: educationId,
-          },
-        }));
-        setContextState((current) => ({
-          ...current,
-          data: {
-            ...current.data,
-            profile: refreshedProfile ?? profile,
-            education: Array.isArray(refreshedEducation) ? refreshedEducation : current.data.education,
-          },
-        }));
-        return;
-      }
-      default: {
-        const profile = await updateCandidateProfile({ links });
-
-        setContextState((current) => ({
-          ...current,
-          data: {
-            ...current.data,
-            profile,
-          },
-        }));
-      }
-    }
-  }
-
-  async function handleContinue() {
-    if (!draft || !activeStep) {
+    if (activeStep.key === "basics") {
+      const profile = await updateCandidateProfile({ name: draft.name, surname: draft.surname, thirdname: draft.thirdname || null, links });
+      setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
       return;
     }
 
+    if (activeStep.key === "skills") {
+      const profile = await updateCandidateProfile({ skills: draft.skills, links });
+      setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
+      return;
+    }
+
+    if (activeStep.key === "education") {
+      const activeEducationItems = getActiveCandidateEducationDrafts(draft.educations);
+      const currentEducationItems = safeArray(contextState.data.education);
+      const currentEducationIds = new Set(activeEducationItems.map((item) => item.id).filter(Boolean));
+
+      for (const item of activeEducationItems) {
+        const payload = {
+          institutionName: item.institutionName.trim(),
+          faculty: item.faculty.trim() || null,
+          specialization: item.specialization.trim() || null,
+          graduationYear: item.graduationYear ? Number(item.graduationYear) : null,
+          startYear: null,
+          isCompleted: Boolean(item.graduationYear),
+          description: null,
+        };
+
+        if (item.id) {
+          await updateCandidateEducation(item.id, payload);
+        } else {
+          await createCandidateEducation(payload);
+        }
+      }
+
+      for (const item of currentEducationItems) {
+        if (item?.id && !currentEducationIds.has(item.id) && !activeEducationItems.some((draftItem) => draftItem.id === item.id)) {
+          await deleteCandidateEducation(item.id);
+        }
+      }
+
+      const profile = await updateCandidateProfile({ links });
+      const refreshedEducation = safeArray(await getCandidateEducation());
+      const refreshedProfile = await getCandidateProfile();
+
+      setDraft((current) => ({
+        ...current,
+        educations: createCandidateOnboardingDraft({ profile: refreshedProfile ?? profile, education: refreshedEducation }).educations,
+      }));
+      setContextState((current) => ({
+        ...current,
+        data: { ...current.data, profile: refreshedProfile ?? profile, education: refreshedEducation },
+      }));
+      return;
+    }
+
+    const profile = await updateCandidateProfile({ links });
+    setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
+  }
+
+  async function handleContinue() {
+    if (!draft || !activeStep) return;
+
     if (stepError) {
-      setMessage({
-        tone: "error",
-        title: "Шаг не заполнен",
-        text: stepError,
-      });
+      setMessage({ tone: "error", title: "Шаг не заполнен", text: stepError });
       return;
     }
 
@@ -622,26 +565,21 @@ export function CandidateCareerPage() {
       await persistActiveStep();
 
       if (activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
-        navigate(routes.candidate.profile);
+        setContextState((current) => ({ ...current, data: { ...current.data, onboardingComplete: true } }));
+        setDraft(null);
+        setProfessionQuery("");
+        setSkillQuery("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
       const nextProgress = draft ? getCandidateOnboardingProgress(draft) : 0;
-
       setActiveStepIndex((current) => current + 1);
       setProfessionQuery("");
       setSkillQuery("");
-      setMessage({
-        tone: "success",
-        title: "Шаг сохранён",
-        text: `Заполненность профиля: ${nextProgress}%. Продолжаем.`,
-      });
+      setMessage({ tone: "success", title: "Шаг сохранен", text: `Заполненность профиля: ${nextProgress}%. Продолжаем.` });
     } catch (error) {
-      setMessage({
-        tone: "error",
-        title: "Не удалось сохранить шаг",
-        text: error?.message ?? "Попробуйте ещё раз.",
-      });
+      setMessage({ tone: "error", title: "Не удалось сохранить шаг", text: error?.message ?? "Попробуйте еще раз." });
     } finally {
       setSaving(false);
     }
@@ -649,25 +587,27 @@ export function CandidateCareerPage() {
 
   return (
     <main className="candidate-career-page">
-      <div className="candidate-career-page__shell">
-        <PortalHeader
-          navItems={headerNav}
-          currentKey="career"
-          actionHref={isGuest ? routes.auth.login : routes.candidate.profile}
-          actionLabel={isGuest ? "Войти / Регистрация" : "Профиль"}
-          className="candidate-career-page__header"
-        />
+      <div className="candidate-career-page__shell ui-page-shell">
+        <PortalHeader navItems={headerNav} currentKey="career" actionHref={routes.candidate.profile} actionLabel="Профиль" className="candidate-career-page__header" />
 
         <section className="candidate-career-page__content">
-          {isGuest ? (
-            <CareerHero />
+          {showDashboard ? (
+            dashboardState.status === "loading" || dashboardState.status === "idle" ? (
+              <Loader label="Собираем карьерные рекомендации" surface />
+            ) : dashboardState.status === "error" ? (
+              <Alert tone="error" title="Не удалось собрать карьерные рекомендации" showIcon>
+                {dashboardState.error?.message ?? "Попробуйте обновить страницу чуть позже."}
+              </Alert>
+            ) : (
+              <CandidateCareerDashboard profile={contextState.data.profile} dashboardState={dashboardState} />
+            )
           ) : (
             <div className="candidate-career-wizard" data-testid="candidate-career-wizard">
               <div className="candidate-career-wizard__head">
                 <div>
                   <Tag className="candidate-career-wizard__badge">Профиль соискателя</Tag>
-                  <h1>Сначала заполним профиль, потом откроем карьерный кабинет</h1>
-                  <p>Доступ к разделу карьеры появляется только после базового onboarding. Это защищает сценарий от пустых профилей и даёт точные рекомендации.</p>
+                  <h2>Сначала заполним профиль, потом откроем карьерный раздел</h2>
+                  <p>Доступ к карьере появляется только после базового onboarding. Так рекомендации и подборки не строятся на пустом профиле.</p>
                 </div>
 
                 <Card className="candidate-career-wizard__status">
@@ -677,52 +617,23 @@ export function CandidateCareerPage() {
                 </Card>
               </div>
 
-              {message ? (
-                <Alert tone={message.tone} title={message.title} showIcon>
-                  {message.text}
-                </Alert>
-              ) : null}
+              {message ? <Alert tone={message.tone} title={message.title} showIcon>{message.text}</Alert> : null}
 
-              {activeStep.key === "profession" ? (
-                <ProfessionStep
-                  draft={draft}
-                  professionQuery={professionQuery}
-                  onProfessionQueryChange={setProfessionQuery}
-                  onProfessionSelect={(value) => updateField("profession", value)}
-                />
-              ) : null}
-
+              {activeStep.key === "profession" ? <ProfessionStep draft={draft} professionQuery={professionQuery} onProfessionQueryChange={setProfessionQuery} onProfessionSelect={(value) => updateField("profession", value)} /> : null}
               {activeStep.key === "basics" ? <BasicsStep draft={draft} onFieldChange={updateField} /> : null}
-              {activeStep.key === "education" ? <EducationStep draft={draft} onEducationFieldChange={updateEducationField} /> : null}
-              {activeStep.key === "skills" ? (
-                <SkillsStep
-                  draft={draft}
-                  skillQuery={skillQuery}
-                  onSkillQueryChange={setSkillQuery}
-                  onAddSkill={addSkill}
-                  onRemoveSkill={removeSkill}
-                />
-              ) : null}
+              {activeStep.key === "education" ? <EducationStep draft={draft} educationErrors={educationValidation.itemErrors} onEducationFieldChange={updateEducationField} onEducationAdd={addEducationItem} onEducationRemove={removeEducationItem} /> : null}
+              {activeStep.key === "skills" ? <SkillsStep draft={draft} skillQuery={skillQuery} onSkillQueryChange={setSkillQuery} onAddSkill={addSkill} onRemoveSkill={removeSkill} /> : null}
               {activeStep.key === "experience" ? <ExperienceStep draft={draft} onExperienceFieldChange={updateExperienceField} /> : null}
               {activeStep.key === "goal" ? <GoalStep draft={draft} onFieldChange={updateField} /> : null}
 
               <div className="candidate-career-wizard__footer">
                 <StepProgress activeIndex={activeStepIndex} />
-
                 <div className="candidate-career-wizard__actions">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={activeStepIndex === 0 || saving}
-                    onClick={() => {
-                      setActiveStepIndex((current) => Math.max(current - 1, 0));
-                      setMessage(null);
-                    }}
-                  >
+                  <Button type="button" variant="secondary" disabled={activeStepIndex === 0 || saving} onClick={() => { setActiveStepIndex((current) => Math.max(current - 1, 0)); setMessage(null); }}>
                     Назад
                   </Button>
                   <Button type="button" disabled={saving} onClick={handleContinue}>
-                    {saving ? "Сохраняем..." : activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1 ? "Найти возможности" : "Сохранить и продолжить"}
+                    {saving ? "Сохраняем..." : activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1 ? "Открыть карьеру" : "Сохранить и продолжить"}
                   </Button>
                 </div>
               </div>

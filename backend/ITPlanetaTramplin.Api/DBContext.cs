@@ -518,6 +518,9 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.IsVerified)
                 .HasDefaultValue(false)
                 .HasColumnName("is_verified");
+            entity.Property(e => e.PreVerify)
+                .HasDefaultValue(true)
+                .HasColumnName("pre_verify");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(255)
                 .HasColumnName("password_hash");

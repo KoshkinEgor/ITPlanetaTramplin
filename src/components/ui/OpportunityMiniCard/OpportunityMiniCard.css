@@ -1,12 +1,15 @@
-.ui-opportunity-mini-card.ui-card {
+﻿.ui-opportunity-mini-card.ui-card {
   --ui-opportunity-mini-card-gap: var(--ui-space-6);
   --ui-opportunity-mini-card-padding: var(--ui-space-6);
-  --ui-opportunity-mini-card-title-size: clamp(2rem, 2.8vw, 2.5rem);
-  --ui-opportunity-mini-card-title-line-height: clamp(2.3rem, 3.1vw, 2.9rem);
-  --ui-opportunity-mini-card-body-size: var(--ui-typo-txt-size);
-  --ui-opportunity-mini-card-body-line-height: var(--ui-typo-txt-line-height);
-  --ui-opportunity-mini-card-accent-size: clamp(2rem, 3vw, var(--ui-typo-txt-select-big-size));
-  --ui-opportunity-mini-card-accent-line-height: clamp(2.4rem, 3.4vw, var(--ui-typo-txt-select-big-line-height));
+  --ui-opportunity-mini-card-title-size: var(--ui-font-size-h1);
+  --ui-opportunity-mini-card-title-line-height: var(--ui-line-height-h1);
+  --ui-opportunity-mini-card-title-letter-spacing: var(--ui-letter-spacing-h1);
+  --ui-opportunity-mini-card-body-size: var(--ui-font-size-body);
+  --ui-opportunity-mini-card-body-line-height: var(--ui-line-height-body);
+  --ui-opportunity-mini-card-body-letter-spacing: var(--ui-letter-spacing-body);
+  --ui-opportunity-mini-card-accent-size: var(--ui-font-size-h1);
+  --ui-opportunity-mini-card-accent-line-height: var(--ui-line-height-h1);
+  --ui-opportunity-mini-card-accent-letter-spacing: var(--ui-letter-spacing-h1);
   width: min(100%, 440px);
   gap: var(--ui-opportunity-mini-card-gap);
   padding: var(--ui-opportunity-mini-card-padding);
@@ -20,12 +23,15 @@
 .ui-opportunity-mini-card--compact.ui-card {
   --ui-opportunity-mini-card-gap: var(--ui-space-4);
   --ui-opportunity-mini-card-padding: var(--ui-space-4);
-  --ui-opportunity-mini-card-title-size: clamp(1.5rem, 2vw, 1.9rem);
-  --ui-opportunity-mini-card-title-line-height: clamp(1.9rem, 2.4vw, 2.3rem);
-  --ui-opportunity-mini-card-body-size: 0.94rem;
-  --ui-opportunity-mini-card-body-line-height: 1.45;
-  --ui-opportunity-mini-card-accent-size: clamp(1.4rem, 1.9vw, 1.75rem);
-  --ui-opportunity-mini-card-accent-line-height: clamp(1.8rem, 2.2vw, 2.15rem);
+  --ui-opportunity-mini-card-title-size: var(--ui-font-size-h2);
+  --ui-opportunity-mini-card-title-line-height: var(--ui-line-height-h2);
+  --ui-opportunity-mini-card-title-letter-spacing: var(--ui-letter-spacing-h2);
+  --ui-opportunity-mini-card-body-size: var(--ui-font-size-caption);
+  --ui-opportunity-mini-card-body-line-height: var(--ui-line-height-caption);
+  --ui-opportunity-mini-card-body-letter-spacing: var(--ui-letter-spacing-caption);
+  --ui-opportunity-mini-card-accent-size: var(--ui-font-size-h2);
+  --ui-opportunity-mini-card-accent-line-height: var(--ui-line-height-h2);
+  --ui-opportunity-mini-card-accent-letter-spacing: var(--ui-letter-spacing-h2);
   width: min(100%, 320px);
   gap: var(--ui-opportunity-mini-card-gap);
   padding: var(--ui-opportunity-mini-card-padding);
@@ -52,26 +58,29 @@
   --ui-tag-height: 40px;
   --ui-tag-padding-inline: 16px;
   --ui-tag-padding-block: 8px;
-  --ui-tag-font-size: 0.94rem;
-  --ui-tag-line-height: 1.35;
-  --ui-tag-font-weight: var(--ui-typo-txt-select-weight);
+  --ui-tag-font-size: var(--ui-font-size-caption);
+  --ui-tag-line-height: var(--ui-line-height-caption);
+  --ui-tag-letter-spacing: var(--ui-letter-spacing-caption);
+  --ui-tag-font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card__chip.ui-tag-token {
   --ui-tag-height: 38px;
   --ui-tag-padding-inline: 14px;
   --ui-tag-padding-block: 8px;
-  --ui-tag-font-size: 0.88rem;
-  --ui-tag-line-height: 1.35;
-  --ui-tag-font-weight: var(--ui-typo-txt-select-weight);
+  --ui-tag-font-size: var(--ui-font-size-caption);
+  --ui-tag-line-height: var(--ui-line-height-caption);
+  --ui-tag-letter-spacing: var(--ui-letter-spacing-caption);
+  --ui-tag-font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card__status.ui-status-badge {
   min-height: 40px;
   padding-inline: 16px;
-  font-size: 0.94rem;
-  line-height: 1.35;
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card--compact .ui-opportunity-mini-card__eyebrow.ui-tag-token,
@@ -79,8 +88,9 @@
 .ui-opportunity-mini-card--compact .ui-opportunity-mini-card__status.ui-status-badge {
   min-height: 34px;
   padding-inline: 12px;
-  font-size: 0.82rem;
-  line-height: 1.3;
+  font-size: var(--ui-font-size-micro);
+  line-height: var(--ui-line-height-micro);
+  letter-spacing: var(--ui-letter-spacing-micro);
 }
 
 .ui-opportunity-mini-card__favorite.ui-icon-button {
@@ -118,8 +128,8 @@
   color: var(--ui-color-text);
   font-size: var(--ui-opportunity-mini-card-title-size);
   line-height: var(--ui-opportunity-mini-card-title-line-height);
-  letter-spacing: -0.05em;
-  font-weight: var(--ui-typo-h1-weight);
+  letter-spacing: var(--ui-opportunity-mini-card-title-letter-spacing);
+  font-weight: var(--ui-font-weight-heading);
 }
 
 .ui-opportunity-mini-card__meta,
@@ -127,11 +137,12 @@
   margin: 0;
   font-size: var(--ui-opportunity-mini-card-body-size);
   line-height: var(--ui-opportunity-mini-card-body-line-height);
+  letter-spacing: var(--ui-opportunity-mini-card-body-letter-spacing);
 }
 
 .ui-opportunity-mini-card__meta {
   color: var(--ui-color-text-muted);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card__value {
@@ -143,36 +154,31 @@
 
 .ui-opportunity-mini-card__value-prefix {
   color: var(--ui-color-text-muted);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card__accent,
 .ui-opportunity-mini-card__value-suffix {
   color: var(--ui-color-accent);
-  font-weight: var(--ui-typo-txt-select-middle-weight);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-opportunity-mini-card__accent {
   font-size: var(--ui-opportunity-mini-card-accent-size);
   line-height: var(--ui-opportunity-mini-card-accent-line-height);
-  letter-spacing: -0.04em;
+  letter-spacing: var(--ui-opportunity-mini-card-accent-letter-spacing);
 }
 
 .ui-opportunity-mini-card__action.ui-button {
-  width: 100%;
   min-height: 64px;
   border-color: rgba(47, 128, 255, 0.18);
   background: rgba(255, 255, 255, 0.98);
   color: var(--ui-color-text-muted);
   box-shadow: none;
-  font-size: 1rem;
-  line-height: 1.4;
 }
 
 .ui-opportunity-mini-card--compact .ui-opportunity-mini-card__action.ui-button {
   min-height: 52px;
-  font-size: 0.95rem;
-  line-height: 1.4;
 }
 
 .ui-opportunity-mini-card__action.ui-button:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
@@ -197,3 +203,4 @@
     border-radius: calc(var(--ui-radius-lg) + 2px);
   }
 }
+

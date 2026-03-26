@@ -1,12 +1,13 @@
 import { forwardRef } from "react";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 export const Radio = forwardRef(function Radio(
-  { label, hint, className, controlClassName, children, hovered = false, focused = false, disabled = false, ...props },
+  { label, hint, className, controlClassName, children, hovered = false, focused = false, fontWeight, width, disabled = false, ...props },
   ref
 ) {
   return (
-    <label className={cn("ui-check", disabled && "is-disabled", className)}>
+    <label className={cn("ui-check", disabled && "is-disabled", getFontWeightClassName(fontWeight), getWidthClassName(width), className)}>
       <input
         ref={ref}
         type="radio"

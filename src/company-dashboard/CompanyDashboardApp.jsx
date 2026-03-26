@@ -397,7 +397,7 @@ export function CompanyDashboardApp() {
     <div className="company-dashboard-page">
       <div className="company-dashboard-page__backdrop" aria-hidden="true" />
 
-      <div className="company-dashboard-page__shell">
+      <div className="company-dashboard-page__shell ui-page-shell">
         <PortalHeader
           navItems={navItems}
           currentKey={undefined}
@@ -417,8 +417,8 @@ export function CompanyDashboardApp() {
                 </Badge>
               </div>
 
-              <h1 className="ui-type-display">{state.profile?.companyName || "Кабинет компании"}</h1>
-              <p className="ui-type-body-lg">
+              <h1 className="ui-type-h2">{state.profile?.companyName || "Кабинет компании"}</h1>
+              <p className="ui-type-body">
                 Кабинет работает поверх реальных company и opportunity endpoints: профиль компании, публикации и отклики больше не берутся из статических массивов.
               </p>
             </div>

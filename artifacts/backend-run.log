@@ -1,0 +1,205 @@
+Используются параметры запуска из backend\ITPlanetaTramplin.Api\Properties\launchSettings.json...
+Сборка…
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (45ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+          "MigrationId" character varying(150) NOT NULL,
+          "ProductVersion" character varying(32) NOT NULL,
+          CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
+      );
+info: Microsoft.EntityFrameworkCore.Migrations[20411]
+      Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      LOCK TABLE "__EFMigrationsHistory" IN ACCESS EXCLUSIVE MODE
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (77ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.email = 'demo-curator@tramplin.local'
+      LIMIT 1
+info: DevelopmentDataSeeder[0]
+      Development curator account ready for demo-curator@tramplin.local. Use password Curator1234.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (36ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM opportunities AS o
+      WHERE o.deleted_at IS NULL AND o.moderation_status = 'approved'
+info: DevelopmentDataSeeder[0]
+      Development seed skipped because approved opportunities already exist.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5234
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\Kolya\Desktop\Университет\6 семестр\ifelse\verstka\backend\ITPlanetaTramplin.Api
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (31ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL AND c.id IS NOT NULL AND lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL AND c.id IS NOT NULL AND lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM users AS u
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT e.id AS "Id", e.user_id AS "UserId", e.company_name AS "CompanyName", e.inn AS "Inn", e.legal_address AS "LegalAddress", e.description AS "Description", e.verification_status AS "VerificationStatus", e.verification_method AS "VerificationMethod", e.verification_data AS "VerificationData", u.email AS "Email", u.pre_verify AS "PreVerify", u.is_verified AS "IsVerified", u.created_at AS "CreatedAt", (
+          SELECT count(*)::int
+          FROM opportunities AS o
+          WHERE e.id = o.employer_id) AS "OpportunitiesCount"
+      FROM employer_profiles AS e
+      INNER JOIN users AS u ON e.user_id = u.id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM users AS u
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM employer_profiles AS e
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM opportunities AS o
+      WHERE o.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM employer_profiles AS e
+      WHERE e.verification_status = 'pending'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM opportunities AS o
+      WHERE o.deleted_at IS NULL AND o.moderation_status = 'pending'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM applicant_profiles AS a
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM curator_profiles AS c
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM employer_profiles AS e
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM opportunities AS o
+      WHERE o.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM employer_profiles AS e
+      WHERE e.verification_status = 'pending'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM opportunities AS o
+      WHERE o.deleted_at IS NULL AND o.moderation_status = 'pending'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (11ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT e.id AS "Id", e.user_id AS "UserId", e.company_name AS "CompanyName", e.inn AS "Inn", e.legal_address AS "LegalAddress", e.description AS "Description", e.verification_status AS "VerificationStatus", e.verification_method AS "VerificationMethod", e.verification_data AS "VerificationData", u.email AS "Email", u.pre_verify AS "PreVerify", u.is_verified AS "IsVerified", u.created_at AS "CreatedAt", (
+          SELECT count(*)::int
+          FROM opportunities AS o
+          WHERE e.id = o.employer_id) AS "OpportunitiesCount"
+      FROM employer_profiles AS e
+      INNER JOIN users AS u ON e.user_id = u.id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM applicant_profiles AS a
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM curator_profiles AS c
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT o.id AS "Id", o.title AS "Title", o.opportunity_type AS "OpportunityType", o.location_address AS "LocationAddress", o.location_city AS "LocationCity", o.publish_at AS "PublishAt", o.expire_at AS "ExpireAt", o.deleted_at AS "DeletedAt", o.moderation_status AS "ModerationStatus", o.employer_id AS "EmployerId", e.company_name AS "CompanyName", u.email AS "EmployerEmail"
+      FROM opportunities AS o
+      INNER JOIN employer_profiles AS e ON o.employer_id = e.id
+      INNER JOIN users AS u ON e.user_id = u.id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (11ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT o.id AS "Id", o.title AS "Title", o.opportunity_type AS "OpportunityType", o.location_address AS "LocationAddress", o.location_city AS "LocationCity", o.publish_at AS "PublishAt", o.expire_at AS "ExpireAt", o.deleted_at AS "DeletedAt", o.moderation_status AS "ModerationStatus", o.employer_id AS "EmployerId", e.company_name AS "CompanyName", u.email AS "EmployerEmail"
+      FROM opportunities AS o
+      INNER JOIN employer_profiles AS e ON o.employer_id = e.id
+      INNER JOIN users AS u ON e.user_id = u.id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.deleted_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (62ms) [Parameters=[@__userId_Value_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE u.id = @__userId_Value_0 AND u.deleted_at IS NULL
+      LIMIT 1

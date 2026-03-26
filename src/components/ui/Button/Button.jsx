@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { AppLink } from "../../../app/AppLink";
 import { cn } from "../../../lib/cn";
+import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 
 const variantClassMap = {
   primary: "ui-button--primary",
@@ -27,6 +28,8 @@ export const Button = forwardRef(function Button(
     hovered = false,
     focused = false,
     disabled = false,
+    fontWeight,
+    width,
     iconStart,
     iconEnd,
     accentColor,
@@ -50,6 +53,8 @@ export const Button = forwardRef(function Button(
     focused && "is-focused",
     loading && "is-loading",
     isDisabled && "is-disabled",
+    getFontWeightClassName(fontWeight),
+    getWidthClassName(width),
     className
   );
 
@@ -90,6 +95,21 @@ export const Button = forwardRef(function Button(
       >
         {content}
       </AppLink>
+    );
+  }
+
+  if (Element !== "button") {
+    return (
+      <Element
+        ref={ref}
+        className={classNames}
+        style={inlineStyle}
+        aria-busy={loading || undefined}
+        aria-disabled={isDisabled || undefined}
+        {...props}
+      >
+        {content}
+      </Element>
     );
   }
 

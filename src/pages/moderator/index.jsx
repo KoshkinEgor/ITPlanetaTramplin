@@ -1,12 +1,14 @@
+import { ModeratorAccessGuard } from "./ModeratorAccessGuard";
 import { ModeratorCabinetPage } from "./ModeratorCabinetPage";
 import { ModeratorCompaniesApp } from "../../moderator-dashboard/ModeratorCompaniesApp";
+import { ModeratorComplaintsApp } from "../../moderator-dashboard/ModeratorComplaintsApp";
 import { ModeratorDashboardApp } from "../../moderator-dashboard/ModeratorDashboardApp";
+import { ModeratorLogsApp } from "../../moderator-dashboard/ModeratorLogsApp";
 import { ModeratorOpportunitiesApp } from "../../moderator-dashboard/ModeratorOpportunitiesApp";
 import { ModeratorUsersApp } from "../../moderator-dashboard/ModeratorUsersApp";
-import { CabinetContentSection } from "../../widgets/layout";
-import { PlaceholderAction, PlaceholderBlock, PlaceholderMedia } from "../../shared/ui";
+import { DashboardPageHeader, PlaceholderAction, PlaceholderBlock, PlaceholderMedia } from "../../shared/ui";
 
-export { ModeratorCabinetPage };
+export { ModeratorAccessGuard, ModeratorCabinetPage };
 
 export function ModeratorDashboardPage() {
   return <ModeratorDashboardApp />;
@@ -24,17 +26,17 @@ export function ModeratorUsersPage() {
   return <ModeratorUsersApp />;
 }
 
-function ModeratorPlaceholderPage({ eyebrow, title, description }) {
+function ModeratorPlaceholderPage({ title, description }) {
   return (
     <>
-      <CabinetContentSection eyebrow={eyebrow} title={title} description={description}>
-        <PlaceholderBlock
-          eyebrow="Shared scaffold"
-          title={`${title}: content placeholder`}
-          description="Раздел добавлен в структуру кабинета и маршрутизацию, но его функциональный модуль еще не реализован."
-          action={<PlaceholderAction label="Placeholder action" description="Будущий shared control для этого раздела." />}
-        />
-      </CabinetContentSection>
+      <DashboardPageHeader title={title} description={description} />
+
+      <PlaceholderBlock
+        eyebrow="Shared scaffold"
+        title={`${title}: content placeholder`}
+        description="Раздел добавлен в структуру кабинета и маршрутизацию, но его функциональный модуль еще не реализован."
+        action={<PlaceholderAction label="Placeholder action" description="Будущий shared control для этого раздела." />}
+      />
 
       <PlaceholderMedia
         eyebrow="Scaffold"
@@ -47,41 +49,27 @@ function ModeratorPlaceholderPage({ eyebrow, title, description }) {
 }
 
 export function ModeratorComplaintsPage() {
-  return (
-    <ModeratorPlaceholderPage
-      eyebrow="Жалобы"
-      title="Жалобы и репорты"
-      description="Route-backed placeholder для очереди жалоб и системных обращений."
-    />
-  );
+  return <ModeratorComplaintsApp />;
 }
 
 export function ModeratorTagsSystemPage() {
   return (
     <ModeratorPlaceholderPage
-      eyebrow="Система"
       title="Теги и системные настройки"
-      description="Route-backed placeholder для taxonomy, тегов и системных справочников."
+      description="Плейсхолдер для taxonomy, тегов и системных справочников модератора."
     />
   );
 }
 
 export function ModeratorLogsPage() {
-  return (
-    <ModeratorPlaceholderPage
-      eyebrow="Логи"
-      title="Логи модерации"
-      description="Route-backed placeholder для аудита действий и журнала изменений."
-    />
-  );
+  return <ModeratorLogsApp />;
 }
 
 export function ModeratorSettingsPage() {
   return (
     <ModeratorPlaceholderPage
-      eyebrow="Настройки"
       title="Настройки модератора"
-      description="Route-backed placeholder для профиля модератора и служебных конфигураций."
+      description="Плейсхолдер для профиля модератора и служебных конфигураций кабинета."
     />
   );
 }

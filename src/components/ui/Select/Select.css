@@ -1,4 +1,4 @@
-.ui-select-shell {
+﻿.ui-select-shell {
   position: relative;
 }
 
@@ -86,10 +86,10 @@
   border-radius: 14px;
   background: transparent;
   color: var(--ui-color-text);
-  font-size: var(--ui-typo-txt-size);
-  font-weight: var(--ui-typo-txt-weight);
-  line-height: var(--ui-typo-txt-line-height);
-  letter-spacing: var(--ui-typo-txt-letter-spacing);
+  font-size: var(--ui-font-size-body);
+  font-weight: var(--ui-font-weight, var(--ui-font-weight-regular));
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
   text-align: left;
   transition:
     border-color var(--ui-transition-base),
@@ -123,3 +123,4 @@
   cursor: default;
   opacity: 0.45;
 }
+

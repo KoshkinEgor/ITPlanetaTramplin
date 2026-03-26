@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import { ModeratorFilterPill, ModeratorPageIntro, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Tag } from "../shared/ui";
+import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 
 const USER_FILTERS = [
   { value: "all", label: "Все" },
@@ -46,10 +46,28 @@ function translateRole(role) {
   }
 }
 
+function getUserDisplayName(item) {
+  const displayName = String(item?.displayName ?? "").trim();
+  if (displayName) {
+    return displayName;
+  }
+
+  const email = String(item?.email ?? "").trim();
+  return email || "Пользователь";
+}
+
+function shouldShowUserEmail(item) {
+  const email = String(item?.email ?? "").trim();
+  return Boolean(email) && normalize(email) !== normalize(getUserDisplayName(item));
+}
+
 function UserRow({ item, selected, onSelect }) {
   return (
     <button type="button" className={`moderator-table__row ${selected ? "is-active" : ""}`.trim()} onClick={() => onSelect(item.id)}>
-      <span className="moderator-table__cell moderator-table__cell--title">{item.email}</span>
+      <span className="moderator-table__cell moderator-table__cell--stack">
+        <span className="moderator-table__title">{getUserDisplayName(item)}</span>
+        {shouldShowUserEmail(item) ? <span className="moderator-table__meta">{item.email}</span> : null}
+      </span>
       <span className="moderator-table__cell">{translateRole(item.role)}</span>
       <span className="moderator-table__cell">{formatDate(item.createdAt)}</span>
       <span className="moderator-table__cell moderator-table__cell--status">
@@ -91,7 +109,7 @@ export function ModeratorUsersApp() {
     const normalizedQuery = normalize(query);
 
     return state.items.filter((item) => {
-      const haystack = normalize([item.email, item.role].join(" "));
+      const haystack = normalize([getUserDisplayName(item), item.email, item.role, translateRole(item.role)].join(" "));
       const matchesFilter =
         statusFilter === "all"
           ? true
@@ -107,13 +125,13 @@ export function ModeratorUsersApp() {
 
   return (
     <>
-      <ModeratorPageIntro
+      <DashboardPageHeader
         title="Пользователи платформы"
-        description="Экран использует только `/api/moderation/users`. Для пользователей пока нет decision endpoint, поэтому раздел остается read-only."
+        description="Обзор состава платформы, ролей и статуса подтверждения профилей без лишних локальных заглушек."
       />
 
       <div className="moderator-toolbar-stack">
-        <ModeratorSearchBar value={query} onChange={setQuery} placeholder="Поиск по email или роли" />
+        <ModeratorSearchBar value={query} onChange={setQuery} placeholder="Поиск по имени, email или роли" />
         <div className="moderator-panel__filters moderator-fade-up moderator-fade-up--delay-1">
           {USER_FILTERS.map((filter) => (
             <ModeratorFilterPill
@@ -151,8 +169,8 @@ export function ModeratorUsersApp() {
             <div className="moderator-panel__head moderator-panel__head--queue">
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Пользователи</Tag>
-                <h2 className="ui-type-h1">Список профилей</h2>
-                <p className="ui-type-body-lg">Просмотр состава платформы без локальных заглушек и несуществующих действий.</p>
+                <h2 className="ui-type-h2">Список профилей</h2>
+                <p className="ui-type-body">Просмотр состава платформы без локальных заглушек и несуществующих действий.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -160,7 +178,7 @@ export function ModeratorUsersApp() {
             {filteredItems.length ? (
               <div className="moderator-table moderator-table--users">
                 <div className="moderator-table__header">
-                  <span>Email</span>
+                  <span>Имя</span>
                   <span>Роль</span>
                   <span>Дата</span>
                   <span>Статус</span>
@@ -178,7 +196,7 @@ export function ModeratorUsersApp() {
 
           <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
             <div className="moderator-panel__copy">
-              <h2 className="ui-type-h1">Детали пользователя</h2>
+              <h2 className="ui-type-h2">Детали пользователя</h2>
             </div>
 
             {activeItem ? (
@@ -189,7 +207,8 @@ export function ModeratorUsersApp() {
                 </div>
 
                 <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h1">{activeItem.email}</h3>
+                  <h3 className="ui-type-h3">{getUserDisplayName(activeItem)}</h3>
+                  {shouldShowUserEmail(activeItem) ? <p className="moderator-detail-surface__meta">{activeItem.email}</p> : null}
                 </div>
 
                 <dl className="moderator-detail-facts moderator-detail-facts--stack">
@@ -200,6 +219,10 @@ export function ModeratorUsersApp() {
                   <div>
                     <dt>Дата регистрации</dt>
                     <dd>{formatDate(activeItem.createdAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Допуск ко входу</dt>
+                    <dd>{activeItem.preVerify ? "Да" : "Нет"}</dd>
                   </div>
                   <div>
                     <dt>Подтверждение email</dt>
