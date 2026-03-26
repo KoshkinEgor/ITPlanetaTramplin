@@ -14,6 +14,7 @@ import {
   PlaceholderBlock,
   PlaceholderMedia,
   PillButton,
+  MapMarker,
   Radio,
   SearchInput,
   SegmentedControl,
@@ -21,7 +22,7 @@ import {
   Switch,
   Textarea,
 } from "../shared/ui";
-import { OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { OpportunityDetailPreview } from "../opportunity-detail-card/OpportunityDetailCardApp";
 
 const UI_KIT_BODY_CLASS = "ui-kit-react-body";
@@ -29,6 +30,7 @@ const UI_KIT_BODY_CLASS = "ui-kit-react-body";
 const sectionLinks = [
   { id: "ui-kit-foundation", label: "Foundation" },
   { id: "ui-kit-buttons", label: "Buttons" },
+  { id: "ui-kit-map-markers", label: "Map" },
   { id: "ui-kit-actions", label: "Actions" },
   { id: "ui-kit-form-controls", label: "Form Controls" },
   { id: "ui-kit-navigation", label: "Navigation" },
@@ -114,6 +116,24 @@ const segmentOptions = [
   { value: "portfolio", label: "Портфолио" },
 ];
 
+const mapMarkerToneOptions = [
+  { value: "orange", label: "Orange" },
+  { value: "green", label: "Green" },
+  { value: "blue", label: "Blue" },
+];
+
+const mapMarkerSizeOptions = [
+  { value: "sm", label: "28px" },
+  { value: "md", label: "32px" },
+  { value: "lg", label: "40px" },
+];
+
+const mapMarkerCountOptions = [
+  { value: "3", label: "3" },
+  { value: "8", label: "8" },
+  { value: "12", label: "12" },
+];
+
 const actionSelectOptions = [
   { value: "block", label: "Заблокировать" },
   { value: "delete", label: "Удалить", tone: "danger" },
@@ -160,6 +180,61 @@ const opportunityShowcaseRail = [
   },
 ];
 
+const opportunityShowcaseSliderItems = [
+  {
+    id: "slider-security",
+    type: "Vacancy",
+    status: "Open",
+    statusTone: "success",
+    title: "Junior Security Analyst",
+    company: "Acme Security · Moscow + remote",
+    accent: "from 90 000 ₽",
+    chips: ["Junior", "SOC", "SIEM"],
+  },
+  {
+    id: "slider-event",
+    type: "Event",
+    status: "Registration",
+    statusTone: "warning",
+    title: "IT Planet",
+    company: "IT Planet · online",
+    accent: "155 registrations",
+    chips: ["Students", "Community"],
+  },
+  {
+    id: "slider-design",
+    type: "Internship",
+    status: "Soon",
+    statusTone: "neutral",
+    title: "Mobile UI/UX",
+    company: "White Tiger Soft · hybrid",
+    accent: "8 weeks",
+    chips: ["Design", "Paid"],
+  },
+  {
+    id: "slider-frontend",
+    type: "Vacancy",
+    status: "Remote",
+    statusTone: "success",
+    title: "Junior Frontend Developer",
+    company: "Neon Systems · remote",
+    accent: "from 110 000 ₽",
+    chips: ["React", "TypeScript", "Mentorship"],
+  },
+  {
+    id: "slider-analytics",
+    type: "Internship",
+    status: "Open",
+    statusTone: "success",
+    title: "Data Analyst Intern",
+    company: "Orbit Lab · Kazan + hybrid",
+    accent: "part-time",
+    chips: ["SQL", "Python", "Growth"],
+  },
+];
+
+const UI_KIT_DETAIL_LABEL = "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435";
+
 const sidebarOptions = {
   cities: [
     { value: "Москва", label: "Москва" },
@@ -186,6 +261,16 @@ const sidebarInitialValues = {
   payoutPeriod: "",
   education: [],
 };
+
+function createUiKitSliderCardProps(item) {
+  return {
+    detailAction: {
+      href: `#${item.id ?? "opportunity"}`,
+      label: UI_KIT_DETAIL_LABEL,
+      variant: "secondary",
+    },
+  };
+}
 
 function ArrowIcon() {
   return (
@@ -665,6 +750,55 @@ function PillButtonPlayground() {
   );
 }
 
+function MapMarkerPlayground() {
+  const [tone, setTone] = useState("orange");
+  const [size, setSize] = useState("md");
+  const [label, setLabel] = useState("IT Planet");
+  const [clusterCount, setClusterCount] = useState("3");
+
+  return (
+    <UiKitDemoCard
+      eyebrow="Primitive"
+      title="Map Marker"
+      description="Compact discovery pins and cluster counters sized from the 32px Figma reference so they stay readable without taking over the map."
+      className="ui-kit-specimen--wide"
+      controls={(
+        <>
+          <UiKitTextControl label="Micro label" value={label} onChange={setLabel} placeholder="IT Planet" />
+          <div className="ui-kit-control-grid">
+            <UiKitSelectControl label="Tone" value={tone} onChange={setTone} options={mapMarkerToneOptions} />
+            <UiKitSelectControl label="Size" value={size} onChange={setSize} options={mapMarkerSizeOptions} />
+          </div>
+          <UiKitSelectControl label="Cluster count" value={clusterCount} onChange={setClusterCount} options={mapMarkerCountOptions} />
+        </>
+      )}
+      footer="The default marker height is 32px. Use the plain pin, the micro-label variant, and the cluster counter from one shared component."
+    >
+      <div className="ui-kit-map-marker-stage" data-testid="ui-kit-map-marker-preview">
+        <div className="ui-kit-map-marker-stage__canvas">
+          <div className="ui-kit-map-marker-stage__variant">
+            <span className="ui-kit-map-marker-stage__label">Pin</span>
+            <MapMarker tone={tone} size={size} ariaLabel="Plain map marker" />
+          </div>
+
+          <div className="ui-kit-map-marker-stage__variant">
+            <span className="ui-kit-map-marker-stage__label">Pin + micro label</span>
+            <MapMarker tone={tone} size={size} label={label || "IT Planet"} />
+          </div>
+        </div>
+
+        <div className="ui-kit-map-marker-stage__rail">
+          <span className="ui-kit-map-marker-stage__title">Palette</span>
+          <MapMarker tone="orange" size={size} ariaLabel="Orange map marker" />
+          <MapMarker tone="green" size={size} ariaLabel="Green map marker" />
+          <MapMarker tone="blue" size={size} ariaLabel="Blue map marker" />
+          <MapMarker variant="cluster" size={size} count={Number(clusterCount)} ariaLabel={`Cluster marker ${clusterCount}`} />
+        </div>
+      </div>
+    </UiKitDemoCard>
+  );
+}
+
 function OpportunityCatalogAssembly() {
   return (
     <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide">
@@ -701,6 +835,53 @@ function OpportunityCatalogAssembly() {
             detailAction={{ label: "Подробнее", variant: "secondary", href: "#internship" }}
           />
         </ContentRail>
+      </div>
+    </Card>
+  );
+}
+
+function OpportunitySliderAssembly() {
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Assembly</span>
+        <h3 className="ui-type-h3">Opportunity block sliders</h3>
+        <p className="ui-type-body">Two slider variants share the same block card: a steady medium rail and a rail where the left-most visible item expands into the large block state.</p>
+      </div>
+
+      <div className="ui-kit-slider-showcase">
+        <div className="ui-kit-slider-showcase__section">
+          <div className="ui-kit-slider-showcase__copy">
+            <strong>Uniform medium rail</strong>
+            <p className="ui-type-body">Every item keeps the same medium footprint, which matches the homepage recommendation rows after the list view is collapsed into cards.</p>
+          </div>
+
+          <OpportunityBlockSlider
+            data-testid="ui-kit-opportunity-slider-uniform"
+            ariaLabel="Uniform opportunity block slider"
+            items={opportunityShowcaseSliderItems}
+            surface="plain"
+            cardClassName="ui-kit-opportunity-slider__card"
+            cardPropsBuilder={createUiKitSliderCardProps}
+          />
+        </div>
+
+        <div className="ui-kit-slider-showcase__section">
+          <div className="ui-kit-slider-showcase__copy">
+            <strong>Leading featured rail</strong>
+            <p className="ui-type-body">While you scroll, the card nearest to the left edge becomes the large block version. The rest stay medium, so only one item takes visual priority at a time.</p>
+          </div>
+
+          <OpportunityBlockSlider
+            data-testid="ui-kit-opportunity-slider-featured"
+            ariaLabel="Leading featured opportunity block slider"
+            items={opportunityShowcaseSliderItems}
+            variant="leading-featured"
+            surface="plain"
+            cardClassName="ui-kit-opportunity-slider__card"
+            cardPropsBuilder={createUiKitSliderCardProps}
+          />
+        </div>
       </div>
     </Card>
   );
@@ -1374,6 +1555,15 @@ export function UiKitApp() {
         </UiKitSection>
 
         <UiKitSection
+          id="ui-kit-map-markers"
+          eyebrow="Primitives"
+          title="Map"
+          description="Map pins, label-ready variants, and compact cluster counters for the discovery canvas."
+        >
+          <MapMarkerPlayground />
+        </UiKitSection>
+
+        <UiKitSection
           id="ui-kit-actions"
           eyebrow="Action System"
           title="Actions"
@@ -1436,6 +1626,7 @@ export function UiKitApp() {
             <PreferencesAssembly />
             <EditableResumeAssembly />
             <OpportunityCatalogAssembly />
+            <OpportunitySliderAssembly />
             <OpportunityDetailAssembly />
             <CompanyTilesAssembly />
             <OpportunitySidebarAssembly />

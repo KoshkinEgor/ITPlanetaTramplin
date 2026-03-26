@@ -33,6 +33,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-pill-preview-lg")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-row")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-content-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-opportunity-slider-uniform")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-opportunity-slider-featured")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-tile")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-filter-sidebar")).toBeInTheDocument();

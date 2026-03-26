@@ -139,6 +139,10 @@ body.ui-kit-react-body {
   grid-column: 1 / -1;
 }
 
+.ui-kit-specimen--wide {
+  grid-column: 1 / -1;
+}
+
 .ui-kit-token-grid,
 .ui-kit-radius-grid,
 .ui-kit-shadow-grid,
@@ -581,6 +585,60 @@ body.ui-kit-react-body {
   text-transform: uppercase;
 }
 
+.ui-kit-map-marker-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px;
+  gap: 16px;
+}
+
+.ui-kit-map-marker-stage__canvas,
+.ui-kit-map-marker-stage__rail {
+  min-width: 0;
+}
+
+.ui-kit-map-marker-stage__canvas {
+  display: grid;
+  gap: 26px;
+  align-content: start;
+  justify-items: center;
+  padding: 8px 0;
+}
+
+.ui-kit-map-marker-stage__variant,
+.ui-kit-map-marker-stage__rail {
+  min-width: 0;
+}
+
+.ui-kit-map-marker-stage__variant {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.ui-kit-map-marker-stage__rail {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 16px;
+  padding: 8px 0 8px 24px;
+  border-left: 1px dashed rgba(24, 29, 45, 0.14);
+}
+
+.ui-kit-map-marker-stage__label,
+.ui-kit-map-marker-stage__title {
+  color: var(--ui-color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.ui-kit-map-marker-stage .ui-map-marker__label {
+  color: #24314d;
+  text-shadow: none;
+}
+
 .ui-kit-assembly-card {
   min-height: 100%;
 }
@@ -602,6 +660,46 @@ body.ui-kit-react-body {
 
 .ui-kit-catalog-preview {
   gap: 18px;
+}
+
+.ui-kit-slider-showcase,
+.ui-kit-slider-showcase__section,
+.ui-kit-slider-showcase__copy {
+  display: grid;
+}
+
+.ui-kit-slider-showcase {
+  gap: 18px;
+}
+
+.ui-kit-slider-showcase__section {
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(129, 156, 198, 0.16);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 250, 255, 0.98));
+}
+
+.ui-kit-slider-showcase__copy {
+  gap: 8px;
+  max-width: 760px;
+}
+
+.ui-kit-slider-showcase__copy strong {
+  color: var(--ui-color-text);
+  font-size: 1.02rem;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.ui-kit-slider-showcase__copy p {
+  margin: 0;
+}
+
+.ui-kit-opportunity-slider__card.ui-card {
+  height: 100%;
 }
 
 .ui-kit-detail-preview {
@@ -815,12 +913,19 @@ body.ui-kit-react-body {
   .ui-kit-segmented-variants,
   .ui-kit-editable-field-showcase__pair,
   .ui-kit-search-variants,
-  .ui-kit-company-grid {
+  .ui-kit-company-grid,
+  .ui-kit-map-marker-stage {
     grid-template-columns: 1fr;
   }
 
   .ui-kit-action-system__row {
     grid-template-columns: 1fr;
+  }
+
+  .ui-kit-map-marker-stage__rail {
+    padding: 20px 0 0;
+    border-top: 1px dashed rgba(24, 29, 45, 0.14);
+    border-left: none;
   }
 }
 
@@ -865,6 +970,15 @@ body.ui-kit-react-body {
   .ui-kit-stack-row,
   .ui-kit-pill-stack__row {
     grid-template-columns: 1fr;
+  }
+
+  .ui-kit-map-marker-stage__rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: auto;
+  }
+
+  .ui-kit-map-marker-stage__title {
+    grid-column: 1 / -1;
   }
 
   .ui-kit-search-preview .ui-input {
