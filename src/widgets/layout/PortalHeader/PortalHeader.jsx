@@ -45,7 +45,7 @@ function GuestProfileIcon() {
 }
 
 const DEFAULT_ICON_BUTTONS = [
-  { key: "favorites", label: "Избранное", icon: <HeartIcon /> },
+  { key: "favorites", label: "Избранное", href: routes.favorites, icon: <HeartIcon /> },
   { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
 ];
 

@@ -1,5 +1,6 @@
 export const routes = {
   home: "/",
+  favorites: "/favorites",
   uiKit: "/ui-kit",
   homeDiscover: "/#discover",
   homeWorkflow: "/#workflow",

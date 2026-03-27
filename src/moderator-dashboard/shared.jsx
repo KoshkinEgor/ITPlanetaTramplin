@@ -1,5 +1,6 @@
 import { DecisionButton, FilterPill, SearchBar, SidebarNav, SortControl, StatTile, StatusBadge, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
+import { routes } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
 import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "./config";
@@ -34,7 +35,7 @@ function AlertIcon() {
 }
 
 const MODERATOR_ICON_BUTTONS = [
-  { key: "favorites", label: "Избранное", icon: <HeartIcon /> },
+  { key: "favorites", label: "Избранное", href: routes.favorites, icon: <HeartIcon /> },
   { key: "alerts", label: "Уведомления", icon: <AlertIcon /> },
 ];
 
@@ -216,3 +217,4 @@ export function ModeratorDecisionStack({ items, className }) {
     </div>
   );
 }
+

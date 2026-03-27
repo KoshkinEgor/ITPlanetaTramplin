@@ -30,6 +30,7 @@ import {
   CompanyResponsesPage,
 } from "../pages/company/index.jsx";
 import { HomePage } from "../pages/home/HomePage";
+import { FavoritesPage } from "../pages/favorites/FavoritesPage";
 import {
   ModeratorCabinetPage,
   ModeratorAccessGuard,
@@ -63,6 +64,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
+      <Route path={routes.favorites} element={<FavoritesPage />} />
       <Route path={routes.candidate.career} element={<CandidateCareerPage />} />
 
       <Route element={<CandidateAccessGuard />}>
