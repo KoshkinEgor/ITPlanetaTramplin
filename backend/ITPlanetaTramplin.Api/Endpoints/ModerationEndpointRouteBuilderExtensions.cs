@@ -2,7 +2,9 @@ using Application.DBContext;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
 using DTO;
+using ITPlanetaTramplin.Api.Integrations;
 using Microsoft.EntityFrameworkCore;
+using Models;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
@@ -14,6 +16,8 @@ internal static class ModerationEndpointRouteBuilderExtensions
         api.MapGet("/moderation/companies", GetModerationCompaniesAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/opportunities", GetModerationOpportunitiesAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/users", GetModerationUsersAsync).RequireAuthorization("requireModeratorRole");
+        api.MapGet("/moderation/moderator-invitations", GetModeratorInvitationsAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPost("/moderation/moderator-invitations", CreateModeratorInvitationAsync).RequireAuthorization("requireModeratorRole");
         api.MapPost("/moderation/companies/{id:int}/decision", ApplyCompanyDecisionAsync).RequireAuthorization("requireModeratorRole");
         api.MapPost("/moderation/opportunities/{id:int}/decision", ApplyOpportunityDecisionAsync).RequireAuthorization("requireModeratorRole");
 
@@ -122,6 +126,153 @@ internal static class ModerationEndpointRouteBuilderExtensions
         return Results.Ok(response);
     }
 
+    private static async Task<IResult> GetModeratorInvitationsAsync(ApplicationDBContext db)
+    {
+        var invitations = await db.ModeratorInvitations
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => new
+            {
+                item.Id,
+                item.Email,
+                item.Name,
+                item.Surname,
+                item.Thirdname,
+                item.CreatedAt,
+                item.ExpiresAt,
+                item.AcceptedAt,
+                item.RevokedAt,
+                InvitedByUserId = item.InvitedByUserId,
+                InvitedByName = item.InvitedByUser.CuratorProfile != null ? item.InvitedByUser.CuratorProfile.Name : null,
+                InvitedBySurname = item.InvitedByUser.CuratorProfile != null ? item.InvitedByUser.CuratorProfile.Surname : null,
+                InvitedByThirdname = item.InvitedByUser.CuratorProfile != null ? item.InvitedByUser.CuratorProfile.Thirdname : null,
+                AcceptedUserId = item.AcceptedUserId,
+                AcceptedName = item.AcceptedUser != null && item.AcceptedUser.CuratorProfile != null ? item.AcceptedUser.CuratorProfile.Name : null,
+                AcceptedSurname = item.AcceptedUser != null && item.AcceptedUser.CuratorProfile != null ? item.AcceptedUser.CuratorProfile.Surname : null,
+                AcceptedThirdname = item.AcceptedUser != null && item.AcceptedUser.CuratorProfile != null ? item.AcceptedUser.CuratorProfile.Thirdname : null,
+            })
+            .ToListAsync();
+
+        var response = invitations
+            .Select(item => new
+            {
+                item.Id,
+                item.Email,
+                item.Name,
+                item.Surname,
+                item.Thirdname,
+                item.CreatedAt,
+                item.ExpiresAt,
+                item.AcceptedAt,
+                item.RevokedAt,
+                item.InvitedByUserId,
+                InvitedByDisplayName = BuildModeratorDisplayName(item.InvitedByName, item.InvitedBySurname, item.InvitedByThirdname),
+                item.AcceptedUserId,
+                AcceptedDisplayName = BuildModeratorDisplayName(item.AcceptedName, item.AcceptedSurname, item.AcceptedThirdname),
+            })
+            .ToList();
+
+        return Results.Ok(response);
+    }
+
+    private static async Task<IResult> CreateModeratorInvitationAsync(
+        ModeratorInvitationCreateDTO request,
+        HttpContext context,
+        ApplicationDBContext db,
+        ModeratorInvitationService invitationService,
+        SmtpEmailSender emailSender,
+        CancellationToken cancellationToken,
+        ILoggerFactory loggerFactory)
+    {
+        var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!AuthSupport.IsValidEmail(request.Email))
+        {
+            return AuthEndpointSupport.MessageResult("Введите корректный email модератора.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите имя модератора.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Surname))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите фамилию модератора.", StatusCodes.Status400BadRequest);
+        }
+
+        var normalizedEmail = AuthSupport.NormalizeEmail(request.Email);
+        var now = DateTime.UtcNow;
+
+        if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == normalizedEmail, cancellationToken))
+        {
+            return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+        }
+
+        var hasActiveInvitation = await db.ModeratorInvitations.AnyAsync(
+            item => item.Email.ToLower() == normalizedEmail
+                && item.AcceptedAt == null
+                && item.RevokedAt == null
+                && item.ExpiresAt > now,
+            cancellationToken);
+
+        if (hasActiveInvitation)
+        {
+            return AuthEndpointSupport.MessageResult("Для этого email уже есть активное приглашение.", StatusCodes.Status409Conflict);
+        }
+
+        var invitation = new ModeratorInvitation
+        {
+            Email = normalizedEmail,
+            Name = request.Name.Trim(),
+            Surname = request.Surname.Trim(),
+            Thirdname = string.IsNullOrWhiteSpace(request.Thirdname) ? null : request.Thirdname.Trim(),
+            InvitedByUserId = currentUserId.Value,
+        };
+
+        var issue = invitationService.IssueToken(invitation);
+        db.ModeratorInvitations.Add(invitation);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var invitationUrl = BuildModeratorInvitationUrl(context, invitationService, issue.Token);
+        var payload = new ModeratorInvitationResultDTO
+        {
+            InvitationId = invitation.Id,
+            Email = invitation.Email,
+            ExpiresAtUtc = issue.ExpiresAtUtc,
+            Message = "Приглашение модератору создано и отправлено на email.",
+        };
+
+        try
+        {
+            var dispatchResult = await emailSender.SendAsync(
+                invitation.Email,
+                "Приглашение в кабинет модератора Tramplin",
+                BuildModeratorInvitationEmailPlainTextBody(invitation, invitationUrl, issue.ExpiresAtUtc),
+                BuildModeratorInvitationEmailHtmlBody(invitation, invitationUrl, issue.ExpiresAtUtc),
+                cancellationToken);
+
+            if (dispatchResult.Mode == EmailDispatchMode.LoggedToConsole)
+            {
+                payload.DebugToken = issue.Token;
+                payload.InvitationUrl = invitationUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            loggerFactory.CreateLogger("ModerationEndpoints").LogError(ex, "Failed to send moderator invitation to {Email}.", invitation.Email);
+            payload.EmailDeliveryFailed = true;
+            payload.InvitationUrl = invitationUrl;
+            payload.DebugToken = issue.Token;
+            payload.Message = "Приглашение создано, но письмо отправить не удалось. Скопируйте ссылку вручную.";
+        }
+
+        return Results.Created($"/api/moderation/moderator-invitations/{invitation.Id}", payload);
+    }
+
     private static async Task<IResult> ApplyCompanyDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)
     {
         var company = await db.EmployerProfiles.FirstOrDefaultAsync(item => item.Id == id);
@@ -169,4 +320,49 @@ internal static class ModerationEndpointRouteBuilderExtensions
             ModerationStatus = normalizedStatus,
         });
     }
+
+    private static string BuildModeratorInvitationUrl(HttpContext context, ModeratorInvitationService invitationService, string token) =>
+        $"{invitationService.ResolveFrontendBaseUrl(context)}/auth/moderator-invite?token={Uri.EscapeDataString(token)}";
+
+    private static string? BuildModeratorDisplayName(string? name, string? surname, string? thirdname)
+    {
+        var parts = new[] { name, surname, thirdname }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .ToArray();
+
+        return parts.Length > 0 ? string.Join(" ", parts) : null;
+    }
+
+    private static string BuildModeratorInvitationEmailPlainTextBody(ModeratorInvitation invitation, string invitationUrl, DateTime expiresAtUtc) =>
+        $"""
+        Вас пригласили в кабинет модератора Tramplin.
+
+        Перейдите по ссылке, чтобы принять приглашение и задать пароль:
+        {invitationUrl}
+
+        Ссылка действует до {expiresAtUtc:yyyy-MM-dd HH:mm} UTC.
+
+        Если вы не ожидали это приглашение, просто проигнорируйте письмо.
+        """;
+
+    private static string BuildModeratorInvitationEmailHtmlBody(ModeratorInvitation invitation, string invitationUrl, DateTime expiresAtUtc) =>
+        $"""
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
+            <h2 style="margin-bottom: 16px;">Приглашение в кабинет модератора</h2>
+            <p>Здравствуйте, {invitation.Name} {invitation.Surname}.</p>
+            <p>Вас пригласили в кабинет модератора Tramplin.</p>
+            <p style="margin: 24px 0;">
+              <a href="{invitationUrl}" style="display: inline-block; padding: 12px 20px; border-radius: 999px; background: #2f80ff; color: #ffffff; text-decoration: none; font-weight: 700;">
+                Принять приглашение
+              </a>
+            </p>
+            <p>Если кнопка не открывается, используйте ссылку:</p>
+            <p><a href="{invitationUrl}">{invitationUrl}</a></p>
+            <p>Ссылка действует до <strong>{expiresAtUtc:yyyy-MM-dd HH:mm} UTC</strong>.</p>
+            <p>Если вы не ожидали это приглашение, просто проигнорируйте письмо.</p>
+          </body>
+        </html>
+        """;
 }

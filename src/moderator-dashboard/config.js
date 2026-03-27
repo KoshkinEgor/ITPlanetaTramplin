@@ -4,6 +4,7 @@ export const HEADER_NAV = PUBLIC_HEADER_NAV_ITEMS;
 
 export const SIDEBAR_ITEMS = [
   { key: "dashboard", label: "Дашборд", href: routes.moderator.dashboard },
+  { key: "invitations", label: "Приглашения модераторов", href: routes.moderator.invitations },
   { key: "opportunities", label: "Модерация возможностей", href: routes.moderator.opportunities },
   { key: "companies", label: "Верификация компаний", href: routes.moderator.companies },
   { key: "users", label: "Пользователи", href: routes.moderator.users },
@@ -12,9 +13,3 @@ export const SIDEBAR_ITEMS = [
   { key: "logs", label: "Логи", href: routes.moderator.logs },
   { key: "settings", label: "Настройки", href: routes.moderator.settings },
 ];
-
-export const MODERATOR_SUMMARY = {
-  eyebrow: "Real Data",
-  count: "API",
-  text: "Модераторские экраны подключены к реальным спискам и решениям, а недостающие разделы существуют как route-backed placeholders.",
-};
