@@ -5,7 +5,7 @@ import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SIDEBAR_ITEMS } from "./config";
-import { getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "./mappers";
+import { getCandidateAvatarUrl, getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "./mappers";
 import "./candidate-portal.css";
 
 const CANDIDATE_HEADER_NAV = PUBLIC_HEADER_NAV_ITEMS;
@@ -193,6 +193,8 @@ export function CandidateProfileHero({
         <div className="candidate-hero__main">
           <div className="candidate-hero__identity">
             <Avatar
+              src={getCandidateAvatarUrl(profile) || undefined}
+              alt={`Фото профиля ${displayName}`}
               initials={getCandidateInitials(profile)}
               size="xl"
               shape="rounded"

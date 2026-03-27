@@ -43,10 +43,12 @@ import {
 import {
   CandidatePortfolioProjectCard,
   CandidatePortfolioSwitcher,
+  CandidateResumeMiniCard,
   CandidateResumeProfileCard,
   CandidateResumeRecord,
   CandidateResumeSection,
 } from "../candidate-portal/portfolio-kit";
+import { CompanyPortfolioCarousel } from "../company-dashboard/CompanyPortfolioCarousel";
 import { CandidateSectionHeader } from "../candidate-portal/shared";
 import { OpportunityBlockCard, OpportunityBlockRail, OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { formatComplaintDate, moderatorComplaintActionOptions, moderatorComplaintExamples } from "../moderator-dashboard/complaints.mock";
@@ -351,6 +353,19 @@ const candidatePortfolioPreviewTabs = [
 const candidateResumeProfilePreview = {
   description: "UX/UI-дизайнер и исследователь. Собираю интерфейсы для образовательных продуктов, умею вести интервью и быстро упаковывать кейсы в понятное портфолио.",
   skills: ["Figma", "UX Research", "UI", "Design System", "Prototype"],
+};
+
+const candidateResumeMiniPreview = {
+  title: "Веб-дизайнер",
+  updatedAt: "2026-03-12",
+  city: "Чебоксары",
+  experience: "Опыт: не указан",
+  visibility: "private",
+  stats: {
+    impressions: 0,
+    views: 0,
+    invitations: 0,
+  },
 };
 
 const candidateEducationPreview = [
@@ -1497,6 +1512,23 @@ function CandidatePortfolioKitSection() {
           />
         </Card>
 
+        <Card className="ui-kit-specimen" data-testid="ui-kit-candidate-resume-mini-card">
+          <div className="ui-kit-specimen__copy">
+            <span className="ui-kit-eyebrow">Resume block</span>
+            <h3 className="ui-type-h3">Mini resume card</h3>
+            <p className="ui-type-body">Compact summary for one saved resume with last edit date, weekly stats, and visibility state.</p>
+          </div>
+          <CandidateResumeMiniCard
+            title={candidateResumeMiniPreview.title}
+            updatedAt={candidateResumeMiniPreview.updatedAt}
+            city={candidateResumeMiniPreview.city}
+            experience={candidateResumeMiniPreview.experience}
+            visibility={candidateResumeMiniPreview.visibility}
+            stats={candidateResumeMiniPreview.stats}
+            menuLabel="Открыть действия резюме"
+          />
+        </Card>
+
         <Card className="ui-kit-specimen" data-testid="ui-kit-candidate-resume-section">
           <div className="ui-kit-specimen__copy">
             <span className="ui-kit-eyebrow">Resume block</span>
@@ -1631,6 +1663,38 @@ function CompanyTilesAssembly() {
         <CompanyVacancyTile data-testid="ui-kit-company-tile" name="IGrids" count="20 вакансий" tone="lime" />
         <CompanyVacancyTile name="КейсСистемс" count="32 вакансии" initials="KS" tone="neutral" />
         <CompanyVacancyTile name="White Tiger Soft" count="8 вакансий" tone="neutral" />
+      </div>
+    </Card>
+  );
+}
+
+function CompanyPortfolioAssembly() {
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-company-portfolio-assembly">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Assembly</span>
+        <h3 className="ui-type-h3">Company portfolio carousel</h3>
+        <p className="ui-type-body">The same mini-project slider from the company cabinet is mirrored here for isolated review inside the UI kit.</p>
+      </div>
+
+      <div className="ui-kit-company-portfolio-preview">
+        <CompanyPortfolioCarousel />
+      </div>
+    </Card>
+  );
+}
+
+function CompanyPortfolioViewerAssembly() {
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-company-portfolio-viewer-assembly">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Assembly</span>
+        <h3 className="ui-type-h3">Company portfolio carousel, viewer mode</h3>
+        <p className="ui-type-body">Public-facing version of the same carousel: users can browse projects, but the creation CTA is removed.</p>
+      </div>
+
+      <div className="ui-kit-company-portfolio-preview">
+        <CompanyPortfolioCarousel mode="viewer" testId="company-profile-portfolio-slider-viewer" />
       </div>
     </Card>
   );
@@ -2693,6 +2757,8 @@ export function UiKitApp() {
             <OpportunitySliderAssembly />
             <RecommendedOpportunitiesAssembly />
             <OpportunityDetailAssembly />
+            <CompanyPortfolioAssembly />
+            <CompanyPortfolioViewerAssembly />
             <CompanyTilesAssembly />
             <OpportunitySidebarAssembly />
           </div>

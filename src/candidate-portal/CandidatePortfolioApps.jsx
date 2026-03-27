@@ -3,15 +3,100 @@ import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, g
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, Loader } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES } from "./config";
-import { formatLongDate, getCandidateSkills, mapCandidateProjectToCard } from "./mappers";
+import { formatLongDate, mapCandidateProjectToCard } from "./mappers";
+import { getCandidateOnboardingData, getCandidateProfileLinks } from "./onboarding";
 import {
   CandidatePortfolioProjectCard,
   CandidatePortfolioSwitcher,
-  CandidateResumeProfileCard,
+  CandidateResumeMiniCard,
   CandidateResumeRecord,
   CandidateResumeSection,
 } from "./portfolio-kit";
 import { CandidateSectionHeader } from "./shared";
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getResumeExperienceLabel(source) {
+  const experience = isRecord(source?.experience) ? source.experience : {};
+
+  if (experience.noExperience || (!experience.company && !experience.role && !experience.period)) {
+    return "Опыт: не указан";
+  }
+
+  if (normalizeString(experience.period)) {
+    return `Опыт: ${normalizeString(experience.period)}`;
+  }
+
+  if (normalizeString(experience.role)) {
+    return `Опыт: ${normalizeString(experience.role)}`;
+  }
+
+  return "Опыт: указан";
+}
+
+function getResumeVisibility(profile) {
+  const preferences = isRecord(profile?.preferences) ? profile.preferences : {};
+  const visibility = isRecord(preferences.visibility) ? preferences.visibility : {};
+  const profileVisibility = normalizeString(visibility.profileVisibility);
+
+  return profileVisibility === "employers" || profileVisibility === "employers-and-contacts" ? "employers" : "private";
+}
+
+function buildResumeStats(stats) {
+  const source = isRecord(stats) ? stats : {};
+
+  return {
+    impressions: Number.isFinite(Number(source.impressions)) ? Number(source.impressions) : 0,
+    views: Number.isFinite(Number(source.views)) ? Number(source.views) : 0,
+    invitations: Number.isFinite(Number(source.invitations)) ? Number(source.invitations) : 0,
+  };
+}
+
+function buildFallbackResume(profile) {
+  const onboarding = getCandidateOnboardingData(profile);
+
+  return {
+    id: "resume-primary",
+    title: normalizeString(onboarding.profession) || "Резюме кандидата",
+    updatedAt: onboarding.completedAt ?? null,
+    city: normalizeString(onboarding.city) || "Город не указан",
+    experience: getResumeExperienceLabel(onboarding),
+    visibility: getResumeVisibility(profile),
+    stats: buildResumeStats(),
+  };
+}
+
+function buildCandidateResumeItems(profile) {
+  const fallbackResume = buildFallbackResume(profile);
+  const profileLinks = getCandidateProfileLinks(profile);
+  const resumes = Array.isArray(profileLinks.resumes) ? profileLinks.resumes.filter(isRecord) : [];
+
+  if (!resumes.length) {
+    return [fallbackResume];
+  }
+
+  return resumes.map((resume, index) => {
+    const experienceSource = isRecord(resume.experience) ? { experience: resume.experience } : resume;
+    const experienceLabel = normalizeString(resume.experienceLabel) || (typeof resume.experience === "string" ? normalizeString(resume.experience) : "");
+    const visibility = normalizeString(resume.visibility);
+
+    return {
+      id: normalizeString(resume.id) || `resume-${index + 1}`,
+      title: normalizeString(resume.title) || normalizeString(resume.profession) || normalizeString(resume.position) || fallbackResume.title,
+      updatedAt: resume.updatedAt ?? resume.updatedDate ?? resume.lastModifiedAt ?? fallbackResume.updatedAt,
+      city: normalizeString(resume.city) || fallbackResume.city,
+      experience: experienceLabel || getResumeExperienceLabel(experienceSource) || fallbackResume.experience,
+      visibility: visibility === "employers" ? "employers" : fallbackResume.visibility,
+      stats: buildResumeStats(resume.stats),
+    };
+  });
+}
 
 export function CandidateResumeApp() {
   const [state, setState] = useState({
@@ -21,6 +106,8 @@ export function CandidateResumeApp() {
     achievements: [],
     error: null,
   });
+  const [deletedResumeIds, setDeletedResumeIds] = useState([]);
+  const [resumeVisibilityById, setResumeVisibilityById] = useState({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,6 +147,24 @@ export function CandidateResumeApp() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    setDeletedResumeIds([]);
+    setResumeVisibilityById({});
+  }, [state.profile]);
+
+  const resumeGoal = useMemo(() => normalizeString(getCandidateOnboardingData(state.profile).goal), [state.profile]);
+  const resumeItems = useMemo(() => buildCandidateResumeItems(state.profile), [state.profile]);
+  const visibleResumeItems = useMemo(
+    () =>
+      resumeItems
+        .filter((item) => !deletedResumeIds.includes(item.id))
+        .map((item) => ({
+          ...item,
+          visibility: resumeVisibilityById[item.id] ?? item.visibility,
+        })),
+    [deletedResumeIds, resumeItems, resumeVisibilityById]
+  );
+
   return (
     <>
       <CandidatePortfolioSwitcher value="resume" />
@@ -71,7 +176,7 @@ export function CandidateResumeApp() {
           <EmptyState
             eyebrow="Доступ ограничен"
             title="Нужно войти как кандидат"
-            description="Резюме теперь собирается из реальных данных профиля, образования и достижений."
+            description="Резюме собирается из данных профиля, образования и достижений авторизованного кандидата."
             tone="warning"
           />
         </Card>
@@ -85,10 +190,57 @@ export function CandidateResumeApp() {
 
       {state.status === "ready" ? (
         <>
-          <CandidateResumeProfileCard
-            description={state.profile?.description || "Описание профиля пока пустое."}
-            skills={getCandidateSkills(state.profile)}
-          />
+          <section className="candidate-page-section candidate-resume-overview">
+            {resumeGoal ? (
+              <Card className="candidate-resume-goal-card">
+                <span className="candidate-resume-goal-card__label">Ваша цель</span>
+                <p className="candidate-resume-goal-card__value">{resumeGoal}</p>
+              </Card>
+            ) : null}
+
+            <CandidateSectionHeader
+              eyebrow="Резюме"
+              title="Мое резюме"
+              description="Собери свой портфолио и резюме для точных рекомендаций."
+              actions={<Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
+            />
+
+            {visibleResumeItems.length ? (
+              <div className="candidate-page-stack">
+                {visibleResumeItems.map((item) => (
+                  <CandidateResumeMiniCard
+                    key={item.id}
+                    title={item.title}
+                    updatedAt={item.updatedAt}
+                    city={item.city}
+                    experience={item.experience}
+                    stats={item.stats}
+                    visibility={item.visibility}
+                    editHref={CANDIDATE_PAGE_ROUTES.resumeEditor}
+                    menuLabel="Открыть действия резюме"
+                    onDeleteClick={() => {
+                      setDeletedResumeIds((current) => (current.includes(item.id) ? current : current.concat(item.id)));
+                    }}
+                    onVisibilityChange={(nextVisibility) => {
+                      setResumeVisibilityById((current) => ({
+                        ...current,
+                        [item.id]: nextVisibility,
+                      }));
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="candidate-resume-panel">
+                <EmptyState
+                  title="Карточка резюме пока не собрана"
+                  description="Добавьте первое резюме, чтобы его можно было показывать работодателям отдельно от профиля."
+                  tone="neutral"
+                  actions={<Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
+                />
+              </Card>
+            )}
+          </section>
 
           <CandidateResumeSection
             title="Образование"

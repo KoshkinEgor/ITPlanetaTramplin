@@ -431,6 +431,18 @@ body.candidate-portal-react-body {
   margin-bottom: 4px;
 }
 
+.candidate-overview-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.candidate-overview-section-head .candidate-section-header {
+  flex: 1 1 520px;
+}
+
 .candidate-page-section,
 .candidate-page-stack {
   display: grid;
@@ -778,6 +790,39 @@ body.candidate-portal-react-body {
   max-width: 760px;
 }
 
+.candidate-resume-overview {
+  display: grid;
+  gap: 18px;
+}
+
+.candidate-resume-goal-card.ui-card {
+  display: grid;
+  gap: 10px;
+  padding: 26px 30px;
+  border-radius: 30px;
+  border-color: rgba(129, 156, 198, 0.14);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(47, 128, 255, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 255, 0.98));
+}
+
+.candidate-resume-goal-card__label {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body-lg);
+  line-height: var(--ui-line-height-body-lg);
+  font-weight: 700;
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.candidate-resume-goal-card__value {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-size: clamp(var(--ui-font-size-h3), 2vw, var(--ui-font-size-h2));
+  line-height: var(--ui-line-height-h2);
+  letter-spacing: var(--ui-letter-spacing-h2);
+  font-weight: 500;
+}
+
 .candidate-resume-record {
   display: grid;
   gap: 18px;
@@ -868,6 +913,259 @@ body.candidate-portal-react-body {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-body);
   font-weight: 700;
+}
+
+.candidate-resume-mini-card {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(47, 128, 255, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.98));
+  box-shadow: 0 18px 36px rgba(36, 49, 77, 0.08);
+}
+
+.candidate-resume-mini-card__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.candidate-resume-mini-card__copy {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.candidate-resume-mini-card__title,
+.candidate-resume-mini-card__updated {
+  margin: 0;
+}
+
+.candidate-resume-mini-card__title {
+  color: var(--ui-color-text);
+  font-size: clamp(var(--ui-font-size-h3), 2vw, var(--ui-font-size-h2));
+  line-height: var(--ui-line-height-h2);
+  letter-spacing: var(--ui-letter-spacing-h2);
+  font-weight: 800;
+}
+
+.candidate-resume-mini-card__updated {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body-lg);
+  line-height: var(--ui-line-height-body-lg);
+  font-weight: 600;
+  letter-spacing: var(--ui-letter-spacing-body-lg);
+}
+
+.candidate-resume-mini-card__menu.ui-icon-button {
+  --ui-icon-button-size: 54px;
+  --ui-icon-button-glyph-size: 22px;
+  flex: 0 0 auto;
+  border-color: rgba(24, 29, 45, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--ui-color-text-soft);
+  box-shadow: none;
+}
+
+.candidate-resume-mini-card__menu.ui-icon-button:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.candidate-resume-mini-card__menu.ui-icon-button.is-hovered:not(:disabled):not(.is-disabled) {
+  border-color: rgba(47, 128, 255, 0.18);
+  background: rgba(47, 128, 255, 0.08);
+  color: var(--ui-color-accent);
+}
+
+.candidate-resume-mini-card__menu-shell {
+  position: relative;
+  justify-self: end;
+}
+
+.candidate-resume-mini-card__menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid rgba(129, 156, 198, 0.18);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 20px 40px rgba(36, 49, 77, 0.12);
+}
+
+.candidate-resume-mini-card__menu-action {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: 700;
+  letter-spacing: var(--ui-letter-spacing-body);
+  text-decoration: none;
+  text-align: left;
+  transition:
+    border-color var(--ui-transition-base),
+    background-color var(--ui-transition-base),
+    color var(--ui-transition-base);
+  cursor: pointer;
+}
+
+.candidate-resume-mini-card__menu-action:hover,
+.candidate-resume-mini-card__menu-action:focus-visible {
+  border-color: rgba(47, 128, 255, 0.14);
+  background: rgba(47, 128, 255, 0.08);
+  color: var(--ui-color-accent);
+  outline: none;
+}
+
+.candidate-resume-mini-card__menu-action--danger:hover,
+.candidate-resume-mini-card__menu-action--danger:focus-visible {
+  border-color: rgba(222, 101, 68, 0.16);
+  background: rgba(222, 101, 68, 0.08);
+  color: var(--ui-color-danger);
+}
+
+.candidate-resume-mini-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.candidate-resume-mini-card__tags .ui-tag-token {
+  --ui-tag-height: 42px;
+  --ui-tag-padding-inline: 18px;
+  --ui-tag-padding-block: 8px;
+  color: var(--ui-color-text-muted);
+  border-color: rgba(24, 29, 45, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.candidate-resume-mini-card__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.candidate-resume-mini-card__stats-label {
+  color: var(--ui-color-text);
+  font-size: calc((var(--ui-font-size-body-lg) * 0.5) + (var(--ui-font-size-body) * 0.5));
+  line-height: var(--ui-line-height-body-lg);
+  font-weight: 800;
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.candidate-resume-mini-card__stats-values {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--ui-color-text-soft);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: 700;
+}
+
+.candidate-resume-mini-card__stats-values strong {
+  color: var(--ui-color-accent);
+}
+
+.candidate-resume-mini-card__visibility {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-resume-mini-card__visibility > span {
+  color: var(--ui-color-text-muted);
+  font-size: calc((var(--ui-font-size-body-lg) * 0.45) + (var(--ui-font-size-body) * 0.55));
+  line-height: var(--ui-line-height-body-lg);
+  font-weight: 700;
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.candidate-resume-mini-card__visibility-control.ui-segmented {
+  --ui-segmented-height: 72px;
+  --ui-segmented-padding-x: 26px;
+  --ui-segmented-radius: 22px;
+  --ui-segmented-font-size: calc((var(--ui-font-size-body-lg) * 0.5) + (var(--ui-font-size-body) * 0.5));
+  --ui-segmented-line-height: var(--ui-line-height-body-lg);
+  width: 100%;
+  border-color: rgba(24, 29, 45, 0.08);
+  background: rgba(245, 247, 252, 0.92);
+  box-shadow: none;
+}
+
+.candidate-resume-mini-card__visibility-control .candidate-resume-mini-card__visibility-control-item {
+  min-width: 0;
+  font-weight: 700;
+}
+
+.candidate-resume-mini-card__visibility-control .candidate-resume-mini-card__visibility-control-item.is-active {
+  background: linear-gradient(135deg, #5d9cff 0%, #2f80ff 58%, #1f67da 100%);
+  color: var(--ui-color-text);
+  box-shadow: 0 14px 30px rgba(47, 128, 255, 0.18);
+}
+
+.candidate-resume-mini-card__visibility-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 20px;
+  background: rgba(245, 247, 252, 0.92);
+}
+
+.candidate-resume-mini-card__visibility-switch--legacy {
+  display: none;
+}
+
+.candidate-resume-mini-card__visibility-button {
+  min-height: 56px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--ui-color-text-muted);
+  font-size: calc((var(--ui-font-size-body-lg) * 0.48) + (var(--ui-font-size-body) * 0.52));
+  line-height: var(--ui-line-height-body-lg);
+  font-weight: 700;
+  letter-spacing: var(--ui-letter-spacing-body);
+  cursor: pointer;
+  transition:
+    background-color var(--ui-transition-base),
+    color var(--ui-transition-base),
+    box-shadow var(--ui-transition-base);
+}
+
+.candidate-resume-mini-card__visibility-button.is-active {
+  background: linear-gradient(135deg, #5d9cff 0%, #2f80ff 58%, #1f67da 100%);
+  color: var(--ui-color-text);
+  box-shadow: 0 14px 30px rgba(47, 128, 255, 0.18);
+}
+
+.candidate-resume-mini-card__visibility-button:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-shadow-focus);
 }
 
 .candidate-resume-panel__actions {
@@ -1582,6 +1880,30 @@ body.candidate-portal-react-body {
   font-weight: 800;
 }
 
+.candidate-settings-photo__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.candidate-settings-photo__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+}
+
+.candidate-settings-photo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .candidate-settings-photo__edit {
   width: fit-content;
   padding: 0;
@@ -1591,6 +1913,42 @@ body.candidate-portal-react-body {
   font-size: var(--ui-font-size-small);
   font-weight: 800;
   cursor: pointer;
+}
+
+.candidate-settings-photo__edit--legacy {
+  display: none;
+}
+
+.candidate-settings-photo__reset {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.candidate-settings-photo__edit:disabled,
+.candidate-settings-photo__reset:disabled {
+  opacity: 0.56;
+  cursor: progress;
+}
+
+.candidate-settings-photo__hint,
+.candidate-settings-photo__error {
+  max-width: 220px;
+  margin: 0;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+}
+
+.candidate-settings-photo__hint {
+  color: var(--ui-color-text-soft);
+}
+
+.candidate-settings-photo__error {
+  color: var(--ui-color-danger);
 }
 
 .candidate-settings-contact-prefix {
@@ -2439,6 +2797,14 @@ body.candidate-portal-react-body {
     align-items: stretch;
   }
 
+  .candidate-resume-mini-card__stats {
+    align-items: stretch;
+  }
+
+  .candidate-resume-mini-card__stats-values {
+    justify-content: flex-start;
+  }
+
   .candidate-resume-panel__actions,
   .candidate-settings-fields__actions,
   .candidate-settings-panel__save {
@@ -2581,5 +2947,38 @@ body.candidate-portal-react-body {
 
   .candidate-resume-record {
     padding: 18px;
+  }
+
+  .candidate-resume-mini-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .candidate-resume-mini-card__head {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-resume-mini-card__menu.ui-icon-button {
+    --ui-icon-button-size: 46px;
+    justify-self: end;
+  }
+
+  .candidate-resume-mini-card__menu-panel {
+    min-width: min(220px, calc(100vw - 64px));
+  }
+
+  .candidate-resume-mini-card__visibility-switch {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .candidate-resume-mini-card__visibility-button {
+    width: 100%;
+  }
+
+  .candidate-resume-mini-card__visibility-control.ui-segmented {
+    --ui-segmented-height: 60px;
+    --ui-segmented-padding-x: 18px;
   }
 }

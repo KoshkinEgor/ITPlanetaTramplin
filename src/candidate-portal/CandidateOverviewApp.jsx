@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppLink } from "../app/AppLink";
-import { routes } from "../app/routes";
-import { OpportunityBlockRail } from "../components/opportunities";
+import { buildOpportunityDetailRoute, routes } from "../app/routes";
+import { OpportunityBlockCard, OpportunityBlockRail } from "../components/opportunities";
 import { getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
-import { Alert, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
+import { Alert, Button, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
 import { mapContactToPeerCard } from "./mappers";
 import { CandidateSectionHeader } from "./shared";
 
@@ -194,7 +194,11 @@ export function CandidateOverviewApp({ profile = null }) {
       {state.status === "ready" ? (
         <>
           <section className="candidate-page-section">
+            <div className="candidate-overview-section-head">
             <CandidateSectionHeader title="Рекомендуемые возможности" />
+
+              <Button href={routes.opportunities.catalog} variant="secondary" children={"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043a\u0430\u0442\u0430\u043b\u043e\u0433"} />
+            </div>
 
             {topOpportunities.length ? (
               <OpportunityBlockRail
@@ -205,6 +209,20 @@ export function CandidateOverviewApp({ profile = null }) {
                 cardPropsBuilder={() => ({
                   detailAction: { href: "/opportunities", label: "Открыть каталог", variant: "secondary" },
                 })}
+                renderItem={(item, { className, cardProps }) => (
+                  <OpportunityBlockCard
+                    item={item}
+                    surface="panel"
+                    size="md"
+                    className={className}
+                    {...cardProps}
+                    detailAction={{
+                      href: buildOpportunityDetailRoute(item.id),
+                      label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
+                      variant: "secondary",
+                    }}
+                  />
+                )}
               />
             ) : (
               <Card>

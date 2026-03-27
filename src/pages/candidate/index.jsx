@@ -51,5 +51,6 @@ export function CandidateContactsPage() {
 }
 
 export function CandidateSettingsPage() {
-  return <CandidateSettingsApp />;
+  const context = useOutletContext();
+  return <CandidateSettingsApp onSummaryChange={context?.onSummaryChange} />;
 }

@@ -1,7 +1,7 @@
 import { buildCandidateSettingsRoute } from "../../../app/routes";
 import { Avatar, Button, Card, PlaceholderAction, Tag } from "../../../shared/ui";
 import { cn } from "../../../shared/lib/cn";
-import { getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "../../../candidate-portal/mappers";
+import { getCandidateAvatarUrl, getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "../../../candidate-portal/mappers";
 import { CandidateProgressCard, CandidateStatTiles } from "../../../candidate-portal/shared";
 import "./CandidateProfileSummary.css";
 
@@ -36,6 +36,8 @@ export function CandidateProfileSummary({
         <div className="candidate-profile-summary__main">
           <div className="candidate-profile-summary__identity">
             <Avatar
+              src={getCandidateAvatarUrl(profile) || undefined}
+              alt={`Фото профиля ${displayName}`}
               initials={getCandidateInitials(profile)}
               size="xl"
               shape="rounded"

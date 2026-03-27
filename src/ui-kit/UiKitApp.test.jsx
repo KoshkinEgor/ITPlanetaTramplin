@@ -45,6 +45,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-recommended-opportunities-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-recommended-opportunities-rail")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-company-portfolio-assembly")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-company-portfolio-viewer-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-tile")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-filter-sidebar")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-career-stats-panel")).toBeInTheDocument();
@@ -53,6 +55,7 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-career-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-switcher")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-resume-profile")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-resume-mini-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-resume-section")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-project-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-resume-assembly")).toBeInTheDocument();
@@ -62,6 +65,8 @@ describe("UiKitApp", () => {
     expect(screen.getByRole("heading", { name: "Career dashboard assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Resume page assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Portfolio page assembly" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Company portfolio carousel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Company portfolio carousel, viewer mode" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recommended opportunities rail" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Дашборд модерации" })).toBeInTheDocument();
@@ -207,6 +212,40 @@ describe("UiKitApp", () => {
     expect(variantsScope.getByText("Icon right")).toBeInTheDocument();
     expect(variantsScope.getByDisplayValue("IT - Планета")).toBeInTheDocument();
     expect(variantsScope.getAllByText("Сбросить")).toHaveLength(3);
+  });
+
+  it("slides the company portfolio carousel inside the ui kit", () => {
+    render(<UiKitApp />);
+
+    const assembly = screen.getByTestId("ui-kit-company-portfolio-assembly");
+    const slider = within(assembly).getByTestId("company-profile-portfolio-slider");
+    const sliderScope = within(slider);
+    const track = within(assembly).getByTestId("company-profile-portfolio-track");
+
+    expect(track).toHaveStyle("transform: translateX(-0%)");
+
+    fireEvent.click(sliderScope.getByRole("button", { name: "Дальше" }));
+
+    expect(track).toHaveStyle("transform: translateX(-100%)");
+
+    fireEvent.click(sliderScope.getByRole("button", { name: "Назад" }));
+
+    expect(track).toHaveStyle("transform: translateX(-0%)");
+  });
+
+  it("renders the company portfolio viewer mode without the add-project button", () => {
+    render(<UiKitApp />);
+
+    const assembly = screen.getByTestId("ui-kit-company-portfolio-viewer-assembly");
+    const slider = within(assembly).getByTestId("company-profile-portfolio-slider-viewer");
+    const track = within(assembly).getByTestId("company-profile-portfolio-track");
+
+    expect(slider.querySelector(".company-dashboard-portfolio__cta")).toBeNull();
+    expect(track).toHaveStyle("transform: translateX(-0%)");
+
+    fireEvent.click(within(slider).getAllByRole("button")[1]);
+
+    expect(track).toHaveStyle("transform: translateX(-100%)");
   });
 
   it("updates the moderation revision reason inside the ui kit showcase", () => {

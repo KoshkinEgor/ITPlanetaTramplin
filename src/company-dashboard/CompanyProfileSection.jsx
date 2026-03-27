@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCompanyProfile, updateCompanyProfile } from "../api/company";
 import { ApiError } from "../lib/http";
+import { CompanyPortfolioCarousel } from "./CompanyPortfolioCarousel";
 import { Alert, Button, EmptyState, FormField, Input, Loader, PlaceholderMedia, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import "./company-dashboard.css";
@@ -80,7 +81,11 @@ export function CompanyProfileSection() {
 
       {state.status === "unauthorized" ? (
         <CabinetContentSection eyebrow="Доступ ограничен" title="Нужно войти как компания" description="Раздел компании доступен только работодателю.">
-          <EmptyState title="Нет доступа к данным компании" description="После авторизации здесь появятся основные блоки кабинета компании." tone="warning" />
+          <EmptyState
+            title="Нет доступа к данным компании"
+            description="После авторизации здесь появятся основные блоки кабинета компании."
+            tone="warning"
+          />
         </CabinetContentSection>
       ) : null}
 
@@ -148,14 +153,7 @@ export function CompanyProfileSection() {
               actionLabel="Placeholder: video uploader"
               actionDescription="После реализации общий компонент заменит этот слот и в ui-kit, и в кабинете."
             />
-
-            <PlaceholderMedia
-              eyebrow="Кейсы"
-              title="Портфолио компании"
-              description="Секция для кейсов и карточек проектов. Пока оставляем shared scaffold вместо page-local реализации."
-              actionLabel="Placeholder: portfolio control"
-              actionDescription="Будущий shared action для добавления кейса."
-            />
+            <CompanyPortfolioCarousel />
           </div>
 
           <CabinetContentSection eyebrow="Галерея" title="Офис и media-слоты" description="Структура раздела зафиксирована до финальных uploader-компонентов.">

@@ -9,6 +9,9 @@ const profile = {
   email: "anna@example.com",
   description: "Product-minded candidate with a strong portfolio.",
   skills: ["SQL", "UX", "Figma"],
+  links: {
+    avatarUrl: "https://example.com/avatar.png",
+  },
 };
 
 const stats = [
@@ -31,6 +34,7 @@ describe("CandidateProfileSummary", () => {
     renderSummary("full");
 
     expect(screen.getByText("Product-minded candidate with a strong portfolio.")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Фото профиля Anna Kovaleva" })).toHaveAttribute("src", profile.links.avatarUrl);
     expect(screen.getByRole("link")).toBeInTheDocument();
   });
 

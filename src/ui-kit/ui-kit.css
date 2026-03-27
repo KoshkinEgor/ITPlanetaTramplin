@@ -795,6 +795,11 @@ body.ui-kit-react-body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.ui-kit-company-portfolio-preview {
+  display: grid;
+  max-width: 540px;
+}
+
 .ui-kit-assembly-card .opportunity-filter-sidebar {
   position: static;
 }
@@ -991,6 +996,88 @@ body.ui-kit-react-body {
   gap: 18px;
 }
 
+.ui-kit-project-slider,
+.ui-kit-project-slider__copy,
+.ui-kit-project-slider__controls {
+  display: grid;
+}
+
+.ui-kit-project-slider {
+  gap: 20px;
+}
+
+.ui-kit-project-slider__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ui-kit-project-slider__copy {
+  gap: 8px;
+  max-width: 760px;
+}
+
+.ui-kit-project-slider__copy strong {
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: 800;
+}
+
+.ui-kit-project-slider__copy p {
+  margin: 0;
+}
+
+.ui-kit-project-slider__controls {
+  gap: 12px;
+  justify-items: end;
+}
+
+.ui-kit-project-slider__counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid rgba(47, 128, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ui-color-accent);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  font-weight: 800;
+}
+
+.ui-kit-project-slider__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ui-kit-project-slider__viewport {
+  width: min(100%, 436px);
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.ui-kit-project-slider__track {
+  display: flex;
+  transition: transform var(--ui-transition-base);
+  will-change: transform;
+}
+
+.ui-kit-project-slider__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+.ui-kit-project-slider__card.ui-card {
+  width: 100%;
+}
+
 .ui-kit-candidate-assembly__grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
@@ -1128,6 +1215,15 @@ body.ui-kit-react-body {
     grid-template-columns: 1fr;
   }
 
+  .ui-kit-project-slider__controls {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .ui-kit-project-slider__actions {
+    justify-content: flex-start;
+  }
+
   .ui-kit-career-dashboard-preview__grid--courses,
   .ui-kit-career-dashboard-preview__grid--mentors,
   .ui-kit-career-dashboard-preview__peer-grid {
@@ -1194,6 +1290,18 @@ body.ui-kit-react-body {
   .ui-kit-stack-row,
   .ui-kit-pill-stack__row {
     grid-template-columns: 1fr;
+  }
+
+  .ui-kit-project-slider__actions {
+    flex-direction: column;
+  }
+
+  .ui-kit-project-slider__actions .ui-button {
+    width: 100%;
+  }
+
+  .ui-kit-project-slider__viewport {
+    width: 100%;
   }
 
   .ui-kit-map-marker-stage__rail {

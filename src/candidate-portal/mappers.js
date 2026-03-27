@@ -16,6 +16,16 @@ export function getCandidateInitials(profile) {
     .join("") || "К";
 }
 
+export function getCandidateAvatarUrl(profile) {
+  const links = isRecord(profile?.links) ? profile.links : {};
+  const media = isRecord(links.media) ? links.media : {};
+
+  return normalizeMetaPart(links.avatarUrl)
+    || normalizeMetaPart(links.profileImage)
+    || normalizeMetaPart(media.avatarUrl)
+    || normalizeMetaPart(media.profileImage);
+}
+
 export function getCandidateMeta(profile) {
   if (!profile) {
     return "Личный кабинет соискателя";

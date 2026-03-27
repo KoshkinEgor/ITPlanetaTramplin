@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
 import {
@@ -112,6 +112,34 @@ export function CandidateCabinetPage() {
     return () => controller.abort();
   }, []);
 
+  const handleSummaryChange = useCallback((nextSummary = {}) => {
+    setState((current) => {
+      const nextState = { ...current };
+
+      if ("profile" in nextSummary) {
+        nextState.profile = nextSummary.profile ?? null;
+      }
+
+      if ("education" in nextSummary) {
+        nextState.education = Array.isArray(nextSummary.education) ? nextSummary.education : [];
+      }
+
+      if ("achievements" in nextSummary) {
+        nextState.achievements = Array.isArray(nextSummary.achievements) ? nextSummary.achievements : [];
+      }
+
+      if ("projects" in nextSummary) {
+        nextState.projects = Array.isArray(nextSummary.projects) ? nextSummary.projects : [];
+      }
+
+      if ("contacts" in nextSummary) {
+        nextState.contacts = Array.isArray(nextSummary.contacts) ? nextSummary.contacts : [];
+      }
+
+      return nextState;
+    });
+  }, []);
+
   const completion = useMemo(
     () => getProfileCompletion(state.profile, state.education, state.achievements, state.projects),
     [state.achievements, state.education, state.profile, state.projects]
@@ -162,7 +190,7 @@ export function CandidateCabinetPage() {
       summary={summary}
       data-testid="candidate-cabinet-shell"
     >
-      <Outlet context={{ profile: state.profile }} />
+      <Outlet context={{ profile: state.profile, onSummaryChange: handleSummaryChange }} />
     </CabinetShell>
   );
 }

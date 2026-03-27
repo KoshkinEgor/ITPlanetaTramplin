@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { buildForgotPasswordRoute } from "../app/routes";
 import {
@@ -41,10 +41,13 @@ import {
   createCandidateOnboardingDraft,
   getCandidateProfileLinks,
 } from "./onboarding";
+import { getCandidateAvatarUrl } from "./mappers";
 import { CandidateSectionHeader } from "./shared";
 
 const CITY_OPTIONS = CANDIDATE_CITY_OPTIONS.map((value) => ({ value, label: value }));
 const CITIZENSHIP_OPTIONS = CANDIDATE_CITIZENSHIP_OPTIONS.map((value) => ({ value, label: value }));
+const PROFILE_AVATAR_MAX_SIZE_BYTES = 3 * 1024 * 1024;
+const PROFILE_AVATAR_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
 
 const VISIBILITY_OPTIONS = [
   { value: "everyone", label: "Все пользователи" },
@@ -80,6 +83,35 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function formatFileSize(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} КБ`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string" && reader.result) {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Не удалось прочитать изображение."));
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Не удалось прочитать изображение."));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 function normalizeLoginItems(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -107,6 +139,7 @@ function createDraft(profile, education = []) {
   return {
     ...onboardingDraft,
     description: profile?.description ?? "",
+    avatarUrl: getCandidateAvatarUrl(profile),
     socials: {
       vk: normalizeString(contacts.vk),
       telegram: normalizeString(contacts.telegram),
@@ -133,7 +166,7 @@ function getOpenSection(searchParams) {
   const section = searchParams.get("section");
   return CANDIDATE_SETTINGS_SECTIONS.some((item) => item.id === section)
     ? section
-    : CANDIDATE_SETTINGS_SECTIONS[0]?.id;
+    : "";
 }
 
 function getProfileInitials(draft) {
@@ -175,6 +208,7 @@ function buildLinksPayload(profile, draft) {
       behance: normalizeString(draft.socials.behance),
       portfolio: normalizeString(draft.socials.portfolio),
     },
+    avatarUrl: normalizeString(draft.avatarUrl) || null,
     preferences: {
       ...currentPreferences,
       visibility: {
@@ -231,7 +265,12 @@ function CandidateProfileSettingsForm({
   draft,
   errors,
   saveState,
+  avatarInputRef,
+  avatarError,
+  isPreparingAvatar,
   onChange,
+  onAvatarUpload,
+  onAvatarClear,
   onEducationChange,
   onEducationAdd,
   onEducationRemove,
@@ -251,10 +290,36 @@ function CandidateProfileSettingsForm({
         <div className="candidate-settings-profile-row">
           <div className="candidate-settings-photo">
             <span className="candidate-settings-photo__label">Фото профиля</span>
-            <div className="candidate-settings-photo__surface" aria-hidden="true">
-              {getProfileInitials(draft)}
+            <div className="candidate-settings-photo__surface">
+              {draft.avatarUrl ? (
+                <img className="candidate-settings-photo__image" src={draft.avatarUrl} alt="Фото профиля" />
+              ) : (
+                <span aria-hidden="true">{getProfileInitials(draft)}</span>
+              )}
             </div>
-            <button type="button" className="candidate-settings-photo__edit">
+            <input
+              ref={avatarInputRef}
+              className="candidate-settings-photo__input"
+              type="file"
+              accept={PROFILE_AVATAR_ACCEPT}
+              onChange={onAvatarUpload}
+              aria-label="Загрузить фото профиля"
+            />
+            <div className="candidate-settings-photo__actions">
+              <button type="button" className="candidate-settings-photo__edit" onClick={() => avatarInputRef.current?.click()} disabled={isPreparingAvatar}>
+                {isPreparingAvatar ? "Загружаем..." : draft.avatarUrl ? "Загрузить новое фото" : "Загрузить фото"}
+              </button>
+              {draft.avatarUrl ? (
+                <button type="button" className="candidate-settings-photo__reset" onClick={onAvatarClear}>
+                  Удалить
+                </button>
+              ) : null}
+            </div>
+            <p className="candidate-settings-photo__hint">
+              Поддерживаются PNG, JPG, WEBP, GIF и SVG. Максимальный размер: {formatFileSize(PROFILE_AVATAR_MAX_SIZE_BYTES)}.
+            </p>
+            {avatarError ? <p className="candidate-settings-photo__error" role="alert">{avatarError}</p> : null}
+            <button type="button" className="candidate-settings-photo__edit candidate-settings-photo__edit--legacy" hidden aria-hidden="true" tabIndex={-1}>
               Загрузка аватара появится позже
             </button>
           </div>
@@ -354,7 +419,7 @@ function CandidateProfileSettingsForm({
       </section>
 
       <CandidateSettingsSaveButton
-        disabled={saveState.status === "saving"}
+        disabled={saveState.status === "saving" || isPreparingAvatar}
         label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"}
       />
     </form>
@@ -592,8 +657,9 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
   );
 }
 
-export function CandidateSettingsApp() {
+export function CandidateSettingsApp({ onSummaryChange }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const avatarInputRef = useRef(null);
   const [state, setState] = useState({
     status: "loading",
     profile: null,
@@ -603,6 +669,7 @@ export function CandidateSettingsApp() {
   });
   const [formErrors, setFormErrors] = useState({});
   const [saveState, setSaveState] = useState(createSaveStates);
+  const [avatarState, setAvatarState] = useState({ status: "idle", error: "" });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -622,6 +689,7 @@ export function CandidateSettingsApp() {
           draft: createDraft(profile, educationItems),
           error: null,
         });
+        setAvatarState({ status: "idle", error: "" });
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -675,6 +743,43 @@ export function CandidateSettingsApp() {
       delete next[field];
       return next;
     });
+  }
+
+  async function handleAvatarUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarState({ status: "error", error: "Загрузите изображение в формате PNG, JPG, WEBP, GIF или SVG." });
+      return;
+    }
+
+    if (file.size > PROFILE_AVATAR_MAX_SIZE_BYTES) {
+      setAvatarState({
+        status: "error",
+        error: `Файл слишком большой. Максимальный размер: ${formatFileSize(PROFILE_AVATAR_MAX_SIZE_BYTES)}.`,
+      });
+      return;
+    }
+
+    setAvatarState({ status: "loading", error: "" });
+
+    try {
+      const avatarUrl = await readFileAsDataUrl(file);
+      updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl }), ["profile"]);
+      setAvatarState({ status: "idle", error: "" });
+    } catch (error) {
+      setAvatarState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение." });
+    }
+  }
+
+  function handleAvatarClear() {
+    updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: "" }), ["profile"]);
+    setAvatarState({ status: "idle", error: "" });
   }
 
   function handleEducationChange(draftKey, field, value) {
@@ -869,6 +974,8 @@ export function CandidateSettingsApp() {
         draft: createDraft(profile, educationItems),
         error: null,
       });
+      setAvatarState({ status: "idle", error: "" });
+      onSummaryChange?.({ profile, education: educationItems });
       setSaveState((current) => ({
         ...current,
         profile: { status: "success", error: "" },
@@ -902,6 +1009,7 @@ export function CandidateSettingsApp() {
         profile,
         draft: createDraft(profile, current.education),
       }));
+      onSummaryChange?.({ profile });
       setSaveState((current) => ({
         ...current,
         contacts: { status: "success", error: "" },
@@ -935,6 +1043,7 @@ export function CandidateSettingsApp() {
         profile,
         draft: createDraft(profile, current.education),
       }));
+      onSummaryChange?.({ profile });
       setSaveState((current) => ({
         ...current,
         privacy: { status: "success", error: "" },
@@ -997,7 +1106,12 @@ export function CandidateSettingsApp() {
                   draft={state.draft}
                   errors={formErrors}
                   saveState={saveState.profile}
+                  avatarInputRef={avatarInputRef}
+                  avatarError={avatarState.error}
+                  isPreparingAvatar={avatarState.status === "loading"}
                   onChange={handleRootChange}
+                  onAvatarUpload={handleAvatarUpload}
+                  onAvatarClear={handleAvatarClear}
                   onEducationChange={handleEducationChange}
                   onEducationAdd={handleEducationAdd}
                   onEducationRemove={handleEducationRemove}

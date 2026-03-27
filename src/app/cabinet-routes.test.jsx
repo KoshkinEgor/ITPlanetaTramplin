@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../auth/api";
+import { updateCandidateProfile } from "../api/candidate";
 import { getCompanyOpportunities, getCompanyProfile } from "../api/company";
 import { resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
 import { getModerationDashboard } from "../api/moderation";
@@ -146,6 +147,11 @@ function renderRoute(path) {
   );
 }
 
+function getCandidateProgressValues(container) {
+  return Array.from(container.querySelectorAll(".candidate-progress-card__value > span:first-child"))
+    .map((node) => node.textContent);
+}
+
 function setSession(user, status = "authenticated") {
   getCurrentAuthUser.mockResolvedValue(user);
   useAuthSession.mockReturnValue({
@@ -179,6 +185,30 @@ describe("cabinet shell routes", () => {
 
     expect(await screen.findByTestId("candidate-standalone-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("candidate-cabinet-shell")).not.toBeInTheDocument();
+  });
+
+  it("updates candidate progress after saving profile settings inside the cabinet shell", async () => {
+    updateCandidateProfile.mockResolvedValue({
+      ...candidateProfile,
+      description: "",
+    });
+
+    const { container } = renderRoute(routes.candidate.settings);
+
+    expect(await screen.findByTestId("candidate-cabinet-shell")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getCandidateProgressValues(container)).toEqual(["75", "75"]);
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
+    fireEvent.change(screen.getByLabelText("О себе"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(updateCandidateProfile).toHaveBeenCalledTimes(1);
+      expect(getCandidateProgressValues(container)).toEqual(["55", "55"]);
+    });
   });
 
   it("redirects guests from candidate routes to the career entry page", async () => {
@@ -223,6 +253,30 @@ describe("cabinet shell routes", () => {
     await waitFor(() => {
       expect(container.querySelector(".company-profile-summary")).toBeInTheDocument();
     });
+  });
+
+  it("slides the company portfolio carousel inside the company page", async () => {
+    setSession({
+      id: 2,
+      role: "company",
+      email: "company@example.com",
+    });
+
+    renderRoute(routes.company.dashboard);
+
+    const slider = await screen.findByTestId("company-profile-portfolio-slider");
+    const sliderScope = within(slider);
+    const track = screen.getByTestId("company-profile-portfolio-track");
+
+    expect(track).toHaveStyle("transform: translateX(-0%)");
+
+    fireEvent.click(sliderScope.getByRole("button", { name: "Дальше" }));
+
+    expect(track).toHaveStyle("transform: translateX(-100%)");
+
+    fireEvent.click(sliderScope.getByRole("button", { name: "Назад" }));
+
+    expect(track).toHaveStyle("transform: translateX(-0%)");
   });
 
   it("skips the company summary outside the company page", async () => {
