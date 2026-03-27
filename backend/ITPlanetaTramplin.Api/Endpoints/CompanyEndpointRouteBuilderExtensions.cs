@@ -153,6 +153,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
                 item.LocationAddress,
                 item.LocationCity,
                 item.ExpireAt,
+                item.ContactsJson,
                 item.EmploymentType,
                 CompanyName = item.Employer.CompanyName,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),

@@ -1,4 +1,4 @@
-.company-dashboard-react-body {
+﻿.company-dashboard-react-body {
   min-height: 100vh;
 }
 
@@ -225,11 +225,125 @@
   border: 1px solid rgba(47, 128, 255, 0.08);
 }
 
+.company-dashboard-list-item--opportunity {
+  gap: 16px;
+}
+
 .company-dashboard-list-item__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.company-dashboard-list-item__meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.company-dashboard-list-item__meta-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(24, 29, 45, 0.06);
+}
+
+.company-dashboard-list-item__meta-card span {
+  color: rgba(24, 29, 45, 0.58);
+  font-size: var(--ui-font-size-body-sm);
+  line-height: var(--ui-line-height-body-sm);
+}
+
+.company-dashboard-list-item__meta-card strong {
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+}
+
+.company-dashboard-opportunity-contacts {
+  display: grid;
+  gap: 16px;
+}
+
+.company-dashboard-opportunity-contacts__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.company-dashboard-opportunity-contacts__eyebrow {
+  margin: 0 0 6px;
+  color: rgba(24, 29, 45, 0.56);
+  font-size: var(--ui-font-size-body-sm);
+  line-height: var(--ui-line-height-body-sm);
+}
+
+.company-dashboard-opportunity-contacts__header .ui-type-h3,
+.company-dashboard-opportunity-contacts__header .ui-type-body {
+  margin: 0;
+}
+
+.company-dashboard-opportunity-contacts__list {
+  display: grid;
+  gap: 14px;
+}
+
+.company-dashboard-opportunity-contact-card {
+  display: grid;
+  gap: 16px;
+  border-radius: 28px;
+}
+
+.company-dashboard-opportunity-contact-card__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.company-dashboard-opportunity-contact-card__avatar {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(47, 128, 255, 0.16), rgba(201, 255, 31, 0.3));
+  color: var(--ui-color-text);
+  font-weight: 800;
+  font-size: var(--ui-font-size-body-lg);
+}
+
+.company-dashboard-opportunity-contact-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.company-dashboard-opportunity-contact-card__copy span {
+  color: rgba(24, 29, 45, 0.56);
+  font-size: var(--ui-font-size-body-sm);
+  line-height: var(--ui-line-height-body-sm);
+}
+
+.company-dashboard-opportunity-contact-card__copy strong {
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body-lg);
+  line-height: var(--ui-line-height-body-lg);
+}
+
+.company-dashboard-opportunity-contact-card__fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.4fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.company-dashboard-opportunity-contact-card__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .company-dashboard-checklist {
@@ -300,6 +414,13 @@
 
   .company-dashboard-list-item__top {
     flex-direction: column;
+  }
+
+  .company-dashboard-list-item__meta-grid,
+  .company-dashboard-opportunity-contact-card__fields,
+  .company-dashboard-opportunity-contacts__header {
+    grid-template-columns: 1fr;
+    display: grid;
   }
 
   .company-dashboard-panel__actions,

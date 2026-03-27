@@ -170,6 +170,46 @@ function parseJsonSafe(value, fallback) {
   }
 }
 
+function getOpportunityContacts(value) {
+  const parsed = parseJsonSafe(value, []);
+
+  if (Array.isArray(parsed)) {
+    return parsed
+      .map((item) => ({
+        type: String(item?.type || "").trim().toLowerCase(),
+        value: String(item?.value || "").trim(),
+      }))
+      .filter((item) => item.value);
+  }
+
+  if (parsed && typeof parsed === "object") {
+    return Object.entries(parsed)
+      .map(([key, entryValue]) => {
+        const normalizedValue = String(entryValue || "").trim();
+        if (!normalizedValue) {
+          return null;
+        }
+
+        if (key.toLowerCase().includes("mail")) {
+          return { type: "email", value: normalizedValue };
+        }
+
+        if (key.toLowerCase().includes("phone") || key.toLowerCase().includes("tel")) {
+          return { type: "phone", value: normalizedValue };
+        }
+
+        if (key.toLowerCase().includes("telegram") && !/^https?:\/\//i.test(normalizedValue)) {
+          return { type: "link", value: `https://t.me/${normalizedValue.replace(/^@/, "")}` };
+        }
+
+        return { type: "link", value: normalizedValue };
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 function getDemoOpportunity(opportunityId) {
   return DEMO_OPPORTUNITIES[String(opportunityId)] ?? null;
 }
@@ -271,12 +311,14 @@ function resolveMediaLabel(mediaItems, fallback) {
 }
 
 function getContactAction(contacts) {
-  if (contacts?.email) {
-    return { href: `mailto:${contacts.email}`, label: "Написать компании" };
+  const primaryEmail = contacts.find((item) => item.type === "email");
+  if (primaryEmail) {
+    return { href: `mailto:${primaryEmail.value}`, label: "Написать компании" };
   }
 
-  if (contacts?.telegram) {
-    return { href: `https://t.me/${String(contacts.telegram).replace(/^@/, "")}`, label: "Открыть Telegram компании" };
+  const primaryLink = contacts.find((item) => item.type === "link");
+  if (primaryLink) {
+    return { href: primaryLink.value, label: "Открыть контакты компании" };
   }
 
   return { href: "#contacts", label: "Открыть контакты" };
@@ -329,7 +371,7 @@ function buildApplySuccessCopy(type, mode = "created") {
 
 function buildOpportunityViewModel(item) {
   const preset = PRESETS[resolvePresetKey(item)];
-  const contacts = parseJsonSafe(item.contactsJson, {});
+  const contacts = getOpportunityContacts(item.contactsJson);
   const mediaItems = parseJsonSafe(item.mediaContentJson, []);
   const typeLabel = translateOpportunityType(item.opportunityType);
   const employmentLabel = translateEmploymentType(item.employmentType);

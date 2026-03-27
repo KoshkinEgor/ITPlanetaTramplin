@@ -5,6 +5,7 @@ using ITPlanetaTramplin.Api.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using System.Text.Json;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
@@ -58,6 +59,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             OpportunityType = request.OpportunityType,
             EmploymentType = NormalizeEmploymentType(request.EmploymentType),
             ModerationStatus = OpportunityModerationStatuses.Pending,
+            ContactsJson = NormalizeContactsJson(request.ContactsJson),
         };
 
         opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
@@ -187,7 +189,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         if (request.ContactsJson is not null)
         {
-            opportunity.ContactsJson = request.ContactsJson;
+            opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
         }
 
         if (request.MediaContentJson is not null)
@@ -451,6 +453,60 @@ internal static class OpportunityEndpointRouteBuilderExtensions
     private static string NormalizeEmploymentType(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unspecified" : value.Trim();
 
+    private static string? NormalizeContactsJson(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            var normalizedContacts = new List<object>();
+
+            if (document.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in document.RootElement.EnumerateArray())
+                {
+                    var normalizedContact = NormalizeContactElement(item);
+                    if (normalizedContact is not null)
+                    {
+                        normalizedContacts.Add(normalizedContact);
+                    }
+                }
+            }
+            else if (document.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    if (property.Value.ValueKind != JsonValueKind.String)
+                    {
+                        continue;
+                    }
+
+                    var normalizedValue = property.Value.GetString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(normalizedValue))
+                    {
+                        continue;
+                    }
+
+                    normalizedContacts.Add(new
+                    {
+                        type = DetectLegacyContactType(property.Name, normalizedValue),
+                        value = NormalizeLegacyContactValue(property.Name, normalizedValue),
+                    });
+                }
+            }
+
+            return normalizedContacts.Count == 0 ? null : JsonSerializer.Serialize(normalizedContacts);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private static async Task<List<Tag>> ResolveOpportunityTagsAsync(ApplicationDBContext db, IEnumerable<string>? requestTags)
     {
         var normalizedNames = (requestTags ?? [])
@@ -490,5 +546,70 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
 
         return resolvedTags;
+    }
+
+    private static object? NormalizeContactElement(JsonElement item)
+    {
+        if (item.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var type = item.TryGetProperty("type", out var typeValue) && typeValue.ValueKind == JsonValueKind.String
+            ? NormalizeContactType(typeValue.GetString())
+            : "link";
+
+        var value = item.TryGetProperty("value", out var rawValue) && rawValue.ValueKind == JsonValueKind.String
+            ? rawValue.GetString()?.Trim()
+            : null;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return new
+        {
+            type,
+            value,
+        };
+    }
+
+    private static string NormalizeContactType(string? value)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "phone" => "phone",
+            "email" => "email",
+            _ => "link",
+        };
+    }
+
+    private static string DetectLegacyContactType(string key, string value)
+    {
+        var normalizedKey = key.Trim().ToLowerInvariant();
+        if (normalizedKey.Contains("mail"))
+        {
+            return "email";
+        }
+
+        if (normalizedKey.Contains("phone") || normalizedKey.Contains("tel"))
+        {
+            return "phone";
+        }
+
+        return "link";
+    }
+
+    private static string NormalizeLegacyContactValue(string key, string value)
+    {
+        var normalizedKey = key.Trim().ToLowerInvariant();
+        if (normalizedKey.Contains("telegram") && !value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"https://t.me/{value.TrimStart('@')}";
+        }
+
+        return value;
     }
 }

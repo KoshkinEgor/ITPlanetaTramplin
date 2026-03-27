@@ -20,6 +20,8 @@ namespace DTO
 
         public string? EmploymentType { get; set; }
 
+        public string? ContactsJson { get; set; }
+
         public List<string>? Tags { get; set; }
     }
 

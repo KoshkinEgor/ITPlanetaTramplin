@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { getCompanyProfile, updateCompanyProfile } from "../api/company";
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, FormField, Input, Loader, Textarea } from "../shared/ui";
@@ -236,16 +236,18 @@ export function CompanyProfileSection() {
             </form>
           </CabinetContentSection>
 
-          <CabinetContentSection eyebrow="Проверка" title="Верификация" description="Подтвердите данные компании, чтобы профиль выглядел надежнее для кандидатов.">
-            <div className="company-dashboard-verification-block">
-              <p className="ui-type-body">
-                Отправьте компанию на проверку, чтобы показать кандидатам подтвержденный статус и повысить доверие к странице работодателя.
-              </p>
-              <Button type="button" variant="secondary">
-                Отправить на верификацию
-              </Button>
-            </div>
-          </CabinetContentSection>
+          {state.profile?.verificationStatus !== "approved" ? (
+            <CabinetContentSection eyebrow="Проверка" title="Верификация" description="Подтвердите данные компании, чтобы профиль выглядел надежнее для кандидатов.">
+              <div className="company-dashboard-verification-block">
+                <p className="ui-type-body">
+                  Отправьте компанию на проверку, чтобы показать кандидатам подтвержденный статус и повысить доверие к странице работодателя.
+                </p>
+                <Button type="button" variant="secondary">
+                  Отправить на верификацию
+                </Button>
+              </div>
+            </CabinetContentSection>
+          ) : null}
 
           <CabinetContentSection eyebrow="Кейсы" title="Портфолио компании" description="Подборка кейсов и проектов, которые можно показать кандидатам.">
             <Card className="company-dashboard-profile-hero-card" tone="neutral">
