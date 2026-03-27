@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
+import { writeFavoriteOpportunityIds } from "../features/favorites/storage";
 import { OpportunitiesCatalogApp } from "./OpportunitiesCatalogApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -19,7 +20,12 @@ vi.mock("../home/HomeOpportunityMap", () => ({
       <p>MAP_POINTS:{items.length}</p>
       {items.length ? (
         items.map((item) => (
-          <button key={item.id} type="button" onClick={() => onSelectItem?.(item.id)}>
+          <button
+            key={item.id}
+            type="button"
+            data-favorite={item.isFavorite ? "true" : "false"}
+            onClick={() => onSelectItem?.(item.id)}
+          >
             {item.title}
           </button>
         ))
@@ -140,6 +146,7 @@ function renderApp() {
 describe("OpportunitiesCatalogApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it("shows the loading state and cleans up the body class on unmount", () => {
@@ -268,7 +275,41 @@ describe("OpportunitiesCatalogApp", () => {
     expect(screen.getByText("MAP_POINTS:1")).toBeInTheDocument();
   });
 
-  it("closes the map filter drawer with Escape and backdrop click", async () => {
+  it("filters map items by favorites-only display without affecting the catalog list", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+    writeFavoriteOpportunityIds(["4"]);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const map = screen.getByTestId("catalog-map");
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
+    expect(screen.getByText("MAP_POINTS:3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
+    fireEvent.click(screen.getByRole("button", { name: "Только избранное" }));
+
+    expect(screen.getByText("MAP_POINTS:1")).toBeInTheDocument();
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Не избранное" }));
+
+    expect(screen.getByText("MAP_POINTS:2")).toBeInTheDocument();
+    expect(within(map).queryByRole("button", { name: "Frontend Intern" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
+
+    const results = document.querySelector(".opportunities-browser__results");
+    expect(results).not.toBeNull();
+    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
+    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+  });
+
+  it("keeps the map interactive while the drawer is open and closes it with Escape", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
@@ -276,25 +317,41 @@ describe("OpportunitiesCatalogApp", () => {
     expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Карта" }));
-
-    const mapPanel = container.querySelector(".opportunities-browser__map-panel");
-    expect(mapPanel).not.toBeNull();
-
-    const mapFilterButton = mapPanel.querySelector(".opportunities-browser__map-filter-button");
-    expect(mapFilterButton).not.toBeNull();
-    fireEvent.click(mapFilterButton);
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
 
     expect(screen.getByText("Регион")).toBeInTheDocument();
+    expect(container.querySelector(".opportunity-filter-sidebar__drawer-backdrop")).toBeNull();
+
+    fireEvent.click(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Frontend Intern" }));
+
+    expect(screen.getByTestId("catalog-map")).toHaveAttribute("data-active-id", "4");
 
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByText("Регион")).not.toBeInTheDocument();
-
-    fireEvent.click(mapFilterButton);
-    const backdrop = container.querySelector(".opportunity-filter-sidebar__drawer-backdrop");
-    expect(backdrop).not.toBeNull();
-    fireEvent.click(backdrop);
 
     expect(screen.queryByText("Регион")).not.toBeInTheDocument();
+  });
+
+  it("updates favorite markers on the open map after favorites storage changes", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const map = screen.getByTestId("catalog-map");
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "false");
+
+    writeFavoriteOpportunityIds(["4"]);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute(
+        "data-favorite",
+        "true"
+      );
+    });
   });
 
   it("shows the map empty state when filtered opportunities do not have coordinates", async () => {

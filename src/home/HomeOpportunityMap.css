@@ -93,6 +93,7 @@
 
 .home-yandex-map__marker {
   appearance: none;
+  position: relative;
   cursor: pointer;
   transform: translate(-50%, calc(var(--ui-map-marker-size) * -1));
 }
@@ -104,6 +105,40 @@
 
 .home-yandex-map__marker[aria-pressed="true"] .ui-map-marker__pin {
   transform: scale(1.04);
+}
+
+.home-yandex-map__marker .ui-map-marker__pin {
+  position: relative;
+}
+
+.home-yandex-map__marker--favorite .ui-map-marker__pin {
+  filter:
+    drop-shadow(0 0 12px rgba(255, 95, 128, 0.22))
+    drop-shadow(0 10px 18px rgba(255, 95, 128, 0.26));
+}
+
+.home-yandex-map__marker-favorite-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 240, 245, 0.98));
+  color: #ff5f80;
+  box-shadow:
+    0 8px 16px rgba(255, 95, 128, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.home-yandex-map__marker-favorite-badge svg {
+  width: 10px;
+  height: 10px;
+  display: block;
 }
 
 .home-yandex-map__marker .ui-map-marker__label {

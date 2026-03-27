@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Card, Checkbox, CityAutocomplete, FormField, Input, Select } from "../ui";
+import { Card, Checkbox, CityAutocomplete, FormField, Input, PillButton, Select } from "../ui";
 import { cn } from "../../lib/cn";
 import "./OpportunityFilterSidebar.css";
 
@@ -32,12 +32,17 @@ function normalizeOptions(options) {
 function OpportunityFilterSidebarContent({
   values,
   options,
+  displayOptions,
+  displayValue,
   disabledSections,
+  onDisplayChange,
+  onResetDisplay,
   onChange,
   onResetSection,
 }) {
   const specializationOptions = normalizeOptions(options?.specializations);
   const employmentOptions = normalizeOptions(options?.employmentTypes);
+  const resolvedDisplayOptions = normalizeOptions(displayOptions);
   const unsupportedHint = "Поле появится после подключения данных из backend.";
 
   const updateCheckboxGroup = (field, nextValue, checked) => {
@@ -107,6 +112,23 @@ function OpportunityFilterSidebarContent({
         </div>
       </div>
 
+      {resolvedDisplayOptions.length ? (
+        <div className="opportunity-filter-sidebar__section">
+          <SectionHead title="Отображение" onReset={onResetDisplay} />
+          <div className="opportunity-filter-sidebar__pills">
+            {resolvedDisplayOptions.map((option) => (
+              <PillButton
+                key={option.value}
+                active={displayValue === option.value}
+                onClick={() => onDisplayChange?.(option.value)}
+              >
+                {option.label}
+              </PillButton>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="opportunity-filter-sidebar__section">
         <SectionHead title="Образование" onReset={() => onResetSection?.("education")} />
         <p className="opportunity-filter-sidebar__hint">{unsupportedHint}</p>
@@ -127,7 +149,12 @@ export function OpportunityFilterSidebar({
   boundaryRef,
   values,
   options,
+  displayOptions = [],
+  displayValue = "all",
   disabledSections = {},
+  drawerBackdrop = true,
+  onDisplayChange,
+  onResetDisplay,
   onChange,
   onResetSection,
   onResetAll,
@@ -214,7 +241,11 @@ export function OpportunityFilterSidebar({
       <OpportunityFilterSidebarContent
         values={values}
         options={options}
+        displayOptions={displayOptions}
+        displayValue={displayValue}
         disabledSections={disabledSections}
+        onDisplayChange={onDisplayChange}
+        onResetDisplay={onResetDisplay}
         onChange={onChange}
         onResetSection={onResetSection}
       />
@@ -224,12 +255,14 @@ export function OpportunityFilterSidebar({
   if (isDrawer) {
     return (
       <div className="opportunity-filter-sidebar__drawer-shell">
-        <button
-          type="button"
-          className="opportunity-filter-sidebar__drawer-backdrop"
-          aria-label="Закрыть фильтры"
-          onClick={() => onOpenChange?.(false)}
-        />
+        {drawerBackdrop ? (
+          <button
+            type="button"
+            className="opportunity-filter-sidebar__drawer-backdrop"
+            aria-label="Закрыть фильтры"
+            onClick={() => onOpenChange?.(false)}
+          />
+        ) : null}
         <aside
           ref={rootRef}
           className={cn("opportunity-filter-sidebar", "opportunity-filter-sidebar--drawer", className)}

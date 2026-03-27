@@ -234,6 +234,7 @@ export function buildPointCollectionSignature(points) {
         roundToTwo(Number(longitude)),
         roundToTwo(Number(latitude)),
         point.markerTone ?? "",
+        point.isFavorite ? "favorite" : "regular",
         point.markerLabel ?? "",
         point.title ?? "",
       ].join(":");
@@ -375,10 +376,11 @@ function isSameLayout(left, right) {
 function createMarkerElement(point, isActive, onSelectPoint) {
   const marker = document.createElement("button");
   marker.type = "button";
-  marker.className = `ui-map-marker ui-map-marker--pin ui-map-marker--md ui-map-marker--${point.markerTone} ui-map-marker--with-label home-yandex-map__marker`;
-  marker.setAttribute("aria-label", point.title);
+  marker.className = `ui-map-marker ui-map-marker--pin ui-map-marker--md ui-map-marker--${point.markerTone} ui-map-marker--with-label home-yandex-map__marker${point.isFavorite ? " home-yandex-map__marker--favorite" : ""}`;
+  marker.setAttribute("aria-label", point.isFavorite ? `${point.title}, в избранном` : point.title);
   marker.setAttribute("aria-pressed", isActive ? "true" : "false");
   marker.dataset.pointId = String(point.id);
+  marker.dataset.favorite = point.isFavorite ? "true" : "false";
   marker.addEventListener("click", (event) => {
     event.stopPropagation();
     onSelectPoint?.(point.id);
@@ -390,6 +392,15 @@ function createMarkerElement(point, isActive, onSelectPoint) {
   const markerShape = document.createElement("span");
   markerShape.className = "ui-map-marker__pin-shape";
   markerPin.append(markerShape);
+
+  if (point.isFavorite) {
+    const favoriteBadge = document.createElement("span");
+    favoriteBadge.className = "home-yandex-map__marker-favorite-badge";
+    favoriteBadge.setAttribute("aria-hidden", "true");
+    favoriteBadge.innerHTML =
+      '<svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 10.46 1.78 6.23A2.49 2.49 0 0 1 5.3 2.72L6 3.42l.7-.7a2.49 2.49 0 1 1 3.52 3.51L6 10.46Z" fill="currentColor"/></svg>';
+    markerPin.append(favoriteBadge);
+  }
 
   const markerLabel = document.createElement("span");
   markerLabel.className = "ui-map-marker__label";

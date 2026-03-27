@@ -7,6 +7,7 @@ import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
+import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
@@ -1020,6 +1021,7 @@ export function HomeApp() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
+  const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
   const [nearbyItemsState, setNearbyItemsState] = useState({
     status: "loading",
     items: [],
@@ -1086,6 +1088,8 @@ export function HomeApp() {
     setNewsletterError("");
     setNewsletterSubmitted(true);
   };
+
+  useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1224,6 +1228,20 @@ export function HomeApp() {
       ...sortedNearbyCards.slice(selectedIndex + 1),
     ];
   }, [selectedOpportunityId, sortedNearbyCards]);
+
+  const favoriteOpportunityIdSet = useMemo(
+    () => new Set(favoriteOpportunityIds.map((id) => String(id))),
+    [favoriteOpportunityIds]
+  );
+
+  const displayedNearbyCards = useMemo(
+    () =>
+      prioritizedNearbyCards.map((item) => ({
+        ...item,
+        isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
+      })),
+    [favoriteOpportunityIdSet, prioritizedNearbyCards]
+  );
 
   useEffect(() => {
     if (!selectedOpportunityId) {
@@ -1481,7 +1499,7 @@ export function HomeApp() {
 
                 <div className="home-map-card__surface home-map-card__surface--interactive">
                   <HomeOpportunityMap
-                    items={prioritizedNearbyCards}
+                    items={displayedNearbyCards}
                     selectedCity={selectedCity}
                     selectedCityCoordinates={
                       selectedCityOption?.longitude != null && selectedCityOption?.latitude != null
@@ -1504,8 +1522,8 @@ export function HomeApp() {
               />
             ) : (
               <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
-                {prioritizedNearbyCards.length ? (
-                  prioritizedNearbyCards.map((item) => (
+                {displayedNearbyCards.length ? (
+                  displayedNearbyCards.map((item) => (
                     view === "map" ? (
                       <OpportunityMiniCard
                         key={item.id ?? item.title}

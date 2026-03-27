@@ -250,6 +250,11 @@ export function CandidateResumeMiniCard({
   onDeleteClick,
   menuLabel = DEFAULT_RESUME_MINI_MENU_LABEL,
   onMenuClick,
+  readOnly = false,
+  interactive = false,
+  interactionLabel,
+  onClick,
+  className,
 }) {
   const statValues = {
     impressions: Number.isFinite(Number(stats.impressions)) ? Number(stats.impressions) : 0,
@@ -264,16 +269,40 @@ export function CandidateResumeMiniCard({
     { value: "employers", label: employersVisibilityLabel },
   ];
   const resolvedEditHref = editHref ?? menuHref;
+  const cardClassName = [
+    "candidate-resume-mini-card",
+    readOnly ? "candidate-resume-mini-card--read-only" : null,
+    interactive ? "candidate-resume-mini-card--interactive" : null,
+    className,
+  ].filter(Boolean).join(" ");
+
+  function handleKeyDown(event) {
+    if (!interactive || !onClick) {
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick(event);
+    }
+  }
 
   return (
-    <article className="candidate-resume-mini-card">
+    <article
+      className={cardClassName}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? interactionLabel || title : undefined}
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={handleKeyDown}
+    >
       <div className="candidate-resume-mini-card__head">
         <div className="candidate-resume-mini-card__copy">
           <h3 className="candidate-resume-mini-card__title">{title}</h3>
           <p className="candidate-resume-mini-card__updated">{updatedLabel}</p>
         </div>
 
-        {showMenu ? (
+        {showMenu && !readOnly ? (
           <CandidateResumeMiniCardMenu
             buttonLabel={menuLabel}
             editHref={resolvedEditHref}
@@ -311,42 +340,44 @@ export function CandidateResumeMiniCard({
         </div>
       </div>
 
-      <div className="candidate-resume-mini-card__visibility">
-        <span>{visibilityLabel}</span>
-        <SegmentedControl
-          items={visibilityItems}
-          value={resolvedVisibility}
-          onChange={onVisibilityChange}
-          ariaLabel={visibilityLabel}
-          stretch
-          className="candidate-resume-mini-card__visibility-control"
-          itemClassName="candidate-resume-mini-card__visibility-control-item"
-        />
-        <div
-          className="candidate-resume-mini-card__visibility-switch candidate-resume-mini-card__visibility-switch--legacy"
-          role="group"
-          aria-label={visibilityLabel}
-          aria-hidden="true"
-          hidden
-        >
-          <button
-            type="button"
-            className={`candidate-resume-mini-card__visibility-button${resolvedVisibility === "private" ? " is-active" : ""}`}
-            aria-pressed={resolvedVisibility === "private"}
-            onClick={() => onVisibilityChange?.("private")}
+      {!readOnly ? (
+        <div className="candidate-resume-mini-card__visibility">
+          <span>{visibilityLabel}</span>
+          <SegmentedControl
+            items={visibilityItems}
+            value={resolvedVisibility}
+            onChange={onVisibilityChange}
+            ariaLabel={visibilityLabel}
+            stretch
+            className="candidate-resume-mini-card__visibility-control"
+            itemClassName="candidate-resume-mini-card__visibility-control-item"
+          />
+          <div
+            className="candidate-resume-mini-card__visibility-switch candidate-resume-mini-card__visibility-switch--legacy"
+            role="group"
+            aria-label={visibilityLabel}
+            aria-hidden="true"
+            hidden
           >
-            {privateVisibilityLabel}
-          </button>
-          <button
-            type="button"
-            className={`candidate-resume-mini-card__visibility-button${resolvedVisibility === "employers" ? " is-active" : ""}`}
-            aria-pressed={resolvedVisibility === "employers"}
-            onClick={() => onVisibilityChange?.("employers")}
-          >
-            {employersVisibilityLabel}
-          </button>
+            <button
+              type="button"
+              className={`candidate-resume-mini-card__visibility-button${resolvedVisibility === "private" ? " is-active" : ""}`}
+              aria-pressed={resolvedVisibility === "private"}
+              onClick={() => onVisibilityChange?.("private")}
+            >
+              {privateVisibilityLabel}
+            </button>
+            <button
+              type="button"
+              className={`candidate-resume-mini-card__visibility-button${resolvedVisibility === "employers" ? " is-active" : ""}`}
+              aria-pressed={resolvedVisibility === "employers"}
+              onClick={() => onVisibilityChange?.("employers")}
+            >
+              {employersVisibilityLabel}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </article>
   );
 }

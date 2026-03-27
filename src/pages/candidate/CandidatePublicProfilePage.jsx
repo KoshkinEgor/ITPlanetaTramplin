@@ -8,13 +8,17 @@ import {
   createCandidateContact,
   createCandidateFriendRequest,
   createCandidateProjectInvite,
-  deleteCandidateFriend,
   declineCandidateFriendRequest,
   declineCandidateProjectInvite,
   getCandidateProjects,
   getCandidatePublicProfile,
 } from "../../api/candidate";
-import { PUBLIC_HEADER_NAV_ITEMS, buildCandidatePublicProfileRoute, routes } from "../../app/routes";
+import {
+  PUBLIC_HEADER_NAV_ITEMS,
+  buildCandidateProjectEditRoute,
+  buildCandidatePublicProfileRoute,
+  routes,
+} from "../../app/routes";
 import { useAuthSession } from "../../auth/api";
 import {
   getCandidateAvatarUrl,
@@ -24,7 +28,12 @@ import {
   mapCandidateProjectToCard,
 } from "../../candidate-portal/mappers";
 import { getCandidateOnboardingData, getCandidateProfileLinks } from "../../candidate-portal/onboarding";
-import { CandidatePortfolioProjectCard, CandidateResumeMiniCard } from "../../candidate-portal/portfolio-kit";
+import {
+  CandidatePortfolioProjectCard,
+  CandidateResumeMiniCard,
+  CandidateResumeRecord,
+  CandidateResumeSection,
+} from "../../candidate-portal/portfolio-kit";
 import "../../candidate-portal/candidate-portal.css";
 import {
   buildSocialLinksList,
@@ -164,16 +173,19 @@ function buildResumeItems(profile, explicitResumes = []) {
 
   return resumeList.map((resume, index) => {
     const fallbackResume = buildFallbackResume(profile);
+    const experienceSource = isRecord(resume.experience) ? { experience: resume.experience } : resume;
+    const experienceLabel = normalizeString(resume.experienceLabel) || (typeof resume.experience === "string" ? normalizeString(resume.experience) : "");
 
     return {
       id: normalizeString(resume.id) || `resume-${index + 1}`,
-      title: normalizeString(resume.title) || normalizeString(resume.profession) || fallbackResume.title,
+      title: normalizeString(resume.title) || normalizeString(resume.profession) || normalizeString(resume.position) || fallbackResume.title,
       updatedAt: resume.updatedAt ?? resume.updatedDate ?? resume.lastModifiedAt ?? fallbackResume.updatedAt,
       city: normalizeString(resume.city) || fallbackResume.city,
-      experience: normalizeString(resume.experienceLabel) || getResumeExperienceLabel(resume) || fallbackResume.experience,
+      experience: experienceLabel || getResumeExperienceLabel(experienceSource) || fallbackResume.experience,
       visibility: getResumeVisibility(resume.visibility),
       stats: buildResumeStats(resume.stats),
       downloadUrl: normalizeString(resume.downloadUrl) || normalizeString(resume.fileUrl) || normalizeString(resume.url),
+      source: resume,
     };
   });
 }
@@ -346,6 +358,74 @@ function createInitialInviteDraft() {
   };
 }
 
+const PUBLIC_RESUME_HIDDEN_KEYS = new Set([
+  "id",
+  "title",
+  "profession",
+  "position",
+  "updatedAt",
+  "updatedDate",
+  "lastModifiedAt",
+  "createdAt",
+  "city",
+  "experience",
+  "experienceLabel",
+  "visibility",
+  "stats",
+  "downloadUrl",
+  "fileUrl",
+  "url",
+]);
+
+const PUBLIC_RESUME_SECTION_TITLES = {
+  about: "О себе",
+  summary: "О себе",
+  goal: "Цель",
+  experience: "Опыт",
+  education: "Образование",
+  achievements: "Достижения",
+  projects: "Проекты",
+  skills: "Навыки",
+  languages: "Языки",
+  courses: "Курсы",
+  certificates: "Сертификаты",
+};
+
+const PUBLIC_RESUME_PREFERRED_KEYS = [
+  "about",
+  "summary",
+  "goal",
+  "experience",
+  "education",
+  "achievements",
+  "projects",
+  "skills",
+  "languages",
+  "courses",
+  "certificates",
+];
+
+const PUBLIC_RESUME_TITLE_KEYS = [
+  "title",
+  "name",
+  "institutionName",
+  "company",
+  "role",
+  "specialization",
+  "position",
+  "label",
+];
+
+const PUBLIC_RESUME_META_KEYS = [
+  "meta",
+  "period",
+  "date",
+  "year",
+  "startYear",
+  "graduationYear",
+  "obtainDate",
+];
+
 function getFeedbackTone(status) {
   if (status === "success") {
     return "success";
@@ -390,6 +470,316 @@ function getStatusTag(relationship) {
   return { label: "Ищет работу", tone: "success" };
 }
 
+function formatPublicDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string" && /^\d{2}\.\d{2}\.\d{4}$/.test(value.trim())) {
+    return value.trim();
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return normalizeString(value);
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(parsed);
+}
+
+function hasMeaningfulResumeValue(value) {
+  if (Array.isArray(value)) {
+    return value.some(hasMeaningfulResumeValue);
+  }
+
+  if (isRecord(value)) {
+    return Object.values(value).some(hasMeaningfulResumeValue);
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  return Boolean(normalizeString(value));
+}
+
+function formatResumeFieldLabel(key) {
+  if (!normalizeString(key)) {
+    return "Раздел";
+  }
+
+  const explicit = PUBLIC_RESUME_SECTION_TITLES[key];
+
+  if (explicit) {
+    return explicit;
+  }
+
+  const spaced = key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+
+  return spaced ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : "Раздел";
+}
+
+function formatResumeValue(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Да" : "";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (isRecord(item) ? "" : formatResumeValue(item)))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return normalizeString(value);
+}
+
+function formatResumeFieldPart(key, value) {
+  const formatted = formatResumeValue(value);
+
+  if (!formatted) {
+    return "";
+  }
+
+  if (["description", "summary", "value", "details", "result"].includes(key)) {
+    return formatted;
+  }
+
+  return `${formatResumeFieldLabel(key)}: ${formatted}`;
+}
+
+function buildResumeMetaFromObject(value) {
+  if (!isRecord(value)) {
+    return "";
+  }
+
+  if (value.startYear || value.graduationYear) {
+    return `${value.startYear || "?"} - ${value.graduationYear || "?"}`;
+  }
+
+  for (const key of PUBLIC_RESUME_META_KEYS) {
+    if (!hasMeaningfulResumeValue(value[key])) {
+      continue;
+    }
+
+    if (key === "obtainDate" || key === "date") {
+      return formatPublicDate(value[key]);
+    }
+
+    return formatResumeValue(value[key]);
+  }
+
+  return "";
+}
+
+function buildResumeRecordFromValue(value, fallbackTitle) {
+  if (!hasMeaningfulResumeValue(value)) {
+    return null;
+  }
+
+  if (!isRecord(value)) {
+    const formatted = formatResumeValue(value);
+
+    return formatted
+      ? {
+          title: fallbackTitle,
+          description: formatted,
+          meta: "",
+        }
+      : null;
+  }
+
+  const title = PUBLIC_RESUME_TITLE_KEYS
+    .map((key) => formatResumeValue(value[key]))
+    .find(Boolean);
+  const meta = buildResumeMetaFromObject(value);
+  const description = Object.entries(value)
+    .filter(([key]) => !PUBLIC_RESUME_TITLE_KEYS.includes(key))
+    .filter(([key]) => !PUBLIC_RESUME_META_KEYS.includes(key))
+    .filter(([key]) => !["id", "visibility", "stats", "noExperience"].includes(key))
+    .map(([key, item]) => {
+      if (isRecord(item)) {
+        return "";
+      }
+
+      return formatResumeFieldPart(key, item);
+    })
+    .filter(Boolean)
+    .join(" · ");
+
+  if (value.noExperience && !title && !description && !meta) {
+    return {
+      title: fallbackTitle,
+      description: "Опыт пока не указан",
+      meta: "",
+    };
+  }
+
+  if (!title && !description && !meta) {
+    return null;
+  }
+
+  return {
+    title: title || fallbackTitle,
+    description,
+    meta,
+  };
+}
+
+function buildResumeSectionItems(key, value) {
+  if (!hasMeaningfulResumeValue(value)) {
+    return [];
+  }
+
+  const fallbackTitle = formatResumeFieldLabel(key);
+
+  if (Array.isArray(value)) {
+    const hasStructuredItems = value.some((item) => isRecord(item));
+
+    if (!hasStructuredItems) {
+      return value
+        .map((item) => formatResumeValue(item))
+        .filter(Boolean)
+        .map((item) => ({
+          title: item,
+          description: "",
+          meta: "",
+        }));
+    }
+
+    return value
+      .map((item, index) => buildResumeRecordFromValue(item, value.length > 1 ? `${fallbackTitle} ${index + 1}` : fallbackTitle))
+      .filter(Boolean);
+  }
+
+  const record = buildResumeRecordFromValue(value, fallbackTitle);
+  return record ? [record] : [];
+}
+
+function buildAdditionalResumeItems(resume, consumedKeys) {
+  return Object.entries(resume)
+    .filter(([key]) => !consumedKeys.has(key))
+    .filter(([key]) => !PUBLIC_RESUME_HIDDEN_KEYS.has(key))
+    .filter(([, value]) => hasMeaningfulResumeValue(value))
+    .flatMap(([key, value]) => {
+      const label = formatResumeFieldLabel(key);
+
+      if (Array.isArray(value)) {
+        const hasStructuredItems = value.some((item) => isRecord(item));
+
+        if (!hasStructuredItems) {
+          return value
+            .map((item) => formatResumeValue(item))
+            .filter(Boolean)
+            .map((item) => ({
+              title: label,
+              description: item,
+              meta: "",
+            }));
+        }
+      }
+
+      const record = buildResumeRecordFromValue(value, label);
+      return record ? [record] : [];
+    });
+}
+
+function buildPublicResumeSections(resume) {
+  if (!isRecord(resume)) {
+    return [];
+  }
+
+  const sections = [];
+  const consumedKeys = new Set();
+
+  for (const key of PUBLIC_RESUME_PREFERRED_KEYS) {
+    const items = buildResumeSectionItems(key, resume[key]);
+
+    if (!items.length) {
+      continue;
+    }
+
+    sections.push({
+      key,
+      title: formatResumeFieldLabel(key),
+      items,
+    });
+    consumedKeys.add(key);
+  }
+
+  const additionalItems = buildAdditionalResumeItems(resume, consumedKeys);
+
+  if (additionalItems.length) {
+    sections.push({
+      key: "additional",
+      title: "Дополнительно",
+      items: additionalItems,
+    });
+  }
+
+  return sections;
+}
+
+function getAvailabilityTag({ isSelfPublicView, isPreviewMode }) {
+  if (isSelfPublicView) {
+    return { label: "Ваш публичный профиль", tone: "neutral" };
+  }
+
+  if (isPreviewMode) {
+    return { label: "Preview-режим", tone: "neutral" };
+  }
+
+  return { label: "Ищет работу", tone: "success" };
+}
+
+function getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMode }) {
+  if (isSelfPublicView) {
+    return [{ label: "Вы смотрите свой публичный профиль", tone: "neutral" }];
+  }
+
+  if (isPreviewMode) {
+    return [{ label: "Профиль открыт в preview-режиме", tone: "neutral" }];
+  }
+
+  const items = [];
+
+  if (relationship.friendState === "incoming") {
+    items.push({ label: "Входящая заявка в друзья", tone: "soft" });
+  } else if (relationship.friendState === "outgoing") {
+    items.push({ label: "Заявка в друзья отправлена", tone: "soft" });
+  } else if (relationship.friendState === "friends") {
+    items.push({ label: "В друзьях", tone: "success" });
+  } else if (relationship.contactState === "saved") {
+    items.push({ label: "В контактах", tone: "accent" });
+  }
+
+  if (relationship.projectInviteState === "incoming") {
+    items.push({ label: "Входящее приглашение в проект", tone: "warning" });
+  } else if (relationship.projectInviteState === "outgoing") {
+    items.push({ label: "Инвайт в проект отправлен", tone: "warning" });
+  } else if (relationship.projectInviteState === "accepted") {
+    items.push({ label: "Приглашение в проект принято", tone: "success" });
+  }
+
+  return items.length ? items : [{ label: "Связь еще не установлена", tone: "neutral" }];
+}
+
 export function CandidatePublicProfilePage() {
   useBodyClass("candidate-portal-react-body");
 
@@ -406,6 +796,7 @@ export function CandidatePublicProfilePage() {
   const [state, setState] = useState(() => (publicUserId ? { status: "loading", mode: "public", error: null } : createDemoState()));
   const [busyAction, setBusyAction] = useState("");
   const [feedback, setFeedback] = useState(null);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteDraft, setInviteDraft] = useState(createInitialInviteDraft);
   const [inviteProjectsState, setInviteProjectsState] = useState({
@@ -416,6 +807,7 @@ export function CandidatePublicProfilePage() {
 
   useEffect(() => {
     setFeedback(null);
+    setSelectedResumeId("");
     setInviteModalOpen(false);
     setInviteDraft(createInitialInviteDraft());
     setInviteProjectsState({
@@ -472,6 +864,7 @@ export function CandidatePublicProfilePage() {
   const profile = state.profile ?? null;
   const relationship = normalizeRelationship(state.relationship);
   const isSelfPublicView = Boolean(publicUserId && authUser?.id && Number(authUser.id) === Number(publicUserId));
+  const isPreviewMode = state.mode !== "public";
   const skills = useMemo(() => getCandidateSkills(profile).slice(0, 8), [profile]);
   const meta = useMemo(() => buildPublicMeta(profile, state.education ?? []), [profile, state.education]);
   const goal = useMemo(() => getProfileGoal(profile), [profile]);
@@ -489,6 +882,30 @@ export function CandidatePublicProfilePage() {
       skills,
     }),
     [profile, publicUserId, skills]
+  );
+  const availabilityTag = useMemo(
+    () => getAvailabilityTag({ isSelfPublicView, isPreviewMode }),
+    [isPreviewMode, isSelfPublicView]
+  );
+  const relationshipStatusTags = useMemo(
+    () => getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMode }),
+    [isPreviewMode, isSelfPublicView, relationship]
+  );
+  const selectedResume = useMemo(
+    () => resumes.find((item) => item.id === selectedResumeId) ?? null,
+    [resumes, selectedResumeId]
+  );
+  const selectedResumeSections = useMemo(
+    () => buildPublicResumeSections(selectedResume?.source),
+    [selectedResume]
+  );
+  const inviteProjectEditHref = useMemo(
+    () => buildCandidateProjectEditRoute({
+      participantUserId: publicUserId,
+      participantName: getCandidateDisplayName(profile),
+      participantRole: normalizeString(inviteDraft.role) || undefined,
+    }),
+    [inviteDraft.role, profile, publicUserId]
   );
 
   const shouldShowInviteButton = !isSelfPublicView
@@ -589,10 +1006,6 @@ export function CandidatePublicProfilePage() {
 
       if (action === "cancel-friend-request" && relationship.friendRequestId) {
         await cancelCandidateFriendRequest(relationship.friendRequestId);
-      }
-
-      if (action === "remove-friend") {
-        await deleteCandidateFriend(publicUserId);
       }
 
       setFeedback({
@@ -888,6 +1301,146 @@ export function CandidatePublicProfilePage() {
     );
   }
 
+  function renderProfileActionButtons() {
+    if (isSelfPublicView || isPreviewMode) {
+      return null;
+    }
+
+    if (relationship.projectInviteState === "incoming") {
+      return (
+        <div className="candidate-public-profile__action-group">
+          <Button size="lg" loading={busyAction === "accept-project-invite"} onClick={() => handleProjectInviteAction("accept-project-invite")}>
+            Принять приглашение
+          </Button>
+          <Button variant="secondary" size="lg" loading={busyAction === "decline-project-invite"} onClick={() => handleProjectInviteAction("decline-project-invite")}>
+            Отклонить
+          </Button>
+        </div>
+      );
+    }
+
+    if (relationship.projectInviteState === "outgoing") {
+      return (
+        <div className="candidate-public-profile__action-group">
+          <Button size="lg" disabled>
+            Приглашение отправлено
+          </Button>
+          <Button variant="secondary" size="lg" loading={busyAction === "cancel-project-invite"} onClick={() => handleProjectInviteAction("cancel-project-invite")}>
+            Отменить приглашение
+          </Button>
+        </div>
+      );
+    }
+
+    if (relationship.projectInviteState === "accepted") {
+      return null;
+    }
+
+    if (relationship.friendState === "incoming") {
+      return (
+        <div className="candidate-public-profile__action-group">
+          <Button size="lg" loading={busyAction === "accept-friend-request"} onClick={() => handleFriendRequest("accept-friend-request")}>
+            Принять в друзья
+          </Button>
+          <Button variant="secondary" size="lg" loading={busyAction === "decline-friend-request"} onClick={() => handleFriendRequest("decline-friend-request")}>
+            Отклонить
+          </Button>
+        </div>
+      );
+    }
+
+    if (relationship.friendState === "outgoing") {
+      return (
+        <div className="candidate-public-profile__action-group">
+          <Button size="lg" disabled>
+            Заявка отправлена
+          </Button>
+          <Button variant="secondary" size="lg" loading={busyAction === "cancel-friend-request"} onClick={() => handleFriendRequest("cancel-friend-request")}>
+            Отменить заявку
+          </Button>
+        </div>
+      );
+    }
+
+    if (relationship.friendState === "friends") {
+      return shouldShowInviteButton ? (
+        <div className="candidate-public-profile__action-group">
+          <Button size="lg" onClick={handleOpenInviteModal}>
+            Пригласить в проект
+          </Button>
+        </div>
+      ) : null;
+    }
+
+    if (relationship.contactState === "saved") {
+      return (
+        <div className="candidate-public-profile__action-group">
+          {shouldShowInviteButton ? (
+            <Button size="lg" onClick={handleOpenInviteModal}>
+              Пригласить в проект
+            </Button>
+          ) : null}
+          <Button variant="secondary" size="lg" loading={busyAction === "send-friend-request"} onClick={() => handleFriendRequest("send-friend-request")}>
+            Отправить заявку в друзья
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="candidate-public-profile__action-group">
+        <Button size="lg" loading={busyAction === "contact"} onClick={handleAddToContacts}>
+          Добавить в контакты
+        </Button>
+        <Button variant="secondary" size="lg" loading={busyAction === "send-friend-request"} onClick={() => handleFriendRequest("send-friend-request")}>
+          Отправить заявку в друзья
+        </Button>
+      </div>
+    );
+  }
+
+  function renderRelationshipStatus() {
+    return (
+      <div className="candidate-public-profile__status-block">
+        <span className="candidate-public-profile__status-title">Статус связи</span>
+        <div className="candidate-public-profile__status-row">
+          {relationshipStatusTags.map((item) => (
+            <Tag key={`${item.tone}-${item.label}`} tone={item.tone}>
+              {item.label}
+            </Tag>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderPublicResumeCards() {
+    if (resumes.length) {
+      return (
+        <div className="candidate-public-profile__resume-list">
+          {resumes.map((item) => (
+            <CandidateResumeMiniCard
+              key={item.id}
+              title={item.title}
+              updatedAt={item.updatedAt}
+              city={item.city}
+              experience={item.experience}
+              stats={item.stats}
+              visibility={item.visibility}
+              showMenu={false}
+              readOnly
+              interactive
+              interactionLabel={`Открыть публичное резюме ${item.title}`}
+              onClick={() => setSelectedResumeId(item.id)}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return renderResumeContent();
+  }
+
   function renderProjectsContent() {
     if (projectCards.length) {
       return (
@@ -946,6 +1499,7 @@ export function CandidatePublicProfilePage() {
             currentKey="opportunities"
             actionHref={routes.candidate.profile}
             actionLabel="Профиль"
+            variant="public-profile"
             className="candidate-public-profile__header"
           />
           <Loader label="Загружаем публичный профиль" surface />
@@ -963,6 +1517,7 @@ export function CandidatePublicProfilePage() {
             currentKey="opportunities"
             actionHref={routes.candidate.profile}
             actionLabel="Профиль"
+            variant="public-profile"
             className="candidate-public-profile__header"
           />
           <Alert tone="error" title="Не удалось открыть публичный профиль" showIcon>
@@ -981,6 +1536,7 @@ export function CandidatePublicProfilePage() {
           currentKey="opportunities"
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
+          variant="public-profile"
           className="candidate-public-profile__header"
         />
 
@@ -1030,16 +1586,17 @@ export function CandidatePublicProfilePage() {
                   </div>
                 ) : null}
 
+              </div>
+
+              <div className="candidate-public-profile__hero-sidebar">
+                {renderRelationshipStatus()}
                 {feedback ? (
                   <Alert tone={getFeedbackTone(feedback.status)} title={feedback.title} showIcon>
                     {feedback.message}
                   </Alert>
                 ) : null}
-              </div>
-
-              <div className="candidate-public-profile__hero-actions">
                 {renderSocialLinks()}
-                {renderHeroActions()}
+                {renderProfileActionButtons()}
               </div>
             </div>
           </Card>
@@ -1056,7 +1613,7 @@ export function CandidatePublicProfilePage() {
               ) : null}
             />
 
-            {renderResumeContent()}
+            {renderPublicResumeCards()}
           </Card>
 
           <section className="candidate-page-section candidate-public-profile__portfolio" id="portfolio">
@@ -1068,6 +1625,55 @@ export function CandidatePublicProfilePage() {
           </section>
         </div>
       </div>
+
+      <Modal
+        open={Boolean(selectedResume)}
+        onClose={() => setSelectedResumeId("")}
+        title={selectedResume?.title || "Публичное резюме"}
+        description="Только для просмотра. Здесь показаны только публичные поля, доступные для вашей роли и уровня связи."
+        size="lg"
+        actions={(
+          <Button variant="secondary" onClick={() => setSelectedResumeId("")}>
+            Закрыть
+          </Button>
+        )}
+      >
+        {selectedResume ? (
+          <div className="candidate-public-profile__resume-modal">
+            <CandidateResumeMiniCard
+              title={selectedResume.title}
+              updatedAt={selectedResume.updatedAt}
+              city={selectedResume.city}
+              experience={selectedResume.experience}
+              stats={selectedResume.stats}
+              visibility={selectedResume.visibility}
+              showMenu={false}
+              readOnly
+            />
+
+            {selectedResumeSections.length ? (
+              <div className="candidate-public-profile__resume-modal-sections">
+                {selectedResumeSections.map((section) => (
+                  <CandidateResumeSection
+                    key={section.key}
+                    title={section.title}
+                    emptyText={`${section.title} пока не добавлены`}
+                    items={section.items}
+                    renderItem={(item, index) => (
+                      <CandidateResumeRecord
+                        key={`${section.key}-${index}`}
+                        title={item.title}
+                        description={item.description}
+                        meta={item.meta}
+                      />
+                    )}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal
         open={inviteModalOpen}
@@ -1135,6 +1741,7 @@ export function CandidatePublicProfilePage() {
               eyebrow="Нет проектов"
               title="Сначала создайте проект"
               description="Отправить инвайт можно только из уже существующего проекта кандидата."
+              actions={<Button href={inviteProjectEditHref}>Создать проект</Button>}
               tone="neutral"
             />
           )

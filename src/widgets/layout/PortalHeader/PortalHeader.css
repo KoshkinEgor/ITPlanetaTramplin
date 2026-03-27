@@ -119,6 +119,35 @@
   margin-left: auto;
 }
 
+.portal-header--public-profile {
+  align-items: center;
+  gap: clamp(18px, 2.2vw, 32px);
+  padding-bottom: 22px;
+}
+
+.portal-header--public-profile .portal-header__nav {
+  flex: 1 1 360px;
+  gap: clamp(16px, 1.8vw, 30px);
+}
+
+.portal-header--public-profile .portal-header__actions {
+  gap: 14px;
+}
+
+.portal-header--public-profile .portal-header__icon-button,
+.portal-header--public-profile .portal-header__notification-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+}
+
+.portal-header--public-profile .portal-header__action {
+  min-width: 214px;
+  min-height: 56px;
+  padding-inline: 28px;
+  border-radius: 999px;
+}
+
 .portal-header__icon-button {
   flex: 0 0 auto;
 }

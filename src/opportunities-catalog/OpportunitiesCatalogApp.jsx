@@ -4,6 +4,7 @@ import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from 
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
@@ -42,6 +43,12 @@ const MAP_LEGEND_ITEMS = [
   { tone: "blue", label: "Вакансия" },
   { tone: "green", label: "Стажировка" },
   { tone: "orange", label: "Мероприятие" },
+];
+
+const MAP_DISPLAY_ITEMS = [
+  { value: "all", label: "\u0412\u0441\u0435" },
+  { value: "favorites", label: "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435" },
+  { value: "non-favorites", label: "\u041d\u0435 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435" },
 ];
 
 function FilterIcon() {
@@ -175,6 +182,7 @@ function createMapCardItem(item) {
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
     coordinates: [Number(item.longitude), Number(item.latitude)],
     detailHref: buildOpportunityDetailRoute(item.id),
+    isFavorite: Boolean(item.isFavorite),
   };
 }
 
@@ -297,8 +305,10 @@ export function OpportunitiesCatalogApp() {
     education: [],
   });
   const [view, setView] = useState("list");
+  const [favoritesDisplay, setFavoritesDisplay] = useState("all");
   const [filtersDropdownOpen, setFiltersDropdownOpen] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(3);
   const [expandedCompanies, setExpandedCompanies] = useState(false);
@@ -311,6 +321,8 @@ export function OpportunitiesCatalogApp() {
       document.body.classList.remove(BODY_CLASS);
     };
   }, []);
+
+  useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -424,10 +436,34 @@ export function OpportunitiesCatalogApp() {
   const hasPersonalization = candidateSkills.length > 0;
   const visibleResults = filteredItems.slice(0, visibleCount);
   const companyGroups = useMemo(() => buildCompanyGroups(recommendationSource), [recommendationSource]);
-  const mapItems = useMemo(() => filteredItems.filter(hasValidCoordinates).map(createMapCardItem), [filteredItems]);
+  const favoriteOpportunityIdSet = useMemo(
+    () => new Set(favoriteOpportunityIds.map((id) => String(id))),
+    [favoriteOpportunityIds]
+  );
+  const mapFilteredItems = useMemo(
+    () =>
+      filteredItems
+        .map((item) => ({
+          ...item,
+          isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
+        }))
+        .filter((item) => {
+          if (favoritesDisplay === "favorites") {
+            return item.isFavorite;
+          }
+
+          if (favoritesDisplay === "non-favorites") {
+            return !item.isFavorite;
+          }
+
+          return true;
+        }),
+    [favoriteOpportunityIdSet, favoritesDisplay, filteredItems]
+  );
+  const mapItems = useMemo(() => mapFilteredItems.filter(hasValidCoordinates).map(createMapCardItem), [mapFilteredItems]);
   const mapResultsDescription = useMemo(
-    () => getMapResultsDescription(filteredItems.length, mapItems.length),
-    [filteredItems.length, mapItems.length]
+    () => getMapResultsDescription(mapFilteredItems.length, mapItems.length),
+    [mapFilteredItems.length, mapItems.length]
   );
   const selectedCityOption = useMemo(() => getFallbackCityOption(filters.city), [filters.city]);
 
@@ -520,6 +556,11 @@ export function OpportunitiesCatalogApp() {
       payoutPeriod: "",
       education: [],
     });
+    setFavoritesDisplay("all");
+  };
+
+  const handleResetMapDisplay = () => {
+    setFavoritesDisplay("all");
   };
 
   const handleViewChange = (nextView) => {
@@ -786,10 +827,15 @@ export function OpportunitiesCatalogApp() {
                       mode="drawer"
                       open={filtersDrawerOpen}
                       onOpenChange={setFiltersDrawerOpen}
+                      drawerBackdrop={false}
                       values={filters}
                       options={filterOptions}
+                      displayOptions={MAP_DISPLAY_ITEMS}
+                      displayValue={favoritesDisplay}
                       disabledSections={{ income: true, payout: true, education: true }}
+                      onDisplayChange={setFavoritesDisplay}
                       onChange={handleFilterChange}
+                      onResetDisplay={handleResetMapDisplay}
                       onResetSection={handleResetSection}
                       onResetAll={handleResetAll}
                     />

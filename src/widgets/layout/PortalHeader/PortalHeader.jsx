@@ -279,16 +279,19 @@ export function PortalHeader({
   shellClassName,
   floating = false,
   visible = true,
+  variant = "default",
 }) {
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const isCandidate = authUser?.role === "candidate";
+  const isPublicProfileVariant = variant === "public-profile";
   const showActionButton = Boolean(actionHref && actionLabel && (!authUser || actionHref !== routes.auth.login));
+  const showAccountMenu = Boolean(authUser) && !isPublicProfileVariant;
   const isLoginAction = actionHref === routes.auth.login;
 
   return (
     <div className={cn("portal-header-shell", floating && "is-floating", visible ? "is-visible" : "is-hidden", shellClassName)}>
-      <header className={cn("portal-header", className)}>
+      <header className={cn("portal-header", isPublicProfileVariant && "portal-header--public-profile", className)}>
         <AppLink href={brandHref} className="portal-header__brand" aria-label="Tramplin">
           <span className="portal-header__brand-mark" aria-hidden="true" />
           <span className="portal-header__brand-text">{brandLabel}</span>
@@ -334,7 +337,7 @@ export function PortalHeader({
             )
           ) : null}
 
-          {authUser ? (
+          {showAccountMenu ? (
             <AuthAccountMenu
               user={authUser}
               className="portal-header__account-menu"

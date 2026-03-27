@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/http";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
+import { writeFavoriteOpportunityIds } from "../features/favorites/storage";
 import { HomeApp } from "./HomeApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -24,7 +25,15 @@ vi.mock("../widgets/layout", () => ({
 }));
 
 vi.mock("./HomeOpportunityMap", () => ({
-  HomeOpportunityMap: () => <div data-testid="home-opportunity-map" />,
+  HomeOpportunityMap: ({ items }) => (
+    <div data-testid="home-opportunity-map">
+      {items.map((item) => (
+        <button key={item.id} type="button" data-favorite={item.isFavorite ? "true" : "false"}>
+          {item.title}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 function renderApp() {
@@ -38,6 +47,7 @@ function renderApp() {
 describe("HomeApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     getOpportunities.mockResolvedValue([]);
     getCandidateRecommendations.mockResolvedValue([]);
   });
@@ -93,5 +103,33 @@ describe("HomeApp", () => {
 
     expect(await screen.findAllByText("Popular Vacancy Only")).toHaveLength(2);
     await waitFor(() => expect(getCandidateRecommendations).toHaveBeenCalledTimes(1));
+  });
+
+  it("passes favorite opportunities to the home map and reacts to storage updates", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "fav-1",
+        opportunityType: "vacancy",
+        title: "Favorite on Home Map",
+        companyName: "Signal Hub",
+        locationCity: "Чебоксары",
+        locationAddress: "Президентский бульвар, 1",
+        employmentType: "remote",
+        description: "Opportunity visible on the home map.",
+        tags: ["React"],
+        longitude: 47.251942,
+        latitude: 56.1439,
+      },
+    ]);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Favorite on Home Map" })).toHaveAttribute("data-favorite", "false");
+
+    writeFavoriteOpportunityIds(["fav-1"]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Favorite on Home Map" })).toHaveAttribute("data-favorite", "true");
+    });
   });
 });
