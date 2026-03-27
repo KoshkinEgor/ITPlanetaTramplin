@@ -226,7 +226,7 @@ const initLoginScreen = () => {
 
   const roleViews = {
     candidate: {
-      action: "../candidate/candidate-profile.html",
+      action: "../candidate/candidate-dashboard.html",
       registerHref: "candidate-registration.html?role=candidate",
       title: "Кабинет соискателя",
       copy: "После входа откроется рабочее пространство с откликами, сохранёнными вакансиями и профилем.",
@@ -352,7 +352,7 @@ const initConfirmScreen = () => {
     candidate: {
       title: "Подтверждение регистрации",
       copy: "Введите код подтверждения, который мы отправили на email соискателя.",
-      action: "../candidate/candidate-profile.html",
+      action: "../candidate/candidate-dashboard.html",
       backHref: "candidate-registration.html?role=candidate",
       submitLabel: "Завершить регистрацию",
     },

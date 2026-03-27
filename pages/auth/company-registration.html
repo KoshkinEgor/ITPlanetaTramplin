@@ -3,20 +3,192 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tramplin · Регистрация компании</title>
+    <title>Трамплин · Регистрация компании</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='12' fill='%232f80ff'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23c9ff1f'/%3E%3C/svg%3E"
-    />
+    <link rel="stylesheet" href="../../styles/shared/style.css?v=20260320-auth7" />
+    <link rel="stylesheet" href="../../styles/auth/auth-register.css?v=20260320-auth-system1" />
   </head>
-  <body class="auth-react-body">
-    <div id="root" data-auth-page="company-quick"></div>
-    <script type="module" src="../../src/auth/main.jsx"></script>
+  <body class="auth-body">
+    <main class="auth-layout">
+      <section class="auth-stage auth-stage--flow" aria-labelledby="company-registration-title">
+        <div class="auth-stage__backdrop" aria-hidden="true"></div>
+        <div class="auth-stage__media auth-stage__media--left" aria-hidden="true"></div>
+        <div class="auth-stage__media auth-stage__media--right" aria-hidden="true"></div>
+
+        <div class="auth-flow auth-flow--two-column">
+          <article class="auth-card">
+            <div class="auth-panel__top">
+              <a class="auth-back" href="login.html" aria-label="Вернуться ко входу">
+                <span aria-hidden="true">←</span>
+              </a>
+
+              <div class="auth-brand" aria-label="TRAMPLIN">
+                <span class="auth-brand__mark" aria-hidden="true"></span>
+                <span class="auth-brand__label">TRAMPLIN</span>
+              </div>
+            </div>
+
+            <div class="auth-card__copy">
+              <span class="auth-badge">Регистрация компании</span>
+              <h1 id="company-registration-title">Быстрый старт для работодателя</h1>
+              <p>
+                Короткая форма для создания кабинета компании. После подтверждения почты можно
+                перейти в профиль работодателя и собрать витрину компании по шагам.
+              </p>
+            </div>
+
+            <form class="auth-form auth-form--details" action="email-confirmation.html" method="get">
+              <input type="hidden" name="role" value="employer" />
+              <input type="hidden" name="flow" value="employer-start" />
+
+              <div class="auth-form-grid">
+                <label class="auth-field auth-field--full">
+                  <span>Название компании</span>
+                  <input
+                    class="auth-input"
+                    type="text"
+                    name="companyName"
+                    placeholder="Например, Север Digital"
+                    required
+                  />
+                </label>
+
+                <label class="auth-field">
+                  <span>Корпоративная почта</span>
+                  <input
+                    class="auth-input"
+                    type="email"
+                    name="email"
+                    placeholder="team@company.ru"
+                    required
+                  />
+                </label>
+
+                <label class="auth-field">
+                  <span>Телефон компании</span>
+                  <input class="auth-input" type="tel" name="phone" placeholder="+7 (999) 000-00-00" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Сайт или домен</span>
+                  <input class="auth-input" type="url" name="website" placeholder="https://company.ru" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Контактное лицо</span>
+                  <input class="auth-input" type="text" name="contactName" placeholder="Марина Иванова" required />
+                </label>
+
+                <label class="auth-field">
+                  <span>Роль в компании</span>
+                  <input class="auth-input" type="text" name="contactRole" placeholder="HR Lead / Recruiter" />
+                </label>
+
+                <label class="auth-field">
+                  <span>Город</span>
+                  <input class="auth-input" type="text" name="city" placeholder="Санкт-Петербург" />
+                </label>
+              </div>
+
+              <div class="auth-section">
+                <div class="auth-section-label">
+                  <h2>Кого планируете искать</h2>
+                  <span>Можно выбрать приоритет найма</span>
+                </div>
+
+                <div class="auth-choice-row">
+                  <label class="auth-choice-card">
+                    <input type="radio" name="hiringFocus" value="interns" checked />
+                    <strong>Стажёров</strong>
+                    <span>Первый найм, практика и рост внутри команды.</span>
+                  </label>
+
+                  <label class="auth-choice-card">
+                    <input type="radio" name="hiringFocus" value="juniors" />
+                    <strong>Junior+</strong>
+                    <span>Быстрый набор в продукт, backend, frontend, analytics.</span>
+                  </label>
+
+                  <label class="auth-choice-card">
+                    <input type="radio" name="hiringFocus" value="events" />
+                    <strong>События</strong>
+                    <span>Карьерные активности, стажировки и брендовые мероприятия.</span>
+                  </label>
+                </div>
+              </div>
+
+              <label class="auth-check">
+                <input type="checkbox" name="terms" required checked />
+                <span>
+                  Подтверждаю, что представляю компанию и могу использовать корпоративную почту
+                  и домен для подтверждения кабинета работодателя.
+                </span>
+              </label>
+
+              <div class="auth-form-actions">
+                <button class="auth-button auth-button--primary" type="submit">
+                  Получить код и создать кабинет
+                </button>
+                <a class="auth-button auth-button--secondary" href="company-registration-extended.html">
+                  Открыть расширенную форму
+                </a>
+              </div>
+
+              <div class="auth-link-row">
+                <p class="auth-caption">
+                  Короткая версия создаёт кабинет быстро. Расширенная форма подходит, если
+                  хотите пройти подтверждение компании сразу.
+                </p>
+                <a class="auth-inline-link" href="login.html">Уже есть аккаунт? Войти</a>
+              </div>
+            </form>
+          </article>
+
+          <aside class="auth-card auth-card--aside" aria-label="Сценарий короткой регистрации">
+            <div class="auth-card__copy">
+              <span class="auth-badge">Короткая версия</span>
+              <h2>Что будет дальше</h2>
+              <p>
+                Этот сценарий быстро открывает кабинет. Данные о компании, команду и карточки
+                вакансий можно дособрать уже после входа.
+              </p>
+            </div>
+
+            <div class="auth-metric">
+              <strong>5 мин</strong>
+              <span>обычно хватает, чтобы получить доступ к кабинету компании</span>
+            </div>
+
+            <ul class="auth-list">
+              <li>
+                <strong>Шаг 1. Базовые контакты</strong>
+                <span>Почта, сайт, контактное лицо и краткий фокус найма.</span>
+              </li>
+              <li>
+                <strong>Шаг 2. Код из письма</strong>
+                <span>Почта подтверждает, что кабинет привязан к реальному домену компании.</span>
+              </li>
+              <li>
+                <strong>Шаг 3. Досборка профиля</strong>
+                <span>После входа можно оформить карточку компании, добавить команду и публикации.</span>
+              </li>
+            </ul>
+
+            <div class="auth-note auth-note--accent">
+              <strong>Нужна верификация сразу?</strong>
+              <p>
+                Перейдите в расширенную форму, если хотите приложить больше данных и пройти
+                подтверждение компании без отдельного шага в кабинете.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
   </body>
 </html>

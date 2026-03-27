@@ -12,7 +12,8 @@
     />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="../../styles/shared/style.css" />
-    <link rel="stylesheet" href="../../styles/company/company-opportunity.css?v=20260319-1" />
+    <link rel="stylesheet" href="../../styles/company/company-dashboard.css?v=20260320-1" />
+    <link rel="stylesheet" href="../../styles/company/company-opportunity.css?v=20260320-2" />
     <script src="../../scripts/shared/shared-header.js" defer></script>
   </head>
   <body class="company-opportunity-body">
@@ -21,643 +22,267 @@
     <main class="company-opportunity-main">
       <div class="container">
         <div class="opportunity-layout">
-          <aside class="opportunity-sidebar" aria-label="Навигация кабинета компании">
-            <section class="card opportunity-sidebar__panel">
-              <p class="opportunity-sidebar__title">Рабочая зона компании</p>
+          <aside class="dashboard-sidebar opportunity-sidebar" aria-label="Навигация кабинета компании">
+            <section class="card dashboard-sidebar__panel opportunity-sidebar__panel">
+              <p class="opportunity-sidebar__heading">Кабинет компании</p>
 
-              <nav class="opportunity-nav" aria-label="Разделы кабинета">
-                <a class="opportunity-nav__link" href="company-dashboard.html?section=company">Страница компании</a>
+              <nav class="dashboard-menu" aria-label="Разделы кабинета">
+                <a class="dashboard-menu__link" href="company-dashboard.html?section=company">
+                  <span class="dashboard-menu__title">Страница компании</span>
+                </a>
                 <a
-                  class="opportunity-nav__link is-active"
+                  class="dashboard-menu__link is-active"
                   href="company-dashboard.html?section=opportunities"
                   aria-current="page"
                 >
-                  Возможности
+                  <span class="dashboard-menu__title">Возможности</span>
                 </a>
-                <a class="opportunity-nav__link" href="company-dashboard.html?section=responses">Отклики</a>
+                <a class="dashboard-menu__link" href="company-dashboard.html?section=responses">
+                  <span class="dashboard-menu__title">Отклики</span>
+                </a>
               </nav>
-            </section>
-
-            <section class="card opportunity-sidebar__panel opportunity-sidebar__panel--tip">
-              <span class="tag tag-success tag-success--wide">3 шага до публикации</span>
-              <h2>Форма собирается как редактор карточки</h2>
-              <ol class="opportunity-progress">
-                <li class="is-active">
-                  <span>1</span>
-                  <div>
-                    <strong>Основа</strong>
-                    <p>Определи тип, заголовок, формат и базовые параметры возможности.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>2</span>
-                  <div>
-                    <strong>Ценность</strong>
-                    <p>Покажи, что получит кандидат: задачи, программу, преимущества и контекст.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>3</span>
-                  <div>
-                    <strong>Публикация</strong>
-                    <p>Добавь CTA, контакт и дедлайн, чтобы карточка была готова к выдаче.</p>
-                  </div>
-                </li>
-              </ol>
             </section>
           </aside>
 
           <section class="opportunity-workspace" aria-labelledby="opportunity-page-title">
-            <input
-              class="opportunity-toggle"
-              type="radio"
-              name="opportunity-type"
-              id="opportunity-event"
-              checked
-            />
-            <input
-              class="opportunity-toggle"
-              type="radio"
-              name="opportunity-type"
-              id="opportunity-vacancy"
-            />
-            <input
-              class="opportunity-toggle"
-              type="radio"
-              name="opportunity-type"
-              id="opportunity-internship"
-            />
+            <input class="opportunity-toggle" type="radio" name="opportunity-type" id="opportunity-event" checked />
+            <input class="opportunity-toggle" type="radio" name="opportunity-type" id="opportunity-vacancy" />
+            <input class="opportunity-toggle" type="radio" name="opportunity-type" id="opportunity-internship" />
 
-            <article class="card opportunity-builder">
-              <div class="opportunity-builder__head">
-                <div class="opportunity-builder__eyebrow">
-                  <span class="tag">Кабинет работодателя</span>
-                  <div class="opportunity-builder__meta">
-                    <span class="opportunity-builder__status">
-                    <span class="status-dot" aria-hidden="true"></span>
-                    Черновик обновлён 2 минуты назад
-                    </span>
-                    <a class="button button-secondary opportunity-builder__close" href="company-dashboard.html?section=opportunities">
-                      Закрыть форму
-                    </a>
-                  </div>
-                </div>
-
-                <div class="opportunity-builder__hero">
-                  <div class="opportunity-builder__intro">
-                    <h1 id="opportunity-page-title">Создать возможность для соискателей</h1>
-                    <p>
-                      Экран собран как рабочий редактор публикации: слева секции формы, справа live-preview
-                      карточки и чеклист. Список возможностей не трогаем, меняем только сам сценарий создания.
-                    </p>
-                  </div>
-
-                  <div class="opportunity-kpis" aria-label="Сводка по форме">
-                    <article class="opportunity-kpi">
-                      <strong>3</strong>
-                      <span>этапа до публикации</span>
-                    </article>
-                    <article class="opportunity-kpi">
-                      <strong>82%</strong>
-                      <span>готовности черновика</span>
-                    </article>
-                    <article class="opportunity-kpi">
-                      <strong>1</strong>
-                      <span>карточка в фокусе</span>
-                    </article>
-                    <article class="opportunity-kpi">
-                      <strong>24 ч</strong>
-                      <span>до ручной модерации</span>
-                    </article>
-                  </div>
-                </div>
-
-                <div class="opportunity-tabs" role="tablist" aria-label="Тип возможности">
-                  <label class="chip opportunity-tab" for="opportunity-event">Мероприятие</label>
-                  <label class="chip opportunity-tab" for="opportunity-vacancy">Вакансия</label>
-                  <label class="chip opportunity-tab" for="opportunity-internship">Стажировка</label>
-                </div>
+            <article class="opportunity-editor">
+              <div class="opportunity-editor__intro">
+                <span class="tag opportunity-editor__tag">Возможности</span>
+                <h1 id="opportunity-page-title">Создание возможности</h1>
+                <p>
+                  Собери публикацию в логике проекта: задай тип, оформи название и описание, а справа сразу
+                  смотри, как карточка будет восприниматься внутри продукта.
+                </p>
               </div>
 
-              <div class="opportunity-builder__content">
-                <div class="opportunity-panels">
-                  <form class="opportunity-panel opportunity-panel--event" action="#">
-                    <section class="card opportunity-section opportunity-section--highlight">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 1</span>
-                          <h2>Основа публикации</h2>
-                        </div>
-                        <p>Собери ядро карточки: название, формат, дату и точку входа для регистрации.</p>
-                      </div>
+              <div class="opportunity-type-tabs" role="tablist" aria-label="Тип возможности">
+                <label class="dashboard-filter-chip opportunity-type-tab" for="opportunity-event">Мероприятие</label>
+                <label class="dashboard-filter-chip opportunity-type-tab" for="opportunity-vacancy">Вакансия</label>
+                <label class="dashboard-filter-chip opportunity-type-tab" for="opportunity-internship">Стажировка</label>
+              </div>
 
+              <div class="opportunity-editor__content">
+                <div class="opportunity-form-column">
+                  <section class="card opportunity-form-panel opportunity-form-panel--event">
+                    <div class="opportunity-form-panel__heading">
+                      <h2>Параметры мероприятия</h2>
+                      <p>Сделай карточку понятной: тема, дата, формат и ценность для участника.</p>
+                    </div>
+
+                    <form class="opportunity-form" action="#">
                       <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Название мероприятия</span>
-                          <input type="text" name="event-title" value="Айти планета" />
-                          <small>Заголовок должен работать как самостоятельный анонс в каталоге.</small>
+                        <label class="opportunity-field">
+                          <span>Наименование</span>
+                          <input type="text" name="event-title" value="IT - Планета" />
                         </label>
 
                         <label class="opportunity-field">
                           <span>Формат</span>
-                          <select name="event-format">
-                            <option selected>Гибридный</option>
-                            <option>Офлайн</option>
-                            <option>Онлайн</option>
-                          </select>
+                          <input type="text" name="event-format" value="Онлайн" />
+                        </label>
+
+                        <label class="opportunity-field opportunity-field--wide">
+                          <span>Описание</span>
+                          <textarea name="event-description" rows="4">XVII практико-ориентированное соревнование, направленное на выявление и поддержку талантливой молодёжи в направлении информационных и инновационных технологий</textarea>
                         </label>
 
                         <label class="opportunity-field">
-                          <span>Дата и время</span>
-                          <input type="text" name="event-date" value="12 апреля 2026 · 11:00" />
+                          <span>Дата</span>
+                          <span class="opportunity-field__control opportunity-field__control--icon">
+                            <input type="text" name="event-date" value="12 апр.2026" />
+                            <span class="opportunity-field__icon" aria-hidden="true"></span>
+                          </span>
                         </label>
 
                         <label class="opportunity-field">
                           <span>Локация</span>
-                          <input type="text" name="event-location" value="Москва + онлайн-трансляция" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Регистрация</span>
-                          <input type="text" name="event-registration" value="до 8 апреля 2026" />
+                          <input type="text" name="event-location" value="Онлайн" />
                         </label>
                       </div>
-                    </section>
 
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 2</span>
-                          <h2>Что получит участник</h2>
-                        </div>
-                        <p>Покажи пользу, аудиторию и содержимое программы, чтобы анонс выглядел предметно.</p>
+                      <div class="opportunity-actions">
+                        <a class="button button-secondary" href="company-dashboard.html?section=opportunities">
+                          Назад к возможностям
+                        </a>
+                        <button class="button button-primary" type="submit">Сохранить</button>
                       </div>
+                    </form>
+                  </section>
 
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Описание</span>
-                          <textarea name="event-description" rows="5">
-XVII практико-ориентированное соревнование, направленное на выявление и поддержку талантливой молодёжи в направлении информационных и инновационных технологий.
-                          </textarea>
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Для кого</span>
-                          <input type="text" name="event-audience" value="Студенты, джуны, начинающие команды" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Ценность</span>
-                          <input type="text" name="event-value" value="Кейсы, нетворк и приглашения на стажировки" />
-                        </label>
-
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Программа</span>
-                          <textarea name="event-program" rows="4">
-Открывающий трек, практические задания, разборы с экспертами, карьерный стенд компаний-партнёров и финальная презентация решений.
-                          </textarea>
-                        </label>
-                      </div>
-                    </section>
-
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 3</span>
-                          <h2>Публикация и CTA</h2>
-                        </div>
-                        <p>Задай финальные параметры: куда вести пользователя и кто сопровождает публикацию.</p>
-                      </div>
-
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field">
-                          <span>Организатор</span>
-                          <input type="text" name="event-organizer" value="ООО Компани · Community" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Контактное лицо</span>
-                          <input type="text" name="event-contact" value="Алина Орлова, event lead" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Текст кнопки</span>
-                          <input type="text" name="event-cta" value="Зарегистрироваться" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Ссылка на регистрацию</span>
-                          <input type="url" name="event-link" value="https://tamplin.ru/event/ai-planet" />
-                        </label>
-                      </div>
-                    </section>
-
-                    <div class="opportunity-actions">
-                      <button class="button button-secondary" type="button">Сохранить черновик</button>
-                      <button class="button button-secondary" type="button">Предпросмотр</button>
-                      <button class="button button-primary" type="submit">Опубликовать</button>
+                  <section class="card opportunity-form-panel opportunity-form-panel--vacancy">
+                    <div class="opportunity-form-panel__heading">
+                      <h2>Параметры вакансии</h2>
+                      <p>Покажи роль, формат, диапазон задач и причину откликнуться именно к вам.</p>
                     </div>
-                  </form>
 
-                  <form class="opportunity-panel opportunity-panel--vacancy" action="#">
-                    <section class="card opportunity-section opportunity-section--highlight">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 1</span>
-                          <h2>Основа публикации</h2>
-                        </div>
-                        <p>Определи роль, вилку, формат и дедлайн так, чтобы карточка была понятна с первого взгляда.</p>
-                      </div>
-
+                    <form class="opportunity-form" action="#">
                       <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Название вакансии</span>
+                        <label class="opportunity-field">
+                          <span>Наименование</span>
                           <input type="text" name="vacancy-title" value="Junior Security Analyst" />
-                          <small>Используй формулировку роли, а не внутреннее название отдела.</small>
                         </label>
 
                         <label class="opportunity-field">
                           <span>Формат</span>
-                          <select name="vacancy-format">
-                            <option selected>Офис / гибрид</option>
-                            <option>Удалённо</option>
-                            <option>Офис</option>
-                          </select>
+                          <input type="text" name="vacancy-format" value="Гибрид (офлайн/онлайн)" />
+                        </label>
+
+                        <label class="opportunity-field opportunity-field--wide">
+                          <span>Описание</span>
+                          <textarea name="vacancy-description" rows="4">XVII практико-ориентированное соревнование, направленное на выявление и поддержку талантливой молодёжи в направлении информационных и инновационных технологий</textarea>
                         </label>
 
                         <label class="opportunity-field">
-                          <span>Город</span>
-                          <input type="text" name="vacancy-city" value="Москва" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Зарплатная вилка</span>
+                          <span>Зарплата</span>
                           <input type="text" name="vacancy-salary" value="от 90 000 ₽" />
                         </label>
 
                         <label class="opportunity-field">
-                          <span>Дедлайн отклика</span>
-                          <input type="text" name="vacancy-deadline" value="до 30 апреля 2026" />
+                          <span>Срок отклика</span>
+                          <span class="opportunity-field__control opportunity-field__control--icon">
+                            <input type="text" name="vacancy-deadline" value="до 30 апреля 2026" />
+                            <span class="opportunity-field__icon" aria-hidden="true"></span>
+                          </span>
                         </label>
                       </div>
-                    </section>
 
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 2</span>
-                          <h2>Задачи и ожидания</h2>
-                        </div>
-                        <p>Сделай блок задач и требований коротким, но конкретным: без внутренних аббревиатур и шума.</p>
+                      <div class="opportunity-actions">
+                        <a class="button button-secondary" href="company-dashboard.html?section=opportunities">
+                          Назад к возможностям
+                        </a>
+                        <button class="button button-primary" type="submit">Сохранить</button>
                       </div>
+                    </form>
+                  </section>
 
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Описание роли</span>
-                          <textarea name="vacancy-description" rows="5">
-Ищем начинающего аналитика в команду мониторинга и реагирования. Важны внимательность, интерес к ИБ и готовность быстро учиться на реальных кейсах.
-                          </textarea>
-                        </label>
-
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Основные задачи</span>
-                          <textarea name="vacancy-tasks" rows="4">
-Мониторинг инцидентов, первичная аналитика событий безопасности, эскалация кейсов и участие в разборе алертов вместе с наставником.
-                          </textarea>
-                        </label>
-
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Требования</span>
-                          <textarea name="vacancy-requirements" rows="4">
-Базовое понимание сетей и Linux, интерес к SOC-процессам, аккуратность в работе с данными и готовность к гибридному формату.
-                          </textarea>
-                        </label>
-                      </div>
-                    </section>
-
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 3</span>
-                          <h2>Публикация и контакт</h2>
-                        </div>
-                        <p>Добавь контакт, ссылку и CTA, чтобы путь кандидата не обрывался после открытия карточки.</p>
-                      </div>
-
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field">
-                          <span>Команда</span>
-                          <input type="text" name="vacancy-team" value="Security Operations Center" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Рекрутер</span>
-                          <input type="text" name="vacancy-recruiter" value="Дарья Белова" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Текст кнопки</span>
-                          <input type="text" name="vacancy-cta" value="Откликнуться" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Ссылка на отклик</span>
-                          <input type="url" name="vacancy-link" value="https://tamplin.ru/vacancy/7421" />
-                        </label>
-                      </div>
-                    </section>
-
-                    <div class="opportunity-actions">
-                      <button class="button button-secondary" type="button">Сохранить черновик</button>
-                      <button class="button button-secondary" type="button">Предпросмотр</button>
-                      <button class="button button-primary" type="submit">Опубликовать</button>
+                  <section class="card opportunity-form-panel opportunity-form-panel--internship">
+                    <div class="opportunity-form-panel__heading">
+                      <h2>Параметры стажировки</h2>
+                      <p>Покажи роль, формат, диапазон задач и причину откликнуться именно к вам.</p>
                     </div>
-                  </form>
-                  <form class="opportunity-panel opportunity-panel--internship" action="#">
-                    <section class="card opportunity-section opportunity-section--highlight">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 1</span>
-                          <h2>Основа публикации</h2>
-                        </div>
-                        <p>Для стажировки особенно важны срок, формат программы и старт набора.</p>
-                      </div>
 
+                    <form class="opportunity-form" action="#">
                       <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Название стажировки</span>
+                        <label class="opportunity-field">
+                          <span>Наименование</span>
                           <input type="text" name="internship-title" value="Летняя школа SOC" />
-                          <small>Название должно сразу обещать понятный сценарий роста и контекст команды.</small>
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Длительность</span>
-                          <input type="text" name="internship-length" value="8 недель" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Старт программы</span>
-                          <input type="text" name="internship-start" value="1 июня 2026" />
                         </label>
 
                         <label class="opportunity-field">
                           <span>Формат</span>
-                          <select name="internship-format">
-                            <option selected>Гибридный</option>
-                            <option>Офис</option>
-                            <option>Онлайн</option>
-                          </select>
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Стипендия</span>
-                          <input type="text" name="internship-payment" value="40 000 ₽ / мес" />
-                        </label>
-                      </div>
-                    </section>
-
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 2</span>
-                          <h2>Маршрут роста</h2>
-                        </div>
-                        <p>Покажи, как устроена программа: чему научится стажёр и кто будет его сопровождать.</p>
-                      </div>
-
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Описание программы</span>
-                          <textarea name="internship-description" rows="5">
-Стажировка для студентов и джунов с погружением в инцидент-менеджмент, разбором логов, лабораториями и поддержкой куратора на каждом этапе.
-                          </textarea>
+                          <input type="text" name="internship-format" value="Гибрид (офлайн/онлайн)" />
                         </label>
 
                         <label class="opportunity-field opportunity-field--wide">
-                          <span>Трек развития</span>
-                          <textarea name="internship-track" rows="4">
-Неделя онбординга, практический блок на внутренних стендах, работа с кейсами SOC и финальный проект с возможностью оффера.
-                          </textarea>
+                          <span>Описание</span>
+                          <textarea name="internship-description" rows="4">XVII практико-ориентированное соревнование, направленное на выявление и поддержку талантливой молодёжи в направлении информационных и инновационных технологий</textarea>
                         </label>
 
-                        <label class="opportunity-field opportunity-field--wide">
-                          <span>Менторство</span>
-                          <textarea name="internship-mentoring" rows="4">
-У каждого участника есть куратор, еженедельные one-to-one, обратная связь по лабораториям и доступ к базе разборов.
-                          </textarea>
+                        <label class="opportunity-field">
+                          <span>Длительность</span>
+                          <input type="text" name="internship-duration" value="8 недель" />
+                        </label>
+
+                        <label class="opportunity-field">
+                          <span>Дата старта</span>
+                          <span class="opportunity-field__control opportunity-field__control--icon">
+                            <input type="text" name="internship-start" value="1 июня 2026" />
+                            <span class="opportunity-field__icon" aria-hidden="true"></span>
+                          </span>
                         </label>
                       </div>
-                    </section>
 
-                    <section class="card opportunity-section">
-                      <div class="opportunity-section__head">
-                        <div>
-                          <span class="opportunity-section__eyebrow">Шаг 3</span>
-                          <h2>Публикация и отбор</h2>
-                        </div>
-                        <p>Задай понятный CTA и коротко опиши, как именно кандидат попадёт в программу.</p>
+                      <div class="opportunity-actions">
+                        <a class="button button-secondary" href="company-dashboard.html?section=opportunities">
+                          Назад к возможностям
+                        </a>
+                        <button class="button button-primary" type="submit">Сохранить</button>
                       </div>
-
-                      <div class="opportunity-form-grid">
-                        <label class="opportunity-field">
-                          <span>Куратор</span>
-                          <input type="text" name="internship-curator" value="Егор Самойлов" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Отбор</span>
-                          <input type="text" name="internship-selection" value="Анкета + короткое тестовое" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Текст кнопки</span>
-                          <input type="text" name="internship-cta" value="Подать заявку" />
-                        </label>
-
-                        <label class="opportunity-field">
-                          <span>Ссылка на заявку</span>
-                          <input type="url" name="internship-link" value="https://tamplin.ru/internship/soc-school" />
-                        </label>
-                      </div>
-                    </section>
-
-                    <div class="opportunity-actions">
-                      <button class="button button-secondary" type="button">Сохранить черновик</button>
-                      <button class="button button-secondary" type="button">Предпросмотр</button>
-                      <button class="button button-primary" type="submit">Опубликовать</button>
-                    </div>
-                  </form>
+                    </form>
+                  </section>
                 </div>
 
-                <aside class="opportunity-side">
-                  <article class="card opportunity-preview opportunity-preview--event">
-                    <div class="opportunity-preview__head">
-                      <span class="tag">Live preview</span>
-                      <span class="opportunity-preview__state">Готово на 82%</span>
-                    </div>
-                    <h2>Айти планета</h2>
-                    <p class="opportunity-preview__company">ООО Компани · Community</p>
-                    <p class="opportunity-preview__summary">
-                      Соревнование и карьерный ивент с гибридным форматом, экспертными разборами и быстрым входом в
-                      стажировки партнёров.
-                    </p>
-                    <div class="opportunity-preview__chips">
-                      <span class="chip">Гибридный</span>
-                      <span class="chip">Москва</span>
-                      <span class="chip">Регистрация</span>
-                    </div>
-                    <dl class="opportunity-preview__facts">
-                      <div>
-                        <dt>Дата</dt>
-                        <dd>12 апреля 2026</dd>
-                      </div>
-                      <div>
-                        <dt>CTA</dt>
-                        <dd>Зарегистрироваться</dd>
-                      </div>
-                      <div>
-                        <dt>Фокус</dt>
-                        <dd>Практика + нетворк</dd>
-                      </div>
-                      <div>
-                        <dt>Аудитория</dt>
-                        <dd>Джуны и студенты</dd>
-                      </div>
-                    </dl>
-                  </article>
+                <aside class="opportunity-preview-column" aria-label="Предварительный вид карточки">
+                  <section class="opportunity-preview-panel">
+                    <h2>Предварительный вид</h2>
 
-                  <article class="card opportunity-preview opportunity-preview--vacancy">
-                    <div class="opportunity-preview__head">
-                      <span class="tag">Live preview</span>
-                      <span class="opportunity-preview__state">Готово на 79%</span>
-                    </div>
-                    <h2>Junior Security Analyst</h2>
-                    <p class="opportunity-preview__company">ООО Компани · SOC</p>
-                    <p class="opportunity-preview__summary">
-                      Роль для начинающего аналитика с понятным контуром задач, живыми кейсами и менторством в
-                      гибридной команде.
-                    </p>
-                    <div class="opportunity-preview__chips">
-                      <span class="chip">Офис / гибрид</span>
-                      <span class="chip">Москва</span>
-                      <span class="chip">от 90 000 ₽</span>
-                    </div>
-                    <dl class="opportunity-preview__facts">
-                      <div>
-                        <dt>Дедлайн</dt>
-                        <dd>30 апреля</dd>
+                    <article class="card vacancy-card dashboard-opportunity-card opportunity-preview-card opportunity-preview-card--event">
+                      <div class="dashboard-opportunity-card__top">
+                        <div class="dashboard-opportunity-card__top-meta">
+                          <span class="dashboard-opportunity-card__type">Мероприятие</span>
+                          <span class="dashboard-status-pill dashboard-status-pill--soon">Скоро</span>
+                        </div>
                       </div>
-                      <div>
-                        <dt>Команда</dt>
-                        <dd>SOC</dd>
-                      </div>
-                      <div>
-                        <dt>Формат</dt>
-                        <dd>Гибрид</dd>
-                      </div>
-                      <div>
-                        <dt>CTA</dt>
-                        <dd>Откликнуться</dd>
-                      </div>
-                    </dl>
-                  </article>
 
-                  <article class="card opportunity-preview opportunity-preview--internship">
-                    <div class="opportunity-preview__head">
-                      <span class="tag">Live preview</span>
-                      <span class="opportunity-preview__state">Готово на 84%</span>
-                    </div>
-                    <h2>Летняя школа SOC</h2>
-                    <p class="opportunity-preview__company">ООО Компани · Академия</p>
-                    <p class="opportunity-preview__summary">
-                      Стажировка с куратором, лабораториями и внятным треком роста от онбординга до финального
-                      проекта.
-                    </p>
-                    <div class="opportunity-preview__chips">
-                      <span class="chip">8 недель</span>
-                      <span class="chip">Гибрид</span>
-                      <span class="chip">40 000 ₽ / мес</span>
-                    </div>
-                    <dl class="opportunity-preview__facts">
-                      <div>
-                        <dt>Старт</dt>
-                        <dd>1 июня 2026</dd>
+                      <div class="dashboard-opportunity-card__content">
+                        <h3>IT - Планета</h3>
+                        <p class="dashboard-opportunity-card__company">IT - Планета · Москва + онлайн</p>
+                        <p class="dashboard-opportunity-card__value">155 регистраций</p>
                       </div>
-                      <div>
-                        <dt>Куратор</dt>
-                        <dd>Егор Самойлов</dd>
+
+                      <div class="dashboard-opportunity-card__tags" aria-label="Теги мероприятия">
+                        <span class="dashboard-opportunity-card__tag">Студенты</span>
+                        <span class="dashboard-opportunity-card__tag">Мероприятие</span>
                       </div>
-                      <div>
-                        <dt>Отбор</dt>
-                        <dd>Анкета + тестовое</dd>
+
+                      <a class="button button-primary dashboard-opportunity-card__action" href="#">
+                        Подробнее
+                      </a>
+                    </article>
+
+                    <article class="card vacancy-card dashboard-opportunity-card opportunity-preview-card opportunity-preview-card--vacancy">
+                      <div class="dashboard-opportunity-card__top">
+                        <div class="dashboard-opportunity-card__top-meta">
+                          <span class="dashboard-opportunity-card__type">Вакансия</span>
+                          <span class="dashboard-status-pill dashboard-status-pill--active">Активно</span>
+                        </div>
                       </div>
-                      <div>
-                        <dt>CTA</dt>
-                        <dd>Подать заявку</dd>
+
+                      <div class="dashboard-opportunity-card__content">
+                        <h3>Junior Security Analyst</h3>
+                        <p class="dashboard-opportunity-card__company">ООО Компани · Москва + онлайн</p>
+                        <p class="dashboard-opportunity-card__value">от 90 000 ₽</p>
                       </div>
-                    </dl>
-                  </article>
 
-                  <article class="card opportunity-checklist">
-                    <div class="opportunity-checklist__head">
-                      <span class="tag tag-success">Чеклист</span>
-                      <h2>Публикация без пустых зон</h2>
-                      <p>Справа всегда видно, хватает ли карточке сигналов для выдачи в каталоге и карточке детали.</p>
-                    </div>
+                      <div class="dashboard-opportunity-card__tags" aria-label="Теги вакансии">
+                        <span class="dashboard-opportunity-card__tag">Junior</span>
+                        <span class="dashboard-opportunity-card__tag">SOC</span>
+                        <span class="dashboard-opportunity-card__tag">SIEM</span>
+                      </div>
 
-                    <div class="opportunity-checklist__bar" aria-hidden="true">
-                      <span></span>
-                    </div>
+                      <a class="button button-primary dashboard-opportunity-card__action" href="#">
+                        Подробнее
+                      </a>
+                    </article>
 
-                    <ul class="opportunity-checklist__items">
-                      <li class="is-complete">Тип и заголовок определены</li>
-                      <li class="is-complete">Формат и базовые параметры заполнены</li>
-                      <li class="is-complete">Ценность для кандидата описана</li>
-                      <li>Проверить ссылку и текст CTA перед публикацией</li>
-                    </ul>
-                  </article>
+                    <article class="card vacancy-card dashboard-opportunity-card opportunity-preview-card opportunity-preview-card--internship">
+                      <div class="dashboard-opportunity-card__top">
+                        <div class="dashboard-opportunity-card__top-meta">
+                          <span class="dashboard-opportunity-card__type">Стажировка</span>
+                          <span class="dashboard-status-pill dashboard-status-pill--completed">Завершено</span>
+                        </div>
+                      </div>
 
-                  <article class="card opportunity-note opportunity-note--event">
-                    <span class="tag tag-warm">Подсказка</span>
-                    <h2>Мероприятие</h2>
-                    <p>
-                      Лучше всего работают конкретная тема, дата и обещание результата: что человек получит после
-                      участия и почему это стоит времени.
-                    </p>
-                    <div class="opportunity-note__chips">
-                      <span class="chip">Дата</span>
-                      <span class="chip">Формат</span>
-                      <span class="chip">Польза</span>
-                    </div>
-                  </article>
+                      <div class="dashboard-opportunity-card__content">
+                        <h3>Летняя школа SOC</h3>
+                        <p class="dashboard-opportunity-card__company">ООО Компани · Москва + онлайн</p>
+                        <p class="dashboard-opportunity-card__value">Длительность: 8 недель</p>
+                      </div>
 
-                  <article class="card opportunity-note opportunity-note--vacancy">
-                    <span class="tag tag-warm">Подсказка</span>
-                    <h2>Вакансия</h2>
-                    <p>
-                      На отклик сильнее всего влияет ясная роль, честная вилка и несколько конкретных задач, а не
-                      длинный корпоративный текст.
-                    </p>
-                    <div class="opportunity-note__chips">
-                      <span class="chip">Роль</span>
-                      <span class="chip">Вилка</span>
-                      <span class="chip">Команда</span>
-                    </div>
-                  </article>
+                      <div class="dashboard-opportunity-card__tags" aria-label="Теги стажировки">
+                        <span class="dashboard-opportunity-card__tag">Студенты</span>
+                        <span class="dashboard-opportunity-card__tag">Стажировка</span>
+                      </div>
 
-                  <article class="card opportunity-note opportunity-note--internship">
-                    <span class="tag tag-warm">Подсказка</span>
-                    <h2>Стажировка</h2>
-                    <p>
-                      Для джунов особенно важны трек развития, менторство и понятный вход. Если это видно с экрана,
-                      карточка работает заметно лучше.
-                    </p>
-                    <div class="opportunity-note__chips">
-                      <span class="chip">Срок</span>
-                      <span class="chip">Менторство</span>
-                      <span class="chip">Старт</span>
-                    </div>
-                  </article>
+                      <a class="button button-primary dashboard-opportunity-card__action" href="#">
+                        Подробнее
+                      </a>
+                    </article>
+                  </section>
                 </aside>
               </div>
             </article>

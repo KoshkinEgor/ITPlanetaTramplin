@@ -165,6 +165,7 @@
 
 @media (max-width: 720px) {
   .entry-login {
+    min-height: auto;
     padding: 16px;
   }
 }
