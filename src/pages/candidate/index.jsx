@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import { CandidateCabinetPage } from "./CandidateCabinetPage";
 import { CandidateAccessGuard } from "./CandidateAccessGuard";
 import { CandidateCareerPage } from "./CandidateCareerPage";
@@ -13,7 +14,8 @@ import { CandidateSettingsApp } from "../../candidate-portal/CandidateSettingsAp
 export { CandidateAccessGuard, CandidateCabinetPage, CandidateCareerPage };
 
 export function CandidateOverviewPage() {
-  return <CandidateOverviewApp />;
+  const context = useOutletContext();
+  return <CandidateOverviewApp profile={context?.profile ?? null} />;
 }
 
 export function CandidateResumePage() {

@@ -5,6 +5,7 @@ using ITPlanetaTramplin.Api.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using System.Text.Json;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
@@ -28,11 +29,18 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         public string? LessonsLearned { get; init; }
         public List<string> Tags { get; init; } = [];
         public string? CoverImageUrl { get; init; }
+        public List<CandidateProjectParticipantInput> Participants { get; init; } = [];
         public string? DemoUrl { get; init; }
         public string? RepositoryUrl { get; init; }
         public string? DesignUrl { get; init; }
         public string? CaseStudyUrl { get; init; }
         public bool ShowInPortfolio { get; init; }
+    }
+
+    private sealed class CandidateProjectParticipantInput
+    {
+        public string Name { get; init; } = string.Empty;
+        public string? Role { get; init; }
     }
 
     private static async Task<IResult> GetCurrentCandidateProjectsAsync(HttpContext context, ApplicationDBContext db)
@@ -117,6 +125,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             LessonsLearned = request.LessonsLearned ?? project.LessonsLearned,
             Tags = request.Tags ?? project.Tags,
             CoverImageUrl = request.CoverImageUrl ?? project.CoverImageUrl,
+            Participants = request.Participants ?? ParseCandidateProjectParticipants(project.ParticipantsJson),
             DemoUrl = request.DemoUrl ?? project.DemoUrl,
             RepositoryUrl = request.RepositoryUrl ?? project.RepositoryUrl,
             DesignUrl = request.DesignUrl ?? project.DesignUrl,
@@ -254,6 +263,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         project.LessonsLearned = normalizedProject.LessonsLearned;
         project.Tags = normalizedProject.Tags;
         project.CoverImageUrl = normalizedProject.CoverImageUrl;
+        project.ParticipantsJson = SerializeCandidateProjectParticipants(normalizedProject.Participants);
         project.DemoUrl = normalizedProject.DemoUrl;
         project.RepositoryUrl = normalizedProject.RepositoryUrl;
         project.DesignUrl = normalizedProject.DesignUrl;
@@ -283,6 +293,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             LessonsLearned = project.LessonsLearned,
             Tags = project.Tags,
             CoverImageUrl = project.CoverImageUrl,
+            Participants = ParseCandidateProjectParticipants(project.ParticipantsJson),
             DemoUrl = project.DemoUrl,
             RepositoryUrl = project.RepositoryUrl,
             DesignUrl = project.DesignUrl,
@@ -378,13 +389,13 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return false;
         }
 
-        if (!TryNormalizeUrl(request.CoverImageUrl, out var coverImageUrl) ||
-            !TryNormalizeUrl(request.DemoUrl, out var demoUrl) ||
-            !TryNormalizeUrl(request.RepositoryUrl, out var repositoryUrl) ||
-            !TryNormalizeUrl(request.DesignUrl, out var designUrl) ||
-            !TryNormalizeUrl(request.CaseStudyUrl, out var caseStudyUrl))
+        if (!TryNormalizeCoverImage(request.CoverImageUrl, out var coverImageUrl) ||
+            !TryNormalizeProjectLink(request.DemoUrl, out var demoUrl) ||
+            !TryNormalizeProjectLink(request.RepositoryUrl, out var repositoryUrl) ||
+            !TryNormalizeProjectLink(request.DesignUrl, out var designUrl) ||
+            !TryNormalizeProjectLink(request.CaseStudyUrl, out var caseStudyUrl))
         {
-            validationError = "Ссылки проекта должны начинаться с http:// или https://.";
+            validationError = "Ссылки проекта должны начинаться с http:// или https://, а изображение может быть ссылкой или загруженным файлом.";
             return false;
         }
 
@@ -398,6 +409,37 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         if (tags.Count == 0)
         {
             validationError = "Добавьте хотя бы один тег проекта.";
+            return false;
+        }
+
+        var participants = new List<CandidateProjectParticipantInput>();
+        if (request.Participants is not null)
+        {
+            foreach (var participant in request.Participants)
+            {
+                var participantName = NormalizeRequiredText(participant?.Name);
+                if (participantName is null)
+                {
+                    validationError = "У каждого участника проекта должно быть имя.";
+                    return false;
+                }
+
+                participants.Add(new CandidateProjectParticipantInput
+                {
+                    Name = participantName,
+                    Role = NormalizeOptionalText(participant?.Role),
+                });
+            }
+        }
+
+        participants = participants
+            .GroupBy(item => $"{item.Name}\u001f{item.Role}", StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+
+        if (request.TeamSize.HasValue && participants.Count > request.TeamSize.Value)
+        {
+            validationError = "Количество участников не может быть больше размера команды.";
             return false;
         }
 
@@ -419,6 +461,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             LessonsLearned = NormalizeOptionalText(request.LessonsLearned),
             Tags = tags,
             CoverImageUrl = coverImageUrl,
+            Participants = participants,
             DemoUrl = demoUrl,
             RepositoryUrl = repositoryUrl,
             DesignUrl = designUrl,
@@ -438,7 +481,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static bool TryNormalizeUrl(string? value, out string? normalizedUrl)
+    private static bool TryNormalizeProjectLink(string? value, out string? normalizedUrl)
     {
         normalizedUrl = NormalizeOptionalText(value);
         if (normalizedUrl is null)
@@ -448,6 +491,73 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
 
         return Uri.TryCreate(normalizedUrl, UriKind.Absolute, out var uri)
             && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    }
+
+    private static bool TryNormalizeCoverImage(string? value, out string? normalizedCoverImage)
+    {
+        normalizedCoverImage = NormalizeOptionalText(value);
+        if (normalizedCoverImage is null)
+        {
+            return true;
+        }
+
+        if (TryNormalizeProjectLink(normalizedCoverImage, out var normalizedLink))
+        {
+            normalizedCoverImage = normalizedLink;
+            return true;
+        }
+
+        return IsSupportedImageDataUrl(normalizedCoverImage);
+    }
+
+    private static bool IsSupportedImageDataUrl(string value)
+    {
+        if (!value.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var separatorIndex = value.IndexOf(',', StringComparison.Ordinal);
+        if (separatorIndex <= 0)
+        {
+            return false;
+        }
+
+        var metadata = value[..separatorIndex];
+        var payload = value[(separatorIndex + 1)..];
+        return metadata.Contains(";base64", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(payload);
+    }
+
+    private static string? SerializeCandidateProjectParticipants(IReadOnlyCollection<CandidateProjectParticipantInput> participants)
+    {
+        if (participants.Count == 0)
+        {
+            return "[]";
+        }
+
+        return JsonSerializer.Serialize(
+            participants.Select(item => new CandidateProjectParticipantDTO
+            {
+                Name = item.Name,
+                Role = item.Role,
+            }));
+    }
+
+    private static List<CandidateProjectParticipantDTO> ParseCandidateProjectParticipants(string? participantsJson)
+    {
+        if (string.IsNullOrWhiteSpace(participantsJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<CandidateProjectParticipantDTO>>(participantsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     private static bool TryParseProjectDate(string? value, out DateOnly parsedDate)

@@ -11,6 +11,77 @@ namespace ITPlanetaTramplin.Api.Tests;
 public class CandidateEndpointTests
 {
     [Fact]
+    public async Task CandidateProjectEndpoints_PersistUploadedCoverAndParticipants()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, "candidate-projects@tramplin.local");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "candidate",
+            login = candidate.Email,
+            password = "Password1",
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/candidate/me/projects", new
+        {
+            title = "Платформа командной аналитики",
+            projectType = "Проект",
+            shortDescription = "Сервис для совместной работы над аналитическими отчетами.",
+            organization = "Трамплин Lab",
+            role = "Fullstack developer",
+            teamSize = 3,
+            startDate = "2025-09",
+            endDate = "2026-02",
+            isOngoing = false,
+            problem = "Команде нужен был единый интерфейс для аналитики и визуализации данных.",
+            contribution = "Разработал фронтенд, API и сборку отчетов.",
+            result = "Команда сократила время подготовки отчетов и получила единый рабочий процесс.",
+            tags = new[] { "React", "ASP.NET Core" },
+            coverImageUrl = "data:image/png;base64,ZmFrZQ==",
+            participants = new[]
+            {
+                new { name = "Анна Петрова", role = "Product designer" },
+                new { name = "Илья Смирнов", role = "Backend developer" },
+            },
+            showInPortfolio = true,
+        });
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var createdProject = await createResponse.Content.ReadFromJsonAsync<CandidateProjectReadDTO>();
+        Assert.NotNull(createdProject);
+        Assert.Equal("data:image/png;base64,ZmFrZQ==", createdProject!.CoverImageUrl);
+        Assert.NotNull(createdProject.Participants);
+        Assert.Collection(
+            createdProject.Participants!,
+            participant =>
+            {
+                Assert.Equal("Анна Петрова", participant.Name);
+                Assert.Equal("Product designer", participant.Role);
+            },
+            participant =>
+            {
+                Assert.Equal("Илья Смирнов", participant.Name);
+                Assert.Equal("Backend developer", participant.Role);
+            });
+
+        var listResponse = await client.GetAsync("/api/candidate/me/projects");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+
+        var projects = await listResponse.Content.ReadFromJsonAsync<List<CandidateProjectReadDTO>>();
+        Assert.NotNull(projects);
+        Assert.Single(projects!);
+        Assert.Equal("Платформа командной аналитики", projects[0].Title);
+        Assert.Equal("data:image/png;base64,ZmFrZQ==", projects[0].CoverImageUrl);
+        Assert.NotNull(projects[0].Participants);
+        Assert.Equal(2, projects[0].Participants!.Count);
+    }
+
+    [Fact]
     public async Task LegacyApplicantEndpoints_RequireCandidateRole_AndCurrentCandidateOwnership()
     {
         await using var factory = new TestApplicationFactory();

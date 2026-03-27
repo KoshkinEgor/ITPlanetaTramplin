@@ -207,8 +207,7 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnName("contribution");
 
                     b.Property<string>("CoverImageUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
+                        .HasColumnType("text")
                         .HasColumnName("cover_image_url");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -254,6 +253,12 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("problem");
+
+                    b.Property<string>("ParticipantsJson")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("participants")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<string>("ProjectType")
                         .IsRequired()

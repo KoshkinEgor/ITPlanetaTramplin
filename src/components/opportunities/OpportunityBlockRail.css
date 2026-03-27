@@ -1,0 +1,41 @@
+.opportunity-block-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.opportunity-block-rail::-webkit-scrollbar {
+  height: 10px;
+}
+
+.opportunity-block-rail::-webkit-scrollbar-track {
+  background: rgba(223, 231, 245, 0.72);
+  border-radius: 999px;
+}
+
+.opportunity-block-rail::-webkit-scrollbar-thumb {
+  background: rgba(47, 128, 255, 0.26);
+  border: 2px solid rgba(223, 231, 245, 0.72);
+  border-radius: 999px;
+}
+
+.opportunity-block-rail__item {
+  flex: 0 0 430px;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.opportunity-block-rail__card.ui-card {
+  min-height: 286px;
+  height: 100%;
+}
+
+@media (max-width: 560px) {
+  .opportunity-block-rail__item {
+    flex-basis: min(430px, calc(100vw - 56px));
+  }
+}

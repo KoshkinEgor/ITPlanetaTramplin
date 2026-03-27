@@ -40,7 +40,15 @@ import {
   Switch,
   Textarea,
 } from "../shared/ui";
-import { OpportunityBlockCard, OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import {
+  CandidatePortfolioProjectCard,
+  CandidatePortfolioSwitcher,
+  CandidateResumeProfileCard,
+  CandidateResumeRecord,
+  CandidateResumeSection,
+} from "../candidate-portal/portfolio-kit";
+import { CandidateSectionHeader } from "../candidate-portal/shared";
+import { OpportunityBlockCard, OpportunityBlockRail, OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { formatComplaintDate, moderatorComplaintActionOptions, moderatorComplaintExamples } from "../moderator-dashboard/complaints.mock";
 import { OpportunityDetailPreview } from "../opportunity-detail-card/OpportunityDetailCardApp";
 
@@ -57,6 +65,7 @@ const sectionLinks = [
   { id: "ui-kit-form-field", label: "FormField" },
   { id: "ui-kit-placeholders", label: "Placeholders" },
   { id: "ui-kit-career", label: "Career" },
+  { id: "ui-kit-candidate-portfolio", label: "Resume / Portfolio" },
   { id: "ui-kit-assemblies", label: "Assemblies" },
 ];
 
@@ -298,6 +307,102 @@ const opportunityShowcaseSliderItems = [
     company: "Orbit Lab · Kazan + hybrid",
     accent: "part-time",
     chips: ["SQL", "Python", "Growth"],
+  },
+];
+
+const recommendedOpportunityRailItems = [
+  {
+    id: "candidate-recommendation-security",
+    type: "Вакансия",
+    status: "Опубликовано",
+    statusTone: "success",
+    title: "Junior Security Analyst",
+    company: "Acme Security · Москва · удалённо",
+    accent: "Удалённо",
+    chips: ["Junior", "SOC", "SIEM"],
+  },
+  {
+    id: "candidate-recommendation-design",
+    type: "Стажировка",
+    status: "Опубликовано",
+    statusTone: "success",
+    title: "Mobile UI/UX",
+    company: "White Tiger Soft · Казань · гибрид",
+    accent: "Гибрид",
+    chips: ["Дизайн", "Оплачиваемая", "8 недель"],
+  },
+  {
+    id: "candidate-recommendation-event",
+    type: "Мероприятие",
+    status: "Опубликовано",
+    statusTone: "success",
+    title: "IT-Планета",
+    company: "IT-Планета · онлайн",
+    accent: "Онлайн",
+    chips: ["Студенты", "Комьюнити", "Регистрация"],
+  },
+];
+
+const candidatePortfolioPreviewTabs = [
+  { value: "resume", label: "Резюме", href: "#ui-kit-candidate-resume-assembly" },
+  { value: "projects", label: "Портфолио", href: "#ui-kit-candidate-portfolio-assembly" },
+];
+
+const candidateResumeProfilePreview = {
+  description: "UX/UI-дизайнер и исследователь. Собираю интерфейсы для образовательных продуктов, умею вести интервью и быстро упаковывать кейсы в понятное портфолио.",
+  skills: ["Figma", "UX Research", "UI", "Design System", "Prototype"],
+};
+
+const candidateEducationPreview = [
+  {
+    id: "candidate-education-1",
+    title: "ЧГУ им. И. Н. Ульянова",
+    description: "Факультет информатики · Прикладная информатика",
+    meta: "2022 - 2026",
+  },
+  {
+    id: "candidate-education-2",
+    title: "Яндекс Практикум",
+    description: "Курс UX/UI-дизайна",
+    meta: "2025 - 2025",
+  },
+];
+
+const candidateAchievementPreview = [
+  {
+    id: "candidate-achievement-1",
+    title: "IT-Планета 2026",
+    description: "Финалист направления по продуктовому дизайну и презентации решений.",
+    meta: "19 марта 2026",
+  },
+  {
+    id: "candidate-achievement-2",
+    title: "Портфолио-ревью",
+    description: "Получил рекомендации по структуре кейсов и позиционированию профиля.",
+    meta: "2 февраля 2026",
+  },
+];
+
+const candidatePortfolioPreviewProjects = [
+  {
+    id: "candidate-portfolio-project-1",
+    type: "Pet-проект",
+    status: "Обновлено 24 марта 2026",
+    statusTone: "success",
+    title: "StudyFlow",
+    description: "Сервис для планирования учебной нагрузки и совместных проектных спринтов.",
+    role: "Роль в проекте: UX/UI designer",
+    chips: ["Figma", "Research", "Design System", "Prototype"],
+  },
+  {
+    id: "candidate-portfolio-project-2",
+    type: "Стажировка",
+    status: "В работе",
+    statusTone: "warning",
+    title: "Career Track",
+    description: "Личный кабинет соискателя с рекомендациями по вакансиям и карьерному росту.",
+    role: "Роль в проекте: Product designer",
+    chips: ["UI", "Analytics", "CJM", "Presentation"],
   },
 ];
 
@@ -1326,6 +1431,174 @@ function OpportunitySliderAssembly() {
         </div>
       </div>
     </Card>
+  );
+}
+
+function RecommendedOpportunitiesAssembly() {
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-recommended-opportunities-assembly">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Assembly</span>
+        <h3 className="ui-type-h3">Recommended opportunities rail</h3>
+        <p className="ui-type-body">The candidate overview recommendation block is mirrored here as a reusable rail of panel-styled opportunity cards.</p>
+      </div>
+
+      <div className="ui-kit-recommended-opportunities">
+        <SectionHeader
+          eyebrow="Кабинет соискателя"
+          title="Рекомендуемые возможности"
+          description="Горизонтальный rail соискателя с тем же визуальным поведением карточек, что и на живой overview-странице."
+          size="md"
+        />
+
+        <OpportunityBlockRail
+          data-testid="ui-kit-recommended-opportunities-rail"
+          ariaLabel="Recommended opportunities rail"
+          items={recommendedOpportunityRailItems}
+          surface="panel"
+          size="md"
+          cardPropsBuilder={(item) => ({
+            detailAction: { href: `#${item.id}`, label: "Открыть каталог", variant: "secondary" },
+          })}
+        />
+      </div>
+    </Card>
+  );
+}
+
+function CandidatePortfolioKitSection() {
+  return (
+    <UiKitSection
+      id="ui-kit-candidate-portfolio"
+      eyebrow="Candidate Portal"
+      title="Resume & Portfolio"
+      description="Live candidate-cabinet blocks extracted into the UI kit so resume and portfolio surfaces can be reviewed without opening the product flows."
+    >
+      <div className="ui-kit-candidate-grid">
+        <Card className="ui-kit-specimen ui-kit-specimen--wide" data-testid="ui-kit-candidate-switcher">
+          <div className="ui-kit-specimen__copy">
+            <span className="ui-kit-eyebrow">Navigation</span>
+            <h3 className="ui-type-h3">Portfolio switcher</h3>
+            <p className="ui-type-body">The same segmented switcher used by the candidate pages, now isolated with local UI kit anchors.</p>
+          </div>
+          <CandidatePortfolioSwitcher value="resume" items={candidatePortfolioPreviewTabs} />
+        </Card>
+
+        <Card className="ui-kit-specimen" data-testid="ui-kit-candidate-resume-profile">
+          <div className="ui-kit-specimen__copy">
+            <span className="ui-kit-eyebrow">Resume block</span>
+            <h3 className="ui-type-h3">Profile panel</h3>
+            <p className="ui-type-body">Lead summary, skill tags, and one clear CTA stay bundled as a reusable resume surface.</p>
+          </div>
+          <CandidateResumeProfileCard
+            description={candidateResumeProfilePreview.description}
+            skills={candidateResumeProfilePreview.skills}
+            actionHref="#ui-kit-candidate-resume-assembly"
+          />
+        </Card>
+
+        <Card className="ui-kit-specimen" data-testid="ui-kit-candidate-resume-section">
+          <div className="ui-kit-specimen__copy">
+            <span className="ui-kit-eyebrow">Resume block</span>
+            <h3 className="ui-type-h3">Section panel</h3>
+            <p className="ui-type-body">Education and achievements reuse the same panel shell and compact record rows.</p>
+          </div>
+          <CandidateResumeSection
+            title="Образование"
+            emptyText="Образование еще не добавлено"
+            items={candidateEducationPreview}
+            renderItem={(item) => (
+              <CandidateResumeRecord
+                key={item.id}
+                title={item.title}
+                description={item.description}
+                meta={item.meta}
+              />
+            )}
+          />
+        </Card>
+
+        <Card className="ui-kit-specimen" data-testid="ui-kit-candidate-project-card">
+          <div className="ui-kit-specimen__copy">
+            <span className="ui-kit-eyebrow">Portfolio block</span>
+            <h3 className="ui-type-h3">Project card</h3>
+            <p className="ui-type-body">Project cards keep the same chip, status, and CTA structure between portfolio pages and editor previews.</p>
+          </div>
+          <CandidatePortfolioProjectCard item={candidatePortfolioPreviewProjects[0]} actionHref="#ui-kit-candidate-portfolio-assembly" />
+        </Card>
+
+        <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-candidate-resume-assembly">
+          <div className="ui-kit-foundation-card__copy">
+            <span className="ui-kit-eyebrow">Assembly</span>
+            <h3 className="ui-type-h3">Resume page assembly</h3>
+            <p className="ui-type-body">The live resume page reconstructed from extracted blocks so layout, spacing, and content rhythm can be checked in one place.</p>
+          </div>
+
+          <div className="ui-kit-candidate-assembly">
+            <CandidatePortfolioSwitcher value="resume" items={candidatePortfolioPreviewTabs} />
+            <CandidateResumeProfileCard
+              description={candidateResumeProfilePreview.description}
+              skills={candidateResumeProfilePreview.skills}
+              actionHref="#ui-kit-candidate-resume-assembly"
+            />
+            <div className="ui-kit-candidate-assembly__grid">
+              <CandidateResumeSection
+                title="Образование"
+                emptyText="Образование еще не добавлено"
+                items={candidateEducationPreview}
+                renderItem={(item) => (
+                  <CandidateResumeRecord
+                    key={item.id}
+                    title={item.title}
+                    description={item.description}
+                    meta={item.meta}
+                  />
+                )}
+              />
+              <CandidateResumeSection
+                title="Достижения"
+                emptyText="Достижения еще не добавлены"
+                items={candidateAchievementPreview}
+                renderItem={(item) => (
+                  <CandidateResumeRecord
+                    key={item.id}
+                    title={item.title}
+                    description={item.description}
+                    meta={item.meta}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-candidate-portfolio-assembly">
+          <div className="ui-kit-foundation-card__copy">
+            <span className="ui-kit-eyebrow">Assembly</span>
+            <h3 className="ui-type-h3">Portfolio page assembly</h3>
+            <p className="ui-type-body">Portfolio grid, page header, and project cards are now mirrored here as a reusable candidate-cabinet composition.</p>
+          </div>
+
+          <div className="ui-kit-candidate-assembly">
+            <CandidatePortfolioSwitcher value="projects" items={candidatePortfolioPreviewTabs} />
+            <CandidateSectionHeader
+              title="Портфолио"
+              description="Выложи кейсы, которые могут показать твои текущие навыки."
+              actions={<Button href="#ui-kit-candidate-portfolio-assembly">Добавить проект</Button>}
+            />
+            <div className="candidate-page-grid candidate-page-grid--two">
+              {candidatePortfolioPreviewProjects.map((item) => (
+                <CandidatePortfolioProjectCard
+                  key={item.id}
+                  item={item}
+                  actionHref="#ui-kit-candidate-portfolio-assembly"
+                />
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </UiKitSection>
   );
 }
 
@@ -2401,6 +2674,8 @@ export function UiKitApp() {
           <CareerDashboardAssembly />
         </UiKitSection>
 
+        <CandidatePortfolioKitSection />
+
         <UiKitSection
           id="ui-kit-assemblies"
           eyebrow="Assemblies"
@@ -2416,6 +2691,7 @@ export function UiKitApp() {
             <EditableResumeAssembly />
             <OpportunityCatalogAssembly />
             <OpportunitySliderAssembly />
+            <RecommendedOpportunitiesAssembly />
             <OpportunityDetailAssembly />
             <CompanyTilesAssembly />
             <OpportunitySidebarAssembly />

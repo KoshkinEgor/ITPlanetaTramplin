@@ -1,5 +1,12 @@
 namespace DTO;
 
+public class CandidateProjectParticipantDTO
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string? Role { get; set; }
+}
+
 public class CandidateProjectCreateDTO
 {
     public string Title { get; set; } = string.Empty;
@@ -33,6 +40,8 @@ public class CandidateProjectCreateDTO
     public List<string>? Tags { get; set; }
 
     public string? CoverImageUrl { get; set; }
+
+    public List<CandidateProjectParticipantDTO>? Participants { get; set; }
 
     public string? DemoUrl { get; set; }
 
@@ -78,6 +87,8 @@ public class CandidateProjectUpdateDTO
     public List<string>? Tags { get; set; }
 
     public string? CoverImageUrl { get; set; }
+
+    public List<CandidateProjectParticipantDTO>? Participants { get; set; }
 
     public string? DemoUrl { get; set; }
 
@@ -127,6 +138,8 @@ public class CandidateProjectReadDTO
     public List<string>? Tags { get; set; }
 
     public string? CoverImageUrl { get; set; }
+
+    public List<CandidateProjectParticipantDTO>? Participants { get; set; }
 
     public string? DemoUrl { get; set; }
 

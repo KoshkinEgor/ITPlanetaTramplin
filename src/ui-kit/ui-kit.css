@@ -742,6 +742,11 @@ body.ui-kit-react-body {
   gap: 18px;
 }
 
+.ui-kit-recommended-opportunities {
+  display: grid;
+  gap: 18px;
+}
+
 .ui-kit-slider-showcase__section {
   gap: 16px;
   padding: 20px;
@@ -969,6 +974,29 @@ body.ui-kit-react-body {
   align-items: start;
 }
 
+.ui-kit-candidate-grid,
+.ui-kit-candidate-assembly,
+.ui-kit-candidate-assembly__grid {
+  display: grid;
+  min-width: 0;
+}
+
+.ui-kit-candidate-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.ui-kit-candidate-assembly {
+  gap: 18px;
+}
+
+.ui-kit-candidate-assembly__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
 .ui-kit-career-preview {
   min-width: 0;
 }
@@ -1064,7 +1092,9 @@ body.ui-kit-react-body {
   .ui-kit-foundation-grid,
   .ui-kit-assembly-grid,
   .ui-kit-placeholder-grid,
-  .ui-kit-career-grid {
+  .ui-kit-career-grid,
+  .ui-kit-candidate-grid,
+  .ui-kit-candidate-assembly__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1125,6 +1155,8 @@ body.ui-kit-react-body {
   .ui-kit-assembly-grid,
   .ui-kit-placeholder-grid,
   .ui-kit-career-grid,
+  .ui-kit-candidate-grid,
+  .ui-kit-candidate-assembly__grid,
   .ui-kit-token-grid,
   .ui-kit-radius-grid,
   .ui-kit-shadow-grid,

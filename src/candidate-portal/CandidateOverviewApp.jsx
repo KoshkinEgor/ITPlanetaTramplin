@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { OpportunityBlockCard } from "../components/opportunities";
+import { AppLink } from "../app/AppLink";
+import { routes } from "../app/routes";
+import { OpportunityBlockRail } from "../components/opportunities";
 import { getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
-import { Alert, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import { mapCandidateApplicationToCard, mapContactToCard } from "./mappers";
-import { CandidateContactCard, CandidateSectionHeader } from "./shared";
+import { Alert, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
+import { mapContactToPeerCard } from "./mappers";
+import { CandidateSectionHeader } from "./shared";
 
 function mapOpportunityCard(item) {
   return {
+    id: item.id,
     type: item.opportunityType || "Возможность",
     status: item.moderationStatus === "approved" ? "Опубликовано" : item.moderationStatus,
     statusTone: item.moderationStatus === "approved" ? "success" : "warning",
@@ -20,7 +23,91 @@ function mapOpportunityCard(item) {
   };
 }
 
-export function CandidateOverviewApp() {
+function formatActivityDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+  }).format(parsed);
+}
+
+function getActivitySortValue(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function buildApplicationActivityTitle(application) {
+  const title = application?.opportunityTitle || "вакансию";
+
+  switch (String(application?.status ?? "").trim().toLowerCase()) {
+    case "submitted":
+      return `Отклик отправлен: ${title}`;
+    case "reviewing":
+      return `Отклик рассматривается: ${title}`;
+    case "invited":
+      return `Получено приглашение: ${title}`;
+    case "accepted":
+      return `Подтверждено участие: ${title}`;
+    case "rejected":
+      return `Завершён отклик: ${title}`;
+    case "withdrawn":
+      return `Отклик снят: ${title}`;
+    default:
+      return `Обновлён отклик: ${title}`;
+  }
+}
+
+function buildContactActivityDescription(contact) {
+  const skills = Array.isArray(contact?.skills) ? contact.skills.filter(Boolean).slice(0, 3) : [];
+
+  if (skills.length) {
+    return `Навыки: ${skills.join(", ")}`;
+  }
+
+  return contact?.email || "Контакт сохранён в личной сети.";
+}
+
+function buildRecentActions(applications, contacts) {
+  const applicationActions = (Array.isArray(applications) ? applications : []).slice(0, 2).map((application, index) => ({
+    id: `application-${application?.id ?? index}`,
+    sortValue: getActivitySortValue(application?.appliedAt),
+    order: index,
+    timestamp: formatActivityDate(application?.appliedAt),
+    title: buildApplicationActivityTitle(application),
+    description: [application?.companyName, application?.locationCity].filter(Boolean).join(" · ") || "Статус отклика обновлён.",
+  }));
+  const contactActions = (Array.isArray(contacts) ? contacts : []).slice(0, 2).map((contact, index) => {
+    const name = contact?.name || contact?.email || "новый контакт";
+
+    return {
+      id: `contact-${contact?.contactProfileId ?? contact?.id ?? index}`,
+      sortValue: getActivitySortValue(contact?.createdAt),
+      order: applicationActions.length + index,
+      timestamp: formatActivityDate(contact?.createdAt),
+      title: `Добавлен контакт ${name}`,
+      description: buildContactActivityDescription(contact),
+    };
+  });
+
+  return [...applicationActions, ...contactActions]
+    .sort((left, right) => right.sortValue - left.sortValue || left.order - right.order)
+    .slice(0, 3);
+}
+
+export function CandidateOverviewApp({ profile = null }) {
   const applicationsState = useCandidateApplications();
   const [state, setState] = useState({
     status: "loading",
@@ -63,11 +150,24 @@ export function CandidateOverviewApp() {
     return () => controller.abort();
   }, []);
 
+  const candidateSkills = useMemo(
+    () => (Array.isArray(profile?.skills) ? profile.skills.filter(Boolean) : []),
+    [profile]
+  );
   const topOpportunities = useMemo(() => state.opportunities.slice(0, 3).map(mapOpportunityCard), [state.opportunities]);
-  const topContacts = useMemo(() => state.contacts.slice(0, 3).map(mapContactToCard), [state.contacts]);
-  const recentApplications = useMemo(
-    () => applicationsState.applications.slice(0, 3).map(mapCandidateApplicationToCard),
-    [applicationsState.applications]
+  const topContacts = useMemo(
+    () => state.contacts
+      .map((contact) => ({
+        ...mapContactToPeerCard(contact, candidateSkills),
+        href: routes.candidate.contacts,
+      }))
+      .filter((contact) => contact.id)
+      .slice(0, 2),
+    [candidateSkills, state.contacts]
+  );
+  const recentActions = useMemo(
+    () => buildRecentActions(applicationsState.applications, state.contacts),
+    [applicationsState.applications, state.contacts]
   );
 
   return (
@@ -97,18 +197,15 @@ export function CandidateOverviewApp() {
             <CandidateSectionHeader title="Рекомендуемые возможности" />
 
             {topOpportunities.length ? (
-              <div className="candidate-opportunity-rail" aria-label="Рекомендуемые возможности">
-                {topOpportunities.map((item, index) => (
-                  <OpportunityBlockCard
-                    key={`${item.title}-${index}`}
-                    item={item}
-                    surface="panel"
-                    size="md"
-                    className="candidate-opportunity-rail__card"
-                    detailAction={{ href: "/opportunities", label: "Открыть каталог", variant: "secondary" }}
-                  />
-                ))}
-              </div>
+              <OpportunityBlockRail
+                ariaLabel="Рекомендуемые возможности"
+                items={topOpportunities}
+                surface="panel"
+                size="md"
+                cardPropsBuilder={() => ({
+                  detailAction: { href: "/opportunities", label: "Открыть каталог", variant: "secondary" },
+                })}
+              />
             ) : (
               <Card>
                 <EmptyState
@@ -121,69 +218,69 @@ export function CandidateOverviewApp() {
             )}
           </section>
 
-          <section className="candidate-page-section">
-            <CandidateSectionHeader eyebrow="Активность" title="Последние отклики" />
+          <section className="candidate-page-section candidate-overview-highlights">
+            <Card className="candidate-overview-spotlight">
+              <div className="candidate-overview-spotlight__head">
+                <span className="ui-pill-button ui-pill-button--lg is-active candidate-overview-spotlight__pill">
+                  Рекомендуемые контакты
+                </span>
+                <AppLink href={routes.candidate.contacts} className="candidate-overview-spotlight__link">
+                  Все рекомендации
+                </AppLink>
+              </div>
 
-            {applicationsState.status === "loading" && recentApplications.length === 0 ? (
-              <Card>
-                <Loader label="Загружаем отклики" surface />
-              </Card>
-            ) : null}
-
-            {applicationsState.status === "error" && recentApplications.length === 0 ? (
-              <Alert tone="error" title="Не удалось загрузить отклики" showIcon>
-                {applicationsState.error?.message ?? "Попробуйте обновить данные позже."}
-              </Alert>
-            ) : null}
-
-            {applicationsState.status !== "loading" || recentApplications.length ? (
-              recentApplications.length ? (
-                <div className="candidate-page-stack">
-                  {recentApplications.map((item) => (
-                    <Card key={item.id} className="candidate-page-panel">
-                      <div className="candidate-page-panel__stack">
-                        <div className="candidate-page-panel__row">
-                          <h3 className="ui-type-h3">{item.title}</h3>
-                          <Tag>{item.statusLabel}</Tag>
-                        </div>
-                        <p className="ui-type-body">{item.company}</p>
-                        <p className="ui-type-body">{item.description}</p>
-                      </div>
-                    </Card>
+              {topContacts.length ? (
+                <div className="candidate-overview-spotlight__stack">
+                  {topContacts.map((contact) => (
+                    <CareerPeerCard key={contact.id} {...contact} className="candidate-overview-contact-card" />
                   ))}
                 </div>
               ) : (
-                <Card>
-                  <EmptyState
-                    eyebrow="Пусто"
-                    title="Откликов пока нет"
-                    description="Когда кандидат откликнется на реальную возможность, статус появится в этом блоке."
-                    tone="neutral"
-                  />
-                </Card>
-              )
-            ) : null}
-          </section>
-
-          <section className="candidate-page-section">
-            <CandidateSectionHeader eyebrow="Контакты" title="Рекомендуемые контакты" />
-
-            {topContacts.length ? (
-              <div className="candidate-page-grid candidate-page-grid--three">
-                {topContacts.map((contact) => (
-                  <CandidateContactCard key={contact.id} contact={contact} variant="compact" />
-                ))}
-              </div>
-            ) : (
-              <Card>
                 <EmptyState
                   eyebrow="Нет контактов"
-                  title="Связи пока не добавлены"
-                  description="Контакты появятся после реальных взаимодействий кандидата с другими профилями."
+                  title="Рекомендации пока не собраны"
+                  description="Контакты появятся здесь после новых связей и совпадений по навыкам."
                   tone="neutral"
+                  compact
                 />
-              </Card>
-            )}
+              )}
+            </Card>
+
+            <Card className="candidate-overview-spotlight candidate-overview-spotlight--activity">
+              <div className="candidate-overview-spotlight__head">
+                <span className="ui-pill-button ui-pill-button--lg is-active candidate-overview-spotlight__pill">
+                  Последние действия
+                </span>
+              </div>
+
+              {applicationsState.status === "loading" && recentActions.length === 0 ? (
+                <Loader label="Загружаем последние действия" surface />
+              ) : null}
+
+              {applicationsState.status === "error" && recentActions.length === 0 ? (
+                <Alert tone="error" title="Не удалось загрузить действия" showIcon>
+                  {applicationsState.error?.message ?? "Попробуйте обновить данные позже."}
+                </Alert>
+              ) : null}
+
+              {applicationsState.status !== "loading" || recentActions.length ? (
+                recentActions.length ? (
+                  <div className="candidate-overview-spotlight__stack">
+                    {recentActions.map((item) => (
+                      <DashboardActivityCard key={item.id} item={item} className="candidate-overview-activity-card" />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    eyebrow="Пусто"
+                    title="Последних действий пока нет"
+                    description="Отправьте отклик или добавьте новый контакт, чтобы лента начала обновляться."
+                    tone="neutral"
+                    compact
+                  />
+                )
+              ) : null}
+            </Card>
           </section>
         </>
       ) : null}

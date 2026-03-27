@@ -3,41 +3,41 @@ import { describe, expect, it, vi } from "vitest";
 import { SegmentedControl } from "./SegmentedControl";
 
 const items = [
-  { value: "resume", label: "Р РµР·СЋРјРµ" },
-  { value: "portfolio", label: "РџРѕСЂС‚С„РѕР»РёРѕ" },
+  { value: "resume", label: "Резюме" },
+  { value: "portfolio", label: "Портфолио" },
 ];
 
 describe("SegmentedControl", () => {
   it("switches the active item in uncontrolled mode", () => {
-    render(<SegmentedControl items={items} defaultValue="portfolio" ariaLabel="РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РїСЂРѕС„РёР»СЏ" />);
+    render(<SegmentedControl items={items} defaultValue="portfolio" ariaLabel="Переключатель профиля" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Р РµР·СЋРјРµ" }));
+    fireEvent.click(screen.getByRole("button", { name: "Резюме" }));
 
-    expect(screen.getByRole("button", { name: "Р РµР·СЋРјРµ" })).toHaveClass("is-active");
-    expect(screen.getByRole("button", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).not.toHaveClass("is-active");
+    expect(screen.getByRole("button", { name: "Резюме" })).toHaveClass("is-active");
+    expect(screen.getByRole("button", { name: "Портфолио" })).not.toHaveClass("is-active");
   });
 
   it("calls onChange and respects the controlled value", () => {
     const handleChange = vi.fn();
 
     const { rerender } = render(
-      <SegmentedControl items={items} value="resume" onChange={handleChange} ariaLabel="РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РїСЂРѕС„РёР»СЏ" />
+      <SegmentedControl items={items} value="resume" onChange={handleChange} ariaLabel="Переключатель профиля" />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" }));
+    fireEvent.click(screen.getByRole("button", { name: "Портфолио" }));
 
     expect(handleChange).toHaveBeenCalledWith("portfolio");
-    expect(screen.getByRole("button", { name: "Р РµР·СЋРјРµ" })).toHaveClass("is-active");
+    expect(screen.getByRole("button", { name: "Резюме" })).toHaveClass("is-active");
 
-    rerender(<SegmentedControl items={items} value="portfolio" onChange={handleChange} ariaLabel="РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РїСЂРѕС„РёР»СЏ" />);
+    rerender(<SegmentedControl items={items} value="portfolio" onChange={handleChange} ariaLabel="Переключатель профиля" />);
 
-    expect(screen.getByRole("button", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).toHaveClass("is-active");
+    expect(screen.getByRole("button", { name: "Портфолио" })).toHaveClass("is-active");
   });
 
   it("applies the shared medium font weight and full width classes", () => {
-    render(<SegmentedControl items={items} fontWeight="medium" width="full" ariaLabel="РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РїСЂРѕС„РёР»СЏ" />);
+    render(<SegmentedControl items={items} fontWeight="medium" width="full" ariaLabel="Переключатель профиля" />);
 
-    const segmented = screen.getByRole("group", { name: "РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РїСЂРѕС„РёР»СЏ" });
+    const segmented = screen.getByRole("group", { name: "Переключатель профиля" });
 
     expect(segmented).toHaveClass("ui-font-weight-medium");
     expect(segmented).toHaveClass("ui-width-full");

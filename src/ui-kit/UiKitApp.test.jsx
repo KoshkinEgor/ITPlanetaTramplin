@@ -25,6 +25,7 @@ describe("UiKitApp", () => {
     expect(screen.getAllByRole("heading", { name: "FormField" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Placeholders" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Career" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "Resume & Portfolio" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Assemblies" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Editable resume snippets" })).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-placeholder-block")).toBeInTheDocument();
@@ -41,6 +42,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-opportunity-slider-uniform")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-slider-featured")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-slider-raised")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-recommended-opportunities-assembly")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-recommended-opportunities-rail")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-tile")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-filter-sidebar")).toBeInTheDocument();
@@ -48,7 +51,18 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-career-course-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-career-peer-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-career-assembly")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-switcher")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-resume-profile")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-resume-section")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-project-card")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-resume-assembly")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-candidate-portfolio-assembly")).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Резюме" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Портфолио" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Career dashboard assembly" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Resume page assembly" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Portfolio page assembly" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recommended opportunities rail" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Дашборд модерации" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Confirm Action Select" })).toBeInTheDocument();
@@ -172,11 +186,14 @@ describe("UiKitApp", () => {
   it("renders editable resume cards with distinct default, active, and compact states", () => {
     render(<UiKitApp />);
 
+    const editableSummary = screen.getByTestId("ui-kit-editable-summary");
+    const editableScope = within(editableSummary);
+
     expect(screen.getByTestId("ui-kit-editable-card-default")).not.toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-active")).toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-compact")).toHaveClass("is-compact");
-    expect(screen.getByText("О себе")).toBeInTheDocument();
-    expect(screen.getAllByText("ЧГУ им. И. Н. Ульянова")).toHaveLength(2);
+    expect(editableScope.getByText("О себе")).toBeInTheDocument();
+    expect(editableScope.getAllByText("ЧГУ им. И. Н. Ульянова")).toHaveLength(2);
   });
 
   it("shows the input variants gallery with default, left-icon, and right-icon layouts", () => {

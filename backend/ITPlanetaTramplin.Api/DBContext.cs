@@ -169,7 +169,7 @@ public partial class ApplicationDBContext : DbContext
                 .HasColumnName("case_study_url");
             entity.Property(e => e.Contribution).HasColumnName("contribution");
             entity.Property(e => e.CoverImageUrl)
-                .HasMaxLength(1000)
+                .HasColumnType("text")
                 .HasColumnName("cover_image_url");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -193,6 +193,10 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.ProjectType)
                 .HasMaxLength(100)
                 .HasColumnName("project_type");
+            entity.Property(e => e.ParticipantsJson)
+                .HasDefaultValueSql("'[]'::jsonb")
+                .HasColumnType("jsonb")
+                .HasColumnName("participants");
             entity.Property(e => e.RepositoryUrl)
                 .HasMaxLength(1000)
                 .HasColumnName("repository_url");

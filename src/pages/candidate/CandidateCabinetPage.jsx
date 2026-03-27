@@ -162,7 +162,7 @@ export function CandidateCabinetPage() {
       summary={summary}
       data-testid="candidate-cabinet-shell"
     >
-      <Outlet />
+      <Outlet context={{ profile: state.profile }} />
     </CabinetShell>
   );
 }

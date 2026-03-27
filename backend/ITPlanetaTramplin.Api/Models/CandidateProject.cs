@@ -41,6 +41,8 @@ public partial class CandidateProject
 
     public string? CoverImageUrl { get; set; }
 
+    public string? ParticipantsJson { get; set; }
+
     public string? DemoUrl { get; set; }
 
     public string? RepositoryUrl { get; set; }

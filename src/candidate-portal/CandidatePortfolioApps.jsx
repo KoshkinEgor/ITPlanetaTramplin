@@ -1,38 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-/* eslint-disable no-irregular-whitespace */
 import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, getCandidateProjects } from "../api/candidate";
 import { ApiError } from "../lib/http";
-import { Alert, Button, Card, EmptyState, Loader, Tag } from "../shared/ui";
-import { CANDIDATE_PAGE_ROUTES, CANDIDATE_PORTFOLIO_TABS } from "./config";
+import { Alert, Button, Card, EmptyState, Loader } from "../shared/ui";
+import { CANDIDATE_PAGE_ROUTES } from "./config";
 import { formatLongDate, getCandidateSkills, mapCandidateProjectToCard } from "./mappers";
-import { CandidateProjectCard, CandidateSectionHeader, CandidateSegmentNav } from "./shared";
-
-function CandidatePortfolioSwitcher({ value }) {
-  return (
-    <Card className="candidate-switcher-card">
-      <CandidateSectionHeader title="Резюме и портфолио" />
-      <CandidateSegmentNav items={CANDIDATE_PORTFOLIO_TABS} value={value} />
-    </Card>
-  );
-}
-
-function ResumeSection({ title, emptyText, items, renderItem }) {
-  return (
-    <Card className="candidate-resume-panel">
-      <div className="candidate-resume-panel__intro">
-        <h2 className="ui-type-h2">{title}</h2>
-      </div>
-
-      {items.length ? (
-        <div className="candidate-page-stack">
-          {items.map(renderItem)}
-        </div>
-      ) : (
-        <EmptyState title={emptyText} description="Раздел заполнится после реальных действий кандидата." compact tone="neutral" />
-      )}
-    </Card>
-  );
-}
+import {
+  CandidatePortfolioProjectCard,
+  CandidatePortfolioSwitcher,
+  CandidateResumeProfileCard,
+  CandidateResumeRecord,
+  CandidateResumeSection,
+} from "./portfolio-kit";
+import { CandidateSectionHeader } from "./shared";
 
 export function CandidateResumeApp() {
   const [state, setState] = useState({
@@ -77,6 +56,7 @@ export function CandidateResumeApp() {
     }
 
     load();
+
     return () => controller.abort();
   }, []);
 
@@ -105,65 +85,36 @@ export function CandidateResumeApp() {
 
       {state.status === "ready" ? (
         <>
-          <Card className="candidate-resume-panel">
-            <div className="candidate-resume-panel__intro">
-              <Tag tone="accent">Резюме</Tag>
-              <h2 className="ui-type-h2">Профиль кандидата</h2>
-              <p className="ui-type-body">{state.profile?.description || "Описание профиля пока пустое."}</p>
-            </div>
+          <CandidateResumeProfileCard
+            description={state.profile?.description || "Описание профиля пока пустое."}
+            skills={getCandidateSkills(state.profile)}
+          />
 
-            <div className="candidate-resume-record__tags">
-              {getCandidateSkills(state.profile).length ? (
-                getCandidateSkills(state.profile).map((skill) => (
-                  <Tag key={skill}>{skill}</Tag>
-                ))
-              ) : (
-                <Tag>Навыки пока не указаны</Tag>
-              )}
-            </div>
-
-            <div className="candidate-resume-panel__actions">
-              <Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Редактировать данные</Button>
-            </div>
-          </Card>
-
-          <ResumeSection
+          <CandidateResumeSection
             title="Образование"
             emptyText="Образование еще не добавлено"
             items={state.education}
             renderItem={(item) => (
-              <article key={item.id} className="candidate-resume-record">
-                <div className="candidate-resume-record__head">
-                  <div className="candidate-resume-record__copy-link">
-                    <h3 className="ui-type-h2">{item.institutionName}</h3>
-                    <p className="ui-type-body">
-                      {[item.faculty, item.specialization].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </div>
-                <div className="candidate-resume-record__stats">
-                  <span>{item.startYear || "?"} - {item.graduationYear || "?"}</span>
-                </div>
-              </article>
+              <CandidateResumeRecord
+                key={item.id}
+                title={item.institutionName}
+                description={[item.faculty, item.specialization].filter(Boolean).join(" · ")}
+                meta={`${item.startYear || "?"} - ${item.graduationYear || "?"}`}
+              />
             )}
           />
 
-          <ResumeSection
+          <CandidateResumeSection
             title="Достижения"
             emptyText="Достижения еще не добавлены"
             items={state.achievements}
             renderItem={(item) => (
-              <article key={item.id} className="candidate-resume-record">
-                <div className="candidate-resume-record__head">
-                  <div className="candidate-resume-record__copy-link">
-                    <h3 className="ui-type-h2">{item.title || "Достижение"}</h3>
-                    <p className="ui-type-body">{item.description || "Без описания"}</p>
-                  </div>
-                </div>
-                <div className="candidate-resume-record__stats">
-                  <span>{formatLongDate(item.obtainDate) || "Дата не указана"}</span>
-                </div>
-              </article>
+              <CandidateResumeRecord
+                key={item.id}
+                title={item.title || "Достижение"}
+                description={item.description || "Без описания"}
+                meta={formatLongDate(item.obtainDate) || "Дата не указана"}
+              />
             )}
           />
         </>
@@ -205,6 +156,7 @@ export function CandidateProjectsApp() {
     }
 
     load();
+
     return () => controller.abort();
   }, []);
 
@@ -244,7 +196,7 @@ export function CandidateProjectsApp() {
           {projectItems.length ? (
             <div className="candidate-page-grid candidate-page-grid--two">
               {projectItems.map((item) => (
-                <CandidateProjectCard key={item.id} item={item} />
+                <CandidatePortfolioProjectCard key={item.id} item={item} />
               ))}
             </div>
           ) : (

@@ -19,7 +19,7 @@ function RemovableChip({ label, onRemove }) {
   return (
     <span className="ui-tag-selector__chip ui-tag-selector__chip--removable">
       <span>{label}</span>
-      <button type="button" className="ui-tag-selector__chip-remove" aria-label={`РЈРґР°Р»РёС‚СЊ ${label}`} onClick={onRemove}>
+      <button type="button" className="ui-tag-selector__chip-remove" aria-label={`Удалить ${label}`} onClick={onRemove}>
         <CloseIcon />
       </button>
     </span>
@@ -43,13 +43,13 @@ export function TagSelector({
   value = [],
   suggestions = [],
   title,
-  suggestionsLabel = "Р РµРєРѕРјРµРЅРґРѕРІР°РЅРЅС‹Рµ С‚РµРіРё",
-  searchPlaceholder = "РџРѕРёСЃРє С‚РµРіРѕРІ",
-  editLabel = "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ",
-  saveLabel = "РЎРѕС…СЂР°РЅРёС‚СЊ",
-  cancelLabel = "РћС‚РјРµРЅР°",
-  emptyLabel = "РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ",
-  clearLabel = "РћС‡РёСЃС‚РёС‚СЊ РїРѕРёСЃРє",
+  suggestionsLabel = "Рекомендованные теги",
+  searchPlaceholder = "Поиск тегов",
+  editLabel = "Редактировать",
+  saveLabel = "Сохранить",
+  cancelLabel = "Отмена",
+  emptyLabel = "Пока ничего не добавлено",
+  clearLabel = "Очистить поиск",
   fontWeight,
   width,
   className,
@@ -66,9 +66,7 @@ export function TagSelector({
 
   const visibleSuggestions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return suggestions.filter((item) => (
-      !normalized || item.toLowerCase().includes(normalized)
-    ));
+    return suggestions.filter((item) => !normalized || item.toLowerCase().includes(normalized));
   }, [query, suggestions]);
 
   const handleCancel = () => {

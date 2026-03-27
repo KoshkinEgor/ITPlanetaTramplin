@@ -156,14 +156,30 @@ export function mapContactToCard(contact) {
 
   return {
     id: contact.contactProfileId,
-    initials: name
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "К",
+    initials: buildInitials(name),
     name,
     summary: contact.email || "Без email",
     tags: tags.length ? tags : ["Контакт"],
+  };
+}
+
+export function mapContactToPeerCard(contact, candidateSkills = []) {
+  const name = contact?.name || contact?.email || "Контакт";
+  const contactSkills = Array.isArray(contact?.skills) ? contact.skills.filter(Boolean) : [];
+  const candidateSkillSet = new Set(
+    (Array.isArray(candidateSkills) ? candidateSkills : [])
+      .map(normalizeSkillKey)
+      .filter(Boolean)
+  );
+  const sharedSkills = contactSkills
+    .filter((skill) => candidateSkillSet.size === 0 || candidateSkillSet.has(normalizeSkillKey(skill)))
+    .slice(0, 3);
+
+  return {
+    id: contact?.contactProfileId ?? contact?.id ?? contact?.email ?? contact?.name,
+    initials: buildInitials(name),
+    name,
+    sharedSkills: sharedSkills.length ? sharedSkills : contactSkills.slice(0, 3),
   };
 }
 
@@ -265,6 +281,19 @@ function normalizeMetaPart(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeSkillKey(value) {
+  return typeof value === "string" ? value.trim().toLowerCase().replace(/ё/g, "е") : "";
+}
+
 function normalizeStatus(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function buildInitials(value) {
+  return String(value ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "К";
 }

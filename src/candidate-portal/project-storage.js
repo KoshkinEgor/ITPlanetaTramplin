@@ -1,3 +1,15 @@
+let participantDraftCounter = 0;
+
+export function createProjectParticipantDraft(participant = {}) {
+  participantDraftCounter += 1;
+
+  return {
+    draftKey: participant.draftKey || `project-participant-${participantDraftCounter}`,
+    name: trimText(participant.name),
+    role: trimText(participant.role),
+  };
+}
+
 export function createInitialProjectDraft() {
   return {
     title: "",
@@ -16,6 +28,7 @@ export function createInitialProjectDraft() {
     lessonsLearned: "",
     tags: [],
     coverImageUrl: "",
+    participants: [],
     demoUrl: "",
     repositoryUrl: "",
     designUrl: "",
@@ -32,13 +45,51 @@ function normalizeUrl(value) {
   return trimText(value);
 }
 
-function isValidUrl(value) {
+function isValidProjectLink(value) {
   try {
     const parsed = new URL(value);
     return parsed.protocol === "http:" || parsed.protocol === "https:";
   } catch {
     return false;
   }
+}
+
+export function isProjectImageDataUrl(value) {
+  return /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimText(value));
+}
+
+function isValidProjectCoverSource(value) {
+  return isValidProjectLink(value) || isProjectImageDataUrl(value);
+}
+
+function normalizeParticipants(participants) {
+  if (!Array.isArray(participants)) {
+    return [];
+  }
+
+  return participants
+    .map((participant) => ({
+      name: trimText(participant?.name),
+      role: trimText(participant?.role),
+    }))
+    .filter((participant) => participant.name || participant.role);
+}
+
+function isEndBeforeStart(startMonth, endMonth) {
+  if (!startMonth || !endMonth) {
+    return false;
+  }
+
+  const normalizedStart = startMonth.length === 7 ? `${startMonth}-01` : startMonth;
+  const normalizedEnd = endMonth.length === 7 ? `${endMonth}-01` : endMonth;
+  const startDate = new Date(`${normalizedStart}T00:00:00`);
+  const endDate = new Date(`${normalizedEnd}T00:00:00`);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return false;
+  }
+
+  return endDate < startDate;
 }
 
 export function normalizeProjectDraft(draft) {
@@ -63,6 +114,7 @@ export function normalizeProjectDraft(draft) {
     lessonsLearned: trimText(draft.lessonsLearned),
     tags: normalizedTags,
     coverImageUrl: normalizeUrl(draft.coverImageUrl),
+    participants: normalizeParticipants(draft.participants),
     demoUrl: normalizeUrl(draft.demoUrl),
     repositoryUrl: normalizeUrl(draft.repositoryUrl),
     designUrl: normalizeUrl(draft.designUrl),
@@ -99,6 +151,10 @@ export function validateProjectDraft(draft) {
     errors.endMonth = "Укажите дату завершения проекта или включите текущий статус.";
   }
 
+  if (!normalized.isOngoing && normalized.startMonth && normalized.endMonth && isEndBeforeStart(normalized.startMonth, normalized.endMonth)) {
+    errors.endMonth = "Дата завершения не может быть раньше даты старта.";
+  }
+
   if (!normalized.problem) {
     errors.problem = "Опишите задачу или проблему проекта.";
   }
@@ -117,19 +173,29 @@ export function validateProjectDraft(draft) {
 
   if (normalized.teamSize) {
     const parsedTeamSize = Number(normalized.teamSize);
+
     if (!Number.isInteger(parsedTeamSize) || parsedTeamSize <= 0) {
       errors.teamSize = "Размер команды должен быть положительным числом.";
+    } else if (normalized.participants.length > parsedTeamSize) {
+      errors.teamSize = "Количество участников не может быть больше размера команды.";
     }
   }
 
+  if (normalized.participants.some((participant) => !participant.name)) {
+    errors.participants = "Укажите имя для каждого добавленного участника.";
+  }
+
+  if (normalized.coverImageUrl && !isValidProjectCoverSource(normalized.coverImageUrl)) {
+    errors.coverImageUrl = "Добавьте корректную ссылку на изображение или загрузите файл.";
+  }
+
   [
-    ["coverImageUrl", normalized.coverImageUrl],
     ["demoUrl", normalized.demoUrl],
     ["repositoryUrl", normalized.repositoryUrl],
     ["designUrl", normalized.designUrl],
     ["caseStudyUrl", normalized.caseStudyUrl],
   ].forEach(([field, value]) => {
-    if (value && !isValidUrl(value)) {
+    if (value && !isValidProjectLink(value)) {
       errors[field] = "Введите корректную ссылку с http:// или https://";
     }
   });
@@ -165,5 +231,8 @@ export function createProjectPreviewItem(draft) {
     description: normalized.shortDescription || "Короткое описание проекта появится здесь после заполнения формы.",
     role: `Роль в проекте: ${normalized.role || "уточните роль"}`,
     chips: normalized.tags.length ? normalized.tags.slice(0, 4) : ["Добавьте теги"],
+    coverImageUrl: normalized.coverImageUrl,
+    participants: normalized.participants,
+    teamSize: normalized.teamSize ? Number(normalized.teamSize) : null,
   };
 }
