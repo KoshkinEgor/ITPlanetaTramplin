@@ -780,6 +780,10 @@ function getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMo
   return items.length ? items : [{ label: "Связь еще не установлена", tone: "neutral" }];
 }
 
+function getStatusTag() {
+  return { label: "Ищет работу", tone: "success" };
+}
+
 export function CandidatePublicProfilePage() {
   useBodyClass("candidate-portal-react-body");
 
@@ -882,10 +886,6 @@ export function CandidatePublicProfilePage() {
       skills,
     }),
     [profile, publicUserId, skills]
-  );
-  const availabilityTag = useMemo(
-    () => getAvailabilityTag({ isSelfPublicView, isPreviewMode }),
-    [isPreviewMode, isSelfPublicView]
   );
   const relationshipStatusTags = useMemo(
     () => getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMode }),
