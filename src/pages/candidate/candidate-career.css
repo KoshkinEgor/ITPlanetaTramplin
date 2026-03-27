@@ -408,173 +408,24 @@
   gap: 32px;
   align-items: start;
 }
-
-.candidate-career-dashboard__panel,
-.candidate-career-dashboard__course-card,
-.candidate-career-dashboard__mentor-card,
-.candidate-career-dashboard__peer-card {
-  border: 1px solid rgba(114, 128, 162, 0.14);
-  box-shadow: 0 24px 60px rgba(43, 62, 103, 0.08);
-  backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.candidate-career-dashboard__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 100%;
-  padding: 32px;
-  border-radius: 32px;
-}
-
-.candidate-career-dashboard__panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.candidate-career-dashboard__panel-head h2 {
-  margin: 0;
-  font-size: var(--ui-font-size-h2);
-  line-height: var(--ui-line-height-h2);
-  letter-spacing: var(--ui-letter-spacing-h2);
-}
-
-.candidate-career-dashboard__panel-head p,
-.candidate-career-dashboard__panel-head span,
-.candidate-career-dashboard__panel-copy,
-.candidate-career-dashboard__salary-item p,
-.candidate-career-dashboard__course-copy p,
-.candidate-career-dashboard__course-copy span,
-.candidate-career-dashboard__mentor-head p,
-.candidate-career-dashboard__mentor-summary,
-.candidate-career-dashboard__peer-main p {
-  margin: 0;
-  color: var(--ui-color-text-muted);
-}
-
-.candidate-career-dashboard__panel-head span {
-  display: block;
-  margin-top: 6px;
-}
-
-.candidate-career-dashboard__metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.candidate-career-dashboard__metric-card {
-  display: grid;
-  gap: 8px;
-  padding: 14px 14px 12px;
-  border: 1px solid rgba(47, 128, 255, 0.18);
-  border-radius: 22px;
-  background: rgba(245, 248, 255, 0.92);
-}
-
-.candidate-career-dashboard__metric-card strong {
-  font-size: var(--ui-font-size-h1);
-  line-height: var(--ui-line-height-h1);
-  letter-spacing: var(--ui-letter-spacing-h2);
-}
-
-.candidate-career-dashboard__metric-card span {
-  color: var(--ui-color-text-soft);
-  font-weight: 600;
-}
-
-.candidate-career-dashboard__metric-card--success {
-  background: linear-gradient(180deg, rgba(204, 244, 220, 0.92), rgba(238, 250, 243, 0.92));
-  border-color: rgba(70, 180, 110, 0.24);
-}
-
-.candidate-career-dashboard__panel--skills {
-  background:
-    radial-gradient(circle at top right, rgba(209, 255, 39, 0.2), transparent 28%),
-    rgba(255, 255, 255, 0.82);
-}
-
-.candidate-career-dashboard__skill-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.candidate-career-dashboard__skill-tag,
-.candidate-career-dashboard__recommendation-tag {
-  border-radius: 999px;
-}
-
-.candidate-career-dashboard__recommended-block {
-  display: grid;
-  gap: 14px;
-}
-
-.candidate-career-dashboard__recommended-block > span {
-  font-size: var(--ui-font-size-body);
-  font-weight: 700;
-  color: var(--ui-color-text-soft);
-}
-
-.candidate-career-dashboard__inline-link,
 .candidate-career-dashboard__section-link {
   color: var(--ui-color-accent);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
   font-weight: 700;
   text-decoration: none;
 }
 
-.candidate-career-dashboard__inline-link:hover,
-.candidate-career-dashboard__inline-link:focus-visible,
 .candidate-career-dashboard__section-link:hover,
 .candidate-career-dashboard__section-link:focus-visible {
   text-decoration: underline;
 }
 
-.candidate-career-dashboard__salary {
-  background:
-    radial-gradient(circle at top right, rgba(209, 255, 39, 0.24), transparent 32%),
-    rgba(255, 255, 255, 0.82);
-}
-
-.candidate-career-dashboard__salary-list {
-  display: grid;
-  gap: 24px;
-}
-
-.candidate-career-dashboard__salary-item {
-  display: grid;
-  gap: 10px;
-}
-
-.candidate-career-dashboard__salary-item strong {
-  font-size: clamp(var(--ui-font-size-h5), 2vw, calc((var(--ui-font-size-h4) * 0.5) + (var(--ui-font-size-h3) * 0.5)));
-  line-height: calc(var(--ui-line-height-display) * 0.875);
-  letter-spacing: var(--ui-letter-spacing-h2);
-  color: var(--ui-color-accent);
-}
-
-.candidate-career-dashboard__salary-track {
-  display: block;
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(167, 176, 198, 0.26);
-  overflow: hidden;
-}
-
-.candidate-career-dashboard__salary-track > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #d1ff27 0%, #2f80ff 100%);
-}
-
 .candidate-career-dashboard__card-grid {
   display: grid;
   gap: 20px;
+  align-items: stretch;
 }
 
 .candidate-career-dashboard__card-grid--courses {
@@ -587,56 +438,6 @@
 
 .candidate-career-dashboard__card-grid--mentors {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.candidate-career-dashboard__course-card,
-.candidate-career-dashboard__mentor-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 100%;
-  padding: 16px;
-  border-radius: 28px;
-}
-
-.candidate-career-dashboard__course-copy {
-  display: grid;
-  gap: 12px;
-}
-
-.candidate-career-dashboard__course-copy h3,
-.candidate-career-dashboard__mentor-head h3,
-.candidate-career-dashboard__peer-main h3 {
-  margin: 0;
-  font-size: var(--ui-font-size-h3);
-  line-height: var(--ui-line-height-h3);
-  letter-spacing: var(--ui-letter-spacing-h3);
-}
-
-.candidate-career-dashboard__course-copy strong {
-  font-size: clamp(var(--ui-font-size-h5), 1.8vw, calc((var(--ui-font-size-h4) * 0.21) + (var(--ui-font-size-h3) * 0.79)));
-  line-height: calc(var(--ui-line-height-display) * 0.875);
-  color: #2ea85d;
-}
-
-.candidate-career-dashboard__course-copy small {
-  color: var(--ui-color-text-soft);
-}
-
-.candidate-career-dashboard__course-pricing {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.candidate-career-dashboard__course-pricing span {
-  font-size: var(--ui-font-size-caption);
-  text-decoration: line-through;
-}
-
-.candidate-career-dashboard__card-meta {
-  font-size: var(--ui-font-size-caption);
 }
 
 .candidate-career-dashboard__mentor-filters {
@@ -653,122 +454,18 @@
   box-shadow: 0 18px 30px rgba(47, 128, 255, 0.18);
 }
 
-.candidate-career-dashboard__mentor-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.candidate-career-dashboard__mentor-avatar {
-  flex-shrink: 0;
-}
-
-.candidate-career-dashboard__mentor-body {
-  display: grid;
-  gap: 20px;
-}
-
-.candidate-career-dashboard__opportunity-card {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 100%;
-  padding: 14px;
-  border-radius: 28px;
-}
-
-.candidate-career-dashboard__opportunity-card.is-featured {
+.candidate-career-dashboard__card-grid--opportunities > .ui-career-opportunity-card--featured {
   grid-column: span 5;
 }
 
-.candidate-career-dashboard__card-grid--opportunities > .candidate-career-dashboard__opportunity-card:not(.is-featured) {
+.candidate-career-dashboard__card-grid--opportunities > .ui-career-opportunity-card:not(.ui-career-opportunity-card--featured) {
   grid-column: span 3;
-}
-
-.candidate-career-dashboard__opportunity-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.candidate-career-dashboard__opportunity-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.candidate-career-dashboard__opportunity-save.ui-icon-button {
-  border-color: rgba(24, 29, 45, 0.06);
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.candidate-career-dashboard__opportunity-copy {
-  display: grid;
-  gap: 10px;
-}
-
-.candidate-career-dashboard__opportunity-copy h3 {
-  margin: 0;
-  font-size: var(--ui-font-size-h3);
-  line-height: var(--ui-line-height-h3);
-  letter-spacing: var(--ui-letter-spacing-h3);
-}
-
-.candidate-career-dashboard__opportunity-copy p {
-  margin: 0;
-  color: var(--ui-color-text-soft);
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-}
-
-.candidate-career-dashboard__opportunity-copy span {
-  color: var(--ui-color-text-muted);
-}
-
-.candidate-career-dashboard__opportunity-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: auto;
 }
 
 .candidate-career-dashboard__peer-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-}
-
-.candidate-career-dashboard__peer-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 14px 18px;
-  border-radius: 22px;
-}
-
-.candidate-career-dashboard__peer-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.candidate-career-dashboard__peer-avatar {
-  flex-shrink: 0;
-}
-
-.candidate-career-dashboard__peer-action.ui-button {
-  width: 44px;
-  min-width: 44px;
-  padding-inline: 0;
-  border-radius: 999px;
-}
-
-.candidate-career-dashboard__peer-action.ui-icon-button {
-  flex-shrink: 0;
-  border-color: rgba(24, 29, 45, 0.08);
 }
 
 @media (max-width: 1080px) {
@@ -800,8 +497,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .candidate-career-dashboard__opportunity-card.is-featured,
-  .candidate-career-dashboard__card-grid--opportunities > .candidate-career-dashboard__opportunity-card:not(.is-featured) {
+  .candidate-career-dashboard__card-grid--opportunities > .ui-career-opportunity-card--featured,
+  .candidate-career-dashboard__card-grid--opportunities > .ui-career-opportunity-card:not(.ui-career-opportunity-card--featured) {
     grid-column: span 1;
   }
 }
@@ -837,14 +534,6 @@
     gap: 36px;
   }
 
-  .candidate-career-dashboard__panel,
-  .candidate-career-dashboard__course-card,
-  .candidate-career-dashboard__mentor-card {
-    padding: 20px;
-    border-radius: 24px;
-  }
-
-  .candidate-career-dashboard__metric-grid,
   .candidate-career-dashboard__card-grid--courses,
   .candidate-career-dashboard__card-grid--mentors,
   .candidate-career-dashboard__peer-grid {
@@ -853,13 +542,5 @@
 
   .candidate-career-dashboard__card-grid--opportunities {
     grid-template-columns: 1fr;
-  }
-
-  .candidate-career-dashboard__peer-card {
-    align-items: flex-start;
-  }
-
-  .candidate-career-dashboard__peer-action.ui-button {
-    margin-left: auto;
   }
 }

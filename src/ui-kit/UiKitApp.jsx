@@ -9,11 +9,19 @@ import {
   CompanyVacancyTile,
   ConfirmActionSelect,
   ContentRail,
+  CareerCourseCard,
+  CareerMentorCard,
+  CareerOpportunityCard,
+  CareerPeerCard,
+  CareerSalaryPanel,
+  CareerSkillsPanel,
+  CareerStatsPanel,
   DashboardActivityCard,
   DashboardFocusCard,
   DashboardPageHeader,
   DashboardQueueCard,
   DashboardSectionHeader,
+  FilterPill,
   FormField,
   Input,
   ModerationActionDialog,
@@ -25,6 +33,7 @@ import {
   MapMarker,
   Radio,
   SearchInput,
+  SectionHeader,
   SegmentedControl,
   Select,
   SettingsSectionCard,
@@ -47,6 +56,7 @@ const sectionLinks = [
   { id: "ui-kit-navigation", label: "Navigation" },
   { id: "ui-kit-form-field", label: "FormField" },
   { id: "ui-kit-placeholders", label: "Placeholders" },
+  { id: "ui-kit-career", label: "Career" },
   { id: "ui-kit-assemblies", label: "Assemblies" },
 ];
 
@@ -307,6 +317,184 @@ const sidebarInitialValues = {
   payoutPeriod: "",
   education: [],
 };
+
+const careerStatsPanelMock = {
+  title: "Твоя карьера",
+  metaTitle: "Анна Иванова",
+  metaDescription: "UX/UI дизайнер · Чебоксары",
+  stats: [
+    { value: "6", label: "Отклики" },
+    { value: "2", label: "Рассмотрение" },
+    { value: "1", label: "Приглашения", tone: "success" },
+  ],
+  description: "Чтобы повысить шансы на собеседование, можно обратиться к менторам: они помогут усилить профиль и подготовить следующий шаг.",
+  cta: { href: "#career-interview", label: "Подготовиться к собеседованию" },
+};
+
+const careerSkillsPanelMock = {
+  title: "Твои навыки",
+  primarySkills: ["SQL", "Python", "Research", "UX", "Figma", "Презентации"],
+  suggestedSkills: ["Вёрстка", "Графический дизайн", "User experience", "Sketch", "User interface", "Adobe Photoshop"],
+  href: "#career-courses",
+};
+
+const careerSalaryPanelMock = {
+  title: "Уровень зарплат",
+  city: "Чебоксарах",
+  items: [
+    { level: "Джуниор веб-дизайнер", range: "44-56 тыс. ₽", progress: 0.32 },
+    { level: "Мид веб-дизайнер", range: "52-59 тыс. ₽", progress: 0.5 },
+    { level: "Сеньор веб-дизайнер", range: "106-459 тыс. ₽", progress: 1 },
+  ],
+};
+
+const careerCourseCardMock = {
+  meta: "Продвинутый · 3 мес + онлайн",
+  title: "Нейросети для дизайна",
+  provider: "Яндекс Практикум",
+  price: "40 000 ₽",
+  oldPrice: "82 000 ₽",
+  monthly: "2325 ₽ в месяц",
+  href: "#career-course-card",
+  actionLabel: "Перейти к курсу",
+};
+
+const careerOpportunityCardMock = {
+  type: "Стажировка",
+  status: "Активно",
+  statusTone: "success",
+  title: "Веб-дизайнер",
+  company: "White Tiger Soft",
+  accent: "Длительность: 8 недель",
+  chips: ["Студенты", "Без опыта"],
+  href: "#career-opportunity-card",
+};
+
+const careerMentorCardMock = {
+  name: "Мария Соколова",
+  role: "Карьерный консультант",
+  summary: "Сертифицированный карьерный консультант, эксперт по трудоустройству топ-менеджеров.",
+  tone: "warning",
+  href: "#career-mentor-card",
+};
+
+const careerPeerCardMock = {
+  name: "Александра Морева",
+  initials: "АМ",
+  sharedSkills: ["Web-design", "UX", "Figma"],
+  href: "#career-peer-card",
+};
+
+const careerCourseCardsMock = [
+  careerCourseCardMock,
+  {
+    meta: "С нуля · 2 мес + онлайн",
+    title: "Adobe Illustrator с нуля",
+    provider: "Skillbox",
+    price: "25 000 ₽",
+    oldPrice: "82 000 ₽",
+    monthly: "825 ₽ в месяц",
+    href: "#career-course-illustrator",
+    actionLabel: "Перейти к курсу",
+  },
+  {
+    meta: "С нуля · 1 мес + онлайн",
+    title: "Типографика и вёрстка: внимание к типу",
+    provider: "Skillbox",
+    price: "20 000 ₽",
+    oldPrice: "82 000 ₽",
+    monthly: "755 ₽ в месяц",
+    href: "#career-course-typography",
+    actionLabel: "Перейти к курсу",
+  },
+  {
+    meta: "С нуля · 4 мес + онлайн",
+    title: "Ускоренный курс по графическому дизайну",
+    provider: "Skillbox",
+    price: "78 000 ₽",
+    oldPrice: "82 000 ₽",
+    monthly: "3755 ₽ в месяц",
+    href: "#career-course-graphic",
+    actionLabel: "Перейти к курсу",
+  },
+];
+
+const careerOpportunityCardsMock = [
+  {
+    type: "Стажировка",
+    status: "Активно",
+    statusTone: "success",
+    title: "Дизайнер интерфейсов мобильных приложений UI/UX (Junior/Middle)",
+    company: "White Tiger Soft",
+    accent: "Длительность: 8 недель",
+    chips: ["Студенты", "Без опыта"],
+    href: "#career-opportunity-featured",
+  },
+  {
+    type: "Стажировка",
+    status: "Активно",
+    statusTone: "success",
+    title: "Веб-дизайнер",
+    company: "ГАУЗ Республиканский медицинский центр",
+    accent: "Длительность: 4 недели",
+    chips: ["Студенты", "Без опыта"],
+    href: "#career-opportunity-web",
+  },
+  {
+    type: "Стажировка",
+    status: "Активно",
+    statusTone: "success",
+    title: "Графический дизайнер",
+    company: "Leonards space",
+    accent: "Длительность: 12 недель",
+    chips: ["Студенты", "Без опыта"],
+    href: "#career-opportunity-graphic",
+  },
+  {
+    type: "Стажировка",
+    status: "Активно",
+    statusTone: "success",
+    title: "Дизайнер цифровых продуктов",
+    company: "White Tiger Soft",
+    accent: "Длительность: 6 недель",
+    chips: ["Студенты", "Junior"],
+    href: "#career-opportunity-product",
+  },
+];
+
+const careerMentorCardsMock = [
+  careerMentorCardMock,
+  {
+    name: "Юлия Дмитриева",
+    role: "Карьерный консультант",
+    summary: "Помогает настроить карьерный фокус, резюме и уверенно пройти интервью.",
+    tone: "accent",
+    href: "#career-mentor-julia",
+  },
+  {
+    name: "Вероника Алексеева",
+    role: "Senior Product Designer в Яндекс",
+    summary: "5 лет в UX/UI-дизайне, IT-рекрутинге и продуктовых командах.",
+    tone: "success",
+    href: "#career-mentor-veronica",
+  },
+];
+
+const careerPeerCardsMock = [
+  careerPeerCardMock,
+  {
+    name: "Анастасия Соколова",
+    initials: "АС",
+    sharedSkills: ["Figma", "UX", "Research"],
+    href: "#career-peer-anastasia",
+  },
+  {
+    name: "Мария Ильина",
+    initials: "МИ",
+    sharedSkills: ["Figma", "UX"],
+    href: "#career-peer-maria",
+  },
+];
 
 function createUiKitSliderCardProps(item) {
   return {
@@ -1680,6 +1868,101 @@ function EditableResumeAssembly() {
   );
 }
 
+function CareerDashboardAssembly() {
+  const mentorFilters = [
+    "Построить карьерный план",
+    "Создать полное резюме",
+    "Проработать стратегию развития",
+    "Подготовиться к собеседованию",
+    "Справиться с выгоранием",
+  ];
+
+  return (
+    <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-career-assembly">
+      <div className="ui-kit-foundation-card__copy">
+        <span className="ui-kit-eyebrow">Career</span>
+        <h3 className="ui-type-h3">Career dashboard assembly</h3>
+        <p className="ui-type-body">The full career page structure rebuilt from shared career cards, panels, pills, and existing section headers.</p>
+      </div>
+
+      <div className="ui-kit-career-dashboard-preview">
+        <SectionHeader
+          eyebrow="Карьерные возможности"
+          title="Карьера"
+          description="Не знаешь куда двигаться? Тогда этот блок именно для тебя. Получи свою траекторию развития для усиления навыков и перехода к следующей цели."
+          className="ui-kit-career-dashboard-preview__intro"
+        />
+
+        <div className="ui-kit-career-dashboard-preview__top-grid">
+          <CareerStatsPanel {...careerStatsPanelMock} />
+          <CareerSkillsPanel {...careerSkillsPanelMock} />
+          <CareerSalaryPanel {...careerSalaryPanelMock} />
+        </div>
+
+        <div className="ui-kit-career-dashboard-preview__section">
+          <SectionHeader
+            title="Курсы по навыкам"
+            size="md"
+            actions={<a href="#career-courses-all" className="ui-kit-career-dashboard-preview__link">Все курсы →</a>}
+          />
+          <div className="ui-kit-career-dashboard-preview__grid ui-kit-career-dashboard-preview__grid--courses">
+            {careerCourseCardsMock.map((course) => (
+              <CareerCourseCard key={course.href} {...course} />
+            ))}
+          </div>
+        </div>
+
+        <div className="ui-kit-career-dashboard-preview__section">
+          <SectionHeader
+            title="Пройди стажировку и совершенствуй свои навыки"
+            size="md"
+            actions={<a href="#career-opportunities-all" className="ui-kit-career-dashboard-preview__link">Все возможности →</a>}
+          />
+          <div className="ui-kit-career-dashboard-preview__grid ui-kit-career-dashboard-preview__grid--opportunities">
+            {careerOpportunityCardsMock.map((item, index) => (
+              <CareerOpportunityCard key={item.href} featured={index === 0} {...item} />
+            ))}
+          </div>
+        </div>
+
+        <div className="ui-kit-career-dashboard-preview__section">
+          <SectionHeader
+            title="Есть вопросы? Обратись к нашим менторам!"
+            size="md"
+            actions={<a href="#career-mentors-all" className="ui-kit-career-dashboard-preview__link">Все менторы →</a>}
+          />
+          <div className="ui-kit-career-dashboard-preview__filters">
+            {mentorFilters.map((filter, index) => (
+              <FilterPill key={filter} active={index === 0}>
+                {filter}
+              </FilterPill>
+            ))}
+          </div>
+          <div className="ui-kit-career-dashboard-preview__grid ui-kit-career-dashboard-preview__grid--mentors">
+            {careerMentorCardsMock.map((mentor) => (
+              <CareerMentorCard key={mentor.href} {...mentor} />
+            ))}
+          </div>
+        </div>
+
+        <div className="ui-kit-career-dashboard-preview__section">
+          <SectionHeader
+            title="У вас есть общие интересы"
+            description="Вы можете найти единомышленников и погрузиться в профессиональную среду. Работайте над проектами совместно и развивайте не только профильные навыки."
+            size="md"
+            actions={<a href="#career-peers-all" className="ui-kit-career-dashboard-preview__link">Найти единомышленников →</a>}
+          />
+          <div className="ui-kit-career-dashboard-preview__peer-grid">
+            {careerPeerCardsMock.map((contact) => (
+              <CareerPeerCard key={contact.href} {...contact} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function ModeratorDashboardAssembly() {
   return (
     <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide" data-testid="ui-kit-dashboard-assembly">
@@ -2007,6 +2290,94 @@ export function UiKitApp() {
           description="Shared placeholder primitives used by unfinished cabinet sections, media slots, and action stubs."
         >
           <PlaceholderPlayground />
+        </UiKitSection>
+
+        <UiKitSection
+          id="ui-kit-career"
+          eyebrow="Career"
+          title="Career"
+          description="Shared career-specific assemblies extracted from the live career page and mirrored here as reusable UI kit specimens."
+        >
+          <div className="ui-kit-career-grid">
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-stats-panel">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career panel</span>
+                <h3 className="ui-type-h3">Stats panel</h3>
+                <p className="ui-type-body">Profile state, compact metrics, and one clear CTA in the same shared surface.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerStatsPanel {...careerStatsPanelMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-skills-panel">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career panel</span>
+                <h3 className="ui-type-h3">Skills panel</h3>
+                <p className="ui-type-body">Primary and suggested skill pills stay in the shared system without local page markup.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerSkillsPanel {...careerSkillsPanelMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-salary-panel">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career panel</span>
+                <h3 className="ui-type-h3">Salary panel</h3>
+                <p className="ui-type-body">Compact salary progression with the shared progress track and accent hierarchy.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerSalaryPanel {...careerSalaryPanelMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-course-card">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career card</span>
+                <h3 className="ui-type-h3">Course card</h3>
+                <p className="ui-type-body">Reference element from the attached screenshots, now exposed as a reusable shared card.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerCourseCard {...careerCourseCardMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-opportunity-card">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career card</span>
+                <h3 className="ui-type-h3">Opportunity card</h3>
+                <p className="ui-type-body">Internships and recommendations keep the same shared save action, chips, and full-width CTA.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerOpportunityCard featured {...careerOpportunityCardMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-mentor-card">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career card</span>
+                <h3 className="ui-type-h3">Mentor card</h3>
+                <p className="ui-type-body">Mentor presentation supports image or avatar fallback but stays under the same body-scale typography cap.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerMentorCard {...careerMentorCardMock} />
+              </div>
+            </Card>
+
+            <Card className="ui-kit-specimen" data-testid="ui-kit-career-peer-card">
+              <div className="ui-kit-specimen__copy">
+                <span className="ui-kit-eyebrow">Career card</span>
+                <h3 className="ui-type-h3">Peer card</h3>
+                <p className="ui-type-body">Compact shared-interests card from the attached reference, extracted into the shared UI layer.</p>
+              </div>
+              <div className="ui-kit-career-preview">
+                <CareerPeerCard {...careerPeerCardMock} />
+              </div>
+            </Card>
+          </div>
+
+          <CareerDashboardAssembly />
         </UiKitSection>
 
         <UiKitSection

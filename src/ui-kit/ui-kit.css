@@ -956,10 +956,109 @@ body.ui-kit-react-body {
   border: 1px solid rgba(24, 29, 45, 0.08);
 }
 
+.ui-kit-career-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.ui-kit-career-preview {
+  min-width: 0;
+}
+
+.ui-kit-career-preview > * {
+  width: 100%;
+}
+
+.ui-kit-career-dashboard-preview {
+  display: grid;
+  gap: 28px;
+}
+
+.ui-kit-career-dashboard-preview__intro {
+  max-width: 760px;
+}
+
+.ui-kit-career-dashboard-preview__intro .ui-section-header__eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(47, 128, 255, 0.1);
+  color: var(--ui-color-accent);
+}
+
+.ui-kit-career-dashboard-preview__top-grid,
+.ui-kit-career-dashboard-preview__grid,
+.ui-kit-career-dashboard-preview__peer-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.ui-kit-career-dashboard-preview__top-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.ui-kit-career-dashboard-preview__section {
+  display: grid;
+  gap: 20px;
+}
+
+.ui-kit-career-dashboard-preview__grid--courses {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ui-kit-career-dashboard-preview__grid--opportunities {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.ui-kit-career-dashboard-preview__grid--mentors,
+.ui-kit-career-dashboard-preview__peer-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ui-kit-career-dashboard-preview__grid--opportunities > .ui-career-opportunity-card--featured {
+  grid-column: span 5;
+}
+
+.ui-kit-career-dashboard-preview__grid--opportunities > .ui-career-opportunity-card:not(.ui-career-opportunity-card--featured) {
+  grid-column: span 3;
+}
+
+.ui-kit-career-dashboard-preview__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ui-kit-career-dashboard-preview__filters .ui-filter-pill.is-active,
+.ui-kit-career-dashboard-preview__filters .ui-pill-button.is-active {
+  background: linear-gradient(135deg, #2f80ff 0%, #4a8eff 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 18px 30px rgba(47, 128, 255, 0.18);
+}
+
+.ui-kit-career-dashboard-preview__link {
+  color: var(--ui-color-accent);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ui-kit-career-dashboard-preview__link:hover,
+.ui-kit-career-dashboard-preview__link:focus-visible {
+  text-decoration: underline;
+}
+
 @media (max-width: 1200px) {
   .ui-kit-foundation-grid,
   .ui-kit-assembly-grid,
-  .ui-kit-placeholder-grid {
+  .ui-kit-placeholder-grid,
+  .ui-kit-career-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -979,6 +1078,7 @@ body.ui-kit-react-body {
   .ui-kit-demo-layout,
   .ui-kit-demo-grid,
   .ui-kit-dashboard-assembly__grid,
+  .ui-kit-career-dashboard-preview__top-grid,
   .ui-kit-moderation-dialog-grid,
   .ui-kit-segmented-variants,
   .ui-kit-editable-field-showcase__pair,
@@ -992,6 +1092,21 @@ body.ui-kit-react-body {
     grid-template-columns: 1fr;
   }
 
+  .ui-kit-career-dashboard-preview__grid--courses,
+  .ui-kit-career-dashboard-preview__grid--mentors,
+  .ui-kit-career-dashboard-preview__peer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ui-kit-career-dashboard-preview__grid--opportunities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ui-kit-career-dashboard-preview__grid--opportunities > .ui-career-opportunity-card--featured,
+  .ui-kit-career-dashboard-preview__grid--opportunities > .ui-career-opportunity-card:not(.ui-career-opportunity-card--featured) {
+    grid-column: span 1;
+  }
+
   .ui-kit-map-marker-stage__rail {
     padding: 20px 0 0;
     border-top: 1px dashed rgba(24, 29, 45, 0.14);
@@ -1003,6 +1118,7 @@ body.ui-kit-react-body {
   .ui-kit-foundation-grid,
   .ui-kit-assembly-grid,
   .ui-kit-placeholder-grid,
+  .ui-kit-career-grid,
   .ui-kit-token-grid,
   .ui-kit-radius-grid,
   .ui-kit-shadow-grid,
@@ -1045,6 +1161,17 @@ body.ui-kit-react-body {
   .ui-kit-map-marker-stage__rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     min-height: auto;
+  }
+
+  .ui-kit-career-dashboard-preview {
+    gap: 20px;
+  }
+
+  .ui-kit-career-dashboard-preview__grid--courses,
+  .ui-kit-career-dashboard-preview__grid--mentors,
+  .ui-kit-career-dashboard-preview__grid--opportunities,
+  .ui-kit-career-dashboard-preview__peer-grid {
+    grid-template-columns: 1fr;
   }
 
   .ui-kit-map-marker-stage__title {

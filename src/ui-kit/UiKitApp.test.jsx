@@ -24,6 +24,7 @@ describe("UiKitApp", () => {
     expect(screen.getAllByRole("heading", { name: "Navigation" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "FormField" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Placeholders" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "Career" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("heading", { name: "Assemblies" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Editable resume snippets" })).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-placeholder-block")).toBeInTheDocument();
@@ -43,6 +44,11 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-tile")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-filter-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-career-stats-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-career-course-card")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-career-peer-card")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-career-assembly")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Career dashboard assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Дашборд модерации" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Confirm Action Select" })).toBeInTheDocument();
