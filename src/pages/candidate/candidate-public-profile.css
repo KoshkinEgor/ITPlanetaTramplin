@@ -6,7 +6,7 @@
 .candidate-public-profile__shell,
 .candidate-public-profile__content {
   display: grid;
-  gap: 28px;
+  gap: 24px;
 }
 
 .candidate-public-profile__hero.ui-card {
@@ -26,11 +26,11 @@
 
 .candidate-public-profile__hero-body {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 26px;
-  align-items: end;
-  padding: 0 28px 28px;
-  margin-top: -74px;
+  grid-template-columns: auto minmax(0, 1fr) minmax(300px, 340px);
+  gap: 28px;
+  align-items: start;
+  padding: 0 28px 30px;
+  margin-top: -82px;
 }
 
 .candidate-public-profile__avatar {
@@ -42,7 +42,7 @@
 
 .candidate-public-profile__hero-main {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
   padding-top: 72px;
 }
@@ -78,32 +78,50 @@
   color: var(--ui-color-text);
 }
 
-.candidate-public-profile__hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 14px;
-  align-self: end;
+.candidate-public-profile__hero-sidebar {
+  display: grid;
+  gap: 16px;
+  align-content: start;
   padding-top: 72px;
 }
 
-.candidate-public-profile__hero-actions .ui-button {
-  min-width: 230px;
+.candidate-public-profile__status-block {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 26px;
+  background: rgba(248, 250, 255, 0.94);
 }
 
-.candidate-public-profile__hero-status {
+.candidate-public-profile__status-title {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-caption);
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.candidate-public-profile__status-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
+.candidate-public-profile__action-group {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-public-profile__action-group .ui-button {
+  width: 100%;
+}
+
 .candidate-public-profile__contact-links {
   display: grid;
   gap: 12px;
-  width: min(100%, 360px);
-  padding: 18px;
+  width: 100%;
+  padding: 20px;
   border: 1px solid rgba(24, 29, 45, 0.08);
-  border-radius: 24px;
+  border-radius: 26px;
   background: rgba(248, 250, 255, 0.92);
 }
 
@@ -129,17 +147,17 @@
   gap: 16px;
 }
 
-.candidate-public-profile__invite-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 12px;
+.candidate-public-profile__panel.ui-card {
+  gap: 22px;
+  padding: 28px;
+  border-radius: 34px;
 }
 
-.candidate-public-profile__panel.ui-card {
-  gap: 24px;
-  padding: 24px;
-  border-radius: 32px;
+.candidate-public-profile__resume-list,
+.candidate-public-profile__resume-modal,
+.candidate-public-profile__resume-modal-sections {
+  display: grid;
+  gap: 16px;
 }
 
 .candidate-public-profile__project-grid {
@@ -155,14 +173,17 @@
   border-radius: 999px;
 }
 
+.candidate-public-profile__portfolio {
+  gap: 18px;
+}
+
 @media (max-width: 1120px) {
   .candidate-public-profile__hero-body {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .candidate-public-profile__hero-actions {
+  .candidate-public-profile__hero-sidebar {
     grid-column: 1 / -1;
-    justify-content: flex-start;
     padding-top: 0;
   }
 }
@@ -189,25 +210,12 @@
     padding-top: 0;
   }
 
-  .candidate-public-profile__hero-actions {
-    justify-content: stretch;
-  }
-
-  .candidate-public-profile__hero-actions .ui-button {
-    width: 100%;
-    min-width: 0;
-  }
-
   .candidate-public-profile__panel.ui-card {
     padding: 18px;
     border-radius: 26px;
   }
 
   .candidate-public-profile__contact-links {
-    width: 100%;
-  }
-
-  .candidate-public-profile__invite-actions .ui-button {
     width: 100%;
   }
 }
