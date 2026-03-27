@@ -49,4 +49,28 @@ describe("CandidateResumeMiniCard", () => {
     expect(onEditClick).toHaveBeenCalledTimes(1);
     expect(onDeleteClick).toHaveBeenCalledTimes(1);
   });
+
+  it("supports read-only interactive mode without edit controls", () => {
+    const onClick = vi.fn();
+
+    render(
+      <CandidateResumeMiniCard
+        title="Публичное резюме"
+        updatedAt="2026-03-12"
+        city="Москва"
+        experience="Опыт: 1 год"
+        readOnly
+        interactive
+        onClick={onClick}
+        interactionLabel="Открыть публичное резюме"
+      />
+    );
+
+    expect(screen.queryByText("Видимость резюме")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Открыть публичное резюме" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Открыть публичное резюме" }));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });
