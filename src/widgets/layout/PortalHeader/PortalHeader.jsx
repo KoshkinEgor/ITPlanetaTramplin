@@ -64,6 +64,37 @@ const DEFAULT_ICON_BUTTONS = [
   { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
 ];
 
+function isMissingSocialEndpoint(error) {
+  return Number(error?.status) === 404;
+}
+
+async function loadNotificationCollections() {
+  try {
+    const [friendRequests, projectInvites] = await Promise.all([
+      getCandidateFriendRequests(),
+      getCandidateProjectInvites(),
+    ]);
+
+    return {
+      status: "ready",
+      friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
+      projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
+      error: null,
+    };
+  } catch (error) {
+    if (isMissingSocialEndpoint(error)) {
+      return {
+        status: "ready",
+        friendRequests: [],
+        projectInvites: [],
+        error: null,
+      };
+    }
+
+    throw error;
+  }
+}
+
 function PortalHeaderNotifications({ authUser }) {
   const panelRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -78,17 +109,7 @@ function PortalHeaderNotifications({ authUser }) {
   useEffect(() => {
     async function load() {
       try {
-        const [friendRequests, projectInvites] = await Promise.all([
-          getCandidateFriendRequests(),
-          getCandidateProjectInvites(),
-        ]);
-
-        setState({
-          status: "ready",
-          friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
-          projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
-          error: null,
-        });
+        setState(await loadNotificationCollections());
       } catch (error) {
         setState({
           status: "error",
@@ -130,17 +151,7 @@ function PortalHeaderNotifications({ authUser }) {
 
   async function reload() {
     try {
-      const [friendRequests, projectInvites] = await Promise.all([
-        getCandidateFriendRequests(),
-        getCandidateProjectInvites(),
-      ]);
-
-      setState({
-        status: "ready",
-        friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
-        projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
-        error: null,
-      });
+      setState(await loadNotificationCollections());
     } catch (error) {
       setState((current) => ({ ...current, status: "error", error }));
     }
@@ -166,45 +177,45 @@ function PortalHeaderNotifications({ authUser }) {
     [authUser?.id, state.projectInvites]
   );
 
-  const notificationItems = useMemo(() => {
-    const friendItems = incomingFriendRequests.map((request) => ({
-      id: `friend-${request.id}`,
-      href: buildSocialProfileHref(request.counterparty),
-      title: `${request.counterparty?.name || request.counterparty?.email || "Кандидат"} отправил заявку в друзья`,
-      description: request.createdAt ? `Получена ${new Date(request.createdAt).toLocaleDateString("ru-RU")}` : "Новая заявка в друзья",
-      primaryAction: {
-        key: `accept-friend-${request.id}`,
-        label: "Принять",
-        onClick: () => runNotificationAction(`accept-friend-${request.id}`, () => acceptCandidateFriendRequest(request.id)),
-      },
-      secondaryAction: {
-        key: `decline-friend-${request.id}`,
-        label: "Отклонить",
-        onClick: () => runNotificationAction(`decline-friend-${request.id}`, () => declineCandidateFriendRequest(request.id)),
-      },
-      createdAt: request.createdAt,
-    }));
+  const friendItems = incomingFriendRequests.map((request) => ({
+    id: `friend-${request.id}`,
+    href: buildSocialProfileHref(request.counterparty),
+    title: `${request.counterparty?.name || request.counterparty?.email || "Кандидат"} отправил заявку в друзья`,
+    description: request.createdAt ? `Получена ${new Date(request.createdAt).toLocaleDateString("ru-RU")}` : "Новая заявка в друзья",
+    primaryAction: {
+      key: `accept-friend-${request.id}`,
+      label: "Принять",
+      onClick: () => runNotificationAction(`accept-friend-${request.id}`, () => acceptCandidateFriendRequest(request.id)),
+    },
+    secondaryAction: {
+      key: `decline-friend-${request.id}`,
+      label: "Отклонить",
+      onClick: () => runNotificationAction(`decline-friend-${request.id}`, () => declineCandidateFriendRequest(request.id)),
+    },
+    createdAt: request.createdAt,
+  }));
 
-    const inviteItems = incomingProjectInvites.map((invite) => ({
-      id: `invite-${invite.id}`,
-      href: buildSocialProfileHref(invite.counterparty),
-      title: `${invite.counterparty?.name || invite.counterparty?.email || "Кандидат"} пригласил вас в проект`,
-      description: invite.projectTitle ? `Проект: ${invite.projectTitle}` : "Новое приглашение в проект",
-      primaryAction: {
-        key: `accept-invite-${invite.id}`,
-        label: "Принять",
-        onClick: () => runNotificationAction(`accept-invite-${invite.id}`, () => acceptCandidateProjectInvite(invite.id)),
-      },
-      secondaryAction: {
-        key: `decline-invite-${invite.id}`,
-        label: "Отклонить",
-        onClick: () => runNotificationAction(`decline-invite-${invite.id}`, () => declineCandidateProjectInvite(invite.id)),
-      },
-      createdAt: invite.createdAt,
-    }));
+  const inviteItems = incomingProjectInvites.map((invite) => ({
+    id: `invite-${invite.id}`,
+    href: buildSocialProfileHref(invite.counterparty),
+    title: `${invite.counterparty?.name || invite.counterparty?.email || "Кандидат"} пригласил вас в проект`,
+    description: invite.projectTitle ? `Проект: ${invite.projectTitle}` : "Новое приглашение в проект",
+    primaryAction: {
+      key: `accept-invite-${invite.id}`,
+      label: "Принять",
+      onClick: () => runNotificationAction(`accept-invite-${invite.id}`, () => acceptCandidateProjectInvite(invite.id)),
+    },
+    secondaryAction: {
+      key: `decline-invite-${invite.id}`,
+      label: "Отклонить",
+      onClick: () => runNotificationAction(`decline-invite-${invite.id}`, () => declineCandidateProjectInvite(invite.id)),
+    },
+    createdAt: invite.createdAt,
+  }));
 
-    return [...friendItems, ...inviteItems].sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
-  }, [incomingFriendRequests, incomingProjectInvites]);
+  const notificationItems = [...friendItems, ...inviteItems].sort(
+    (left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0)
+  );
 
   const badgeCount = getPendingNotificationCount(state.friendRequests, state.projectInvites, authUser?.id);
   const deepLink = incomingFriendRequests.length

@@ -82,12 +82,6 @@ const MENTORS = [
   { id: "andrey-fadeev", name: "Андрей Фадеев", role: "Тимлид аналитики", summary: "Помогает собрать стратегию роста, усилить портфолио и не выгореть на длинной дистанции.", focus: ["strategy", "career-plan", "burnout"], tone: "neutral" },
 ];
 
-const PEER_FALLBACKS = [
-  { id: "peer-morova", name: "Александра Морева", sharedSkills: ["Web-design", "UX", "Figma"] },
-  { id: "peer-sokolova", name: "Анастасия Соколова", sharedSkills: ["Figma", "UX", "Research"] },
-  { id: "peer-ilina", name: "Мария Ильина", sharedSkills: ["Figma", "UX"] },
-];
-
 function normalizeKey(value) {
   return String(value ?? "").trim().toLowerCase().replace(/ё/g, "е");
 }
@@ -235,7 +229,7 @@ function buildInitials(name) {
 
 function getSharedContacts(profile, contacts) {
   const skillSet = new Set(getCandidateSkills(profile).map(normalizeKey));
-  const dynamic = safeArray(contacts).map((contact) => {
+  return safeArray(contacts).map((contact) => {
     const sharedSkills = safeArray(contact?.skills).filter((skill) => skillSet.has(normalizeKey(skill))).slice(0, 3);
     const fallbackSkills = safeArray(contact?.skills).slice(0, 3);
     const name = contact?.name || contact?.email || "Контакт";
@@ -252,18 +246,7 @@ function getSharedContacts(profile, contacts) {
         skills: sharedSkills.length ? sharedSkills : fallbackSkills,
       }),
     };
-  }).filter((contact) => contact.id);
-
-  return (dynamic.length
-    ? dynamic
-    : PEER_FALLBACKS.map((contact) => ({
-        ...contact,
-        initials: buildInitials(contact.name),
-        href: buildCandidatePublicProfileRoute({
-          name: contact.name,
-          skills: contact.sharedSkills,
-        }),
-      }))).slice(0, 3);
+  }).filter((contact) => contact.id).slice(0, 3);
 }
 
 function countByStatus(items, status) {
@@ -330,7 +313,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
 
       {dashboardState.degraded ? (
         <Alert tone="warning" title="Часть данных временно недоступна" showIcon>
-          Страница открыта, но некоторые персональные рекомендации собраны из fallback-подборок.
+          Страница открыта, но некоторые персональные данные не загрузились. Часть блоков может быть неполной.
         </Alert>
       ) : null}
 
@@ -412,11 +395,17 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           size="md"
           actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Найти единомышленников →</a>}
         />
-        <div className="candidate-career-dashboard__peer-grid">
-          {sharedContacts.map((contact) => (
-            <CareerPeerCard key={contact.id} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" />
-          ))}
-        </div>
+        {sharedContacts.length ? (
+          <div className="candidate-career-dashboard__peer-grid">
+            {sharedContacts.map((contact) => (
+              <CareerPeerCard key={contact.id} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" />
+            ))}
+          </div>
+        ) : (
+          <Alert tone="info" title="Пока нет реальных рекомендаций" showIcon>
+            Когда в сети появятся контакты с общими интересами, они появятся здесь.
+          </Alert>
+        )}
       </section>
     </div>
   );

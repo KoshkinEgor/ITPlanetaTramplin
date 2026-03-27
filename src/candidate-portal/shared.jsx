@@ -319,7 +319,7 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
         <Button as="a" href={profileHref} variant="secondary" className="candidate-contact-card__button">
           ������� �������
         </Button>
-        <CandidateActionCircle label="�������� ��������" icon={<MailIcon />} href="/candidate/contacts" />
+        <CandidateActionCircle label="�������� ��������" icon={<MailIcon />} href={profileHref} />
       </div>
     </Card>
   );

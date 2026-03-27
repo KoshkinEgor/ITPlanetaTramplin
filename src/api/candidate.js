@@ -120,6 +120,12 @@ export function getCandidateFriends(signal) {
   return apiRequest("/candidate/me/friends", { signal });
 }
 
+export function deleteCandidateFriend(userId) {
+  return apiRequest(`/candidate/me/friends/${userId}`, {
+    method: "DELETE",
+  });
+}
+
 export function getCandidateFriendRequests(signal) {
   return apiRequest("/candidate/me/friends/requests", { signal });
 }

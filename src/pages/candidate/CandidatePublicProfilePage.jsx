@@ -8,6 +8,7 @@ import {
   createCandidateContact,
   createCandidateFriendRequest,
   createCandidateProjectInvite,
+  deleteCandidateFriend,
   declineCandidateFriendRequest,
   declineCandidateProjectInvite,
   getCandidateProjects,
@@ -357,6 +358,38 @@ function getFeedbackTone(status) {
   return "info";
 }
 
+function getStatusTag(relationship) {
+  if (relationship.projectInviteState === "incoming") {
+    return { label: "Ждёт ответа по проекту", tone: "warning" };
+  }
+
+  if (relationship.projectInviteState === "outgoing") {
+    return { label: "Инвайт отправлен", tone: "warning" };
+  }
+
+  if (relationship.projectInviteState === "accepted") {
+    return { label: "Приглашение принято", tone: "success" };
+  }
+
+  if (relationship.friendState === "incoming") {
+    return { label: "Входящая заявка", tone: "soft" };
+  }
+
+  if (relationship.friendState === "outgoing") {
+    return { label: "Заявка отправлена", tone: "soft" };
+  }
+
+  if (relationship.friendState === "friends") {
+    return { label: "Друг", tone: "success" };
+  }
+
+  if (relationship.contactState === "saved") {
+    return { label: "Контакт", tone: "accent" };
+  }
+
+  return { label: "Ищет работу", tone: "success" };
+}
+
 export function CandidatePublicProfilePage() {
   useBodyClass("candidate-portal-react-body");
 
@@ -558,6 +591,10 @@ export function CandidatePublicProfilePage() {
         await cancelCandidateFriendRequest(relationship.friendRequestId);
       }
 
+      if (action === "remove-friend") {
+        await deleteCandidateFriend(publicUserId);
+      }
+
       setFeedback({
         status: "success",
         title: "Статус дружбы обновлён",
@@ -738,6 +775,9 @@ export function CandidatePublicProfilePage() {
               Пригласить в проект
             </Button>
           ) : null}
+          <Button variant="ghost" size="lg" loading={busyAction === "remove-friend"} onClick={() => handleFriendRequest("remove-friend")}>
+            РЈРґР°Р»РёС‚СЊ РёР· РґСЂСѓР·РµР№
+          </Button>
           <div className="candidate-public-profile__hero-status">
             <Tag tone="success">В друзьях</Tag>
           </div>
@@ -1098,194 +1138,6 @@ export function CandidatePublicProfilePage() {
               tone="neutral"
             />
           )
-        ) : null}
-      </Modal>
-    </main>
-  );
-}
-
-  return (
-    <main className="candidate-public-profile" data-testid="candidate-public-profile-page">
-      <div className="candidate-public-profile__shell ui-page-shell">
-        <PortalHeader
-          navItems={PUBLIC_HEADER_NAV_ITEMS}
-          currentKey="opportunities"
-          actionHref={routes.candidate.profile}
-          actionLabel="Профиль"
-          className="candidate-public-profile__header"
-        />
-
-        <div className="candidate-public-profile__content">
-          {state.status === "loading" ? <Loader label="Загружаем публичный профиль" surface /> : null}
-
-          {state.status === "error" ? (
-            <Alert tone="error" title="Не удалось загрузить публичный профиль" showIcon>
-              {state.error?.message ?? "Попробуйте обновить страницу позже."}
-            </Alert>
-          ) : null}
-
-          {feedback ? (
-            <Alert tone={getFeedbackTone(feedback.status)} title={feedback.title} showIcon onDismiss={() => setFeedback(null)}>
-              {feedback.message}
-            </Alert>
-          ) : null}
-
-          {state.mode === "preview" && state.error ? (
-            <Alert tone="warning" title="Показываем preview профиля" showIcon>
-              Не удалось получить актуальные публичные данные, поэтому отображается карточка из локального preview.
-            </Alert>
-          ) : null}
-
-          {state.status === "ready" && profile ? (
-            <>
-              <Card className="candidate-public-profile__hero">
-                <div className="candidate-public-profile__hero-cover" />
-
-                <div className="candidate-public-profile__hero-body">
-                  <Avatar
-                    src={getCandidateAvatarUrl(profile) || undefined}
-                    alt={`Фото профиля ${getCandidateDisplayName(profile)}`}
-                    initials={getCandidateInitials(profile)}
-                    size="xl"
-                    shape="rounded"
-                    tone="neutral"
-                    className="candidate-public-profile__avatar"
-                  />
-
-                  <div className="candidate-public-profile__hero-main">
-                    <div className="candidate-public-profile__hero-badges">
-                      <Tag tone="neutral">{state.mode === "public" ? "Публичный профиль" : state.mode === "preview" ? "Preview" : "Демо"}</Tag>
-                      {relationship.friendState === "friends" ? <Tag tone="success">Друг</Tag> : null}
-                      {relationship.contactState === "saved" && relationship.friendState !== "friends" ? <Tag tone="accent">Контакт</Tag> : null}
-                    </div>
-
-                    <div className="candidate-public-profile__hero-copy">
-                      <h1 className="ui-type-h1 candidate-public-profile__title">{getCandidateDisplayName(profile)}</h1>
-                      {meta ? <p className="ui-type-body-lg candidate-public-profile__meta">{meta}</p> : null}
-                    </div>
-
-                    {goal ? (
-                      <p className="ui-type-body candidate-public-profile__goal">
-                        <strong>Цель:</strong> {goal}
-                      </p>
-                    ) : null}
-
-                    {normalizeString(profile.description) ? (
-                      <p className="ui-type-body candidate-public-profile__description">{normalizeString(profile.description)}</p>
-                    ) : null}
-
-                    {skills.length ? (
-                      <div className="candidate-public-profile__skills" aria-label="Навыки кандидата">
-                        {skills.map((skill) => (
-                          <Tag key={skill} tone="accent">
-                            {skill}
-                          </Tag>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="candidate-public-profile__hero-actions">
-                    {renderHeroActions()}
-                    {renderSocialLinks()}
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="candidate-public-profile__panel" id="resume">
-                <CandidateSectionHeader
-                  eyebrow="Портфолио"
-                  title="Резюме"
-                  description="Просматривайте открытые резюме пользователя и оценивайте актуальность его профиля."
-                  actions={primaryResume?.downloadUrl ? (
-                    <Button href={primaryResume.downloadUrl} variant="secondary" size="lg" target="_blank" rel="noreferrer">
-                      Скачать резюме
-                    </Button>
-                  ) : null}
-                />
-
-                {renderResumeContent()}
-              </Card>
-
-              <section className="candidate-page-section candidate-public-profile__portfolio" id="portfolio">
-                <CandidateSectionHeader
-                  title="Портфолио"
-                  description="Здесь показываются проекты, которые пользователь открыл для просмотра."
-                />
-
-                {renderProjectsContent()}
-              </section>
-            </>
-          ) : null}
-        </div>
-      </div>
-
-      <Modal
-        open={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-        title="Пригласить в проект"
-        description="Выберите свой проект и при необходимости уточните роль или сообщение для кандидата."
-        size="lg"
-      >
-        {inviteProjectsState.status === "loading" ? (
-          <Loader label="Загружаем ваши проекты" surface />
-        ) : null}
-
-        {inviteProjectsState.status === "error" ? (
-          <Alert tone="error" title="Не удалось загрузить проекты" showIcon>
-            {inviteProjectsState.error}
-          </Alert>
-        ) : null}
-
-        {inviteProjectsState.status === "ready" && !inviteProjectsState.items.length ? (
-          <EmptyState
-            eyebrow="Нет проектов"
-            title="Сначала создайте проект"
-            description="После создания проекта вы сможете приглашать в него контакты и друзей."
-            tone="neutral"
-            actions={<Button href={routes.candidate.projectEdit}>Создать проект</Button>}
-          />
-        ) : null}
-
-        {inviteProjectsState.status === "ready" && inviteProjectsState.items.length ? (
-          <form className="candidate-public-profile__invite-form" onSubmit={handleInviteSubmit}>
-            <FormField label="Проект" required>
-              <Select
-                value={inviteDraft.projectId}
-                onValueChange={(value) => setInviteDraft((current) => ({ ...current, projectId: value }))}
-                options={inviteProjectsState.items.map((item) => ({
-                  value: String(item.id),
-                  label: item.title,
-                }))}
-              />
-            </FormField>
-
-            <FormField label="Роль в проекте">
-              <Input
-                value={inviteDraft.role}
-                onValueChange={(value) => setInviteDraft((current) => ({ ...current, role: value }))}
-                placeholder="Например, UX researcher"
-              />
-            </FormField>
-
-            <FormField label="Сообщение">
-              <Textarea
-                value={inviteDraft.message}
-                onValueChange={(value) => setInviteDraft((current) => ({ ...current, message: value }))}
-                placeholder="Коротко объясните, зачем приглашаете пользователя."
-                autoResize
-              />
-            </FormField>
-
-            <div className="candidate-public-profile__invite-actions">
-              <Button type="button" variant="secondary" onClick={() => setInviteModalOpen(false)}>
-                Отмена
-              </Button>
-              <Button type="submit" loading={busyAction === "send-project-invite"} disabled={!inviteDraft.projectId}>
-                Отправить приглашение
-              </Button>
-            </div>
-          </form>
         ) : null}
       </Modal>
     </main>

@@ -81,4 +81,39 @@ describe("CandidateCareerDashboard", () => {
     expect(isBefore(opportunitiesSection, mentorsSection)).toBe(true);
     expect(isBefore(mentorsSection, peersSection)).toBe(true);
   });
+
+  it("shows an honest empty state when there are no real shared contacts", () => {
+    const profile = {
+      name: "Анна",
+      surname: "Иванова",
+      skills: ["UX", "Figma", "Research"],
+      links: {
+        onboarding: {
+          profession: "UX/UI дизайнер",
+          city: "Чебоксары",
+        },
+      },
+    };
+
+    const dashboardState = {
+      status: "ready",
+      applications: [],
+      contacts: [],
+      recommendations: [],
+      opportunities: [],
+      degraded: false,
+      error: null,
+    };
+
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard profile={profile} dashboardState={dashboardState} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Пока нет реальных рекомендаций")).toBeInTheDocument();
+    expect(screen.queryByText("Александра Морева")).not.toBeInTheDocument();
+    expect(screen.queryByText("Анастасия Соколова")).not.toBeInTheDocument();
+    expect(screen.queryByText("Мария Ильина")).not.toBeInTheDocument();
+  });
 });

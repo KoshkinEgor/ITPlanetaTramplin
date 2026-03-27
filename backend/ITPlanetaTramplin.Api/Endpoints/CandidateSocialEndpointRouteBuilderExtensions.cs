@@ -187,6 +187,37 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
     private static Task<IResult> CancelFriendRequestAsync(int requestId, HttpContext context, ApplicationDBContext db) =>
         UpdateFriendRequestStatusAsync(requestId, FriendRequestStatuses.Canceled, context, db);
 
+    private static async Task<IResult> DeleteCurrentCandidateFriendAsync(int userId, HttpContext context, ApplicationDBContext db)
+    {
+        var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (currentUserId.Value == userId)
+        {
+            return AuthEndpointSupport.MessageResult("Нельзя удалить из друзей самого себя.", StatusCodes.Status400BadRequest);
+        }
+
+        var acceptedRequests = await db.FriendRequests
+            .Where(item =>
+                ((item.SenderUserId == currentUserId.Value && item.RecipientUserId == userId)
+                 || (item.SenderUserId == userId && item.RecipientUserId == currentUserId.Value))
+                && item.Status == FriendRequestStatuses.Accepted)
+            .ToListAsync();
+
+        if (acceptedRequests.Count == 0)
+        {
+            return Results.NotFound();
+        }
+
+        db.FriendRequests.RemoveRange(acceptedRequests);
+        await db.SaveChangesAsync();
+
+        return Results.Ok();
+    }
+
     private static async Task<IResult> GetCurrentCandidateProjectInvitesAsync(HttpContext context, ApplicationDBContext db)
     {
         var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);

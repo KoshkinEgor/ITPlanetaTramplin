@@ -27,6 +27,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         api.MapPost("/candidate/me/contacts", CreateCandidateContactAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/candidate/me/contacts/{contactId:int}", DeleteCandidateContactAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/friends", GetCurrentCandidateFriendsAsync).RequireAuthorization("requireCandidateRole");
+        api.MapDelete("/candidate/me/friends/{userId:int}", DeleteCurrentCandidateFriendAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/friends/requests", GetCurrentCandidateFriendRequestsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/friends/requests", CreateFriendRequestAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/friends/requests/{requestId:int}/accept", AcceptFriendRequestAsync).RequireAuthorization("requireCandidateRole");

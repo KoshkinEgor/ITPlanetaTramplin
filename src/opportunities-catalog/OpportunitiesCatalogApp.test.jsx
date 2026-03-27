@@ -13,16 +13,36 @@ vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(),
 }));
 
+vi.mock("../home/HomeOpportunityMap", () => ({
+  HomeOpportunityMap: ({ items, selectedCity, activeId, onSelectItem }) => (
+    <div data-testid="catalog-map" data-city={selectedCity} data-active-id={activeId ?? ""}>
+      <p>MAP_POINTS:{items.length}</p>
+      {items.length ? (
+        items.map((item) => (
+          <button key={item.id} type="button" onClick={() => onSelectItem?.(item.id)}>
+            {item.title}
+          </button>
+        ))
+      ) : (
+        <p>Нет точек по текущим фильтрам</p>
+      )}
+    </div>
+  ),
+}));
+
 const opportunities = [
   {
     id: 1,
     title: "Junior Security Analyst",
     companyName: "IGrids",
     locationCity: "Москва",
+    locationAddress: "Ленинградский проспект, 39",
     description: "SOC monitoring, SIEM triage, and first-line incident review for junior specialists.",
     tags: ["Security", "Junior", "SOC"],
     opportunityType: "vacancy",
     employmentType: "remote",
+    longitude: 37.617635,
+    latitude: 55.755814,
     moderationStatus: "approved",
   },
   {
@@ -30,10 +50,13 @@ const opportunities = [
     title: "IT-Планета",
     companyName: "IT-Планета",
     locationCity: "Москва",
+    locationAddress: "Онлайн",
     description: "Open event for students and junior teams.",
     tags: ["Студенты", "Мероприятие"],
     opportunityType: "event",
     employmentType: "online",
+    longitude: 37.541584,
+    latitude: 55.804065,
     moderationStatus: "approved",
   },
   {
@@ -41,10 +64,13 @@ const opportunities = [
     title: "Mobile UI/UX",
     companyName: "White Tiger Soft",
     locationCity: "Москва",
+    locationAddress: "Лесная, 12",
     description: "Paid internship for mobile product design.",
     tags: ["UI / UX", "Дизайн"],
     opportunityType: "internship",
     employmentType: "hybrid",
+    longitude: 37.658581,
+    latitude: 55.762994,
     moderationStatus: "approved",
   },
   {
@@ -52,10 +78,13 @@ const opportunities = [
     title: "Frontend Intern",
     companyName: "IGrids",
     locationCity: "Чебоксары",
+    locationAddress: "Московский проспект, 17",
     description: "React internship with real feature ownership.",
     tags: ["Frontend", "React"],
     opportunityType: "internship",
     employmentType: "remote",
+    longitude: 47.251942,
+    latitude: 56.1439,
     moderationStatus: "approved",
   },
   {
@@ -63,6 +92,7 @@ const opportunities = [
     title: "QA Engineer",
     companyName: "Case Systems",
     locationCity: "Чебоксары",
+    locationAddress: "Президентский бульвар, 1",
     description: "Manual QA vacancy for product teams.",
     tags: ["QA", "Junior"],
     opportunityType: "vacancy",
@@ -74,10 +104,13 @@ const opportunities = [
     title: "Junior Security Analyst",
     companyName: "Shield Ops",
     locationCity: "Чебоксары",
+    locationAddress: "Ярославская, 29",
     description: "SOC monitoring and SIEM triage for junior analysts in the local team.",
     tags: ["Security", "Junior", "SOC"],
     opportunityType: "vacancy",
     employmentType: "remote",
+    longitude: 47.2442,
+    latitude: 56.1322,
     moderationStatus: "approved",
   },
   {
@@ -85,10 +118,13 @@ const opportunities = [
     title: "Product Designer",
     companyName: "Case Systems",
     locationCity: "Чебоксары",
+    locationAddress: "Калинина, 7",
     description: "Design systems and product discovery for regional B2B tools.",
     tags: ["Design", "Product"],
     opportunityType: "internship",
     employmentType: "hybrid",
+    longitude: 47.2674,
+    latitude: 56.1337,
     moderationStatus: "approved",
   },
 ];
@@ -172,7 +208,7 @@ describe("OpportunitiesCatalogApp", () => {
     expect(slider.querySelector(".ui-kit-opportunity-slider__card")).not.toBeNull();
   });
 
-  it("applies real filters and keeps unsupported controls disabled", async () => {
+  it("opens filters as a dropdown, applies real filters, and keeps unsupported controls disabled", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
@@ -182,6 +218,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
     fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры" }));
     fireEvent.click(screen.getByLabelText("Удаленно"));
 
     expect(results).not.toBeNull();
@@ -210,6 +247,71 @@ describe("OpportunitiesCatalogApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Больше возможностей" }));
 
     expect(within(results).getByText("Product Designer")).toBeInTheDocument();
+  });
+
+  it("switches to an inline map and preserves the current filters for mapped items", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
+    fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
+    expect(mapPanel).not.toBeNull();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+    expect(screen.getByText("MAP_POINTS:1")).toBeInTheDocument();
+  });
+
+  it("closes the map filter drawer with Escape and backdrop click", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    const { container } = renderApp();
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const mapPanel = container.querySelector(".opportunities-browser__map-panel");
+    expect(mapPanel).not.toBeNull();
+
+    const mapFilterButton = mapPanel.querySelector(".opportunities-browser__map-filter-button");
+    expect(mapFilterButton).not.toBeNull();
+    fireEvent.click(mapFilterButton);
+
+    expect(screen.getByText("Регион")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Регион")).not.toBeInTheDocument();
+
+    fireEvent.click(mapFilterButton);
+    const backdrop = container.querySelector(".opportunity-filter-sidebar__drawer-backdrop");
+    expect(backdrop).not.toBeNull();
+    fireEvent.click(backdrop);
+
+    expect(screen.queryByText("Регион")).not.toBeInTheDocument();
+  });
+
+  it("shows the map empty state when filtered opportunities do not have coordinates", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "QA Engineer" } });
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
+    expect(mapPanel).not.toBeNull();
+    expect(screen.getByText("MAP_POINTS:0")).toBeInTheDocument();
+    expect(within(mapPanel).getByText("Нет точек по текущим фильтрам")).toBeInTheDocument();
   });
 
   it("aggregates companies for the default city section", async () => {

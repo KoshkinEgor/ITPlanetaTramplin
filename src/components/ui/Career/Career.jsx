@@ -307,6 +307,7 @@ export function CareerPeerCard({
   href = "#",
   actionLabel = "Добавить в контакты",
   className,
+  userId: _userId,
   ...props
 }) {
   const skillsLabel = sharedSkills.length

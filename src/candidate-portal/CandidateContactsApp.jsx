@@ -7,6 +7,7 @@ import {
   declineCandidateFriendRequest,
   declineCandidateProjectInvite,
   deleteCandidateContact,
+  deleteCandidateFriend,
   getCandidateContacts,
   getCandidateFriendRequests,
   getCandidateFriends,
@@ -14,8 +15,6 @@ import {
 } from "../api/candidate";
 import { useAuthSession } from "../auth/api";
 import {
-  buildSocialProfileHref,
-  getFriendRequestDirection,
   getIncomingFriendRequests,
   getProjectInviteDirection,
   mapSocialUserToCard,
@@ -28,6 +27,47 @@ import { CandidateSectionHeader } from "./shared";
 function normalizeTab(value) {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
   return ["contacts", "friends", "incoming", "project-invites"].includes(normalized) ? normalized : "contacts";
+}
+
+function isMissingSocialEndpoint(error) {
+  return Number(error?.status) === 404;
+}
+
+async function loadOptionalSocialCollection(loader) {
+  try {
+    const payload = await loader();
+
+    return {
+      items: Array.isArray(payload) ? payload : [],
+      degraded: false,
+    };
+  } catch (error) {
+    if (isMissingSocialEndpoint(error)) {
+      return {
+        items: [],
+        degraded: true,
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function loadSocialHubCollections(signal) {
+  const [contacts, friendsResult, friendRequestsResult, projectInvitesResult] = await Promise.all([
+    getCandidateContacts(signal),
+    loadOptionalSocialCollection(() => getCandidateFriends(signal)),
+    loadOptionalSocialCollection(() => getCandidateFriendRequests(signal)),
+    loadOptionalSocialCollection(() => getCandidateProjectInvites(signal)),
+  ]);
+
+  return {
+    contacts: Array.isArray(contacts) ? contacts : [],
+    friends: friendsResult.items,
+    friendRequests: friendRequestsResult.items,
+    projectInvites: projectInvitesResult.items,
+    degraded: friendsResult.degraded || friendRequestsResult.degraded || projectInvitesResult.degraded,
+  };
 }
 
 function SocialHubCard({ title, subtitle, meta, tags = [], badge, href, actions = [] }) {
@@ -97,6 +137,7 @@ export function CandidateContactsApp() {
     friends: [],
     friendRequests: [],
     projectInvites: [],
+    degraded: false,
     error: null,
   });
 
@@ -107,19 +148,15 @@ export function CandidateContactsApp() {
 
     async function load() {
       try {
-        const [contacts, friends, friendRequests, projectInvites] = await Promise.all([
-          getCandidateContacts(controller.signal),
-          getCandidateFriends(controller.signal),
-          getCandidateFriendRequests(controller.signal),
-          getCandidateProjectInvites(controller.signal),
-        ]);
+        const collections = await loadSocialHubCollections(controller.signal);
 
         setState({
           status: "ready",
-          contacts: Array.isArray(contacts) ? contacts : [],
-          friends: Array.isArray(friends) ? friends : [],
-          friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
-          projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
+          contacts: collections.contacts,
+          friends: collections.friends,
+          friendRequests: collections.friendRequests,
+          projectInvites: collections.projectInvites,
+          degraded: collections.degraded,
           error: null,
         });
       } catch (error) {
@@ -130,6 +167,7 @@ export function CandidateContactsApp() {
             friends: [],
             friendRequests: [],
             projectInvites: [],
+            degraded: false,
             error,
           });
         }
@@ -144,19 +182,15 @@ export function CandidateContactsApp() {
     setState((current) => ({ ...current, status: "loading" }));
 
     try {
-      const [contacts, friends, friendRequests, projectInvites] = await Promise.all([
-        getCandidateContacts(),
-        getCandidateFriends(),
-        getCandidateFriendRequests(),
-        getCandidateProjectInvites(),
-      ]);
+      const collections = await loadSocialHubCollections();
 
       setState({
         status: "ready",
-        contacts: Array.isArray(contacts) ? contacts : [],
-        friends: Array.isArray(friends) ? friends : [],
-        friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
-        projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
+        contacts: collections.contacts,
+        friends: collections.friends,
+        friendRequests: collections.friendRequests,
+        projectInvites: collections.projectInvites,
+        degraded: collections.degraded,
         error: null,
       });
     } catch (error) {
@@ -260,6 +294,13 @@ export function CandidateContactsApp() {
           tags={card.skills}
           badge={card.badge}
           href={card.href}
+          actions={card.userId ? [{
+            key: "remove-friend",
+            label: "РЈРґР°Р»РёС‚СЊ РёР· РґСЂСѓР·РµР№",
+            variant: "ghost",
+            loading: busyKey === `delete-friend-${card.userId}`,
+            onClick: () => runCardAction(`delete-friend-${card.userId}`, () => deleteCandidateFriend(card.userId)),
+          }] : []}
         />
       ))}
     </div>
@@ -410,6 +451,12 @@ export function CandidateContactsApp() {
         title="Контакты и связи"
         description="Управляйте сохранёнными контактами, друзьями и входящими действиями из одного места."
       />
+
+      {state.status === "ready" && state.degraded ? (
+        <Alert tone="warning" title="Часть social-возможностей пока недоступна" showIcon>
+          Текущий backend не отдает друзей, заявки и приглашения в проекты. Показываем только сохранённые контакты.
+        </Alert>
+      ) : null}
 
       {state.status === "loading" ? <Loader label="Загружаем social hub" surface /> : null}
 
