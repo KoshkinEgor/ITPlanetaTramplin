@@ -121,27 +121,30 @@ function CompanyApplicationCard({ item, edit, onEditChange, onSave, busyId }) {
           </Badge>
         </div>
 
-        <p className="ui-type-body">{item.candidateDescription || "Кандидат пока не заполнил описание профиля."}</p>
+        <p className="ui-type-body">{item.candidateDescription || "Описание профиля пока не добавлено."}</p>
         <p className="ui-type-caption">Отклик на: {item.opportunityTitle}</p>
         <p className="ui-type-caption">
           Навыки: {Array.isArray(item.candidateSkills) && item.candidateSkills.length ? item.candidateSkills.join(", ") : "не указаны"}
         </p>
 
-        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-          <FormField label="Статус отклика">
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
+          <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
             <Select
               value={edit.status}
               onValueChange={(value) => onEditChange(item.id, "status", value)}
               options={APPLICATION_STATUS_OPTIONS}
+              className="company-dashboard-response__control company-dashboard-response__control--select"
             />
           </FormField>
 
-          <FormField label="Комментарий работодателя">
+          <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
             <Textarea
               value={edit.employerNote}
               onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
               rows={3}
               autoResize
+              placeholder="Добавьте комментарий для кандидата"
+              className="company-dashboard-response__control company-dashboard-response__control--textarea"
             />
           </FormField>
         </div>

@@ -225,6 +225,36 @@
   border: 1px solid rgba(47, 128, 255, 0.08);
 }
 
+.company-dashboard-response__editor-grid {
+  align-items: stretch;
+  grid-template-columns: 1fr;
+}
+
+.company-dashboard-response__field {
+  height: 100%;
+}
+
+.company-dashboard-response__field--status {
+  width: 100%;
+  max-width: none;
+}
+
+.company-dashboard-response__field .ui-field__head {
+  min-height: 24px;
+}
+
+.company-dashboard-response__control--select {
+  min-height: 58px;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.company-dashboard-response__control--textarea {
+  min-height: 132px;
+  height: 132px;
+}
+
 .company-dashboard-list-item--opportunity {
   gap: 16px;
 }

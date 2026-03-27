@@ -31,16 +31,28 @@ function CompanyApplicationCard({ item, edit, onEditChange, onSave, busyId }) {
           </Badge>
         </div>
 
-        <p className="ui-type-body">{item.candidateDescription || "Кандидат пока не заполнил описание профиля."}</p>
+        <p className="ui-type-body">{item.candidateDescription || "Описание профиля пока не добавлено."}</p>
         <p className="ui-type-caption">Отклик на: {item.opportunityTitle}</p>
 
-        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-          <FormField label="Статус отклика">
-            <Select value={edit.status} onValueChange={(value) => onEditChange(item.id, "status", value)} options={APPLICATION_STATUS_OPTIONS} />
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
+          <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
+            <Select
+              value={edit.status}
+              onValueChange={(value) => onEditChange(item.id, "status", value)}
+              options={APPLICATION_STATUS_OPTIONS}
+              className="company-dashboard-response__control company-dashboard-response__control--select"
+            />
           </FormField>
 
-          <FormField label="Комментарий работодателя">
-            <Textarea value={edit.employerNote} onValueChange={(value) => onEditChange(item.id, "employerNote", value)} rows={3} autoResize />
+          <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
+            <Textarea
+              value={edit.employerNote}
+              onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
+              rows={3}
+              autoResize
+              placeholder="Добавьте комментарий для кандидата"
+              className="company-dashboard-response__control company-dashboard-response__control--textarea"
+            />
           </FormField>
         </div>
 
@@ -160,7 +172,7 @@ export function CompanyResponsesSection() {
 
       {saveState.status === "success" ? (
         <Alert tone="success" title="Отклик обновлен" showIcon>
-          Новый статус отправлен в backend.
+          Статус и комментарий сохранены. Кандидат увидит обновления в своем кабинете.
         </Alert>
       ) : null}
 
@@ -185,7 +197,7 @@ export function CompanyResponsesSection() {
             )}
           </CabinetContentSection>
 
-          <CabinetContentSection eyebrow="Сводка" title="Последние отклики" description="Компактный обзор последних действий без page-local виджетов.">
+          <CabinetContentSection eyebrow="Сводка" title="Последние отклики" description="Быстрый обзор последних кандидатов, чтобы вы ничего не упустили.">
             {recentItems.length ? (
               <div className="company-dashboard-stack">
                 {recentItems.map((item) => (
