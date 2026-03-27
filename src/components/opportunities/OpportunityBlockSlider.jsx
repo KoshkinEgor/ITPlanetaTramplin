@@ -52,6 +52,8 @@ export function OpportunityBlockSlider({
   gap = "14px",
   cardClassName,
   cardPropsBuilder,
+  renderItem,
+  itemClassName,
   ...props
 }) {
   const railRef = useRef(null);
@@ -263,21 +265,34 @@ export function OpportunityBlockSlider({
           const resolvedDetailAction = detailAction
             ? { ...detailAction, width: detailAction.width ?? "full" }
             : detailAction;
+          const resolvedCardClassName = cn("opportunity-block-slider__card", cardClassName, extraCardClassName);
+          const resolvedSize = isActive ? featuredSize : size;
+          const resolvedCardProps = {
+            ...restCardProps,
+            detailAction: resolvedDetailAction,
+          };
+          const renderedItem = renderItem?.(item, index, {
+            isActive,
+            size: resolvedSize,
+            className: resolvedCardClassName,
+            cardProps: resolvedCardProps,
+          });
 
           return (
             <div
               key={item?.id ?? item?.title ?? index}
-              className={cn("opportunity-block-slider__item", isActive && "is-active")}
+              className={cn("opportunity-block-slider__item", itemClassName, isActive && "is-active")}
               data-opportunity-block-slider-item="true"
             >
-              <OpportunityBlockCard
-                item={item}
-                surface={surface}
-                size={isActive ? featuredSize : size}
-                className={cn("opportunity-block-slider__card", cardClassName, extraCardClassName)}
-                detailAction={resolvedDetailAction}
-                {...restCardProps}
-              />
+              {renderedItem ?? (
+                <OpportunityBlockCard
+                  item={item}
+                  surface={surface}
+                  size={resolvedSize}
+                  className={resolvedCardClassName}
+                  {...resolvedCardProps}
+                />
+              )}
             </div>
           );
         })}

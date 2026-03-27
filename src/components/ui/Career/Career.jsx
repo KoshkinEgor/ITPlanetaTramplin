@@ -50,7 +50,7 @@ export function CareerStatsPanel({
   return (
     <Card className={["ui-career-panel", "ui-career-stats-panel", className].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-panel__header">
-        {title ? <h2 className="ui-career-panel__title">{title}</h2> : null}
+        {title ? <h2 className="ui-career-panel__title ui-type-h2">{title}</h2> : null}
         {metaTitle || metaDescription ? (
           <div className="ui-career-panel__meta">
             {metaTitle ? <strong>{metaTitle}</strong> : null}
@@ -67,7 +67,7 @@ export function CareerStatsPanel({
               className={["ui-career-panel__stat", item.tone === "success" && "ui-career-panel__stat--success"].filter(Boolean).join(" ")}
             >
               <strong className="ui-career-panel__stat-value">{item.value}</strong>
-              <span className="ui-career-panel__stat-label">{item.label}</span>
+              <span className="ui-career-panel__stat-label ui-type-caption">{item.label}</span>
             </div>
           ))}
         </div>
@@ -97,7 +97,7 @@ export function CareerSkillsPanel({
   return (
     <Card className={["ui-career-panel", "ui-career-skills-panel", className].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-panel__header">
-        {title ? <h3 className="ui-career-panel__title">{title}</h3> : null}
+        {title ? <h3 className="ui-career-panel__title ui-type-h2">{title}</h3> : null}
       </div>
 
       <div className="ui-career-panel__skill-cloud">
@@ -108,9 +108,9 @@ export function CareerSkillsPanel({
         ))}
       </div>
 
-      <p className="ui-career-panel__description">{description}</p>
+      <p className="ui-career-panel__description ui-type-txt">{description}</p>
 
-      <div className="ui-career-panel__recommended">
+      <div className="ui-career-panel__recommended ui-type-txt-select">
         <span className="ui-career-panel__recommended-title">Рекомендованные навыки</span>
         <div className="ui-career-panel__skill-cloud">
           {suggestedSkills.map((skill) => (
@@ -134,7 +134,7 @@ export function CareerSalaryPanel({ title, city, items = [], className, ...props
   return (
     <Card className={["ui-career-panel", "ui-career-salary-panel", className].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-panel__header">
-        {resolvedTitle ? <h3 className="ui-career-salary-panel__title">{resolvedTitle}</h3> : null}
+        {resolvedTitle ? <h3 className="ui-career-salary-panel__title ui-type-h2">{resolvedTitle}</h3> : null}
       </div>
 
       <div className="ui-career-salary-panel__list">
@@ -143,8 +143,8 @@ export function CareerSalaryPanel({ title, city, items = [], className, ...props
 
           return (
             <div key={item.level} className={["ui-career-salary-panel__item", isHighlighted && "is-highlighted"].filter(Boolean).join(" ")}>
-              <p className="ui-career-salary-panel__label">{item.level}</p>
-              <strong className="ui-career-salary-panel__value">{item.range}</strong>
+              <p className="ui-career-salary-panel__label ui-type-txt-select">{item.level}</p>
+              <strong className="ui-career-salary-panel__value ui-type-h2">{item.range}</strong>
               <span className="ui-career-salary-panel__track" aria-hidden="true">
                 <span style={{ width: `${Math.max(10, Math.round(Number(item.progress ?? 0) * 100))}%` }} />
               </span>

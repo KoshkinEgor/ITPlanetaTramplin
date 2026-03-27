@@ -163,6 +163,8 @@ code {
 
 .ui-type-body-lg,
 .ui-type-body,
+.ui-type-txt,
+.ui-type-txt-select,
 .ui-type-caption,
 .ui-type-small,
 .ui-type-micro,
@@ -185,6 +187,22 @@ code {
   color: var(--ui-color-text-muted);
   font-weight: var(--ui-font-weight-body);
   letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.ui-type-txt,
+.ui-type-txt-select {
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: var(--ui-font-weight-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.ui-type-txt {
+  color: var(--ui-color-text-muted);
+}
+
+.ui-type-txt-select {
+  color: var(--ui-color-text);
 }
 
 .ui-type-caption {

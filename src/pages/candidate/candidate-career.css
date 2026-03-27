@@ -397,9 +397,9 @@
 }
 
 .candidate-career-dashboard__intro .ui-type-h2 {
-  font-size: var(--ui-font-size-h2);
-  line-height: var(--ui-line-height-h2);
-  letter-spacing: var(--ui-letter-spacing-h2);
+  font-size: var(--ui-font-size-display);
+  line-height: var(--ui-line-height-display);
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .candidate-career-dashboard__top-grid {
@@ -430,6 +430,35 @@
 
 .candidate-career-dashboard__card-grid--courses {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.candidate-career-dashboard__courses-slider {
+  --candidate-career-dashboard-course-slide-gap: 20px;
+  --candidate-career-dashboard-course-slide-width: 428px;
+}
+
+.candidate-career-dashboard__courses-slider .opportunity-block-slider__rail {
+  padding: 2px 0 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.candidate-career-dashboard__courses-slider .opportunity-block-slider__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.candidate-career-dashboard__course-card.ui-card {
+  height: 100%;
+}
+
+.candidate-career-dashboard__opportunities-slider {
+  --candidate-career-dashboard-opportunity-slide-gap: 24px;
+  --candidate-career-dashboard-opportunity-slide-width: 420px;
+  --candidate-career-dashboard-opportunity-featured-width: 760px;
+}
+
+.candidate-career-dashboard__opportunities-slider .opportunity-block-slider__rail {
+  padding: 6px 0 12px;
 }
 
 .candidate-career-dashboard__card-grid--opportunities {
@@ -493,6 +522,15 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .candidate-career-dashboard__courses-slider {
+    --candidate-career-dashboard-course-slide-width: 380px;
+  }
+
+  .candidate-career-dashboard__opportunities-slider {
+    --candidate-career-dashboard-opportunity-slide-width: 360px;
+    --candidate-career-dashboard-opportunity-featured-width: 640px;
+  }
+
   .candidate-career-dashboard__card-grid--opportunities {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -538,6 +576,16 @@
   .candidate-career-dashboard__card-grid--mentors,
   .candidate-career-dashboard__peer-grid {
     grid-template-columns: 1fr;
+  }
+
+  .candidate-career-dashboard__courses-slider {
+    --candidate-career-dashboard-course-slide-width: 100%;
+  }
+
+  .candidate-career-dashboard__opportunities-slider {
+    --candidate-career-dashboard-opportunity-slide-gap: 18px;
+    --candidate-career-dashboard-opportunity-slide-width: 100%;
+    --candidate-career-dashboard-opportunity-featured-width: 100%;
   }
 
   .candidate-career-dashboard__card-grid--opportunities {

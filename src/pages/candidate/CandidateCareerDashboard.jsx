@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { buildOpportunityDetailRoute, routes } from "../../app/routes";
 import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-portal/mappers";
+import { OpportunityBlockSlider } from "../../components/opportunities";
 import {
   Alert,
   CareerCourseCard,
   CareerMentorCard,
-  CareerOpportunityCard,
   CareerPeerCard,
   CareerSalaryPanel,
   CareerSkillsPanel,
@@ -13,6 +13,9 @@ import {
   FilterPill,
   SectionHeader,
 } from "../../shared/ui";
+
+const COURSE_SLIDER_ARIA_LABEL = "Career courses slider";
+const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
 
 const SALARY_TRACKS = {
   design: [
@@ -51,6 +54,8 @@ const COURSE_CATALOG = [
   { id: "graphic-design", title: "Ускоренный курс по графическому дизайну", provider: "Skillbox", meta: "С нуля · 4 мес + онлайн", price: "78 000 ₽", oldPrice: "82 000 ₽", monthly: "3755 ₽ в месяц", tags: ["design", "default"] },
   { id: "product-analytics", title: "Продуктовая аналитика", provider: "Practicum", meta: "База · 3 мес + онлайн", price: "58 000 ₽", oldPrice: "81 000 ₽", monthly: "4100 ₽ в месяц", tags: ["analytics", "default"] },
   { id: "frontend", title: "Frontend-разработка с React", provider: "HTML Academy", meta: "Интенсив · 4 мес + онлайн", price: "69 000 ₽", oldPrice: "94 000 ₽", monthly: "5200 ₽ в месяц", tags: ["development", "default"] },
+  { id: "brand-identity", title: "\u0411\u0440\u0435\u043d\u0434-\u0434\u0438\u0437\u0430\u0439\u043d \u0438 \u0430\u0439\u0434\u0435\u043d\u0442\u0438\u043a\u0430", provider: "Bang Bang Education", meta: "\u0421 \u043d\u0443\u043b\u044f \u00b7 3 \u043c\u0435\u0441 + \u043e\u043d\u043b\u0430\u0439\u043d", price: "54 000 \u20bd", oldPrice: "71 000 \u20bd", monthly: "2250 \u20bd \u0432 \u043c\u0435\u0441\u044f\u0446", tags: ["design", "default"] },
+  { id: "motion-design", title: "\u041c\u043e\u0443\u0448\u043d-\u0434\u0438\u0437\u0430\u0439\u043d \u0434\u043b\u044f digital-\u043f\u0440\u043e\u0435\u043a\u0442\u043e\u0432", provider: "Contented", meta: "\u0421 \u043d\u0443\u043b\u044f \u00b7 2 \u043c\u0435\u0441 + \u043e\u043d\u043b\u0430\u0439\u043d", price: "47 000 \u20bd", oldPrice: "68 000 \u20bd", monthly: "1960 \u20bd \u0432 \u043c\u0435\u0441\u044f\u0446", tags: ["design", "default"] },
 ];
 
 const FALLBACK_OPPORTUNITIES = [
@@ -157,10 +162,24 @@ function mapOpportunityCard(item) {
 
 function getOpportunityCards(recommendations, opportunities) {
   const primary = safeArray(recommendations).map(mapOpportunityCard).filter(Boolean);
-  const fallback = safeArray(opportunities).map(mapOpportunityCard).filter(Boolean);
-  const resolved = primary.length ? primary : fallback.length ? fallback : FALLBACK_OPPORTUNITIES;
+  const secondary = safeArray(opportunities).map(mapOpportunityCard).filter(Boolean);
+  const merged = [];
+  const seenIds = new Set();
 
-  return resolved.slice(0, 4);
+  [primary, secondary, FALLBACK_OPPORTUNITIES].forEach((group) => {
+    group.forEach((item) => {
+      const itemId = item?.id ?? item?.title;
+
+      if (!itemId || seenIds.has(itemId) || merged.length >= 4) {
+        return;
+      }
+
+      seenIds.add(itemId);
+      merged.push(item);
+    });
+  });
+
+  return merged;
 }
 
 function getSuggestedSkills(profile) {
@@ -181,11 +200,12 @@ function pickCourses(profile) {
   const track = resolveTrackKey(profile);
   const preferred = COURSE_CATALOG.filter((course) => course.tags.includes(track));
 
-  return [...preferred, ...COURSE_CATALOG.filter((course) => !preferred.includes(course))].slice(0, 4);
+  return [...preferred, ...COURSE_CATALOG.filter((course) => !preferred.includes(course))].slice(0, 6);
 }
 
 function mapCourseCard(course) {
   return {
+    id: course.id,
     meta: course.meta,
     title: course.title,
     provider: course.provider,
@@ -305,11 +325,19 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           size="md"
           actions={<a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">Все курсы →</a>}
         />
-        <div className="candidate-career-dashboard__card-grid candidate-career-dashboard__card-grid--courses">
-          {courses.map((course) => (
-            <CareerCourseCard key={course.title} {...course} />
-          ))}
-        </div>
+        <OpportunityBlockSlider
+          ariaLabel={COURSE_SLIDER_ARIA_LABEL}
+          items={courses}
+          className="candidate-career-dashboard__courses-slider"
+          itemWidth="var(--candidate-career-dashboard-course-slide-width)"
+          gap="var(--candidate-career-dashboard-course-slide-gap)"
+          renderItem={(course, _index, { className }) => (
+            <CareerCourseCard
+              {...course}
+              className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
+            />
+          )}
+        />
       </section>
 
       <section className="candidate-career-dashboard__section">
@@ -318,11 +346,22 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           size="md"
           actions={<a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">Все возможности →</a>}
         />
-        <div className="candidate-career-dashboard__card-grid candidate-career-dashboard__card-grid--opportunities">
-          {opportunities.map((item, index) => (
-            <CareerOpportunityCard key={item.id} featured={index === 0} {...item} />
-          ))}
-        </div>
+        <OpportunityBlockSlider
+          ariaLabel={OPPORTUNITY_SLIDER_ARIA_LABEL}
+          items={opportunities}
+          variant="leading-featured"
+          className="candidate-career-dashboard__opportunities-slider"
+          itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
+          featuredWidth="var(--candidate-career-dashboard-opportunity-featured-width)"
+          gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
+          cardPropsBuilder={(item) => ({
+            detailAction: {
+              href: item.href ?? routes.opportunities.catalog,
+              label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
+              variant: "secondary",
+            },
+          })}
+        />
       </section>
 
       <section className="candidate-career-dashboard__section">

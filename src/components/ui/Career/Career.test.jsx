@@ -121,4 +121,20 @@ describe("Career UI assemblies", () => {
     expect(screen.getByText("3 общих навыка: Web-design, UX, Figma")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Добавить в контакты" })).toHaveAttribute("href", "#peer");
   });
+
+  it("applies the requested typography utilities to the skills and salary panels", () => {
+    const { container } = render(
+      <>
+        <CareerSkillsPanel title="Skills" description="Growth copy" primarySkills={["SQL"]} suggestedSkills={["HTML"]} />
+        <CareerSalaryPanel title="Salary" city="Moscow" items={[{ level: "Junior", range: "44-56", progress: 0.32 }]} />
+      </>
+    );
+
+    expect(screen.getByRole("heading", { name: "Skills" })).toHaveClass("ui-type-h2");
+    expect(screen.getByText("Growth copy")).toHaveClass("ui-type-txt");
+    expect(container.querySelector(".ui-career-panel__recommended")).toHaveClass("ui-type-txt-select");
+    expect(container.querySelector(".ui-career-salary-panel__title")).toHaveClass("ui-type-h2");
+    expect(screen.getByText("Junior")).toHaveClass("ui-type-txt-select");
+    expect(screen.getByText("44-56")).toHaveClass("ui-type-h2");
+  });
 });

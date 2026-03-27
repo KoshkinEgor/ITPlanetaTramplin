@@ -55,6 +55,26 @@ describe("OpportunityBlockSlider", () => {
     expect(firstAction).toHaveClass("ui-width-full");
   });
 
+  it("renders custom slide content through renderItem", () => {
+    render(
+      <OpportunityBlockSlider
+        ariaLabel="Custom opportunity slider"
+        items={items}
+        renderItem={(item, index, { className }) => (
+          <article className={className} data-testid={`custom-slide-${index}`}>
+            <h3>{item.title}</h3>
+          </article>
+        )}
+      />
+    );
+
+    const rail = screen.getByRole("region", { name: "Custom opportunity slider" });
+
+    expect(rail.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(3);
+    expect(screen.getByTestId("custom-slide-0")).toHaveClass("opportunity-block-slider__card");
+    expect(within(rail).getByText("Junior Security Analyst")).toBeInTheDocument();
+  });
+
   it("promotes the card nearest to the left edge in the leading-featured variant", async () => {
     const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       callback(0);
