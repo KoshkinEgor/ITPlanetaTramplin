@@ -214,8 +214,8 @@ body.moderator-dashboard-react-body {
 
 .moderator-dashboard-overview {
   display: grid;
-  grid-template-columns: minmax(0, 1.42fr) minmax(280px, 0.6fr);
-  gap: 28px;
+  grid-template-columns: 1fr;
+  gap: 24px;
   align-items: start;
 }
 
@@ -294,6 +294,7 @@ body.moderator-dashboard-react-body {
 
 .moderator-focus-rail__list {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -805,6 +806,37 @@ body.moderator-dashboard-react-body {
   background:
     radial-gradient(circle at 100% 0%, rgba(47, 128, 255, 0.06), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 251, 255, 0.98));
+}
+
+.moderator-detail-surface--modal {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.moderator-opportunity-modal {
+  width: min(100%, 820px);
+}
+
+.moderator-company-modal {
+  width: min(100%, 820px);
+}
+
+.moderator-user-modal {
+  width: min(100%, 820px);
+}
+
+.moderator-opportunity-modal .ui-modal__content {
+  gap: 0;
+}
+
+.moderator-company-modal .ui-modal__content {
+  gap: 0;
+}
+
+.moderator-user-modal .ui-modal__content {
+  gap: 0;
 }
 
 .moderator-detail-surface__top {
@@ -1365,6 +1397,10 @@ body.moderator-dashboard-react-body {
 
   .moderator-dashboard-overview,
   .moderator-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .moderator-focus-rail__list {
     grid-template-columns: 1fr;
   }
 

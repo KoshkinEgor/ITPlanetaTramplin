@@ -7,7 +7,6 @@ import {
   Card,
   DashboardActivityCard,
   DashboardFocusCard,
-  DashboardPageHeader,
   DashboardQueueCard,
   DashboardSectionHeader,
   EmptyState,
@@ -411,14 +410,21 @@ export function ModeratorDashboardApp() {
 
       {state.status === "ready" ? (
         <div className="moderator-dashboard-stack">
-          <DashboardPageHeader
-            title="Дашборд модерации"
-            description="Общий список последних откликов по вакансиям и событиям с быстрым контекстом по статусу, роли и способу связи."
-            className="moderator-fade-up moderator-fade-up--delay-1"
-          />
-
           <section className="moderator-dashboard-overview">
-            <Card className="moderator-panel moderator-panel--activity-feed moderator-fade-up moderator-fade-up--delay-2">
+            <aside className="moderator-focus-rail moderator-fade-up moderator-fade-up--delay-2">
+              <DashboardSectionHeader
+                title="Дашборд модерации"
+                description="Здесь собраны ключевые задачи модератора, которые остаются в работе и требуют внимания."
+              />
+
+              <div className="moderator-focus-rail__list">
+                {focusItems.map((item) => (
+                  <DashboardFocusCard key={item.id} item={item} />
+                ))}
+              </div>
+            </aside>
+
+            <Card className="moderator-panel moderator-panel--activity-feed moderator-fade-up moderator-fade-up--delay-3">
               <DashboardSectionHeader
                 eyebrow="Активность"
                 title="Последние действия"
@@ -448,20 +454,6 @@ export function ModeratorDashboardApp() {
                 <EmptyState title={activityEmptyState.title} description={activityEmptyState.description} tone="neutral" compact />
               )}
             </Card>
-
-            <aside className="moderator-focus-rail moderator-fade-up moderator-fade-up--delay-3">
-              <DashboardSectionHeader
-                eyebrow="Фокус"
-                title="Сводка смены"
-                description="Здесь представлены незавершённые задачи, которые остаются в работе."
-              />
-
-              <div className="moderator-focus-rail__list">
-                {focusItems.map((item) => (
-                  <DashboardFocusCard key={item.id} item={item} />
-                ))}
-              </div>
-            </aside>
           </section>
 
           <Card className="moderator-panel moderator-panel--queue-stack moderator-fade-up moderator-fade-up--delay-3">
