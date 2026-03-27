@@ -87,7 +87,7 @@ body.opportunities-browser-react-body {
 }
 
 .opportunities-browser__sort p {
-  font-size: 0.88rem;
+  font-size: var(--ui-font-size-small);
   text-align: right;
   max-width: 320px;
 }
@@ -97,7 +97,7 @@ body.opportunities-browser-react-body {
   border: none;
   background: transparent;
   color: var(--ui-color-accent);
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
@@ -107,7 +107,7 @@ body.opportunities-browser-react-body {
 }
 
 .opportunities-browser__results-caption {
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 
@@ -134,7 +134,7 @@ body.opportunities-browser-react-body {
   background: transparent;
   color: var(--ui-color-accent);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 

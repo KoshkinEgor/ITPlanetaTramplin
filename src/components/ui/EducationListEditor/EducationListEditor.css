@@ -23,7 +23,7 @@
 
 .ui-education-editor__item-title {
   color: var(--ui-color-text);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
@@ -45,8 +45,8 @@
   margin: 0;
   padding-bottom: 14px;
   color: var(--ui-color-text-soft);
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
   font-weight: 600;
 }
 

@@ -40,9 +40,10 @@ body.ui-kit-react-body {
 
 .ui-kit-eyebrow {
   color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-micro);
+  font-size: var(--ui-font-size-overline);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  line-height: var(--ui-line-height-overline);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -223,8 +224,8 @@ body.ui-kit-react-body {
 .ui-kit-scale-row__meta strong,
 .ui-kit-stack-row__meta strong {
   color: var(--ui-color-text);
-  font-size: var(--ui-typo-txt-select-small-size);
-  line-height: var(--ui-typo-txt-select-small-line-height);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
 }
 
 .ui-kit-token__meta span,
@@ -232,7 +233,7 @@ body.ui-kit-react-body {
 .ui-kit-stack-row__meta span {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-caption);
-  line-height: var(--ui-line-height-body);
+  line-height: var(--ui-line-height-caption);
 }
 
 .ui-kit-foundation-stack,
@@ -335,9 +336,10 @@ body.ui-kit-react-body {
 
 .ui-kit-control__label {
   color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-micro);
+  font-size: var(--ui-font-size-overline);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  line-height: var(--ui-line-height-overline);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -350,8 +352,8 @@ body.ui-kit-react-body {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--ui-color-text);
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
   transition:
     border-color var(--ui-transition-base),
     box-shadow var(--ui-transition-base),
@@ -380,7 +382,8 @@ body.ui-kit-react-body {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.78);
   color: var(--ui-color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
   font-weight: 700;
 }
 
@@ -407,10 +410,10 @@ body.ui-kit-react-body {
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 14px 28px rgba(36, 49, 77, 0.08);
   color: #6b7690;
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  font-weight: var(--ui-typo-txt-select-weight);
-  letter-spacing: var(--ui-typo-txt-select-letter-spacing);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: var(--ui-font-weight-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-kit-search-preview .ui-input::placeholder {
@@ -470,9 +473,9 @@ body.ui-kit-react-body {
 
 .ui-kit-input-variant__title {
   color: var(--ui-color-text);
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-kit-input-variant__field {
@@ -485,10 +488,10 @@ body.ui-kit-react-body {
 
 .ui-kit-input-variant__field .ui-label {
   color: #7f899f;
-  font-size: var(--ui-typo-txt-regular-small-size);
-  line-height: var(--ui-typo-txt-regular-small-line-height);
-  letter-spacing: var(--ui-typo-txt-regular-small-letter-spacing);
-  font-weight: var(--ui-typo-txt-regular-small-weight);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  letter-spacing: var(--ui-letter-spacing-small);
+  font-weight: var(--ui-font-weight-small);
 }
 
 .ui-kit-input-variant__control.ui-input {
@@ -497,10 +500,10 @@ body.ui-kit-react-body {
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 12px 24px rgba(36, 49, 77, 0.06);
   color: #808aa0;
-  font-size: var(--ui-typo-txt-regular-size);
-  line-height: var(--ui-typo-txt-regular-line-height);
-  letter-spacing: var(--ui-typo-txt-regular-letter-spacing);
-  font-weight: var(--ui-typo-txt-regular-weight);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight-body);
 }
 
 .ui-kit-input-variant__control.ui-input::placeholder {
@@ -558,9 +561,9 @@ body.ui-kit-react-body {
 
 .ui-kit-action-system__label {
   color: var(--ui-color-text);
-  font-size: var(--ui-typo-txt-select-size);
-  line-height: var(--ui-typo-txt-select-line-height);
-  font-weight: var(--ui-typo-txt-select-weight);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: var(--ui-font-weight-strong);
 }
 
 .ui-kit-segmented-frame {
@@ -597,7 +600,8 @@ body.ui-kit-react-body {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-caption);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  line-height: var(--ui-line-height-overline);
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -643,10 +647,10 @@ body.ui-kit-react-body {
 .ui-kit-map-marker-stage__label,
 .ui-kit-map-marker-stage__title {
   color: var(--ui-color-text-muted);
-  font-size: 11px;
+  font-size: var(--ui-font-size-overline);
   font-weight: 800;
-  letter-spacing: 0.14em;
-  line-height: 1.2;
+  letter-spacing: var(--ui-letter-spacing-overline);
+  line-height: var(--ui-line-height-overline);
   text-transform: uppercase;
 }
 
@@ -749,8 +753,8 @@ body.ui-kit-react-body {
 
 .ui-kit-slider-showcase__copy strong {
   color: var(--ui-color-text);
-  font-size: 1.02rem;
-  line-height: 1.3;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-h2);
   font-weight: 800;
 }
 
@@ -807,10 +811,14 @@ body.ui-kit-react-body {
 
 .ui-kit-editable-field__label {
   color: var(--ui-color-text);
-  font-size: clamp(1.4rem, 2vw, 1.85rem);
-  line-height: 1;
+  font-size: clamp(
+    var(--ui-font-size-h5),
+    2vw,
+    calc((var(--ui-font-size-h4) * 0.64) + (var(--ui-font-size-h3) * 0.36))
+  );
+  line-height: var(--ui-line-height-tight);
   font-weight: 800;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--ui-letter-spacing-h2);
 }
 
 .ui-kit-editable-field__card {
@@ -857,15 +865,15 @@ body.ui-kit-react-body {
 
 .ui-kit-editable-field__copy strong {
   color: var(--ui-color-text);
-  font-size: 1rem;
-  line-height: 1.3;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-h2);
   font-weight: 800;
 }
 
 .ui-kit-editable-field__copy span {
   color: var(--ui-color-text-muted);
-  font-size: 0.98rem;
-  line-height: 1.35;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-h2);
   font-weight: 600;
 }
 
@@ -1045,7 +1053,7 @@ body.ui-kit-react-body {
 
   .ui-kit-search-preview .ui-input {
     min-height: 48px;
-    font-size: var(--ui-typo-txt-select-size);
+    font-size: var(--ui-font-size-body);
   }
 
   .ui-kit-search-preview .ui-search-input__icon {

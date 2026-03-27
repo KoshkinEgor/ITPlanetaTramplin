@@ -45,7 +45,7 @@
   color: var(--ui-color-text-muted);
   font-size: var(--ui-segmented-font-size);
   line-height: var(--ui-segmented-line-height);
-  letter-spacing: 0;
+  letter-spacing: calc(var(--ui-letter-spacing-body) - var(--ui-letter-spacing-body));
   font-weight: var(--ui-font-weight, var(--ui-segmented-font-weight));
   font-family: inherit;
   text-decoration: none;

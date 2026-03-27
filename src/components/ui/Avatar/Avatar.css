@@ -61,18 +61,18 @@
 }
 
 .ui-avatar__initials {
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--ui-letter-spacing-h3);
 }
 
 .ui-avatar--lg .ui-avatar__initials {
-  font-size: 1.08rem;
+  font-size: calc((var(--ui-font-size-body-lg) * 0.4) + (var(--ui-font-size-body) * 0.6));
 }
 
 .ui-avatar--xl .ui-avatar__initials {
-  font-size: 3rem;
-  letter-spacing: -0.08em;
+  font-size: var(--ui-font-size-h1);
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .ui-avatar__status {

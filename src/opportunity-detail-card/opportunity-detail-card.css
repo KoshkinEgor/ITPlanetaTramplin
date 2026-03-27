@@ -41,9 +41,9 @@ body.opportunity-card-react-body {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  font-size: 1.05rem;
+  font-size: var(--ui-font-size-body-lg);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--ui-letter-spacing-h3);
 }
 
 .opportunity-card-header__mark {
@@ -65,7 +65,7 @@ body.opportunity-card-react-body {
 .opportunity-card-header__nav-link {
   position: relative;
   color: var(--ui-color-text-muted);
-  font-size: 0.96rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   transition: color var(--ui-transition-base);
 }
@@ -179,8 +179,8 @@ body.opportunity-card-react-body {
   flex-wrap: wrap;
   gap: 6px;
   color: var(--ui-color-text-muted);
-  font-size: 1rem;
-  line-height: 1.55;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
   font-weight: 700;
 }
 
@@ -211,7 +211,7 @@ body.opportunity-card-react-body {
 
 .opportunity-focus-card__watchers {
   color: var(--ui-color-text-muted);
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
 }
 
@@ -300,8 +300,8 @@ body.opportunity-card-react-body {
   margin: 0;
   padding-left: 20px;
   color: var(--ui-color-text-muted);
-  font-size: 1rem;
-  line-height: 1.8;
+  font-size: var(--ui-font-size-body);
+  line-height: calc(var(--ui-line-height-body) + (var(--ui-line-height-h4) * 0.2));
   font-weight: 600;
 }
 
@@ -373,7 +373,7 @@ body.opportunity-card-react-body {
 }
 
 .company-spotlight__copy h2 {
-  font-size: 1.2rem;
+  font-size: var(--ui-font-size-body-lg);
 }
 
 .company-spotlight__rating {
@@ -382,7 +382,7 @@ body.opportunity-card-react-body {
   align-items: center;
   gap: 8px;
   color: var(--ui-color-text-muted);
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
 }
 
@@ -424,7 +424,7 @@ body.opportunity-card-react-body {
 .opportunity-card-page__more-link {
   padding: 0 6px;
   color: var(--ui-color-accent);
-  font-size: 0.96rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
@@ -549,6 +549,6 @@ body.opportunity-card-react-body {
   }
 
   .opportunity-focus-card__fact {
-    font-size: 0.96rem;
+    font-size: var(--ui-font-size-body);
   }
 }

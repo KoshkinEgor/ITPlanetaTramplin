@@ -43,18 +43,18 @@
 .moderator-profile-summary__metric strong {
   font-size: var(--ui-font-size-h1);
   line-height: var(--ui-line-height-h1);
-  letter-spacing: -0.06em;
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .moderator-profile-summary__metric span {
-  font-size: 0.96rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
 .moderator-profile-summary__metric p {
   color: var(--ui-color-text-muted);
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
 }
 
 @media (max-width: 880px) {

@@ -173,18 +173,26 @@
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__title {
-  font-size: clamp(1.65rem, 2.4vw, 2.1rem);
-  line-height: clamp(2rem, 2.9vw, 2.45rem);
+  font-size: clamp(var(--ui-font-size-h4), 2.4vw, var(--ui-font-size-h3));
+  line-height: clamp(
+    calc(var(--ui-font-size-h5) * var(--ui-line-height-h5)),
+    2.9vw,
+    calc(var(--ui-font-size-h4) * var(--ui-line-height-h4))
+  );
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__meta,
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__note {
-  font-size: 1.04rem;
+  font-size: var(--ui-font-size-body);
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__accent {
-  font-size: clamp(1.9rem, 2.8vw, 2.4rem);
-  line-height: clamp(2.3rem, 3.2vw, 2.8rem);
+  font-size: clamp(var(--ui-font-size-h3), 2.8vw, var(--ui-font-size-h1));
+  line-height: clamp(
+    calc(var(--ui-font-size-h4) * var(--ui-line-height-h4)),
+    3.2vw,
+    calc(var(--ui-font-size-h3) * var(--ui-line-height-h3))
+  );
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__tag,

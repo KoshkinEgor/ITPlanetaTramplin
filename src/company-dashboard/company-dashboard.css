@@ -81,7 +81,7 @@
 .company-dashboard-metric strong {
   font-size: var(--ui-font-size-h1);
   line-height: var(--ui-line-height-h1);
-  letter-spacing: -0.06em;
+  letter-spacing: var(--ui-letter-spacing-display);
   color: var(--ui-color-text);
 }
 
@@ -135,8 +135,8 @@
   position: relative;
   padding-left: 26px;
   color: rgba(24, 29, 45, 0.82);
-  font-size: 0.98rem;
-  line-height: 1.55;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
 }
 
 .company-dashboard-checklist li::before {

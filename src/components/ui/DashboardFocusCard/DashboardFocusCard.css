@@ -32,6 +32,6 @@
   border-radius: 999px;
   background: rgba(24, 29, 45, 0.06);
   color: var(--ui-color-text-soft);
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }

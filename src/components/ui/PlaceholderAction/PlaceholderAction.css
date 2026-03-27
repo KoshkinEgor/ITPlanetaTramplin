@@ -11,14 +11,14 @@
 }
 
 .ui-placeholder-action__label {
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
-  line-height: 1.25;
+  line-height: var(--ui-line-height-h1);
 }
 
 .ui-placeholder-action__description {
   color: var(--ui-color-text-muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
   font-weight: 600;
 }

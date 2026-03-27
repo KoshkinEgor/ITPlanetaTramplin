@@ -327,7 +327,7 @@ body.home-react-body {
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08));
   color: rgba(255, 255, 255, 0.95);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   text-align: center;
 }
@@ -429,7 +429,7 @@ body.home-react-body {
   border: none;
   background: transparent;
   color: #202841;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -507,7 +507,7 @@ body.home-react-body {
   border-radius: 14px;
   background: transparent;
   color: #2f3954;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   text-align: left;
   transition:
@@ -533,7 +533,7 @@ body.home-react-body {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.74);
   color: #6d7890;
-  font-size: 0.9rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 600;
 }
 
@@ -613,7 +613,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   color: #2b3550;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   box-shadow: 0 12px 24px rgba(36, 49, 77, 0.05);
   transition:
@@ -687,7 +687,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   color: #2f3954;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   text-align: left;
   transition:
@@ -748,7 +748,7 @@ body.home-react-body {
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.96));
   color: #2b3550;
-  font-size: 0.94rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(36, 49, 77, 0.04);
@@ -814,7 +814,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(47, 128, 255, 0.12);
   color: #2f80ff;
-  font-size: 0.78rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 800;
 }
 
@@ -849,7 +849,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   color: #2f3954;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   text-align: left;
   transition:
@@ -899,7 +899,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(47, 128, 255, 0.08);
   color: #2f3954;
-  font-size: 0.84rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 700;
 }
 
@@ -963,7 +963,7 @@ body.home-react-body {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.94);
   color: #2f3954;
-  font-size: 0.9rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
   text-align: left;
   transition:
@@ -1053,7 +1053,7 @@ body.home-react-body {
 .home-map-card__legend-chip {
   min-height: 32px;
   padding-inline: 12px;
-  font-size: 0.76rem;
+  font-size: var(--ui-font-size-micro);
 }
 
 .home-map-card__dot {
@@ -1204,7 +1204,7 @@ body.home-react-body {
 }
 
 .home-map-card__placeholder strong {
-  font-size: 1.02rem;
+  font-size: var(--ui-font-size-body);
 }
 
 .home-map-card__placeholder p,
@@ -1298,7 +1298,7 @@ body.home-react-body {
   border: 1px solid rgba(24, 29, 45, 0.22);
   border-radius: 50%;
   color: #24314d;
-  font-size: 0.78rem;
+  font-size: calc((var(--ui-font-size-micro) * 0.4) + (var(--ui-font-size-caption) * 0.6));
   font-weight: 800;
   background: #ffffff;
 }
@@ -1425,7 +1425,7 @@ body.home-react-body {
   display: block;
   margin-bottom: 10px;
   color: #5f6d88;
-  font-size: 0.86rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
 }
 
@@ -1463,7 +1463,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   color: #55627f;
-  font-size: 0.9rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -1499,7 +1499,7 @@ body.home-react-body {
 
 .home-advanced-search__check-label {
   color: #2f3954;
-  font-size: 0.94rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 600;
 }
 
@@ -1612,7 +1612,7 @@ body.home-react-body {
   border-radius: 50%;
   border: 2px solid #ffffff;
   color: #ffffff;
-  font-size: 0.84rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 800;
 }
 
@@ -1715,7 +1715,7 @@ body.home-react-body {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.84);
   color: #54627d;
-  font-size: 0.84rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 800;
 }
 
@@ -1816,13 +1816,13 @@ body.home-react-body {
   }
 
   .home-header__nav-link {
-    font-size: 0.92rem;
+    font-size: var(--ui-font-size-body);
   }
 
   .home-header__auth {
     min-height: 48px;
     padding-inline: 18px;
-    font-size: 0.9rem;
+    font-size: var(--ui-font-size-small);
   }
 }
 

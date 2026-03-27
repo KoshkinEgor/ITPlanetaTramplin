@@ -67,10 +67,10 @@
 .ui-map-marker__label {
   max-width: 92px;
   color: #24314d;
-  font-size: 12px;
-  line-height: 1.15;
+  font-size: calc((var(--ui-font-size-micro) * 0.59) + (var(--ui-font-size-caption) * 0.41));
+  line-height: calc(var(--ui-line-height-display) + ((var(--ui-line-height-overline) - var(--ui-line-height-display)) * 0.03));
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--ui-letter-spacing-h5);
   text-align: center;
   overflow-wrap: anywhere;
   text-shadow:
@@ -94,7 +94,7 @@
 .ui-map-marker__cluster-count {
   color: #69758f;
   font-size: calc(var(--ui-map-marker-size) * 0.56);
-  line-height: 1;
+  line-height: calc(var(--ui-line-height-display) * 0.875);
   font-weight: 800;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--ui-letter-spacing-h2);
 }

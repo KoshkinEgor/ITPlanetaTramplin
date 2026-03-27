@@ -68,7 +68,7 @@
 
 .candidate-profile-summary__title {
   line-height: var(--ui-line-height-h2);
-  letter-spacing: -0.05em;
+  letter-spacing: var(--ui-letter-spacing-h2);
 }
 
 .candidate-profile-summary__meta,

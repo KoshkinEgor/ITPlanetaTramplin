@@ -22,7 +22,7 @@
 
 .ui-dashboard-queue-card__top span {
   color: var(--ui-color-text-soft);
-  font-size: 0.95rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 

@@ -7,8 +7,8 @@ const CSS_EXT = ".css";
 
 const FILE_ALLOWLIST = new Set([
   path.normalize("src/shared/styles/tokens.css"),
+  path.normalize("src/shared/styles/typescale.generated.css"),
   path.normalize("src/shared/styles/globals.css"),
-  path.normalize("src/ui-kit/ui-kit.css"),
 ]);
 
 const ICON_ONLY_PATTERNS = [

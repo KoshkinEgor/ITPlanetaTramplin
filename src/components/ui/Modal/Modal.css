@@ -72,7 +72,7 @@
 
 .ui-modal__content p {
   margin: 0;
-  line-height: 1.6;
+  line-height: calc(var(--ui-line-height-body) + (var(--ui-line-height-h1) * 0.08));
 }
 
 .ui-modal__dismiss {
@@ -85,8 +85,8 @@
   border-radius: var(--ui-radius-pill);
   background: rgba(255, 255, 255, 0.72);
   color: var(--ui-color-text-muted);
-  font-size: 1.15rem;
-  line-height: 1;
+  font-size: calc((var(--ui-font-size-h6) * 0.75) + (var(--ui-font-size-body) * 0.25));
+  line-height: calc(var(--ui-line-height-display) * 0.875);
   font-weight: 800;
   cursor: pointer;
   transition:

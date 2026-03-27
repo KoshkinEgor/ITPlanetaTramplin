@@ -99,14 +99,6 @@ const typographyRows = [
   { tag: "Small", utility: ".ui-type-small", className: "ui-type-small" },
   { tag: "Micro", utility: ".ui-type-micro", className: "ui-type-micro" },
   { tag: "Overline", utility: ".ui-type-overline", className: "ui-type-overline" },
-  { tag: "TXT", utility: ".ui-typo-txt", className: "ui-typo-txt ui-color-text-primary" },
-  { tag: "TXT Regular", utility: ".ui-typo-txt-regular", className: "ui-typo-txt-regular ui-color-text-primary" },
-  { tag: "TXT Regular Small", utility: ".ui-typo-txt-regular-small", className: "ui-typo-txt-regular-small ui-color-text-primary" },
-  { tag: "TXT Regular Middle", utility: ".ui-typo-txt-regular-middle", className: "ui-typo-txt-regular-middle ui-color-text-primary" },
-  { tag: "TXT Select", utility: ".ui-typo-txt-select", className: "ui-typo-txt-select ui-color-text-primary" },
-  { tag: "TXT Select Small", utility: ".ui-typo-txt-select-small", className: "ui-typo-txt-select-small ui-color-text-primary" },
-  { tag: "TXT Select Middle", utility: ".ui-typo-txt-select-middle", className: "ui-typo-txt-select-middle ui-color-text-primary" },
-  { tag: "TXT Select Big", utility: ".ui-typo-txt-select-big", className: "ui-typo-txt-select-big ui-color-text-primary" },
 ];
 
 const selectOptions = [

@@ -966,7 +966,7 @@ body.auth-react-body {
 
   .auth-code-group__input {
     min-height: 76px;
-    font-size: 1.6rem;
+    font-size: calc((var(--ui-font-size-h5) * 0.46) + (var(--ui-font-size-h4) * 0.54));
   }
 
   .auth-stage--login .auth-stage__shell--compact {
@@ -1078,7 +1078,7 @@ body.auth-react-body {
   .auth-code-group__input {
     min-height: 64px;
     border-radius: 18px;
-    font-size: 1.3rem;
+    font-size: calc((var(--ui-font-size-body-lg) * 0.49) + (var(--ui-font-size-h5) * 0.51));
   }
 
   .auth-login-card {

@@ -272,7 +272,7 @@ body.moderator-dashboard-react-body {
   color: var(--ui-color-accent);
   font-size: var(--ui-font-size-h1);
   line-height: var(--ui-line-height-h1);
-  letter-spacing: -0.06em;
+  letter-spacing: var(--ui-letter-spacing-display);
 }
 
 .moderator-metric-card__copy {
@@ -331,7 +331,7 @@ body.moderator-dashboard-react-body {
   border-radius: 999px;
   background: rgba(24, 29, 45, 0.06);
   color: var(--ui-color-text-soft);
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
@@ -405,7 +405,7 @@ body.moderator-dashboard-react-body {
   border: 1px solid rgba(24, 29, 45, 0.08);
   border-radius: 999px;
   color: var(--ui-color-text-soft);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 
@@ -438,7 +438,7 @@ body.moderator-dashboard-react-body {
 
 .moderator-panel__sort span {
   color: var(--ui-color-text-muted);
-  font-size: 0.95rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 
@@ -451,7 +451,7 @@ body.moderator-dashboard-react-body {
   background: transparent;
   color: var(--ui-color-text);
   cursor: pointer;
-  font-size: 0.96rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
 }
 
@@ -472,7 +472,7 @@ body.moderator-dashboard-react-body {
   background: rgba(255, 255, 255, 0.9);
   color: var(--ui-color-text-soft);
   cursor: pointer;
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 700;
   transition:
     transform var(--ui-transition-fast),
@@ -549,7 +549,7 @@ body.moderator-dashboard-react-body {
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 20px 42px rgba(36, 49, 77, 0.08);
   color: var(--ui-color-text);
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 
@@ -625,9 +625,9 @@ body.moderator-dashboard-react-body {
   gap: 18px;
   padding: 0 16px;
   color: var(--ui-color-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--ui-font-size-caption);
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
 
@@ -672,8 +672,8 @@ body.moderator-dashboard-react-body {
   display: flex;
   align-items: center;
   color: var(--ui-color-text);
-  font-size: 0.98rem;
-  line-height: 1.4;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-overline);
 }
 
 .moderator-table__cell--stack {
@@ -693,7 +693,7 @@ body.moderator-dashboard-react-body {
 
 .moderator-table__meta {
   color: var(--ui-color-text-muted);
-  font-size: 0.92rem;
+  font-size: var(--ui-font-size-small);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -776,8 +776,8 @@ body.moderator-dashboard-react-body {
 }
 
 .moderator-opportunity-compact__title {
-  font-size: 1rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-small);
   font-weight: 800;
   overflow-wrap: anywhere;
 }
@@ -785,8 +785,8 @@ body.moderator-dashboard-react-body {
 .moderator-opportunity-compact__company,
 .moderator-opportunity-compact__meta {
   color: var(--ui-color-text-muted);
-  font-size: 0.94rem;
-  line-height: 1.45;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-small);
   font-weight: 600;
 }
 
@@ -836,7 +836,7 @@ body.moderator-dashboard-react-body {
 
 .moderator-detail-surface__meta {
   color: var(--ui-color-text-muted);
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 600;
 }
 
@@ -945,7 +945,7 @@ body.moderator-dashboard-react-body {
   justify-content: flex-start;
   min-height: 48px;
   padding: 0 14px;
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
 }
 
 .moderator-decision {
@@ -955,7 +955,7 @@ body.moderator-dashboard-react-body {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.94);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 800;
   transition:
     transform var(--ui-transition-fast),
@@ -1042,7 +1042,7 @@ body.moderator-dashboard-react-body {
   background: rgba(255, 255, 255, 0.94);
   color: var(--ui-color-text-soft);
   cursor: pointer;
-  font-size: 0.98rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   transition:
     background-color var(--ui-transition-base),
@@ -1095,7 +1095,7 @@ body.moderator-dashboard-react-body {
   border-radius: 12px;
   background: rgba(47, 128, 255, 0.08);
   color: var(--ui-color-accent);
-  font-size: 1.1rem;
+  font-size: calc((var(--ui-font-size-body-lg) * 0.5) + (var(--ui-font-size-body) * 0.5));
   font-weight: 800;
 }
 
@@ -1145,7 +1145,7 @@ body.moderator-dashboard-react-body {
   border: 1px solid rgba(24, 29, 45, 0.08);
   border-radius: 999px;
   color: var(--ui-color-text-soft);
-  font-size: 0.96rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1189,7 +1189,7 @@ body.moderator-dashboard-react-body {
 .moderator-activity-item__top span,
 .moderator-queue-item__top span {
   color: var(--ui-color-text-soft);
-  font-size: 0.95rem;
+  font-size: var(--ui-font-size-body);
   font-weight: 700;
 }
 

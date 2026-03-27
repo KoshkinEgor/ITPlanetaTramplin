@@ -158,7 +158,7 @@ describe("UiKitApp", () => {
   it("shows the full typography catalog and keeps the segmented preview at md by default", () => {
     render(<UiKitApp />);
 
-    expect(screen.getByText(".ui-typo-txt-select")).toBeInTheDocument();
+    expect(screen.getByText(".ui-type-display")).toBeInTheDocument();
     expect(screen.getByText(".ui-type-overline")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-segmented-preview")).not.toHaveClass("ui-segmented--size-lg");
   });
