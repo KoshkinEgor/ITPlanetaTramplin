@@ -3,18 +3,18 @@
 
    Token     desktop   mobile
    display  3.5rem    2rem
-   h1       2.986rem  1.5rem
-   h2       2.488rem  1.25rem
-   h3       2.074rem  1rem
-   h4       1.728rem  0.875rem
-   h5       1.440rem  0.75rem
-   h6       1.200rem  0.75rem
-   bodyLg   1.200rem  0.875rem
+   h1       2.297rem  1.5rem
+   h2       2rem      1.25rem
+   h3       1.741rem  1rem
+   h4       1.516rem  0.875rem
+   h5       1.319rem  0.75rem
+   h6       1.149rem  0.75rem
+   bodyLg   1.149rem  0.875rem
    body     1rem      0.875rem
-   caption  0.833rem  0.875rem
-   small    0.833rem  0.875rem
-   micro    0.694rem  0.75rem
-   overline 0.694rem  0.75rem
+   caption  0.871rem  0.875rem
+   small    0.871rem  0.875rem
+   micro    0.758rem  0.75rem
+   overline 0.758rem  0.75rem
 */
 
 :root {
@@ -24,31 +24,31 @@
   --ui-line-height-display: 1.142857;
   --ui-letter-spacing-display: -0.065em;
   --ui-font-weight-display: 500;
-  --ui-font-size-h1: 2.986rem;
+  --ui-font-size-h1: 2.297rem;
   --ui-line-height-h1: 1.25;
   --ui-letter-spacing-h1: -0.058em;
   --ui-font-weight-h1: 500;
-  --ui-font-size-h2: 2.488rem;
+  --ui-font-size-h2: 2rem;
   --ui-line-height-h2: 1.333333;
   --ui-letter-spacing-h2: -0.05em;
   --ui-font-weight-h2: 500;
-  --ui-font-size-h3: 2.074rem;
+  --ui-font-size-h3: 1.741rem;
   --ui-line-height-h3: 1.4;
   --ui-letter-spacing-h3: -0.04em;
   --ui-font-weight-h3: 500;
-  --ui-font-size-h4: 1.728rem;
+  --ui-font-size-h4: 1.516rem;
   --ui-line-height-h4: 1.5;
   --ui-letter-spacing-h4: -0.03em;
   --ui-font-weight-h4: 500;
-  --ui-font-size-h5: 1.440rem;
+  --ui-font-size-h5: 1.319rem;
   --ui-line-height-h5: 1.428571;
   --ui-letter-spacing-h5: -0.022em;
   --ui-font-weight-h5: 500;
-  --ui-font-size-h6: 1.200rem;
+  --ui-font-size-h6: 1.149rem;
   --ui-line-height-h6: 1.5;
   --ui-letter-spacing-h6: -0.015em;
   --ui-font-weight-h6: 500;
-  --ui-font-size-body-lg: 1.200rem;
+  --ui-font-size-body-lg: 1.149rem;
   --ui-line-height-body-lg: 1.5;
   --ui-letter-spacing-body-lg: -0.014em;
   --ui-font-weight-body-lg: 500;
@@ -56,19 +56,19 @@
   --ui-line-height-body: 1.5;
   --ui-letter-spacing-body: -0.012em;
   --ui-font-weight-body: 500;
-  --ui-font-size-caption: 0.833rem;
+  --ui-font-size-caption: 0.871rem;
   --ui-line-height-caption: 1.428571;
   --ui-letter-spacing-caption: -0.006em;
   --ui-font-weight-caption: 500;
-  --ui-font-size-small: 0.833rem;
+  --ui-font-size-small: 0.871rem;
   --ui-line-height-small: 1.428571;
   --ui-letter-spacing-small: -0.006em;
   --ui-font-weight-small: 500;
-  --ui-font-size-micro: 0.694rem;
+  --ui-font-size-micro: 0.758rem;
   --ui-line-height-micro: 1.5;
   --ui-letter-spacing-micro: -0.002em;
   --ui-font-weight-micro: 500;
-  --ui-font-size-overline: 0.694rem;
+  --ui-font-size-overline: 0.758rem;
   --ui-line-height-overline: 1.4;
   --ui-letter-spacing-overline: 0.06em;
   --ui-font-weight-overline: 500;

@@ -187,12 +187,8 @@
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__accent {
-  font-size: clamp(var(--ui-font-size-h3), 2.8vw, var(--ui-font-size-h1));
-  line-height: clamp(
-    calc(var(--ui-font-size-h4) * var(--ui-line-height-h4)),
-    3.2vw,
-    calc(var(--ui-font-size-h3) * var(--ui-line-height-h3))
-  );
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-h2);
 }
 
 .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .ui-opportunity-card__tag,

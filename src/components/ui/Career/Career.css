@@ -58,6 +58,7 @@
   font-size: var(--ui-font-size-body);
   line-height: var(--ui-line-height-body);
   letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight-body);
 }
 
 .ui-career-panel__title,
@@ -86,6 +87,14 @@
   max-width: 20ch;
 }
 
+.ui-career-stats-panel .ui-career-panel__title,
+.ui-career-stats-panel .ui-career-panel__stat-value {
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-h2);
+  letter-spacing: var(--ui-letter-spacing-h2);
+  font-weight: var(--ui-font-weight-h2);
+}
+
 .ui-career-panel__stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -108,6 +117,10 @@
 
 .ui-career-panel__stat-label {
   color: var(--ui-color-text-soft);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
+  font-weight: var(--ui-font-weight-body);
 }
 
 .ui-career-panel__skill-cloud {
@@ -201,6 +214,13 @@
 
 .ui-career-course-card__action.ui-button {
   min-height: 52px;
+}
+
+.ui-career-stats-panel__action.ui-button {
+  min-height: 52px;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .ui-career-opportunity-card {

@@ -22,7 +22,7 @@
     },
     "h1": {
       "desktop": {
-        "fontSize": "2.986rem",
+        "fontSize": "2.297rem",
         "lineHeight": "1.25",
         "letterSpacing": "-0.058em",
         "fontWeight": "500"
@@ -36,7 +36,7 @@
     },
     "h2": {
       "desktop": {
-        "fontSize": "2.488rem",
+        "fontSize": "2rem",
         "lineHeight": "1.333333",
         "letterSpacing": "-0.05em",
         "fontWeight": "500"
@@ -50,7 +50,7 @@
     },
     "h3": {
       "desktop": {
-        "fontSize": "2.074rem",
+        "fontSize": "1.741rem",
         "lineHeight": "1.4",
         "letterSpacing": "-0.04em",
         "fontWeight": "500"
@@ -64,7 +64,7 @@
     },
     "h4": {
       "desktop": {
-        "fontSize": "1.728rem",
+        "fontSize": "1.516rem",
         "lineHeight": "1.5",
         "letterSpacing": "-0.03em",
         "fontWeight": "500"
@@ -78,7 +78,7 @@
     },
     "h5": {
       "desktop": {
-        "fontSize": "1.440rem",
+        "fontSize": "1.319rem",
         "lineHeight": "1.428571",
         "letterSpacing": "-0.022em",
         "fontWeight": "500"
@@ -92,7 +92,7 @@
     },
     "h6": {
       "desktop": {
-        "fontSize": "1.200rem",
+        "fontSize": "1.149rem",
         "lineHeight": "1.5",
         "letterSpacing": "-0.015em",
         "fontWeight": "500"
@@ -106,7 +106,7 @@
     },
     "bodyLg": {
       "desktop": {
-        "fontSize": "1.200rem",
+        "fontSize": "1.149rem",
         "lineHeight": "1.5",
         "letterSpacing": "-0.014em",
         "fontWeight": "500"
@@ -134,7 +134,7 @@
     },
     "caption": {
       "desktop": {
-        "fontSize": "0.833rem",
+        "fontSize": "0.871rem",
         "lineHeight": "1.428571",
         "letterSpacing": "-0.006em",
         "fontWeight": "500"
@@ -148,7 +148,7 @@
     },
     "small": {
       "desktop": {
-        "fontSize": "0.833rem",
+        "fontSize": "0.871rem",
         "lineHeight": "1.428571",
         "letterSpacing": "-0.006em",
         "fontWeight": "500"
@@ -162,7 +162,7 @@
     },
     "micro": {
       "desktop": {
-        "fontSize": "0.694rem",
+        "fontSize": "0.758rem",
         "lineHeight": "1.5",
         "letterSpacing": "-0.002em",
         "fontWeight": "500"
@@ -176,7 +176,7 @@
     },
     "overline": {
       "desktop": {
-        "fontSize": "0.694rem",
+        "fontSize": "0.758rem",
         "lineHeight": "1.4",
         "letterSpacing": "0.06em",
         "fontWeight": "500"

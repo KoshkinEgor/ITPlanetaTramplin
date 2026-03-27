@@ -8,27 +8,19 @@
     2.4vw,
     calc((var(--ui-font-size-h3) * 0.33) + (var(--ui-font-size-h2) * 0.67))
   );
-  --ui-opportunity-card-title-size-row: clamp(var(--ui-font-size-h3), 3vw, var(--ui-font-size-h1));
-  --ui-opportunity-card-title-line-height-tight: var(--ui-line-height-h1);
+  --ui-opportunity-card-title-size-row: var(--ui-font-size-h2);
+  --ui-opportunity-card-title-line-height-tight: var(--ui-line-height-h2);
   --ui-opportunity-card-title-line-height-row-sm: clamp(
     calc((var(--ui-font-size-h5) * var(--ui-line-height-h5) * 0.83) + (var(--ui-font-size-h4) * var(--ui-line-height-h4) * 0.17)),
     2.9vw,
     calc((var(--ui-font-size-h4) * var(--ui-line-height-h4) * 0.33) + (var(--ui-font-size-h3) * var(--ui-line-height-h3) * 0.67))
   );
-  --ui-opportunity-card-title-line-height-row: clamp(
-    calc(var(--ui-font-size-h3) * var(--ui-line-height-h3)),
-    3.6vw,
-    calc(var(--ui-font-size-h1) * var(--ui-line-height-h1))
-  );
+  --ui-opportunity-card-title-line-height-row: var(--ui-line-height-h2);
   --ui-opportunity-card-accent-size-sm: calc((var(--ui-font-size-body-lg) * 0.5) + (var(--ui-font-size-body) * 0.5));
   --ui-opportunity-card-accent-size-row-sm: var(--ui-font-size-h5);
-  --ui-opportunity-card-accent-size-row: clamp(var(--ui-font-size-h4), 2.1vw, var(--ui-font-size-h3));
+  --ui-opportunity-card-accent-size-row: var(--ui-font-size-h2);
   --ui-opportunity-card-accent-line-height-row-sm: var(--ui-line-height-h2);
-  --ui-opportunity-card-accent-line-height-row: clamp(
-    calc(var(--ui-font-size-h5) * var(--ui-line-height-h5)),
-    2.5vw,
-    calc((var(--ui-font-size-h5) * var(--ui-line-height-h5) * 0.24) + (var(--ui-font-size-h4) * var(--ui-line-height-h4) * 0.76))
-  );
+  --ui-opportunity-card-accent-line-height-row: var(--ui-line-height-h2);
 }
 
 .ui-opportunity-card--plain.ui-card {

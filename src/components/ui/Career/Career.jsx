@@ -50,7 +50,7 @@ export function CareerStatsPanel({
   return (
     <Card className={["ui-career-panel", "ui-career-stats-panel", className].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-panel__header">
-        {title ? <h3 className="ui-career-panel__title">{title}</h3> : null}
+        {title ? <h2 className="ui-career-panel__title">{title}</h2> : null}
         {metaTitle || metaDescription ? (
           <div className="ui-career-panel__meta">
             {metaTitle ? <strong>{metaTitle}</strong> : null}
@@ -76,7 +76,7 @@ export function CareerStatsPanel({
       {description ? <p className="ui-career-panel__description">{description}</p> : null}
 
       {cta?.label ? (
-        <Button href={cta.href ?? "#"} variant={cta.variant ?? "secondary"} width="full">
+        <Button href={cta.href ?? "#"} variant={cta.variant ?? "secondary"} width="full" className="ui-career-stats-panel__action">
           {cta.label}
         </Button>
       ) : null}

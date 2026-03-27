@@ -53,9 +53,6 @@
 
 .ui-settings-section__title h3 {
   margin: 0;
-  font-size: var(--ui-font-size-h1);
-  line-height: var(--ui-line-height-h1);
-  letter-spacing: var(--ui-letter-spacing-h1);
   text-align: right;
 }
 
@@ -203,12 +200,6 @@
 
   .ui-settings-section__title {
     gap: 10px;
-  }
-
-  .ui-settings-section__title h3 {
-    font-size: var(--ui-font-size-h2);
-    line-height: var(--ui-line-height-h2);
-    letter-spacing: var(--ui-letter-spacing-h2);
   }
 
   .ui-settings-section__chevron {
