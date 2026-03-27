@@ -3,7 +3,6 @@ import { Outlet, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
 import {
   getCandidateAchievements,
-  getCandidateApplications,
   getCandidateContacts,
   getCandidateEducation,
   getCandidateProfile,
@@ -11,6 +10,7 @@ import {
 } from "../../api/candidate";
 import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
 import { CANDIDATE_SIDEBAR_ITEMS } from "../../candidate-portal/config";
+import { useCandidateApplications } from "../../candidate-portal/candidate-applications-store";
 import { getProfileCompletion } from "../../candidate-portal/mappers";
 import { CandidateProgressCard } from "../../candidate-portal/shared";
 import { CandidateProfileSummary } from "../../features/candidate";
@@ -60,7 +60,7 @@ function SummaryFallback({ status }) {
 
   return (
     <Card>
-      <p className="ui-type-body">Summary кандидата недоступен. Контент раздела остается доступным отдельно.</p>
+      <p className="ui-type-body">Summary кандидата недоступен. Контент раздела остаётся доступным отдельно.</p>
     </Card>
   );
 }
@@ -68,6 +68,7 @@ function SummaryFallback({ status }) {
 export function CandidateCabinetPage() {
   useBodyClass("candidate-portal-react-body");
 
+  const applicationsState = useCandidateApplications();
   const location = useLocation();
   const activeKey = resolveCandidateActiveKey(location.pathname);
   const [state, setState] = useState({
@@ -76,7 +77,6 @@ export function CandidateCabinetPage() {
     education: [],
     achievements: [],
     projects: [],
-    applications: [],
     contacts: [],
   });
 
@@ -85,12 +85,11 @@ export function CandidateCabinetPage() {
 
     async function load() {
       try {
-        const [profile, education, achievements, projects, applications, contacts] = await Promise.all([
+        const [profile, education, achievements, projects, contacts] = await Promise.all([
           getCandidateProfile(controller.signal),
           getCandidateEducation(controller.signal),
           getCandidateAchievements(controller.signal),
           getCandidateProjects(controller.signal),
-          getCandidateApplications(controller.signal),
           getCandidateContacts(controller.signal),
         ]);
 
@@ -100,7 +99,6 @@ export function CandidateCabinetPage() {
           education: Array.isArray(education) ? education : [],
           achievements: Array.isArray(achievements) ? achievements : [],
           projects: Array.isArray(projects) ? projects : [],
-          applications: Array.isArray(applications) ? applications : [],
           contacts: Array.isArray(contacts) ? contacts : [],
         });
       } catch {
@@ -120,12 +118,19 @@ export function CandidateCabinetPage() {
   );
 
   const stats = useMemo(
-    () => buildStats(state.education, state.achievements, state.projects, state.applications, state.contacts),
-    [state.achievements, state.applications, state.contacts, state.education, state.projects]
+    () => buildStats(state.education, state.achievements, state.projects, applicationsState.applications, state.contacts),
+    [applicationsState.applications, state.achievements, state.contacts, state.education, state.projects]
   );
 
   const summary = state.status === "ready"
-    ? <CandidateProfileSummary profile={state.profile} stats={stats} completion={completion} variant={activeKey === "overview" ? "full" : "compact"} />
+    ? (
+      <CandidateProfileSummary
+        profile={state.profile}
+        stats={stats}
+        completion={completion}
+        variant={activeKey === "overview" ? "full" : "compact"}
+      />
+    )
     : <SummaryFallback status={state.status} />;
 
   return (

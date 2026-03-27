@@ -128,20 +128,25 @@ export function mapCandidateProjectToCard(project) {
 export function mapCandidateApplicationToCard(application) {
   const appliedAtLabel = formatLongDate(application.appliedAt) ?? "Дата неизвестна";
   const typeLabel = translateOpportunityType(application.opportunityType);
-  const locationLabel = application.locationCity ? ` · ${application.locationCity}` : "";
+  const status = normalizeStatus(application.status);
+  const employmentLabel = translateEmploymentType(application.employmentType);
+  const companyMeta = [application.companyName, application.locationCity, employmentLabel].filter(Boolean).join(" · ");
 
   return {
     id: application.id,
+    opportunityId: application.opportunityId,
+    status,
     type: typeLabel,
-    statusKey: mapApplicationTone(application.status),
-    statusLabel: translateApplicationStatus(application.status),
+    statusTone: mapApplicationTone(status),
+    statusLabel: translateApplicationStatus(status),
     title: application.opportunityTitle,
-    company: `${application.companyName}${locationLabel}`,
-    details: [`Дата отклика: ${appliedAtLabel}`],
-    description: application.employerNote || "Отклик отправлен через реальный API и отслеживается по текущему статусу.",
-    actions: [
-      { label: "Подробнее", variant: "secondary" },
-    ],
+    company: companyMeta || application.companyName || "Компания",
+    details: [`Дата отправления заявки: ${appliedAtLabel}`],
+    description: buildApplicationDescription(status, application.employerNote),
+    canWithdraw: status === "submitted" || status === "reviewing",
+    canConfirm: status === "invited",
+    opportunityDeleted: Boolean(application.opportunityDeleted),
+    moderationStatus: application.moderationStatus,
   };
 }
 
@@ -176,7 +181,7 @@ export function translateOpportunityType(value) {
 }
 
 export function translateApplicationStatus(value) {
-  switch (value) {
+  switch (normalizeStatus(value)) {
     case "submitted":
       return "Отправлено";
     case "reviewing":
@@ -188,22 +193,67 @@ export function translateApplicationStatus(value) {
     case "rejected":
       return "Отказ";
     case "withdrawn":
-      return "Отозвано";
+      return "Удалено";
     default:
       return value || "Статус неизвестен";
   }
 }
 
 export function mapApplicationTone(value) {
-  switch (value) {
+  switch (normalizeStatus(value)) {
+    case "submitted":
+    case "reviewing":
+      return "info";
+    case "invited":
+      return "lime";
     case "accepted":
       return "success";
-    case "invited":
-      return "warning";
     case "rejected":
-      return "error";
+      return "warning";
+    case "withdrawn":
+      return "neutral";
     default:
       return "neutral";
+  }
+}
+
+export function translateEmploymentType(value) {
+  switch (normalizeStatus(value)) {
+    case "remote":
+      return "Удаленно";
+    case "hybrid":
+    case "online":
+      return "онлайн";
+    case "office":
+    case "onsite":
+      return "офис";
+    default:
+      return value && normalizeStatus(value) !== "unspecified" ? value : "";
+  }
+}
+
+function buildApplicationDescription(status, employerNote) {
+  const note = typeof employerNote === "string" ? employerNote.trim() : "";
+
+  if (note) {
+    return note;
+  }
+
+  switch (normalizeStatus(status)) {
+    case "submitted":
+      return "Ваша заявка отправлена, ожидайте ответа от компании.";
+    case "reviewing":
+      return "Компания рассматривает вашу заявку.";
+    case "invited":
+      return "Поздравляем! Ваша заявка была принята. Подтвердите ваше участие.";
+    case "accepted":
+      return "Ваше участие подтверждено.";
+    case "rejected":
+      return "Компания завершила рассмотрение отклика.";
+    case "withdrawn":
+      return "Вы отменили отклик.";
+    default:
+      return "Статус отклика обновляется.";
   }
 }
 
@@ -213,4 +263,8 @@ function isRecord(value) {
 
 function normalizeMetaPart(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeStatus(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }

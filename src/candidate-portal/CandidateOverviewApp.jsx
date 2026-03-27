@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { OpportunityBlockCard } from "../components/opportunities";
-import { getCandidateApplications, getCandidateContacts } from "../api/candidate";
+import { getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
+import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
 import { Alert, Card, EmptyState, Loader, Tag } from "../shared/ui";
 import { mapCandidateApplicationToCard, mapContactToCard } from "./mappers";
@@ -13,16 +14,16 @@ function mapOpportunityCard(item) {
     status: item.moderationStatus === "approved" ? "Опубликовано" : item.moderationStatus,
     statusTone: item.moderationStatus === "approved" ? "success" : "warning",
     title: item.title,
-    company: `${item.companyName}${item.locationCity ? ` · ${item.locationCity}` : ""}`,
+    company: [item.companyName, item.locationCity].filter(Boolean).join(" · "),
     accent: item.employmentType || "",
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
   };
 }
 
 export function CandidateOverviewApp() {
+  const applicationsState = useCandidateApplications();
   const [state, setState] = useState({
     status: "loading",
-    applications: [],
     contacts: [],
     opportunities: [],
     error: null,
@@ -33,15 +34,13 @@ export function CandidateOverviewApp() {
 
     async function load() {
       try {
-        const [applications, contacts, opportunities] = await Promise.all([
-          getCandidateApplications(controller.signal),
+        const [contacts, opportunities] = await Promise.all([
           getCandidateContacts(controller.signal),
           getOpportunities(controller.signal),
         ]);
 
         setState({
           status: "ready",
-          applications: Array.isArray(applications) ? applications : [],
           contacts: Array.isArray(contacts) ? contacts : [],
           opportunities: Array.isArray(opportunities) ? opportunities : [],
           error: null,
@@ -51,11 +50,12 @@ export function CandidateOverviewApp() {
           return;
         }
 
-        setState((current) => ({
-          ...current,
+        setState({
           status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
+          contacts: [],
+          opportunities: [],
           error,
-        }));
+        });
       }
     }
 
@@ -65,7 +65,10 @@ export function CandidateOverviewApp() {
 
   const topOpportunities = useMemo(() => state.opportunities.slice(0, 3).map(mapOpportunityCard), [state.opportunities]);
   const topContacts = useMemo(() => state.contacts.slice(0, 3).map(mapContactToCard), [state.contacts]);
-  const recentApplications = useMemo(() => state.applications.slice(0, 3).map(mapCandidateApplicationToCard), [state.applications]);
+  const recentApplications = useMemo(
+    () => applicationsState.applications.slice(0, 3).map(mapCandidateApplicationToCard),
+    [applicationsState.applications]
+  );
 
   return (
     <>
@@ -91,9 +94,7 @@ export function CandidateOverviewApp() {
       {state.status === "ready" ? (
         <>
           <section className="candidate-page-section">
-            <CandidateSectionHeader
-              title="Рекомендуемые возможности"
-            />
+            <CandidateSectionHeader title="Рекомендуемые возможности" />
 
             {topOpportunities.length ? (
               <div className="candidate-opportunity-rail" aria-label="Рекомендуемые возможности">
@@ -121,43 +122,51 @@ export function CandidateOverviewApp() {
           </section>
 
           <section className="candidate-page-section">
-            <CandidateSectionHeader
-              eyebrow="Активность"
-              title="Последние отклики"
-            />
+            <CandidateSectionHeader eyebrow="Активность" title="Последние отклики" />
 
-            {recentApplications.length ? (
-              <div className="candidate-page-stack">
-                {recentApplications.map((item) => (
-                  <Card key={item.id} className="candidate-page-panel">
-                    <div className="candidate-page-panel__stack">
-                      <div className="candidate-page-panel__row">
-                        <h3 className="ui-type-h3">{item.title}</h3>
-                        <Tag>{item.statusLabel}</Tag>
-                      </div>
-                      <p className="ui-type-body">{item.company}</p>
-                      <p className="ui-type-body">{item.description}</p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
+            {applicationsState.status === "loading" && recentApplications.length === 0 ? (
               <Card>
-                <EmptyState
-                  eyebrow="Пусто"
-                  title="Откликов пока нет"
-                  description="Когда кандидат откликнется на реальную возможность, статус появится в этом блоке."
-                  tone="neutral"
-                />
+                <Loader label="Загружаем отклики" surface />
               </Card>
-            )}
+            ) : null}
+
+            {applicationsState.status === "error" && recentApplications.length === 0 ? (
+              <Alert tone="error" title="Не удалось загрузить отклики" showIcon>
+                {applicationsState.error?.message ?? "Попробуйте обновить данные позже."}
+              </Alert>
+            ) : null}
+
+            {applicationsState.status !== "loading" || recentApplications.length ? (
+              recentApplications.length ? (
+                <div className="candidate-page-stack">
+                  {recentApplications.map((item) => (
+                    <Card key={item.id} className="candidate-page-panel">
+                      <div className="candidate-page-panel__stack">
+                        <div className="candidate-page-panel__row">
+                          <h3 className="ui-type-h3">{item.title}</h3>
+                          <Tag>{item.statusLabel}</Tag>
+                        </div>
+                        <p className="ui-type-body">{item.company}</p>
+                        <p className="ui-type-body">{item.description}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <EmptyState
+                    eyebrow="Пусто"
+                    title="Откликов пока нет"
+                    description="Когда кандидат откликнется на реальную возможность, статус появится в этом блоке."
+                    tone="neutral"
+                  />
+                </Card>
+              )
+            ) : null}
           </section>
 
           <section className="candidate-page-section">
-            <CandidateSectionHeader
-              eyebrow="Контакты"
-              title="Рекомендуемые контакты"
-            />
+            <CandidateSectionHeader eyebrow="Контакты" title="Рекомендуемые контакты" />
 
             {topContacts.length ? (
               <div className="candidate-page-grid candidate-page-grid--three">

@@ -1,61 +1,80 @@
-import { useEffect, useMemo, useState } from "react";
-import { getCandidateApplications } from "../api/candidate";
-import { ApiError } from "../lib/http";
+import { useMemo, useState } from "react";
+import { confirmCandidateApplication, withdrawCandidateApplication } from "../api/candidate";
+import { CandidateApplicationCard } from "./CandidateApplicationCard";
+import { useCandidateApplications, upsertCandidateApplication } from "./candidate-applications-store";
 import { Alert, Card, EmptyState, Loader } from "../shared/ui";
 import { RESPONSE_FILTERS } from "./config";
 import { mapCandidateApplicationToCard } from "./mappers";
-import { CandidateFilterPill, CandidateResponseCard, CandidateSectionHeader, CandidateSortButton } from "./shared";
+import { CandidateFilterPill, CandidateSectionHeader, CandidateSortButton } from "./shared";
 
 export function CandidateResponsesApp() {
-  const [state, setState] = useState({ status: "loading", applications: [], error: null });
+  const applicationsState = useCandidateApplications();
   const [statusFilter, setStatusFilter] = useState("all");
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function load() {
-      try {
-        const applications = await getCandidateApplications(controller.signal);
-
-        setState({
-          status: "ready",
-          applications: Array.isArray(applications) ? applications : [],
-          error: null,
-        });
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setState({
-          status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
-          applications: [],
-          error,
-        });
-      }
-    }
-
-    load();
-    return () => controller.abort();
-  }, []);
+  const [pendingAction, setPendingAction] = useState({ applicationId: null, kind: null, error: "" });
 
   const filteredItems = useMemo(() => {
+    const applications = Array.isArray(applicationsState.applications) ? applicationsState.applications : [];
+
     if (statusFilter === "all") {
-      return state.applications.map(mapCandidateApplicationToCard);
+      return applications.map(mapCandidateApplicationToCard);
     }
 
-    return state.applications
+    return applications
       .filter((item) => item.status === statusFilter)
       .map(mapCandidateApplicationToCard);
-  }, [state.applications, statusFilter]);
+  }, [applicationsState.applications, statusFilter]);
+
+  async function handleWithdraw(item) {
+    setPendingAction({ applicationId: item.id, kind: "withdraw", error: "" });
+
+    try {
+      const updatedApplication = await withdrawCandidateApplication(item.id);
+      upsertCandidateApplication(updatedApplication);
+      setPendingAction({ applicationId: null, kind: null, error: "" });
+    } catch (error) {
+      setPendingAction({
+        applicationId: null,
+        kind: null,
+        error: error?.message ?? "Не удалось отменить отклик.",
+      });
+    }
+  }
+
+  async function handleConfirm(item) {
+    setPendingAction({ applicationId: item.id, kind: "confirm", error: "" });
+
+    try {
+      const updatedApplication = await confirmCandidateApplication(item.id);
+      upsertCandidateApplication(updatedApplication);
+      setPendingAction({ applicationId: null, kind: null, error: "" });
+    } catch (error) {
+      setPendingAction({
+        applicationId: null,
+        kind: null,
+        error: error?.message ?? "Не удалось подтвердить участие.",
+      });
+    }
+  }
 
   return (
     <section className="candidate-page-section">
-      <CandidateSectionHeader eyebrow="Отклики" title="Мои отклики" description="Собери свой портфолио и резюме для точных рекомендаций." />
+      <CandidateSectionHeader
+        eyebrow="Отклики"
+        title="Мои отклики"
+        description="Собери свой портфолио и резюме для точных рекомендаций."
+      />
 
-      {state.status === "loading" ? <Loader label="Загружаем отклики" surface /> : null}
+      {pendingAction.error ? (
+        <Alert tone="error" title="Не удалось обновить отклик" showIcon>
+          {pendingAction.error}
+        </Alert>
+      ) : null}
 
-      {state.status === "unauthorized" ? (
+      {applicationsState.status === "loading" && applicationsState.applications.length === 0 ? (
+        <Loader label="Загружаем отклики" surface />
+      ) : null}
+
+      {applicationsState.status === "unauthorized" ? (
         <Card>
           <EmptyState
             eyebrow="Доступ ограничен"
@@ -66,13 +85,13 @@ export function CandidateResponsesApp() {
         </Card>
       ) : null}
 
-      {state.status === "error" ? (
+      {applicationsState.status === "error" && applicationsState.applications.length === 0 ? (
         <Alert tone="error" title="Не удалось загрузить отклики" showIcon>
-          {state.error?.message ?? "Попробуйте повторить позже."}
+          {applicationsState.error?.message ?? "Попробуйте повторить позже."}
         </Alert>
       ) : null}
 
-      {state.status === "ready" ? (
+      {applicationsState.status === "ready" || applicationsState.applications.length ? (
         <>
           <div className="candidate-filter-row">
             <div className="candidate-filter-row__group">
@@ -91,7 +110,13 @@ export function CandidateResponsesApp() {
           {filteredItems.length ? (
             <div className="candidate-page-stack">
               {filteredItems.map((item) => (
-                <CandidateResponseCard key={item.id} item={item} />
+                <CandidateApplicationCard
+                  key={item.id}
+                  item={item}
+                  isPending={pendingAction.applicationId === item.id}
+                  onWithdraw={handleWithdraw}
+                  onConfirm={handleConfirm}
+                />
               ))}
             </div>
           ) : (

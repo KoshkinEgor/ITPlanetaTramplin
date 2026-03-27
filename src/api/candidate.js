@@ -87,6 +87,18 @@ export function getCandidateApplications(signal) {
   return apiRequest("/candidate/me/applications", { signal });
 }
 
+export function withdrawCandidateApplication(applicationId) {
+  return apiRequest(`/candidate/me/applications/${applicationId}/withdraw`, {
+    method: "POST",
+  });
+}
+
+export function confirmCandidateApplication(applicationId) {
+  return apiRequest(`/candidate/me/applications/${applicationId}/confirm`, {
+    method: "POST",
+  });
+}
+
 export function getCandidateContacts(signal) {
   return apiRequest("/candidate/me/contacts", { signal });
 }

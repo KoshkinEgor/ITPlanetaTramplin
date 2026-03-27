@@ -22,6 +22,9 @@
 
   <ItemGroup>
     <Compile Remove=".codex-build\**\*.cs" />
+    <Compile Remove="artifacts\**\*.cs" />
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove="obj\**\*.cs" />
   </ItemGroup>
 
 </Project>

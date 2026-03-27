@@ -170,23 +170,70 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             .ThenInclude(item => item.Employer)
             .Where(item => item.ApplicantId == profile.Id)
             .OrderByDescending(item => item.AppliedAt)
-            .Select(item => new
-            {
-                item.Id,
-                item.OpportunityId,
-                item.Status,
-                item.EmployerNote,
-                item.AppliedAt,
-                OpportunityTitle = item.Opportunity.Title,
-                OpportunityType = item.Opportunity.OpportunityType,
-                CompanyName = item.Opportunity.Employer.CompanyName,
-                item.Opportunity.LocationCity,
-                OpportunityDeleted = item.Opportunity.DeletedAt != null,
-                ModerationStatus = item.Opportunity.ModerationStatus,
-            })
+            .Select(OpportunityApplicationMapping.CandidateSummaryProjection)
             .ToListAsync();
 
         return Results.Ok(applications);
+    }
+
+    private static Task<IResult> WithdrawCurrentCandidateApplicationAsync(
+        int applicationId,
+        HttpContext context,
+        ApplicationDBContext db) =>
+        UpdateCurrentCandidateApplicationAsync(
+            applicationId,
+            new[] { OpportunityApplicationStatuses.Submitted, OpportunityApplicationStatuses.Reviewing },
+            OpportunityApplicationStatuses.Withdrawn,
+            "Отменить можно только отправленный или рассматриваемый отклик.",
+            context,
+            db);
+
+    private static Task<IResult> ConfirmCurrentCandidateApplicationAsync(
+        int applicationId,
+        HttpContext context,
+        ApplicationDBContext db) =>
+        UpdateCurrentCandidateApplicationAsync(
+            applicationId,
+            new[] { OpportunityApplicationStatuses.Invited },
+            OpportunityApplicationStatuses.Accepted,
+            "Подтвердить можно только отклик со статусом приглашения.",
+            context,
+            db);
+
+    private static async Task<IResult> UpdateCurrentCandidateApplicationAsync(
+        int applicationId,
+        IReadOnlyCollection<string> allowedCurrentStatuses,
+        string nextStatus,
+        string validationMessage,
+        HttpContext context,
+        ApplicationDBContext db)
+    {
+        var profile = await GetCurrentCandidateProfileAsync(context, db);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var application = await db.Applications
+            .Include(item => item.Opportunity)
+            .ThenInclude(item => item.Employer)
+            .FirstOrDefaultAsync(item => item.Id == applicationId && item.ApplicantId == profile.Id);
+
+        if (application is null)
+        {
+            return Results.NotFound();
+        }
+
+        var normalizedCurrentStatus = OpportunityApplicationStatuses.Normalize(application.Status);
+        if (!allowedCurrentStatuses.Contains(normalizedCurrentStatus))
+        {
+            return AuthEndpointSupport.MessageResult(validationMessage, StatusCodes.Status400BadRequest);
+        }
+
+        application.Status = nextStatus;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(OpportunityApplicationMapping.ToCandidateSummary(application));
     }
 
     private static void ApplyCandidateProject(CandidateProject project, CandidateProjectInput normalizedProject)

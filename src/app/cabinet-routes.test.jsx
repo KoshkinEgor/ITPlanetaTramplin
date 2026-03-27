@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../auth/api";
 import { getCompanyOpportunities, getCompanyProfile } from "../api/company";
+import { resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
 import { getModerationDashboard } from "../api/moderation";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
@@ -63,6 +64,8 @@ vi.mock("../api/candidate", () => ({
   updateCandidateProject: vi.fn(() => Promise.resolve({ id: 1 })),
   deleteCandidateProject: vi.fn(() => Promise.resolve({})),
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
+  withdrawCandidateApplication: vi.fn(() => Promise.resolve({})),
+  confirmCandidateApplication: vi.fn(() => Promise.resolve({})),
   getCandidateContacts: vi.fn(() => Promise.resolve([])),
   createCandidateContact: vi.fn(() => Promise.resolve({ id: 1 })),
   deleteCandidateContact: vi.fn(() => Promise.resolve({})),
@@ -155,6 +158,7 @@ function setSession(user, status = "authenticated") {
 describe("cabinet shell routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetCandidateApplicationsStore();
     setSession({
       id: 1,
       role: "candidate",

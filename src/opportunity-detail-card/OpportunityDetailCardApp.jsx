@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
+import {
+  refreshCandidateApplications,
+  upsertCandidateApplication,
+} from "../candidate-portal/candidate-applications-store";
+import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { Alert, Avatar, Button, Card, EmptyState, IconButton, Loader, OpportunityMiniCard, Tag } from "../shared/ui";
@@ -296,6 +301,32 @@ function getApplyButtonLabel(type, status) {
   return String(type || "").toLowerCase() === "event" ? "Подать заявку" : "Откликнуться";
 }
 
+function createApplyState(status = "idle", overrides = {}) {
+  return {
+    status,
+    error: "",
+    successTitle: "",
+    successMessage: "",
+    ...overrides,
+  };
+}
+
+function buildApplySuccessCopy(type, mode = "created") {
+  const isEvent = String(type || "").toLowerCase() === "event";
+
+  if (mode === "existing") {
+    return {
+      successTitle: isEvent ? "Заявка уже отправлена" : "Отклик уже отправлен",
+      successMessage: "Он уже есть в вашем кабинете кандидата и обновлен в списке откликов.",
+    };
+  }
+
+  return {
+    successTitle: isEvent ? "Заявка отправлена" : "Отклик отправлен",
+    successMessage: "Он сразу появился в вашем кабинете кандидата со статусом отправки.",
+  };
+}
+
 function buildOpportunityViewModel(item) {
   const preset = PRESETS[resolvePresetKey(item)];
   const contacts = parseJsonSafe(item.contactsJson, {});
@@ -432,7 +463,7 @@ function OpportunityDetailLayout({
         </Card>
 
         {applyState.status === "error" ? <Alert tone="error" title="Не удалось отправить заявку" showIcon>{applyState.error}</Alert> : null}
-        {applyState.status === "success" ? <Alert tone="success" title="Заявка отправлена" showIcon>Она появится в откликах работодателя после подтверждения вашей стороны.</Alert> : null}
+        {applyState.status === "success" ? <Alert tone="success" title={applyState.successTitle} showIcon>{applyState.successMessage}</Alert> : null}
 
         <Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
           <div className="opportunity-media-panel__header">
@@ -530,7 +561,7 @@ export function OpportunityDetailPreview() {
     <OpportunityDetailLayout
       item={previewItem}
       related={getDemoRelatedOpportunities(previewItem.id)}
-      applyState={{ status: "idle", error: "" }}
+      applyState={createApplyState()}
       onApply={() => {}}
       buildDetailHref={(entry) => `#${entry.id}`}
       catalogHref="#catalog"
@@ -544,7 +575,7 @@ export function OpportunityDetailCardApp() {
   const params = useParams();
   const opportunityId = params.id;
   const [state, setState] = useState({ status: "loading", item: null, related: [], error: null, source: "api" });
-  const [applyState, setApplyState] = useState({ status: "idle", error: "" });
+  const [applyState, setApplyState] = useState(createApplyState());
 
   useEffect(() => {
     document.body.classList.add(BODY_CLASS);
@@ -582,23 +613,31 @@ export function OpportunityDetailCardApp() {
       }
     }
 
-    setApplyState({ status: "idle", error: "" });
+    setApplyState(createApplyState());
     load();
     return () => controller.abort();
   }, [opportunityId]);
 
   async function handleApply() {
-    setApplyState({ status: "saving", error: "" });
+    setApplyState(createApplyState("saving"));
     if (state.source === "demo") {
-      setApplyState({ status: "success", error: "" });
+      setApplyState(createApplyState("success", buildApplySuccessCopy(state.item?.opportunityType)));
       return;
     }
 
     try {
-      await applyToOpportunity(opportunityId);
-      setApplyState({ status: "success", error: "" });
+      const application = await applyToOpportunity(opportunityId);
+      upsertCandidateApplication(application);
+      setApplyState(createApplyState("success", buildApplySuccessCopy(state.item?.opportunityType)));
     } catch (error) {
-      setApplyState({ status: "error", error: error?.message ?? "Не удалось отправить отклик." });
+      if (error instanceof ApiError && error.status === 409) {
+        await refreshCandidateApplications({ force: true }).catch(() => {});
+
+        setApplyState(createApplyState("success", buildApplySuccessCopy(state.item?.opportunityType, "existing")));
+        return;
+      }
+
+      setApplyState(createApplyState("error", { error: error?.message ?? "Не удалось отправить отклик." }));
     }
   }
 

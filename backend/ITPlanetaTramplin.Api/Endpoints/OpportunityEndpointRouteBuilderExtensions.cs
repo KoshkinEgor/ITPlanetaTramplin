@@ -330,7 +330,13 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         });
 
         await db.SaveChangesAsync();
-        return Results.Ok();
+
+        var createdApplication = await db.Applications
+            .Include(item => item.Opportunity)
+            .ThenInclude(item => item.Employer)
+            .FirstAsync(item => item.OpportunityId == opportunity.Id && item.ApplicantId == applicant.Id);
+
+        return Results.Ok(OpportunityApplicationMapping.ToCandidateSummary(createdApplication));
     }
 
     private static async Task<IResult> GetOpportunityApplicationsAsync(int opportunityId, HttpContext context, ApplicationDBContext db)

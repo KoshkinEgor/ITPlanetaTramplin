@@ -73,7 +73,7 @@ export const RESPONSE_FILTERS = [
   { value: "invited", label: "Приглашение" },
   { value: "accepted", label: "Принятые" },
   { value: "rejected", label: "Отказ" },
-  { value: "withdrawn", label: "Отозванные" },
+  { value: "withdrawn", label: "Удаленные" },
 ];
 
 export const CANDIDATE_SETTINGS_SECTIONS = [
