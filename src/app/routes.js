@@ -11,6 +11,7 @@ export const routes = {
     registerCandidate: "/auth/register/candidate",
     registerCompany: "/auth/register/company",
     registerCompanyExtended: "/auth/register/company/extended",
+    moderatorInvite: "/auth/moderator-invite",
     confirmEmail: "/auth/confirm-email",
     forgotPassword: "/auth/forgot-password",
     resetPassword: "/auth/reset-password",
@@ -41,6 +42,7 @@ export const routes = {
   moderator: {
     root: "/moderator",
     dashboard: "/moderator/dashboard",
+    invitations: "/moderator/invitations",
     opportunities: "/moderator/opportunities",
     companies: "/moderator/companies",
     users: "/moderator/users",
@@ -88,6 +90,10 @@ export function buildForgotPasswordRoute({ email } = {}) {
 
 export function buildResetPasswordRoute({ email } = {}) {
   return withSearch(routes.auth.resetPassword, { email });
+}
+
+export function buildModeratorInvitationRoute({ token } = {}) {
+  return withSearch(routes.auth.moderatorInvite, { token });
 }
 
 export function buildOpportunityDetailRoute(opportunityId = "design-ui-ux") {

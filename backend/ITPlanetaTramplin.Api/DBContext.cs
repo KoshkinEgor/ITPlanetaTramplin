@@ -29,6 +29,8 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<EmployerProfile> EmployerProfiles { get; set; }
 
+    public virtual DbSet<ModeratorInvitation> ModeratorInvitations { get; set; }
+
     public virtual DbSet<Opportunity> Opportunities { get; set; }
 
     public virtual DbSet<Recommendation> Recommendations { get; set; }
@@ -343,6 +345,55 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.VerificationMethod)
                 .HasMaxLength(50)
                 .HasColumnName("verification_method");
+        });
+
+        modelBuilder.Entity<ModeratorInvitation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("moderator_invitations_pkey");
+
+            entity.ToTable("moderator_invitations");
+
+            entity.HasIndex(e => e.Email, "idx_moderator_invitations_email");
+            entity.HasIndex(e => e.InvitedByUserId, "idx_moderator_invitations_invited_by_user_id");
+            entity.HasIndex(e => e.AcceptedUserId, "idx_moderator_invitations_accepted_user_id");
+            entity.HasIndex(e => e.TokenHash, "moderator_invitations_token_hash_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AcceptedAt).HasColumnName("accepted_at");
+            entity.Property(e => e.AcceptedUserId).HasColumnName("accepted_user_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Email)
+                .HasMaxLength(255)
+                .HasColumnName("email");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.InvitedByUserId).HasColumnName("invited_by_user_id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.RevokedAt).HasColumnName("revoked_at");
+            entity.Property(e => e.Surname)
+                .HasMaxLength(100)
+                .HasColumnName("surname");
+            entity.Property(e => e.Thirdname)
+                .HasMaxLength(100)
+                .HasColumnName("thirdname");
+            entity.Property(e => e.TokenHash)
+                .HasMaxLength(255)
+                .HasColumnName("token_hash");
+
+            entity.HasOne(d => d.InvitedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.InvitedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("moderator_invitations_invited_by_user_id_fkey");
+
+            entity.HasOne(d => d.AcceptedUser)
+                .WithMany()
+                .HasForeignKey(d => d.AcceptedUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("moderator_invitations_accepted_user_id_fkey");
         });
 
         modelBuilder.Entity<Opportunity>(entity =>

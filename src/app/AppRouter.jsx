@@ -7,6 +7,7 @@ import {
   CompanyQuickRegistrationPage,
   ConfirmEmailPage,
   ForgotPasswordPage,
+  ModeratorInvitationAcceptPage,
   ResetPasswordPage,
 } from "../pages/auth/index.jsx";
 import {
@@ -37,6 +38,7 @@ import {
   ModeratorCompaniesPage,
   ModeratorComplaintsPage,
   ModeratorDashboardPage,
+  ModeratorInvitationsPage,
   ModeratorLogsPage,
   ModeratorOpportunitiesPage,
   ModeratorSettingsPage,
@@ -61,6 +63,8 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
         <Route path={routes.auth.forgotPassword} element={<ForgotPasswordPage />} />
         <Route path={routes.auth.resetPassword} element={<ResetPasswordPage />} />
       </Route>
+
+      <Route path={routes.auth.moderatorInvite} element={<ModeratorInvitationAcceptPage />} />
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
@@ -94,6 +98,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
         <Route path="moderator" element={<ModeratorCabinetPage />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<ModeratorDashboardPage />} />
+          <Route path="invitations" element={<ModeratorInvitationsPage />} />
           <Route path="opportunities" element={<ModeratorOpportunitiesPage />} />
           <Route path="companies" element={<ModeratorCompaniesPage />} />
           <Route path="users" element={<ModeratorUsersPage />} />

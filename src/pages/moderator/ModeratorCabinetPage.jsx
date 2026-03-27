@@ -15,6 +15,10 @@ function resolveModeratorActiveKey(pathname) {
     return "opportunities";
   }
 
+  if (pathname.startsWith(routes.moderator.invitations)) {
+    return "invitations";
+  }
+
   if (pathname.startsWith(routes.moderator.companies)) {
     return "companies";
   }
@@ -46,14 +50,14 @@ function SummaryFallback({ status }) {
   if (status === "loading") {
     return (
       <Card>
-        <Loader label="Загружаем summary модератора" surface />
+        <Loader label="Загружаем обзор кабинета модератора" surface />
       </Card>
     );
   }
 
   return (
     <Card>
-      <p className="ui-type-body">Summary модератора недоступен. Структура кабинета и route-level разделы остаются на месте.</p>
+      <p className="ui-type-body">Обзор временно недоступен. Разделы кабинета и рабочие маршруты продолжают работать.</p>
     </Card>
   );
 }
@@ -97,7 +101,7 @@ export function ModeratorCabinetPage() {
             summary={{
               eyebrow: "Кабинет модератора",
               title: "Модерация платформы",
-              description: "Минимальный summary-блок остается на месте при переключении между dashboard, moderation и служебными разделами.",
+              description: "Следите за очередью проверок, приглашайте новых модераторов и держите под контролем ключевые процессы платформы.",
               status: "Активная смена",
             }}
             metrics={[

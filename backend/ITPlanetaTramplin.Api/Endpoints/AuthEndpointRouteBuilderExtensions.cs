@@ -75,6 +75,8 @@ internal static class AuthEndpointRouteBuilderExtensions
         api.MapPost("/auth/email-confirmation/resend", HandleResendConfirmationAsync);
         api.MapPost("/auth/forgot-password", HandleForgotPasswordAsync);
         api.MapPost("/auth/reset-password", HandleResetPasswordAsync);
+        api.MapGet("/auth/moderator-invitations/{token}", HandleGetModeratorInvitationAsync);
+        api.MapPost("/auth/moderator-invitations/{token}/accept", HandleAcceptModeratorInvitationAsync);
 
         api.MapGet("/auth/register/company/lookup-inn/{inn}", HandleLookupInnAsync);
         api.MapGet("/registration/employer/lookup-inn/{inn}", HandleLookupInnAsync);
@@ -317,6 +319,110 @@ internal static class AuthEndpointRouteBuilderExtensions
 
         await db.SaveChangesAsync();
         return Results.Ok(new MessageResponseDTO { Message = "Пароль обновлен. Теперь можно войти с новым паролем." });
+    }
+
+    private static async Task<IResult> HandleGetModeratorInvitationAsync(
+        string token,
+        ModeratorInvitationService invitationService,
+        ApplicationDBContext db)
+    {
+        var invitation = await FindModeratorInvitationByTokenAsync(db, invitationService, token);
+        if (invitation is null)
+        {
+            return Results.NotFound(new MessageResponseDTO { Message = "Приглашение не найдено." });
+        }
+
+        var isExpired = invitation.ExpiresAt <= DateTime.UtcNow;
+        var isAccepted = invitation.AcceptedAt != null;
+        var isRevoked = invitation.RevokedAt != null;
+
+        var payload = new ModeratorInvitationDetailsDTO
+        {
+            Email = invitation.Email,
+            DisplayName = string.Join(" ", new[] { invitation.Name, invitation.Surname, invitation.Thirdname }
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!.Trim())),
+            InvitedByDisplayName = AuthEndpointSupport.BuildDisplayName(invitation.InvitedByUser, PublicRoles.Moderator) ?? "Модератор платформы",
+            ExpiresAtUtc = invitation.ExpiresAt,
+            IsExpired = isExpired,
+            IsAccepted = isAccepted,
+            IsRevoked = isRevoked,
+            Message = isAccepted
+                ? "Это приглашение уже принято."
+                : isRevoked
+                    ? "Это приглашение было отозвано."
+                    : isExpired
+                        ? "Срок действия приглашения истек."
+                        : "Приглашение активно. Задайте пароль, чтобы войти в кабинет модератора.",
+        };
+
+        return Results.Ok(payload);
+    }
+
+    private static async Task<IResult> HandleAcceptModeratorInvitationAsync(
+        string token,
+        [FromBody] ModeratorInvitationAcceptDTO request,
+        HttpContext context,
+        ModeratorInvitationService invitationService,
+        ApplicationDBContext db,
+        AuthRuntimeOptions authRuntimeOptions,
+        CancellationToken cancellationToken)
+    {
+        if (!AuthSupport.TryValidatePassword(request.Password, out var passwordError))
+        {
+            return AuthEndpointSupport.MessageResult(passwordError, StatusCodes.Status400BadRequest);
+        }
+
+        var invitation = await FindModeratorInvitationByTokenAsync(db, invitationService, token);
+        if (invitation is null)
+        {
+            return Results.NotFound(new MessageResponseDTO { Message = "Приглашение не найдено." });
+        }
+
+        if (invitation.RevokedAt != null)
+        {
+            return AuthEndpointSupport.MessageResult("Это приглашение было отозвано.", StatusCodes.Status409Conflict);
+        }
+
+        if (invitation.AcceptedAt != null)
+        {
+            return AuthEndpointSupport.MessageResult("Это приглашение уже принято.", StatusCodes.Status409Conflict);
+        }
+
+        if (invitation.ExpiresAt <= DateTime.UtcNow)
+        {
+            return AuthEndpointSupport.MessageResult("Срок действия приглашения истек.", StatusCodes.Status410Gone);
+        }
+
+        var normalizedEmail = AuthSupport.NormalizeEmail(invitation.Email);
+        if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == normalizedEmail, cancellationToken))
+        {
+            return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+        }
+
+        var user = new User
+        {
+            Email = normalizedEmail,
+            IsVerified = true,
+            PreVerify = true,
+            CuratorProfile = new CuratorProfile
+            {
+                Name = invitation.Name,
+                Surname = invitation.Surname,
+                Thirdname = invitation.Thirdname,
+            },
+        };
+
+        user.PasswordHash = AuthSupport.HashPassword(user, request.Password);
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync(cancellationToken);
+
+        invitation.AcceptedAt = DateTime.UtcNow;
+        invitation.AcceptedUserId = user.Id;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return AuthEndpointSupport.SignInUser(context, user, PublicRoles.Moderator, authRuntimeOptions);
     }
 
     private static async Task<IResult> HandleLookupInnAsync(
@@ -614,6 +720,15 @@ internal static class AuthEndpointRouteBuilderExtensions
             _ => null,
         };
     }
+
+    private static Task<ModeratorInvitation?> FindModeratorInvitationByTokenAsync(
+        ApplicationDBContext db,
+        ModeratorInvitationService invitationService,
+        string token) =>
+        db.ModeratorInvitations
+            .Include(item => item.InvitedByUser)
+                .ThenInclude(item => item.CuratorProfile)
+            .FirstOrDefaultAsync(item => item.TokenHash == invitationService.ComputeHash(token));
 
     private static async Task<PendingEmailVerificationDTO> BuildLoginVerificationPayloadAsync(
         User user,

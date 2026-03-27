@@ -16,6 +16,17 @@ export function getModerationUsers(signal) {
   return apiRequest("/moderation/users", { signal });
 }
 
+export function getModeratorInvitations(signal) {
+  return apiRequest("/moderation/moderator-invitations", { signal });
+}
+
+export function createModeratorInvitation(payload) {
+  return apiRequest("/moderation/moderator-invitations", {
+    method: "POST",
+    body: payload,
+  });
+}
+
 export function decideCompanyModeration(companyId, status) {
   return apiRequest(`/moderation/companies/${companyId}/decision`, {
     method: "POST",

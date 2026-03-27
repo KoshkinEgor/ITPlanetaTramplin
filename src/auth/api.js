@@ -331,5 +331,27 @@ export async function submitPasswordReset({ email, code, password }) {
   }
 }
 
+export async function getModeratorInvitationDetails(token, signal) {
+  try {
+    return await apiRequest(`/auth/moderator-invitations/${encodeURIComponent(token)}`, { signal });
+  } catch (error) {
+    throw mapApiError(error);
+  }
+}
+
+export async function acceptModeratorInvitation({ token, password }) {
+  try {
+    const result = await apiRequest(`/auth/moderator-invitations/${encodeURIComponent(token)}/accept`, {
+      method: "POST",
+      body: { password },
+    });
+
+    captureAuthenticatedUser(result);
+    return result;
+  } catch (error) {
+    throw mapApiError(error);
+  }
+}
+
 export const confirmEmailVerification = confirmEmail;
 export const resendEmailVerification = resendEmailConfirmation;
