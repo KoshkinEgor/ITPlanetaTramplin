@@ -1,13 +1,10 @@
-﻿using Models;
-using NpgsqlTypes;
-
 namespace DTO
 {
     public partial class OpportunityPostDTO
     {
         public string Title { get; set; } = null!;
 
-        public string? Description { get; set; } = null!;
+        public string? Description { get; set; }
 
         public string? LocationAddress { get; set; }
 
@@ -22,13 +19,14 @@ namespace DTO
         public string OpportunityType { get; set; } = string.Empty;
 
         public string? EmploymentType { get; set; }
-        
-        public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+        public string? ContactsJson { get; set; }
+
+        public List<string>? Tags { get; set; }
     }
 
     public partial class OpportunityGetDTO
     {
-
         public int Id { get; set; }
 
         public int EmployerId { get; set; }
@@ -53,18 +51,16 @@ namespace DTO
 
         public string? MediaContentJson { get; set; }
 
-        public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
-
+        public List<string>? Tags { get; set; }
     }
 
     public partial class OpportunityUpdateDTO
     {
-
         public int Id { get; set; }
 
-        public string? Title { get; set; } = null!;
+        public string? Title { get; set; }
 
-        public string? Description { get; set; } = null!;
+        public string? Description { get; set; }
 
         public string? OpportunityType { get; set; }
 
@@ -84,14 +80,11 @@ namespace DTO
 
         public string? MediaContentJson { get; set; }
 
-        public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
-
+        public List<string>? Tags { get; set; }
     }
 
     public partial class OpportunityDeleteDTO
     {
         public int Id { get; set; }
     }
-
-
 }

@@ -309,7 +309,7 @@ export function CompanyDashboardApp() {
       return;
     }
 
-    const tags = parseTags(opportunityDraft.tags).map((name) => ({ name }));
+    const tags = parseTags(opportunityDraft.tags);
     setOpportunitySave({ status: "saving", error: "" });
 
     try {

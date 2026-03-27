@@ -1,5 +1,3 @@
-import { AppLink } from "../../../app/AppLink";
-import { routes } from "../../../app/routes";
 import { Card, PlaceholderAction } from "../../../shared/ui";
 import "./CompanyProfileSummary.css";
 
@@ -56,39 +54,6 @@ function getPresenceBadge(status) {
       return { label: "Ограничен", tone: "danger" };
     default:
       return { label: "На проверке", tone: "neutral" };
-  }
-}
-
-function getVerificationPanel(status, verificationLabel) {
-  switch (status) {
-    case "approved":
-      return {
-        tone: "success",
-        value: verificationLabel || "Подтверждена",
-        note: "Компания отображается в каталоге и может обновлять описание, ссылки и контент кабинета.",
-        actionLabel: "Перейти к редактированию",
-      };
-    case "revision":
-      return {
-        tone: "warning",
-        value: verificationLabel || "Нужна доработка",
-        note: "Модератор запросил обновление данных компании перед повторной публикацией профиля.",
-        actionLabel: "Открыть профиль",
-      };
-    case "rejected":
-      return {
-        tone: "danger",
-        value: verificationLabel || "Отклонена",
-        note: "Проверьте реквизиты, описание и ссылки компании, затем отправьте профиль на повторную проверку.",
-        actionLabel: "Исправить данные",
-      };
-    default:
-      return {
-        tone: "warning",
-        value: verificationLabel || "На проверке",
-        note: "Заполните данные компании и дождитесь проверки, чтобы профиль появился в открытом каталоге.",
-        actionLabel: "Перейти к профилю",
-      };
   }
 }
 
@@ -234,18 +199,11 @@ function parseSocialLinks(rawValue) {
   return [];
 }
 
-export function CompanyProfileSummary({
-  profile,
-  stats = [],
-  verification,
-  variant = "default",
-}) {
+export function CompanyProfileSummary({ profile, stats = [], verification, variant = "default" }) {
   const companyName = getCompanyName(profile);
   const description = getDescription(profile);
-  const verificationLabel = verification?.label || "На проверке";
   const verificationTone = verification?.tone || "pending";
   const presenceBadge = getPresenceBadge(verificationTone);
-  const verificationPanel = getVerificationPanel(verificationTone, verificationLabel);
   const socialLinks = parseSocialLinks(profile?.socials);
 
   return (
@@ -253,7 +211,7 @@ export function CompanyProfileSummary({
       <div className="company-profile-summary__cover">
         <PlaceholderAction
           className="company-profile-summary__cover-action"
-          label="Загрузить шапку профиля"
+          label=""
           description="После загрузки здесь появится обложка компании."
         />
       </div>
@@ -321,23 +279,6 @@ export function CompanyProfileSummary({
                 )}
               </article>
             </div>
-          </div>
-
-          <div className="company-profile-summary__aside">
-            <section className="company-profile-summary__panel company-profile-summary__panel--status">
-              <span className="company-profile-summary__panel-label">Статус профиля</span>
-              <strong className="company-profile-summary__panel-value">{verification?.statusText || "Готов к заполнению"}</strong>
-              <p>{verification?.note || "Профиль компании можно заполнить по секциям и отправить на проверку после обновления данных."}</p>
-            </section>
-
-            <section className={`company-profile-summary__panel company-profile-summary__panel--${verificationPanel.tone}`}>
-              <span className="company-profile-summary__panel-label">Верификация</span>
-              <strong className="company-profile-summary__panel-value">{verificationPanel.value}</strong>
-              <p>{verificationPanel.note}</p>
-              <AppLink href={routes.company.dashboard} className="company-profile-summary__panel-link">
-                {verificationPanel.actionLabel}
-              </AppLink>
-            </section>
           </div>
         </div>
 

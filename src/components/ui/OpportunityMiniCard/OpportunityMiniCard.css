@@ -102,6 +102,14 @@
   box-shadow: 0 14px 30px rgba(36, 49, 77, 0.12);
 }
 
+.ui-opportunity-mini-card__favorite.ui-icon-button[aria-pressed="true"],
+.ui-opportunity-mini-card__favorite.ui-icon-button.is-active {
+  border-color: rgba(236, 72, 153, 0.38);
+  background: linear-gradient(180deg, rgba(255, 244, 250, 0.98), rgba(255, 235, 246, 0.96));
+  color: #db2777;
+  box-shadow: 0 12px 24px rgba(219, 39, 119, 0.18);
+}
+
 .ui-opportunity-mini-card__favorite--dismiss.ui-icon-button {
   color: var(--ui-color-text);
 }

@@ -14,12 +14,25 @@
 
 .favorites-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.favorites-page__row-card.ui-card {
+  width: 100%;
 }
 
 .favorites-page__empty-state {
   margin-top: 8px;
+}
+
+.favorites-page__error-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.favorites-page__error-actions p {
+  margin: 0;
 }
 
 @media (max-width: 760px) {

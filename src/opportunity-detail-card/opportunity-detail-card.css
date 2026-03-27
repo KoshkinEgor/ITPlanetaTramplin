@@ -30,6 +30,8 @@ body.opportunity-card-react-body {
 }
 
 .opportunity-card-header {
+  position: relative;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: space-between;

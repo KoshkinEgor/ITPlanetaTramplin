@@ -1,5 +1,7 @@
 import { Button, Card, IconButton, StatusBadge, Tag } from "../ui";
 import { cn } from "../../lib/cn";
+import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
+import { extractOpportunityId } from "../../features/favorites/storage";
 import "./OpportunityCard.css";
 
 const CHIP_PLACEMENT_BY_VARIANT = {
@@ -82,18 +84,26 @@ function OpportunityCardBase({
   ...props
 }) {
   const data = normalizeOpportunity(item);
+  const { opportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(extractOpportunityId(item), favoritePressed);
   const actions = [resolveAction(primaryAction), resolveAction(secondaryAction), resolveAction(detailAction)].filter(Boolean);
   const { topTags, bottomTags } = splitTags(data.chips, chipPlacement ?? CHIP_PLACEMENT_BY_VARIANT[variant] ?? "bottom");
   const shouldShowSave = showSave && variant !== "mini";
   const saveButtonSize = variant === "row" ? "xl" : size === "sm" ? "sm" : "md";
   const actionButtonSize = variant === "row" ? "lg" : size === "sm" ? "md" : "lg";
   const hasTopRow = data.type || data.status || topTags.length > 0 || shouldShowSave;
+  const handleFavoriteClick = () => {
+    const nextState = toggleFavorite();
+    onFavoriteClick?.(opportunityId, nextState);
+  };
+
   const saveButton = shouldShowSave ? (
     <IconButton
       type="button"
       label={favoriteLabel}
-      aria-pressed={favoritePressed}
-      onClick={onFavoriteClick}
+      aria-pressed={isFavorite}
+      active={isFavorite}
+      data-opportunity-id={opportunityId ?? undefined}
+      onClick={handleFavoriteClick}
       size={saveButtonSize}
       className="ui-opportunity-card__save"
     >
@@ -204,6 +214,7 @@ function OpportunityCardBase({
         `ui-opportunity-card--${size}`,
         className
       )}
+      data-opportunity-id={opportunityId ?? undefined}
       {...props}
     >
       {variant === "row" ? (
