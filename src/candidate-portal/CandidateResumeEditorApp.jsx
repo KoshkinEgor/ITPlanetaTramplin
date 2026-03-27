@@ -381,8 +381,8 @@ export function CandidateResumeEditorApp() {
             <header className="candidate-editor-head">
               <SectionHeader
                 eyebrow="Резюме"
-                title="Редактор резюме"
-                description="Форма работает поверх реальных candidate endpoints: профиль, образование и достижения больше не живут в моках."
+                title="Мое резюме"
+                description="Собери свой портфолио и резюме для точных рекомендаций."
                 size="lg"
                 actions={<Button href={CANDIDATE_PAGE_ROUTES.resume} variant="secondary">Назад к резюме</Button>}
               />
@@ -412,7 +412,6 @@ export function CandidateResumeEditorApp() {
                 <ResumeEditorSection
                   eyebrow="Профиль"
                   title="Основные данные"
-                  description="Эти поля синхронизируются с `/api/candidate/me`."
                   actions={
                     <Button type="button" onClick={handleProfileSave} disabled={profileSave.status === "saving"}>
                       {profileSave.status === "saving" ? "Сохраняем..." : "Сохранить профиль"}
@@ -464,7 +463,6 @@ export function CandidateResumeEditorApp() {
                 <ResumeEditorSection
                   eyebrow="Образование"
                   title="Образование"
-                  description="Записи сохраняются через `/api/candidate/me/education`."
                   actions={
                     <Button type="button" variant="secondary" onClick={() => setEducationItems((current) => [...current, createEducationDraft()])}>
                       Добавить образование
@@ -501,7 +499,6 @@ export function CandidateResumeEditorApp() {
                 <ResumeEditorSection
                   eyebrow="Достижения"
                   title="Достижения"
-                  description="Раздел подключен к `/api/candidate/me/achievements`."
                   actions={
                     <Button type="button" variant="secondary" onClick={() => setAchievementItems((current) => [...current, createAchievementDraft()])}>
                       Добавить достижение
@@ -522,7 +519,7 @@ export function CandidateResumeEditorApp() {
                   ) : (
                     <EmptyState
                       title="Пока нет достижений"
-                      description="После первых записей они начнут отображаться и в резюме, и в overview."
+                      description="После первых записей они появятся в вашем резюме."
                       tone="neutral"
                       compact
                     />
@@ -543,7 +540,7 @@ export function CandidateResumeEditorApp() {
             </Card>
 
             <Card className="candidate-editor-additions-card">
-              <div className="candidate-editor-additions-card__title">Что реально сохраняется</div>
+              <div className="candidate-editor-additions-card__title">Содержимое резюме</div>
               <div className="candidate-page-stack">
                 <p className="ui-type-body">Профиль кандидата</p>
                 <p className="ui-type-body">Образование</p>

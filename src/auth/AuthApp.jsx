@@ -464,7 +464,7 @@ function LoginDetailsScreen() {
 
             <div className="auth-screen__confirm-actions">
               <AppLink className="auth-inline-link" href={buildForgotPasswordRoute()}>
-                Р—Р°Р±С‹Р»Рё РїР°СЂРѕР»СЊ?
+                Забыли пароль?
               </AppLink>
             </div>
 
@@ -842,7 +842,7 @@ function RegisterScreenRefined() {
     const normalizedInn = normalizeInnInput(innValue);
 
     if (!innPattern.test(normalizedInn)) {
-      setErrors((current) => ({ ...current, inn: "Р’РІРµРґРёС‚Рµ РРќРќ РєРѕРјРїР°РЅРёРё" }));
+      setErrors((current) => ({ ...current, inn: "Введите ИНН компании" }));
       setInnLookup(null);
       setInnLookupMessage("");
       return null;
@@ -855,7 +855,7 @@ function RegisterScreenRefined() {
     try {
       const result = await lookupEmployerInn(normalizedInn);
       setInnLookup(result);
-      setInnLookupMessage(result.legalName ? `DaData: ${result.legalName}` : "РРќРќ РїРѕРґС‚РІРµСЂР¶РґРµРЅ С‡РµСЂРµР· DaData.");
+      setInnLookupMessage(result.legalName ? `DaData: ${result.legalName}` : "ИНН подтвержден через DaData.");
       setEmployerForm((current) => ({
         ...current,
         inn: normalizedInn,
@@ -865,7 +865,7 @@ function RegisterScreenRefined() {
     } catch (error) {
       setInnLookup(null);
       setInnLookupMessage("");
-      setErrors((current) => ({ ...current, inn: getSubmitErrorMessage(error, "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РРќРќ.") }));
+      setErrors((current) => ({ ...current, inn: getSubmitErrorMessage(error, "Не удалось проверить ИНН.") }));
       return null;
     } finally {
       setInnLookupLoading(false);

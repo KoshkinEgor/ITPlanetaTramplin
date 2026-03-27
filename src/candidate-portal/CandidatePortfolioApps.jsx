@@ -10,7 +10,7 @@ import { CandidateProjectCard, CandidateSectionHeader, CandidateSegmentNav } fro
 function CandidatePortfolioSwitcher({ value }) {
   return (
     <Card className="candidate-switcher-card">
-      <CandidateSectionHeader title="Р РµР·СЋРјРµ Рё РїРѕСЂС‚С„РѕР»РёРѕ" />
+      <CandidateSectionHeader title="Резюме и портфолио" />
       <CandidateSegmentNav items={CANDIDATE_PORTFOLIO_TABS} value={value} />
     </Card>
   );
@@ -28,7 +28,7 @@ function ResumeSection({ title, emptyText, items, renderItem }) {
           {items.map(renderItem)}
         </div>
       ) : (
-        <EmptyState title={emptyText} description="Р Р°Р·РґРµР» Р·Р°РїРѕР»РЅРёС‚СЃСЏ РїРѕСЃР»Рµ СЂРµР°Р»СЊРЅС‹С… РґРµР№СЃС‚РІРёР№ РєР°РЅРґРёРґР°С‚Р°." compact tone="neutral" />
+        <EmptyState title={emptyText} description="Раздел заполнится после реальных действий кандидата." compact tone="neutral" />
       )}
     </Card>
   );
@@ -84,22 +84,22 @@ export function CandidateResumeApp() {
     <>
       <CandidatePortfolioSwitcher value="resume" />
 
-      {state.status === "loading" ? <Loader label="Р—Р°РіСЂСѓР¶Р°РµРј СЂРµР·СЋРјРµ" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем резюме" surface /> : null}
 
       {state.status === "unauthorized" ? (
         <Card>
           <EmptyState
-            eyebrow="Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ"
-            title="РќСѓР¶РЅРѕ РІРѕР№С‚Рё РєР°Рє РєР°РЅРґРёРґР°С‚"
-            description="Р РµР·СЋРјРµ С‚РµРїРµСЂСЊ СЃРѕР±РёСЂР°РµС‚СЃСЏ РёР· СЂРµР°Р»СЊРЅС‹С… РґР°РЅРЅС‹С… РїСЂРѕС„РёР»СЏ, РѕР±СЂР°Р·РѕРІР°РЅРёСЏ Рё РґРѕСЃС‚РёР¶РµРЅРёР№."
+            eyebrow="Доступ ограничен"
+            title="Нужно войти как кандидат"
+            description="Резюме теперь собирается из реальных данных профиля, образования и достижений."
             tone="warning"
           />
         </Card>
       ) : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СЋРјРµ" showIcon>
-          {state.error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ РїРѕР·Р¶Рµ."}
+        <Alert tone="error" title="Не удалось загрузить резюме" showIcon>
+          {state.error?.message ?? "Попробуйте обновить страницу позже."}
         </Alert>
       ) : null}
 
@@ -107,9 +107,9 @@ export function CandidateResumeApp() {
         <>
           <Card className="candidate-resume-panel">
             <div className="candidate-resume-panel__intro">
-              <Tag tone="accent">Р РµР·СЋРјРµ</Tag>
-              <h2 className="ui-type-h2">РџСЂРѕС„РёР»СЊ РєР°РЅРґРёРґР°С‚Р°</h2>
-              <p className="ui-type-body">{state.profile?.description || "РћРїРёСЃР°РЅРёРµ РїСЂРѕС„РёР»СЏ РїРѕРєР° РїСѓСЃС‚РѕРµ."}</p>
+              <Tag tone="accent">Резюме</Tag>
+              <h2 className="ui-type-h2">Профиль кандидата</h2>
+              <p className="ui-type-body">{state.profile?.description || "Описание профиля пока пустое."}</p>
             </div>
 
             <div className="candidate-resume-record__tags">
@@ -118,18 +118,18 @@ export function CandidateResumeApp() {
                   <Tag key={skill}>{skill}</Tag>
                 ))
               ) : (
-                <Tag>РќР°РІС‹РєРё РїРѕРєР° РЅРµ СѓРєР°Р·Р°РЅС‹</Tag>
+                <Tag>Навыки пока не указаны</Tag>
               )}
             </div>
 
             <div className="candidate-resume-panel__actions">
-              <Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РґР°РЅРЅС‹Рµ</Button>
+              <Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Редактировать данные</Button>
             </div>
           </Card>
 
           <ResumeSection
-            title="РћР±СЂР°Р·РѕРІР°РЅРёРµ"
-            emptyText="РћР±СЂР°Р·РѕРІР°РЅРёРµ РµС‰Рµ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ"
+            title="Образование"
+            emptyText="Образование еще не добавлено"
             items={state.education}
             renderItem={(item) => (
               <article key={item.id} className="candidate-resume-record">
@@ -137,31 +137,31 @@ export function CandidateResumeApp() {
                   <div className="candidate-resume-record__copy-link">
                     <h3 className="ui-type-h2">{item.institutionName}</h3>
                     <p className="ui-type-body">
-                      {[item.faculty, item.specialization].filter(Boolean).join(" В· ")}
+                      {[item.faculty, item.specialization].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                 </div>
                 <div className="candidate-resume-record__stats">
-                  <span>{item.startYear || "?"} вЂ” {item.graduationYear || "?"}</span>
+                  <span>{item.startYear || "?"} - {item.graduationYear || "?"}</span>
                 </div>
               </article>
             )}
           />
 
           <ResumeSection
-            title="Р”РѕСЃС‚РёР¶РµРЅРёСЏ"
-            emptyText="Р”РѕСЃС‚РёР¶РµРЅРёСЏ РµС‰Рµ РЅРµ РґРѕР±Р°РІР»РµРЅС‹"
+            title="Достижения"
+            emptyText="Достижения еще не добавлены"
             items={state.achievements}
             renderItem={(item) => (
               <article key={item.id} className="candidate-resume-record">
                 <div className="candidate-resume-record__head">
                   <div className="candidate-resume-record__copy-link">
-                    <h3 className="ui-type-h2">{item.title || "Р”РѕСЃС‚РёР¶РµРЅРёРµ"}</h3>
-                    <p className="ui-type-body">{item.description || "Р‘РµР· РѕРїРёСЃР°РЅРёСЏ"}</p>
+                    <h3 className="ui-type-h2">{item.title || "Достижение"}</h3>
+                    <p className="ui-type-body">{item.description || "Без описания"}</p>
                   </div>
                 </div>
                 <div className="candidate-resume-record__stats">
-                  <span>{formatLongDate(item.obtainDate) || "Р”Р°С‚Р° РЅРµ СѓРєР°Р·Р°РЅР°"}</span>
+                  <span>{formatLongDate(item.obtainDate) || "Дата не указана"}</span>
                 </div>
               </article>
             )}
@@ -214,31 +214,31 @@ export function CandidateProjectsApp() {
     <>
       <CandidatePortfolioSwitcher value="projects" />
 
-      {state.status === "loading" ? <Loader label="Р—Р°РіСЂСѓР¶Р°РµРј РїСЂРѕРµРєС‚С‹" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем проекты" surface /> : null}
 
       {state.status === "unauthorized" ? (
         <Card>
           <EmptyState
-            eyebrow="Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ"
-            title="РќСѓР¶РЅРѕ РІРѕР№С‚Рё РєР°Рє РєР°РЅРґРёРґР°С‚"
-            description="РџРѕСЂС‚С„РѕР»РёРѕ РґРѕСЃС‚СѓРїРЅРѕ С‚РѕР»СЊРєРѕ Р°РІС‚РѕСЂРёР·РѕРІР°РЅРЅРѕРјСѓ РєР°РЅРґРёРґР°С‚Сѓ."
+            eyebrow="Доступ ограничен"
+            title="Нужно войти как кандидат"
+            description="Портфолио доступно только авторизованному кандидату."
             tone="warning"
           />
         </Card>
       ) : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРµРєС‚С‹" showIcon>
-          {state.error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕРІС‚РѕСЂРёС‚СЊ РїРѕР·Р¶Рµ."}
+        <Alert tone="error" title="Не удалось загрузить проекты" showIcon>
+          {state.error?.message ?? "Попробуйте повторить позже."}
         </Alert>
       ) : null}
 
       {state.status === "ready" ? (
         <section className="candidate-page-section">
           <CandidateSectionHeader
-            title="РџРѕСЂС‚С„РѕР»РёРѕ"
-            description="РЎРїРёСЃРѕРє СЃС‚СЂРѕРёС‚СЃСЏ РїРѕ `/api/candidate/me/projects` Рё Р±РѕР»СЊС€Рµ РЅРµ Р·Р°РІРёСЃРёС‚ РѕС‚ localStorage."
-            actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Р”РѕР±Р°РІРёС‚СЊ РїСЂРѕРµРєС‚</Button>}
+            title="Портфолио"
+            description="Выложи кейсы, которые могут показать твои текущие навыки."
+            actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
           />
 
           {projectItems.length ? (
@@ -250,11 +250,11 @@ export function CandidateProjectsApp() {
           ) : (
             <Card>
               <EmptyState
-                eyebrow="РџРѕРєР° РїСѓСЃС‚Рѕ"
-                title="РџСЂРѕРµРєС‚С‹ РµС‰Рµ РЅРµ РґРѕР±Р°РІР»РµРЅС‹"
-                description="Р”РѕР±Р°РІСЊС‚Рµ РїРµСЂРІС‹Р№ РєРµР№СЃ С‡РµСЂРµР· СЂРµРґР°РєС‚РѕСЂ, Рё РѕРЅ СЃСЂР°Р·Сѓ РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ."
+                eyebrow="Пока пусто"
+                title="Проекты еще не добавлены"
+                description="Добавьте первый кейс через редактор, и он сразу появится здесь."
                 tone="neutral"
-                actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Р”РѕР±Р°РІРёС‚СЊ РїСЂРѕРµРєС‚</Button>}
+                actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
               />
             </Card>
           )}

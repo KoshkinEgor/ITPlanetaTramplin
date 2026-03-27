@@ -22,9 +22,8 @@ function ProjectEditorPreview({ draft }) {
     <div className="candidate-project-editor-aside candidate-editor-aside">
       <Card className="candidate-project-editor-preview-card">
         <SectionHeader
-          eyebrow="Предпросмотр"
-          title="Карточка проекта"
-          description="Превью обновляется по мере заполнения формы."
+          eyebrow="Портфолио"
+          title="Предварительный вид"
           size="md"
         />
 
@@ -121,10 +120,10 @@ export function CandidateProjectEditorApp() {
             <header className="candidate-editor-head">
               <SectionHeader
                 eyebrow="Портфолио"
-                title="Добавить проект"
-                description="Данные сохраняются в backend и сразу попадают в кабинет кандидата."
+                title="Проект"
+                description="Добавляйте проекты, над которыми вы работали. Расскажите подробно о занимаемой роли в нем, о ваших обязанностях."
                 size="lg"
-                actions={<Button href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary">Отмена</Button>}
+                actions={<Button href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary">Назад к портфолио</Button>}
               />
             </header>
 
@@ -134,10 +133,10 @@ export function CandidateProjectEditorApp() {
               </Alert>
             ) : null}
 
-            <ProjectEditorSection eyebrow="Основное" title="Карточка проекта" description="Краткие поля для списка проектов.">
+            <ProjectEditorSection eyebrow="Портфолио" title="Параметры проекта" description="Сделай карточку понятной: тема, дата, формат и ценность для участника.">
               <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Название проекта" required error={errors.title}>
-                  <Input value={draft.title} onValueChange={(value) => updateField("title", value)} placeholder="Название проекта" />
+                <FormField label="Наименование проекта" required error={errors.title}>
+                  <Input value={draft.title} onValueChange={(value) => updateField("title", value)} placeholder="Наименование проекта" />
                 </FormField>
 
                 <FormField label="Тип проекта" required error={errors.projectType}>

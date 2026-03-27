@@ -955,7 +955,7 @@ export function CandidateSettingsApp() {
       <CandidateSectionHeader
         eyebrow="Настройки"
         title="Настройки профиля"
-        description="Соберите полный профиль для работодателей: личные данные, контакты, безопасность и приватность в одном месте."
+        description="Собери свой портфолио и резюме для точных рекомендаций."
       />
 
       {state.status === "loading" ? <Loader label="Загружаем настройки профиля" surface /> : null}

@@ -9,11 +9,11 @@ import { CandidateContactCard, CandidateSectionHeader } from "./shared";
 
 function mapOpportunityCard(item) {
   return {
-    type: item.opportunityType || "Р’РѕР·РјРѕР¶РЅРѕСЃС‚СЊ",
-    status: item.moderationStatus === "approved" ? "РћРїСѓР±Р»РёРєРѕРІР°РЅРѕ" : item.moderationStatus,
+    type: item.opportunityType || "Возможность",
+    status: item.moderationStatus === "approved" ? "Опубликовано" : item.moderationStatus,
     statusTone: item.moderationStatus === "approved" ? "success" : "warning",
     title: item.title,
-    company: `${item.companyName}${item.locationCity ? ` В· ${item.locationCity}` : ""}`,
+    company: `${item.companyName}${item.locationCity ? ` · ${item.locationCity}` : ""}`,
     accent: item.employmentType || "",
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
   };
@@ -69,22 +69,22 @@ export function CandidateOverviewApp() {
 
   return (
     <>
-      {state.status === "loading" ? <Loader label="Р—Р°РіСЂСѓР¶Р°РµРј РїСЂРѕС„РёР»СЊ РєР°РЅРґРёРґР°С‚Р°" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем профиль кандидата" surface /> : null}
 
       {state.status === "unauthorized" ? (
         <Card>
           <EmptyState
-            eyebrow="Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ"
-            title="РќСѓР¶РЅРѕ РІРѕР№С‚Рё РєР°Рє РєР°РЅРґРёРґР°С‚"
-            description="РџСЂРѕС„РёР»СЊ С‚РµРїРµСЂСЊ СЃС‚СЂРѕРёС‚СЃСЏ С†РµР»РёРєРѕРј РёР· СЂРµР°Р»СЊРЅС‹С… API Рё РЅРµ СЂРµРЅРґРµСЂРёС‚СЃСЏ Р±РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё."
+            eyebrow="Доступ ограничен"
+            title="Нужно войти как кандидат"
+            description="Профиль доступен только после авторизации кандидата."
             tone="warning"
           />
         </Card>
       ) : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕС„РёР»СЊ" showIcon>
-          {state.error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ РїРѕР·Р¶Рµ."}
+        <Alert tone="error" title="Не удалось загрузить профиль" showIcon>
+          {state.error?.message ?? "Попробуйте обновить страницу позже."}
         </Alert>
       ) : null}
 
@@ -92,12 +92,11 @@ export function CandidateOverviewApp() {
         <>
           <section className="candidate-page-section">
             <CandidateSectionHeader
-              title="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё"
-              description="Р›РµРЅС‚Р° Р±РµСЂРµС‚ РґР°РЅРЅС‹Рµ РёР· РїСѓР±Р»РёС‡РЅРѕРіРѕ РєР°С‚Р°Р»РѕРіР° `/api/opportunities`."
+              title="Рекомендуемые возможности"
             />
 
             {topOpportunities.length ? (
-              <div className="candidate-opportunity-rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
+              <div className="candidate-opportunity-rail" aria-label="Рекомендуемые возможности">
                 {topOpportunities.map((item, index) => (
                   <OpportunityBlockCard
                     key={`${item.title}-${index}`}
@@ -105,16 +104,16 @@ export function CandidateOverviewApp() {
                     surface="panel"
                     size="md"
                     className="candidate-opportunity-rail__card"
-                    detailAction={{ href: "/opportunities", label: "РћС‚РєСЂС‹С‚СЊ РєР°С‚Р°Р»РѕРі", variant: "secondary" }}
+                    detailAction={{ href: "/opportunities", label: "Открыть каталог", variant: "secondary" }}
                   />
                 ))}
               </div>
             ) : (
               <Card>
                 <EmptyState
-                  eyebrow="РљР°С‚Р°Р»РѕРі РїСѓСЃС‚"
-                  title="РџРѕРєР° РЅРµС‚ РѕРґРѕР±СЂРµРЅРЅС‹С… РІРѕР·РјРѕР¶РЅРѕСЃС‚РµР№"
-                  description="РџРѕСЃР»Рµ РјРѕРґРµСЂР°С†РёРё РЅРѕРІС‹С… РїСѓР±Р»РёРєР°С†РёР№ РєР°СЂС‚РѕС‡РєРё РїРѕСЏРІСЏС‚СЃСЏ Р·РґРµСЃСЊ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё."
+                  eyebrow="Каталог пуст"
+                  title="Пока нет одобренных возможностей"
+                  description="После модерации новых публикаций карточки появятся здесь автоматически."
                   tone="neutral"
                 />
               </Card>
@@ -123,9 +122,8 @@ export function CandidateOverviewApp() {
 
           <section className="candidate-page-section">
             <CandidateSectionHeader
-              eyebrow="РђРєС‚РёРІРЅРѕСЃС‚СЊ"
-              title="РџРѕСЃР»РµРґРЅРёРµ РѕС‚РєР»РёРєРё"
-              description="РЎС‚Р°С‚СѓСЃС‹ Рё РєРѕРјРїР°РЅРёРё С‡РёС‚Р°СЋС‚СЃСЏ РёР· `/api/candidate/me/applications`."
+              eyebrow="Активность"
+              title="Последние отклики"
             />
 
             {recentApplications.length ? (
@@ -146,9 +144,9 @@ export function CandidateOverviewApp() {
             ) : (
               <Card>
                 <EmptyState
-                  eyebrow="РџСѓСЃС‚Рѕ"
-                  title="РћС‚РєР»РёРєРѕРІ РїРѕРєР° РЅРµС‚"
-                  description="РљРѕРіРґР° РєР°РЅРґРёРґР°С‚ РѕС‚РєР»РёРєРЅРµС‚СЃСЏ РЅР° СЂРµР°Р»СЊРЅСѓСЋ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ, СЃС‚Р°С‚СѓСЃ РїРѕСЏРІРёС‚СЃСЏ РІ СЌС‚РѕРј Р±Р»РѕРєРµ."
+                  eyebrow="Пусто"
+                  title="Откликов пока нет"
+                  description="Когда кандидат откликнется на реальную возможность, статус появится в этом блоке."
                   tone="neutral"
                 />
               </Card>
@@ -157,9 +155,8 @@ export function CandidateOverviewApp() {
 
           <section className="candidate-page-section">
             <CandidateSectionHeader
-              eyebrow="РљРѕРЅС‚Р°РєС‚С‹"
-              title="РЎРІСЏР·Рё РєР°РЅРґРёРґР°С‚Р°"
-              description="РљРѕРЅС‚Р°РєС‚С‹ Р±РµСЂСѓС‚СЃСЏ РёР· `/api/candidate/me/contacts`."
+              eyebrow="Контакты"
+              title="Рекомендуемые контакты"
             />
 
             {topContacts.length ? (
@@ -171,9 +168,9 @@ export function CandidateOverviewApp() {
             ) : (
               <Card>
                 <EmptyState
-                  eyebrow="РќРµС‚ РєРѕРЅС‚Р°РєС‚РѕРІ"
-                  title="РЎРІСЏР·Рё РїРѕРєР° РЅРµ РґРѕР±Р°РІР»РµРЅС‹"
-                  description="РљРѕРЅС‚Р°РєС‚С‹ РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ СЂРµР°Р»СЊРЅС‹С… РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёР№ РєР°РЅРґРёРґР°С‚Р° СЃ РґСЂСѓРіРёРјРё РїСЂРѕС„РёР»СЏРјРё."
+                  eyebrow="Нет контактов"
+                  title="Связи пока не добавлены"
+                  description="Контакты появятся после реальных взаимодействий кандидата с другими профилями."
                   tone="neutral"
                 />
               </Card>

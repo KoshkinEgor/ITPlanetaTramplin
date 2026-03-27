@@ -51,30 +51,30 @@ export function CandidateContactsApp() {
 
   return (
     <section className="candidate-page-section">
-      <CandidateSectionHeader title="РљРѕРЅС‚Р°РєС‚С‹" description="РЎРїРёСЃРѕРє С‚РµРїРµСЂСЊ Р·Р°РіСЂСѓР¶Р°РµС‚СЃСЏ РёР· backend, Р±РµР· Р»РѕРєР°Р»СЊРЅС‹С… РєР°СЂС‚РѕС‡РµРє Рё РґРµРјРѕ-РґР°РЅРЅС‹С…." />
+      <CandidateSectionHeader title="Контакты" />
 
-      {state.status === "loading" ? <Loader label="Р—Р°РіСЂСѓР¶Р°РµРј РєРѕРЅС‚Р°РєС‚С‹" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем контакты" surface /> : null}
 
       {state.status === "unauthorized" ? (
         <Card>
           <EmptyState
-            eyebrow="Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ"
-            title="РќСѓР¶РЅРѕ РІРѕР№С‚Рё РєР°Рє РєР°РЅРґРёРґР°С‚"
-            description="РљРѕРЅС‚Р°РєС‚С‹ РґРѕСЃС‚СѓРїРЅС‹ С‚РѕР»СЊРєРѕ Р°РІС‚РѕСЂРёР·РѕРІР°РЅРЅРѕРјСѓ РєР°РЅРґРёРґР°С‚Сѓ."
+            eyebrow="Доступ ограничен"
+            title="Нужно войти как кандидат"
+            description="Контакты доступны только авторизованному кандидату."
             tone="warning"
           />
         </Card>
       ) : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРѕРЅС‚Р°РєС‚С‹" showIcon>
-          {state.error?.message ?? "РџРѕРїСЂРѕР±СѓР№С‚Рµ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ РїРѕР·Р¶Рµ."}
+        <Alert tone="error" title="Не удалось загрузить контакты" showIcon>
+          {state.error?.message ?? "Попробуйте обновить страницу позже."}
         </Alert>
       ) : null}
 
       {state.status === "ready" ? (
         <>
-          <CandidateSearchBar value={query} onChange={setQuery} placeholder="РџРѕРёСЃРє РєРѕРЅС‚Р°РєС‚РѕРІ" />
+          <CandidateSearchBar value={query} onChange={setQuery} placeholder="Поиск контактов" />
 
           {visibleItems.length ? (
             <div className="candidate-page-grid candidate-page-grid--two">
@@ -85,9 +85,9 @@ export function CandidateContactsApp() {
           ) : (
             <Card>
               <EmptyState
-                eyebrow="РџСѓСЃС‚Рѕ"
-                title="РљРѕРЅС‚Р°РєС‚С‹ РЅРµ РЅР°Р№РґРµРЅС‹"
-                description={query ? "РЎР±СЂРѕСЃСЊС‚Рµ РїРѕРёСЃРє РёР»Рё РґРѕР±Р°РІСЊС‚Рµ РЅРѕРІС‹Рµ РєРѕРЅС‚Р°РєС‚С‹ С‡РµСЂРµР· СЂРµР°Р»СЊРЅС‹Рµ СЃС†РµРЅР°СЂРёРё РїР»Р°С‚С„РѕСЂРјС‹." : "РЈ РєР°РЅРґРёРґР°С‚Р° РїРѕРєР° РЅРµС‚ СЃРѕС…СЂР°РЅРµРЅРЅС‹С… РєРѕРЅС‚Р°РєС‚РѕРІ."}
+                eyebrow="Пусто"
+                title="Контакты не найдены"
+                description={query ? "Сбросьте поиск или добавьте новые контакты через реальные сценарии платформы." : "У кандидата пока нет сохраненных контактов."}
                 tone="neutral"
               />
             </Card>
