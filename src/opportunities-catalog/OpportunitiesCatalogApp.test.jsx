@@ -132,6 +132,22 @@ describe("OpportunitiesCatalogApp", () => {
     expect(screen.getByText(/Тебе подходит/i)).toBeInTheDocument();
   });
 
+  it("renders recommended opportunities with the ui-kit slider", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue({
+      id: 1,
+      name: "Anna",
+      skills: ["Security", "SOC"],
+    });
+
+    renderApp();
+
+    const slider = await screen.findByRole("region", { name: "Рекомендуемые возможности" });
+
+    expect(within(slider).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(slider.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(4);
+  });
+
   it("applies real filters and keeps unsupported controls disabled", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);

@@ -2,17 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
-import { OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
   Alert,
   Button,
   Card,
   CompanyVacancyTile,
-  ContentRail,
   EmptyState,
   Loader,
-  OpportunityMiniCard,
   PillButton,
   SearchInput,
   SectionHeader,
@@ -165,6 +163,7 @@ function createRecommendationCard(item, scoreData) {
   const hasSkillMatch = scoreData.matchedSkillsCount > 0;
 
   return {
+    id: item.id,
     type: translateOpportunityType(item.opportunityType),
     status: hasSkillMatch ? `Подходит на ${scoreData.score}%` : "",
     statusTone: hasSkillMatch ? "success" : "neutral",
@@ -174,6 +173,16 @@ function createRecommendationCard(item, scoreData) {
     accent: translateEmploymentType(item.employmentType),
     note: item.opportunityType === "event" ? "" : shortenText(item.description, 42),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
+  };
+}
+
+function createRecommendationSliderCardProps(item) {
+  return {
+    detailAction: {
+      href: buildOpportunityDetailRoute(item.id),
+      label: "Подробнее",
+      variant: "secondary",
+    },
   };
 }
 
@@ -569,20 +578,16 @@ export function OpportunitiesCatalogApp() {
               />
 
               {recommendedItems.length ? (
-                <ContentRail ariaLabel="Рекомендуемые возможности" itemWidth="370px" gap="18px" className="opportunities-browser__rail">
-                  {recommendedItems.map((entry, index) => (
-                    <OpportunityMiniCard
-                      key={entry.item.id}
-                      variant={index === 0 ? "featured" : "compact"}
-                      item={createRecommendationCard(entry.item, entry)}
-                      detailAction={{
-                        href: buildOpportunityDetailRoute(entry.item.id),
-                        label: "Подробнее",
-                        variant: "secondary",
-                      }}
-                    />
-                  ))}
-                </ContentRail>
+                <OpportunityBlockSlider
+                  ariaLabel="Рекомендуемые возможности"
+                  variant="leading-featured"
+                  surface="plain"
+                  itemWidth="370px"
+                  featuredWidth="440px"
+                  gap="18px"
+                  items={recommendedItems.map((entry) => createRecommendationCard(entry.item, entry))}
+                  cardPropsBuilder={createRecommendationSliderCardProps}
+                />
               ) : (
                 <Card>
                   <EmptyState

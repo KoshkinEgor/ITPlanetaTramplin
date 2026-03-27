@@ -111,10 +111,6 @@ body.opportunities-browser-react-body {
   font-weight: 700;
 }
 
-.opportunities-browser__rail {
-  padding-bottom: 12px;
-}
-
 .opportunities-browser__companies-card.ui-card {
   gap: 20px;
   border-radius: 32px;
