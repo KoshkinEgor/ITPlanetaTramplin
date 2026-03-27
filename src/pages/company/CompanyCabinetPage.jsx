@@ -53,14 +53,26 @@ function buildVerification(profile) {
 export function CompanyCabinetPage() {
   const location = useLocation();
   const activeKey = resolveCompanyActiveKey(location.pathname);
+  const shouldShowSummary = activeKey === "profile";
   const [state, setState] = useState({
-    status: "loading",
+    status: shouldShowSummary ? "loading" : "idle",
     profile: null,
     opportunities: [],
     applications: [],
   });
 
   useEffect(() => {
+    if (!shouldShowSummary) {
+      setState({
+        status: "idle",
+        profile: null,
+        opportunities: [],
+        applications: [],
+      });
+
+      return undefined;
+    }
+
     const controller = new AbortController();
 
     async function load() {
@@ -88,17 +100,19 @@ export function CompanyCabinetPage() {
 
     load();
     return () => controller.abort();
-  }, []);
+  }, [shouldShowSummary]);
 
-  const summary = state.status === "ready"
-    ? (
-      <CompanyProfileSummary
-        profile={state.profile}
-        stats={buildCompanySummaryStats(state)}
-        verification={buildVerification(state.profile)}
-      />
-    )
-    : <SummaryFallback status={state.status} />;
+  const summary = !shouldShowSummary
+    ? null
+    : state.status === "ready"
+      ? (
+        <CompanyProfileSummary
+          profile={state.profile}
+          stats={buildCompanySummaryStats(state)}
+          verification={buildVerification(state.profile)}
+        />
+      )
+      : <SummaryFallback status={state.status} />;
 
   return (
     <CabinetShell

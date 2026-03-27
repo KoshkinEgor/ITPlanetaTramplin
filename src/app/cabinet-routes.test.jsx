@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../auth/api";
+import { getCompanyOpportunities, getCompanyProfile } from "../api/company";
 import { getModerationDashboard } from "../api/moderation";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
@@ -202,6 +203,41 @@ describe("cabinet shell routes", () => {
     renderRoute(routes.company.opportunities);
 
     expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
+  });
+
+  it("shows the company summary on the company page", async () => {
+    setSession({
+      id: 2,
+      role: "company",
+      email: "company@example.com",
+    });
+
+    const { container } = renderRoute(routes.company.dashboard);
+
+    expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(container.querySelector(".company-profile-summary")).toBeInTheDocument();
+    });
+  });
+
+  it("skips the company summary outside the company page", async () => {
+    setSession({
+      id: 2,
+      role: "company",
+      email: "company@example.com",
+    });
+
+    const { container } = renderRoute(routes.company.opportunities);
+
+    expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getCompanyOpportunities).toHaveBeenCalled();
+    });
+
+    expect(container.querySelector(".company-profile-summary")).not.toBeInTheDocument();
+    expect(getCompanyProfile).not.toHaveBeenCalled();
   });
 
   it("redirects guests from company routes to the login page", async () => {
