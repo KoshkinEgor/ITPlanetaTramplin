@@ -56,7 +56,10 @@
 
   --ui-shadow-soft: 0 16px 36px rgba(36, 49, 77, 0.08);
   --ui-shadow-strong: 0 24px 60px rgba(36, 49, 77, 0.14);
-  --ui-shadow-accent: 0 18px 34px rgba(47, 128, 255, 0.24);
+  --ui-shadow-accent: 0 10px 22px rgba(47, 128, 255, 0.22);
+  --ui-shadow-accent-hover: 0 12px 24px rgba(47, 128, 255, 0.26);
+  --ui-shadow-danger: 0 10px 22px rgba(222, 101, 68, 0.2);
+  --ui-shadow-danger-hover: 0 12px 24px rgba(222, 101, 68, 0.24);
   --ui-shadow-focus: 0 0 0 4px rgba(47, 128, 255, 0.12);
 
   --ui-font-size-display: clamp(2.8rem, 5vw, 4.6rem);

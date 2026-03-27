@@ -4,6 +4,7 @@ const sizeClassMap = {
   sm: "ui-avatar--sm",
   md: "",
   lg: "ui-avatar--lg",
+  xl: "ui-avatar--xl",
 };
 
 const shapeClassMap = {

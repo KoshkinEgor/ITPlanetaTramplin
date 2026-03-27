@@ -49,6 +49,11 @@
   height: 68px;
 }
 
+.ui-avatar--xl {
+  width: 104px;
+  height: 104px;
+}
+
 .ui-avatar__image {
   width: 100%;
   height: 100%;
@@ -63,6 +68,11 @@
 
 .ui-avatar--lg .ui-avatar__initials {
   font-size: 1.08rem;
+}
+
+.ui-avatar--xl .ui-avatar__initials {
+  font-size: 3rem;
+  letter-spacing: -0.08em;
 }
 
 .ui-avatar__status {

@@ -9,6 +9,8 @@
 @import "./Radio/Radio.css";
 @import "./Switch/Switch.css";
 @import "./Badge/Badge.css";
+@import "./Tag/Tag.css";
+@import "./StatusBadge/StatusBadge.css";
 @import "./Alert/Alert.css";
 @import "./Tabs/Tabs.css";
 @import "./Loader/Loader.css";
@@ -16,4 +18,7 @@
 @import "./SectionHeader/SectionHeader.css";
 @import "./Avatar/Avatar.css";
 @import "./SearchInput/SearchInput.css";
+@import "./TagSelector/TagSelector.css";
+@import "./SegmentedControl/SegmentedControl.css";
+@import "./PillButton/PillButton.css";
 @import "./Modal/Modal.css";

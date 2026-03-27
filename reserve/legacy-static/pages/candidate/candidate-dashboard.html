@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трамплин · Кабинет соискателя</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../styles/shared/style.css" />
+    <link rel="stylesheet" href="../../styles/candidate/candidate-dashboard.css" />
+    <script src="../../scripts/shared/shared-header.js" defer></script>
+    <script src="../../scripts/candidate/candidate-dashboard.js" defer></script>
+  </head>
+  <body class="candidate-dashboard-body">
+    <div data-shared-header data-header-config="candidate-dashboard" data-header-base="../../"></div>
+
+    <input class="candidate-dashboard__toggle" type="checkbox" id="candidate-drawer" />
+
+    <input class="candidate-dashboard__toggle" type="radio" name="candidate-section" id="candidate-section-about" checked />
+    <input class="candidate-dashboard__toggle" type="radio" name="candidate-section" id="candidate-section-portfolio" />
+    <input class="candidate-dashboard__toggle" type="radio" name="candidate-section" id="candidate-section-responses" />
+    <input class="candidate-dashboard__toggle" type="radio" name="candidate-section" id="candidate-section-contacts" />
+    <input class="candidate-dashboard__toggle" type="radio" name="candidate-section" id="candidate-section-settings" />
+
+    <input class="candidate-dashboard__toggle" type="radio" name="portfolio-tab" id="portfolio-tab-resume" checked />
+    <input class="candidate-dashboard__toggle" type="radio" name="portfolio-tab" id="portfolio-tab-projects" />
+
+    <input class="candidate-dashboard__toggle" type="radio" name="responses-tab" id="responses-tab-active" checked />
+    <input class="candidate-dashboard__toggle" type="radio" name="responses-tab" id="responses-tab-saved" />
+    <input class="candidate-dashboard__toggle" type="radio" name="responses-tab" id="responses-tab-finished" />
+    <input class="candidate-dashboard__toggle" type="radio" name="responses-tab" id="responses-tab-all" />
+
+    <input class="candidate-dashboard__toggle" type="radio" name="contacts-tab" id="contacts-tab-my" checked />
+    <input class="candidate-dashboard__toggle" type="radio" name="contacts-tab" id="contacts-tab-recommended" />
+    <input class="candidate-dashboard__toggle" type="radio" name="contacts-tab" id="contacts-tab-invites" />
+
+    <main class="candidate-dashboard-main">
+      <div class="container candidate-dashboard-shell">
+        <label class="candidate-dashboard__overlay" for="candidate-drawer" aria-hidden="true"></label>
+
+        <aside class="card candidate-dashboard__sidebar" aria-label="Разделы личного кабинета">
+          <div class="candidate-dashboard__sidebar-head">
+            <p>Личный кабинет</p>
+            <label class="icon-button candidate-dashboard__sidebar-close" for="candidate-drawer" aria-label="Закрыть меню">
+              <span aria-hidden="true">×</span>
+            </label>
+          </div>
+
+          <nav class="candidate-dashboard__menu">
+            <label class="candidate-dashboard__menu-link" for="candidate-section-about">
+              <span class="candidate-dashboard__menu-title">Обо мне</span>
+              <span class="candidate-dashboard__menu-note">Dashboard и рекомендации</span>
+            </label>
+            <label class="candidate-dashboard__menu-link" for="candidate-section-portfolio">
+              <span class="candidate-dashboard__menu-title">Портфолио и резюме</span>
+              <span class="candidate-dashboard__menu-note">Опыт, проекты, ссылки</span>
+            </label>
+            <label class="candidate-dashboard__menu-link" for="candidate-section-responses">
+              <span class="candidate-dashboard__menu-title">Мои отклики</span>
+              <span class="candidate-dashboard__menu-note">Статусы, фильтры, карта</span>
+            </label>
+            <label class="candidate-dashboard__menu-link" for="candidate-section-contacts">
+              <span class="candidate-dashboard__menu-title">Контакты</span>
+              <span class="candidate-dashboard__menu-note">Связи и рекомендации</span>
+            </label>
+            <label class="candidate-dashboard__menu-link" for="candidate-section-settings">
+              <span class="candidate-dashboard__menu-title">Настройки профиля</span>
+              <span class="candidate-dashboard__menu-note">Приватность и безопасность</span>
+            </label>
+          </nav>
+
+          <div class="candidate-dashboard__sidebar-foot">
+            <span class="tag">Заполненность профиля</span>
+            <strong>70%</strong>
+            <p>Чем полнее профиль, тем точнее рекомендации и отклики работодателей.</p>
+          </div>
+        </aside>
+
+        <div class="candidate-dashboard__workspace">
+          <section class="card candidate-profile" aria-labelledby="candidate-profile-title">
+            <div class="candidate-profile__cover">
+              <input
+                class="candidate-profile__cover-input"
+                type="file"
+                id="candidate-cover-upload"
+                name="candidate-cover-upload"
+                accept="image/png, image/jpeg, image/webp"
+              />
+              <label
+                class="candidate-profile__cover-upload"
+                for="candidate-cover-upload"
+                data-cover-upload-label
+              >
+                <span class="candidate-profile__cover-upload-link">Загрузить шапку профиля</span>
+                <span class="candidate-profile__cover-upload-hint" data-cover-upload-status>
+                  PNG, JPG или WEBP до 10 МБ
+                </span>
+              </label>
+            </div>
+
+            <div class="candidate-profile__body">
+              <div class="candidate-profile__identity">
+                <div class="candidate-profile__avatar" aria-hidden="true">
+                  <span>АК</span>
+                </div>
+
+                <div class="candidate-profile__copy">
+                  <div class="candidate-profile__intro">
+                    <span class="tag">Профиль соискателя</span>
+                    <span class="chip candidate-profile__intro-chip candidate-profile__intro-chip--default">
+                      <span class="status-dot" aria-hidden="true"></span>
+                      Онлайн
+                    </span>
+                    <span class="chip candidate-profile__intro-chip candidate-profile__intro-chip--responses">
+                      12 активностей за месяц
+                    </span>
+                  </div>
+
+                  <h1 id="candidate-profile-title">Анна Ковалёва</h1>
+                  <p class="candidate-profile__meta candidate-profile__meta--default">
+                    МГТУ им. Баумана · Москва · 4 курс · Выпуск 2027
+                  </p>
+                  <p class="candidate-profile__meta candidate-profile__meta--responses">Product analytics · UX research</p>
+                  <p class="candidate-profile__description">
+                    Аналитик и начинающий product-minded специалист: люблю разбирать данные,
+                    проектировать пользовательские сценарии и собирать понятные интерфейсы для роста.
+                  </p>
+
+                  <div class="candidate-profile__skills">
+                    <span class="tag">SQL</span>
+                    <span class="tag">Python</span>
+                    <span class="tag">Research</span>
+                    <span class="tag">UX</span>
+                    <span class="tag">Figma</span>
+                    <span class="tag">Презентации</span>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="candidate-profile__summary" aria-label="Краткая сводка профиля">
+                <div class="candidate-profile__completion">
+                  <div class="candidate-profile__completion-head">
+                    <span>Заполненность профиля</span>
+                    <strong>70%</strong>
+                  </div>
+                  <div class="candidate-profile__progress" aria-hidden="true">
+                    <span></span>
+                  </div>
+                </div>
+
+                <div class="candidate-profile__stats candidate-profile__stats--default">
+                  <div>
+                    <strong>12</strong>
+                    <span>Отклики</span>
+                  </div>
+                  <div>
+                    <strong>4</strong>
+                    <span>Проекты</span>
+                  </div>
+                  <div>
+                    <strong>19</strong>
+                    <span>Контакты</span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <div class="candidate-dashboard__screens">
+            <section class="candidate-dashboard__screen candidate-dashboard__screen--about">
+              <section class="candidate-dashboard__subsection candidate-dashboard__subsection--highlight">
+                <div class="candidate-dashboard__subsection-head">
+                  <h2>Рекомендуемые возможности</h2>
+                  <a class="section-link" href="../home/index.html#map-view">
+                    Все возможности
+                    <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+
+                <div class="candidate-dashboard__card-grid">
+                  <article class="vacancy-card card candidate-opportunity-card">
+                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail-card.html" aria-label="Открыть Летнюю школу SOC"></a>
+                    <div class="vacancy-card__top">
+                      <span class="company-mark company-mark--orange" aria-hidden="true">К</span>
+                      <div class="vacancy-card__top-meta">
+                        <span class="chip">Стажировка</span>
+                        <span class="tag tag-success">Подходит вам на 85%</span>
+                      </div>
+                    </div>
+
+                    <div class="vacancy-card__content">
+                      <h3>Летняя школа SOC</h3>
+                      <p class="vacancy-card__meta">ООО Компани · Москва + онлайн</p>
+                      <p class="vacancy-card__salary">40 000 ₽ / мес</p>
+                    </div>
+
+                    <div class="vacancy-card__tags">
+                      <span class="tag">Логи</span>
+                      <span class="tag">Аналитика</span>
+                      <span class="tag">Наставник</span>
+                    </div>
+
+                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail-card.html">Открыть</a>
+                  </article>
+
+                  <article class="vacancy-card card candidate-opportunity-card">
+                    <a class="candidate-opportunity-card__link" href="../opportunities/opportunity-detail-card.html" aria-label="Открыть Junior Product Analyst"></a>
+                    <div class="vacancy-card__top">
+                      <span class="company-mark company-mark--vk" aria-hidden="true">К</span>
+                      <div class="vacancy-card__top-meta">
+                        <span class="chip">Вакансия</span>
+                        <span class="tag">Новый матч</span>
+                      </div>
+                    </div>
+
+                    <div class="vacancy-card__content">
+                      <h3>Junior Product Analyst</h3>
+                      <p class="vacancy-card__meta">ООО Компани · Гибрид</p>
+                      <p class="vacancy-card__salary">от 95 000 ₽</p>
+                    </div>
+
+                    <div class="vacancy-card__tags">
+                      <span class="tag">SQL</span>
+                      <span class="tag">BI</span>
+                      <span class="tag">Research</span>
+                    </div>
+
+                    <a class="button button-primary vacancy-card__action" href="../opportunities/opportunity-detail-card.html">Открыть</a>
+                  </article>
+                </div>
+              </section>
+
+              <div class="candidate-dashboard__grid candidate-dashboard__grid--stacked candidate-dashboard__grid--about-main">
+                <article class="card candidate-card candidate-card--contacts">
+                  <div class="candidate-card__head candidate-card__head--compact">
+                    <span class="tag">Рекомендуемые контакты</span>
+                    <a class="section-link" href="../contacts/contact-profile.html">
+                      Все рекомендации
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </div>
+
+                  <div class="candidate-contact-list candidate-contact-list--recommended">
+                    <a class="candidate-contact-card candidate-contact-card--action" href="../contacts/contact-profile.html">
+                      <span class="candidate-contact-card__avatar">МС</span>
+                      <span class="candidate-contact-card__content">
+                        <strong>Мария Соколова</strong>
+                        <span>Product researcher в EdTech, 3 общих навыка и готовность посмотреть портфолио.</span>
+                      </span>
+                      <span class="candidate-contact-card__action" aria-hidden="true">+</span>
+                    </a>
+
+                    <a class="candidate-contact-card candidate-contact-card--action" href="../contacts/contact-profile.html">
+                      <span class="candidate-contact-card__avatar">ОФ</span>
+                      <span class="candidate-contact-card__content">
+                        <strong>Ольга Федосеева</strong>
+                        <span>Менторит junior-аналитиков в финтехе и ищет людей с сильным research-бэкграундом.</span>
+                      </span>
+                      <span class="candidate-contact-card__action" aria-hidden="true">+</span>
+                    </a>
+                  </div>
+                </article>
+
+                <article class="card candidate-card candidate-card--activity">
+                  <div class="candidate-card__head candidate-card__head--stacked">
+                    <span class="tag tag-warm">Последние действия</span>
+                    <h3>Что менялось на этой неделе</h3>
+                  </div>
+
+                  <ul class="candidate-activity candidate-activity--timeline">
+                    <li>
+                      <strong>Просмотрена вакансия Junior Product Analyst</strong>
+                      <span>Вчера · сохранили в короткий список для следующего отклика.</span>
+                    </li>
+                    <li>
+                      <strong>Отклик отправлен на Летнюю школу SOC</strong>
+                      <span>2 дня назад · осталось дождаться обратной связи от организатора.</span>
+                    </li>
+                    <li>
+                      <strong>Добавлен контакт Мария Соколова</strong>
+                      <span>3 дня назад · появился новый warm intro в продуктовую аналитику.</span>
+                    </li>
+                  </ul>
+                </article>
+              </div>
+            </section>
+
+            <section class="candidate-dashboard__screen candidate-dashboard__screen--portfolio">
+              <div class="candidate-dashboard__section-head">
+                <div>
+                  <span class="tag">Портфолио</span>
+                  <h2>Портфолио и резюме</h2>
+                </div>
+
+                <div class="candidate-dashboard__tab-list" role="tablist" aria-label="Вкладки портфолио">
+                  <label class="chip candidate-dashboard__tab" for="portfolio-tab-resume">Резюме</label>
+                  <label class="chip candidate-dashboard__tab" for="portfolio-tab-projects">Проекты</label>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--resume">
+                <div class="candidate-dashboard__grid candidate-dashboard__grid--stacked">
+                  <article class="card candidate-card">
+                    <div class="candidate-card__head">
+                      <span class="tag">Резюме</span>
+                      <h3>Основные данные</h3>
+                    </div>
+
+                    <dl class="candidate-data-list">
+                      <div><dt>Личные данные</dt><dd>Анна Ковалёва, Москва, anna@email.ru</dd></div>
+                      <div><dt>Образование</dt><dd>МГТУ им. Баумана, прикладная информатика</dd></div>
+                      <div><dt>Навыки</dt><dd>SQL, Python, UX, аналитика, презентации</dd></div>
+                      <div><dt>Опыт / проекты</dt><dd>4 учебных и pet-проекта, 1 стажировка в лаборатории</dd></div>
+                      <div><dt>Ссылки</dt><dd>github.com/annak · behance.net/annak</dd></div>
+                      <div><dt>Файл</dt><dd>resume_anna_kovaleva.pdf</dd></div>
+                    </dl>
+
+                    <div class="candidate-card__actions">
+                      <button class="button button-secondary" type="button">Загрузить</button>
+                      <button class="button button-secondary" type="button">Заменить</button>
+                      <button class="button button-secondary" type="button">Скачать</button>
+                      <button class="button button-primary" type="button">Редактировать</button>
+                    </div>
+
+                    <div class="candidate-feedback candidate-feedback--success">Резюме обновлено 2 дня назад.</div>
+                  </article>
+
+                  <article class="card candidate-card candidate-card--loading">
+                    <div class="candidate-card__head">
+                      <span class="tag">Состояние</span>
+                      <h3>Загрузка данных</h3>
+                    </div>
+                    <p>Проверяем свежую версию файла и подтягиваем последние ссылки на профили.</p>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--projects">
+                <div class="candidate-dashboard__project-grid">
+                  <article class="card candidate-project-card">
+                    <a class="candidate-project-card__link" href="#" aria-label="Открыть проект Исследование onboarding-сценария"></a>
+                    <div class="candidate-project-card__head">
+                      <div>
+                        <h3>Исследование onboarding-сценария</h3>
+                        <p>Обновлено 12 марта 2026</p>
+                      </div>
+                      <span class="tag">UX Research</span>
+                    </div>
+                    <p>Провела интервью, собрала CJM и предложила улучшения onboarding-flow для учебного сервиса.</p>
+                    <div class="candidate-chip-list">
+                      <span class="chip">Research</span>
+                      <span class="chip">FigJam</span>
+                      <span class="chip">Презентация</span>
+                    </div>
+                    <p class="candidate-project-card__meta">Роль: исследователь и фасилитатор команды.</p>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="#">Подробнее</a>
+                      <button class="button button-secondary" type="button">Редактировать</button>
+                      <button class="button button-primary" type="button">Удалить</button>
+                    </div>
+                  </article>
+
+                  <article class="card candidate-project-card">
+                    <a class="candidate-project-card__link" href="#" aria-label="Открыть проект Dashboard для карьерных рекомендаций"></a>
+                    <div class="candidate-project-card__head">
+                      <div>
+                        <h3>Dashboard для карьерных рекомендаций</h3>
+                        <p>Обновлено 4 марта 2026</p>
+                      </div>
+                      <span class="tag">Analytics</span>
+                    </div>
+                    <p>Собрала макет и data-model для панели рекомендаций с метриками совпадения по навыкам.</p>
+                    <div class="candidate-chip-list">
+                      <span class="chip">SQL</span>
+                      <span class="chip">Python</span>
+                      <span class="chip">BI</span>
+                    </div>
+                    <p class="candidate-project-card__meta">Ссылки: GitHub · Figma · Demo</p>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="#">Подробнее</a>
+                      <button class="button button-secondary" type="button">Редактировать</button>
+                      <button class="button button-primary" type="button">Удалить</button>
+                    </div>
+                  </article>
+
+                  <article class="card candidate-empty-state">
+                    <span class="tag">Пустое состояние</span>
+                    <h3>Если проектов пока нет</h3>
+                    <p>Добавьте первый кейс, чтобы работодатели видели не только резюме, но и ваш способ мышления.</p>
+                    <button class="button button-primary" type="button">Добавить первый проект</button>
+                  </article>
+                </div>
+              </div>
+            </section>
+
+            <section class="candidate-dashboard__screen candidate-dashboard__screen--responses">
+              <div class="candidate-dashboard__section-head">
+                <div>
+                  <span class="tag">Отклики</span>
+                  <h2>Мои отклики</h2>
+                </div>
+
+                <div class="candidate-dashboard__tab-list" role="tablist" aria-label="Вкладки откликов">
+                  <label class="chip candidate-dashboard__tab" for="responses-tab-active">Активные</label>
+                  <label class="chip candidate-dashboard__tab" for="responses-tab-saved">Избранное</label>
+                  <label class="chip candidate-dashboard__tab" for="responses-tab-finished">Завершенные</label>
+                  <label class="chip candidate-dashboard__tab" for="responses-tab-all">Все</label>
+                </div>
+              </div>
+
+              <article class="card candidate-card candidate-card--filters">
+                <div class="candidate-card__head">
+                  <span class="tag">Фильтры</span>
+                  <h3>Быстрая фильтрация</h3>
+                </div>
+                <div class="candidate-filter-grid">
+                  <button class="chip" type="button">Статус</button>
+                  <button class="chip" type="button">Тип</button>
+                  <button class="chip" type="button">Дата</button>
+                  <button class="chip" type="button">Компания</button>
+                  <button class="chip" type="button">Теги</button>
+                </div>
+              </article>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-active">
+                <div class="candidate-response-list">
+                  <article class="card candidate-response-card">
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
+                    <div class="candidate-response-card__top">
+                      <div>
+                        <span class="chip">Вакансия</span>
+                        <h3>Junior Product Analyst</h3>
+                        <p>ООО Компани · Гибрид</p>
+                      </div>
+                      <span class="candidate-status candidate-status--sent">Отклик отправлен</span>
+                    </div>
+                    <p class="candidate-response-card__text">Совпадение по навыкам: SQL, исследование, работа с данными.</p>
+                    <div class="candidate-response-card__meta">
+                      <span>12 марта 2026</span>
+                      <span>Дедлайн 30 апреля</span>
+                    </div>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
+                      <a class="button button-secondary" href="../home/index.html#map-view">Показать на карте</a>
+                      <button class="button button-secondary" type="button">Отменить отклик</button>
+                      <button class="button button-primary" type="button">Рекомендовать контакту</button>
+                    </div>
+                  </article>
+
+                  <article class="card candidate-response-card">
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
+                    <div class="candidate-response-card__top">
+                      <div>
+                        <span class="chip">Стажировка</span>
+                        <h3>Летняя школа SOC</h3>
+                        <p>ООО Компани · Москва + онлайн</p>
+                      </div>
+                      <span class="candidate-status candidate-status--viewed">Просмотрено</span>
+                    </div>
+                    <p class="candidate-response-card__text">Статус обновился утром. Команда открыла ваш профиль и резюме.</p>
+                    <div class="candidate-response-card__meta">
+                      <span>10 марта 2026</span>
+                      <span>Старт 1 июня</span>
+                    </div>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
+                      <a class="button button-secondary" href="../home/index.html#map-view">Показать на карте</a>
+                      <button class="button button-secondary" type="button">Отменить отклик</button>
+                      <button class="button button-primary" type="button">Рекомендовать контакту</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-saved">
+                <div class="candidate-response-list">
+                  <article class="card candidate-response-card">
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
+                    <div class="candidate-response-card__top">
+                      <div>
+                        <span class="chip">Мероприятие</span>
+                        <h3>Айти Планета</h3>
+                        <p>ООО Компани · Москва</p>
+                      </div>
+                      <span class="candidate-status candidate-status--saved">Сохранено</span>
+                    </div>
+                    <p class="candidate-response-card__text">Событие в списке избранного. Можно вернуться и записаться позже.</p>
+                    <div class="candidate-response-card__meta">
+                      <span>8 марта 2026</span>
+                      <span>12 апреля 2026</span>
+                    </div>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="../opportunities/opportunity-detail-card.html">Открыть карточку</a>
+                      <button class="button button-secondary" type="button">Убрать из избранного</button>
+                      <button class="button button-primary" type="button">Рекомендовать контакту</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-finished">
+                <div class="candidate-response-list">
+                  <article class="card candidate-response-card">
+                    <a class="candidate-response-card__link" href="../opportunities/opportunity-detail-card.html"></a>
+                    <div class="candidate-response-card__top">
+                      <div>
+                        <span class="chip">Вакансия</span>
+                        <h3>Junior UX Researcher</h3>
+                        <p>ООО Компани · Удалённо</p>
+                      </div>
+                      <span class="candidate-status candidate-status--declined">Отказ</span>
+                    </div>
+                    <p class="candidate-response-card__text">Процесс завершён. Можно сравнить этот отклик с новыми рекомендациями.</p>
+                    <div class="candidate-response-card__meta">
+                      <span>2 марта 2026</span>
+                      <span>Процесс завершён</span>
+                    </div>
+                  </article>
+
+                  <article class="card candidate-empty-state">
+                    <span class="tag">Пустое состояние</span>
+                    <h3>Завершённых откликов пока немного</h3>
+                    <p>Возвращайтесь к поиску, чтобы пополнить воронку и держать несколько сценариев развития одновременно.</p>
+                    <a class="button button-primary" href="../home/index.html#map-view">Перейти к поиску</a>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--responses-all">
+                <div class="candidate-status-legend">
+                  <span class="candidate-status candidate-status--saved">Сохранено</span>
+                  <span class="candidate-status candidate-status--sent">Отклик отправлен</span>
+                  <span class="candidate-status candidate-status--viewed">Просмотрено</span>
+                  <span class="candidate-status candidate-status--reserve">В резерве</span>
+                  <span class="candidate-status candidate-status--invite">Приглашение</span>
+                  <span class="candidate-status candidate-status--declined">Отказ</span>
+                  <span class="candidate-status candidate-status--done">Завершено</span>
+                </div>
+
+                <article class="card candidate-card candidate-card--error">
+                  <div class="candidate-card__head">
+                    <span class="tag tag-warm">Состояние</span>
+                    <h3>Ошибка синхронизации</h3>
+                  </div>
+                  <p>Не удалось подтянуть часть обновлений по откликам. Последние корректные данные сохранены.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="candidate-dashboard__screen candidate-dashboard__screen--contacts">
+              <div class="candidate-dashboard__section-head">
+                <div>
+                  <span class="tag">Контакты</span>
+                  <h2>Контакты и рекомендации</h2>
+                </div>
+
+                <div class="candidate-dashboard__tab-list" role="tablist" aria-label="Вкладки контактов">
+                  <label class="chip candidate-dashboard__tab" for="contacts-tab-my">Мои контакты</label>
+                  <label class="chip candidate-dashboard__tab" for="contacts-tab-recommended">Рекомендованные</label>
+                  <label class="chip candidate-dashboard__tab" for="contacts-tab-invites">Приглашения</label>
+                </div>
+              </div>
+
+              <article class="card candidate-card">
+                <div class="candidate-card__head">
+                  <span class="tag">Связи с возможностями</span>
+                  <h3>Контекст сети</h3>
+                </div>
+                <div class="candidate-chip-list">
+                  <span class="chip">2 контакта работают в компании</span>
+                  <span class="chip">1 контакт уже откликнулся</span>
+                </div>
+              </article>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--contacts-my">
+                <div class="candidate-contact-grid">
+                  <article class="card candidate-network-card">
+                    <a class="candidate-network-card__link" href="../contacts/contact-profile.html"></a>
+                    <div class="candidate-network-card__head">
+                      <span class="candidate-network-card__avatar">МС</span>
+                      <div>
+                        <h3>Мария Соколова</h3>
+                        <p>UX Research · Product Discovery</p>
+                      </div>
+                    </div>
+                    <div class="candidate-chip-list">
+                      <span class="tag">Research</span>
+                      <span class="tag">SQL</span>
+                      <span class="tag">3 общих навыка</span>
+                    </div>
+                    <p class="candidate-network-card__text">Интересы: EdTech, аналитика продукта, сообщество.</p>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="../contacts/contact-profile.html">Открыть профиль</a>
+                      <button class="button button-secondary" type="button">Написать</button>
+                      <button class="button button-secondary" type="button">Рекомендовать возможность</button>
+                      <button class="button button-primary" type="button">Удалить</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--contacts-recommended">
+                <div class="candidate-contact-grid">
+                  <article class="card candidate-network-card">
+                    <a class="candidate-network-card__link" href="../contacts/contact-profile.html"></a>
+                    <div class="candidate-network-card__head">
+                      <span class="candidate-network-card__avatar">ИД</span>
+                      <div>
+                        <h3>Илья Демин</h3>
+                        <p>Product Analytics · Career Mapping</p>
+                      </div>
+                    </div>
+                    <p class="candidate-network-card__text">Рекомендация: 3 общих навыка и совпадение по карьерному интересу в аналитике.</p>
+                    <div class="candidate-card__actions">
+                      <a class="button button-secondary" href="../contacts/contact-profile.html">Открыть профиль</a>
+                      <button class="button button-primary" type="button">Добавить</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="candidate-dashboard__tab-panel candidate-dashboard__tab-panel--contacts-invites">
+                <div class="candidate-contact-grid">
+                  <article class="card candidate-network-card">
+                    <div class="candidate-network-card__head">
+                      <span class="candidate-network-card__avatar">ОП</span>
+                      <div>
+                        <h3>Ольга Петрова</h3>
+                        <p>HRBP · Recruiting</p>
+                      </div>
+                    </div>
+                    <p class="candidate-network-card__text">Приглашение в контакты после карьерного митапа.</p>
+                    <div class="candidate-card__actions">
+                      <button class="button button-secondary" type="button">Принять</button>
+                      <button class="button button-primary" type="button">Отклонить</button>
+                    </div>
+                  </article>
+
+                  <article class="card candidate-empty-state">
+                    <span class="tag">Пустое состояние</span>
+                    <h3>Если приглашений нет</h3>
+                    <p>После мероприятий и рекомендаций здесь будут появляться новые связи и предложения познакомиться.</p>
+                    <a class="button button-primary" href="../home/index.html#map-view">Найти возможности</a>
+                  </article>
+                </div>
+              </div>
+            </section>
+
+            <section class="candidate-dashboard__screen candidate-dashboard__screen--settings">
+              <div class="candidate-dashboard__section-head">
+                <div>
+                  <span class="tag">Настройки</span>
+                  <h2>Настройки профиля</h2>
+                </div>
+              </div>
+
+              <div class="candidate-settings-grid">
+                <article class="card candidate-settings-card">
+                  <div class="candidate-card__head">
+                    <span class="tag">Профиль</span>
+                    <h3>Личные данные</h3>
+                  </div>
+                  <ul class="candidate-settings-list">
+                    <li>Имя, фамилия, отчество, фото</li>
+                    <li>Вуз, курс, город, о себе</li>
+                    <li>Навыки и короткий профиль</li>
+                  </ul>
+                  <div class="candidate-card__actions">
+                    <button class="button button-primary" type="button">Сохранить</button>
+                  </div>
+                  <div class="candidate-feedback candidate-feedback--success">Изменения профиля сохранены.</div>
+                </article>
+
+                <article class="card candidate-settings-card">
+                  <div class="candidate-card__head">
+                    <span class="tag">Резюме и публичность</span>
+                    <h3>Видимость данных</h3>
+                  </div>
+                  <ul class="candidate-settings-list">
+                    <li>Видимость резюме: только работодатели</li>
+                    <li>Видимость проектов: все авторизованные</li>
+                    <li>Видимость навыков: открыто для рекомендаций</li>
+                  </ul>
+                  <div class="candidate-card__actions">
+                    <button class="button button-primary" type="button">Сохранить</button>
+                  </div>
+                  <div class="candidate-feedback candidate-feedback--success">Публичность обновлена.</div>
+                </article>
+
+                <article class="card candidate-settings-card">
+                  <div class="candidate-card__head">
+                    <span class="tag">Приватность</span>
+                    <h3>Кто видит профиль</h3>
+                  </div>
+                  <ul class="candidate-settings-list">
+                    <li>Пишут только работодатели и контакты</li>
+                    <li>Приглашать могут компании и контакты второго круга</li>
+                    <li>Портфолио видно авторизованным пользователям</li>
+                  </ul>
+                  <div class="candidate-card__actions">
+                    <button class="button button-primary" type="button">Сохранить</button>
+                  </div>
+                  <div class="candidate-feedback candidate-feedback--success">Приватность обновлена.</div>
+                </article>
+
+                <article class="card candidate-settings-card">
+                  <div class="candidate-card__head">
+                    <span class="tag">Безопасность</span>
+                    <h3>Почта и пароль</h3>
+                  </div>
+                  <ul class="candidate-settings-list">
+                    <li>Почта: anna@email.ru</li>
+                    <li>Телефон: +7 (999) 123-45-67</li>
+                    <li>Смена пароля и контроль входов</li>
+                  </ul>
+                  <div class="candidate-card__actions">
+                    <button class="button button-primary" type="button">Сохранить</button>
+                  </div>
+                  <div class="candidate-feedback candidate-feedback--error">Не удалось подтвердить новый номер телефона.</div>
+                </article>
+
+                <article class="card candidate-settings-card">
+                  <div class="candidate-card__head">
+                    <span class="tag">Уведомления</span>
+                    <h3>Что присылать</h3>
+                  </div>
+                  <ul class="candidate-settings-list">
+                    <li>Изменения статуса отклика</li>
+                    <li>Новые рекомендации</li>
+                    <li>Приглашения в контакты</li>
+                    <li>Новые возможности</li>
+                  </ul>
+                  <div class="candidate-card__actions">
+                    <button class="button button-primary" type="button">Сохранить</button>
+                  </div>
+                  <div class="candidate-feedback candidate-feedback--loading">Сохраняем настройки уведомлений…</div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
