@@ -419,6 +419,55 @@ function mapOpportunityToHomeCard(item, index) {
   };
 }
 
+function isVacancyOpportunity(item) {
+  return normalizeOptionValue(item?.opportunityType) === "vacancy";
+}
+
+function mapOpportunityToPopularVacancyCard(item, index) {
+  if (!item || !isVacancyOpportunity(item)) {
+    return null;
+  }
+
+  const employmentLabel = translateEmploymentType(item.employmentType);
+
+  return {
+    id: String(item.id ?? `vacancy-${index}`),
+    eyebrow: "Вакансия",
+    type: "Вакансия",
+    status: deriveStatus(item),
+    statusTone: "neutral",
+    title: item.title ?? "",
+    meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
+    accent: item.locationAddress ?? "",
+    note: shortenText(item.description),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    detailHref: buildOpportunityDetailRoute(String(item.id ?? `vacancy-${index}`)),
+  };
+}
+
+function mapOpportunityToRecommendedCard(item, index) {
+  if (!item) {
+    return null;
+  }
+
+  const typeLabel = translateOpportunityType(item.opportunityType);
+  const employmentLabel = translateEmploymentType(item.employmentType);
+
+  return {
+    id: String(item.id ?? `recommended-${index}`),
+    eyebrow: typeLabel,
+    type: typeLabel,
+    status: deriveStatus(item),
+    statusTone: normalizeOptionValue(item?.opportunityType) === "event" ? "warning" : "neutral",
+    title: item.title ?? "",
+    meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
+    accent: item.locationAddress ?? "",
+    note: shortenText(item.description),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    detailHref: buildOpportunityDetailRoute(String(item.id ?? `recommended-${index}`)),
+  };
+}
+
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -1070,6 +1119,8 @@ export function HomeApp() {
   const [nearbyItemsState, setNearbyItemsState] = useState({
     status: "loading",
     items: nearbyCardsCatalog,
+    popularVacancyItems: popularCardsWithDetails,
+    recommendedItems: recommendedCardsWithDetails,
     error: null,
   });
   const newsletterInputRef = useRef(null);
@@ -1146,10 +1197,18 @@ export function HomeApp() {
         const mappedItems = (Array.isArray(items) ? items : [])
           .map(mapOpportunityToHomeCard)
           .filter(Boolean);
+        const mappedPopularVacancyItems = (Array.isArray(items) ? items : [])
+          .map(mapOpportunityToPopularVacancyCard)
+          .filter(Boolean);
+        const mappedRecommendedItems = (Array.isArray(items) ? items : [])
+          .map(mapOpportunityToRecommendedCard)
+          .filter(Boolean);
 
         setNearbyItemsState({
           status: "ready",
           items: mappedItems,
+          popularVacancyItems: mappedPopularVacancyItems,
+          recommendedItems: mappedRecommendedItems,
           error: null,
         });
       } catch (error) {
@@ -1160,6 +1219,8 @@ export function HomeApp() {
         setNearbyItemsState({
           status: "error",
           items: nearbyCardsCatalog,
+          popularVacancyItems: popularCardsWithDetails,
+          recommendedItems: recommendedCardsWithDetails,
           error,
         });
       }
@@ -1558,7 +1619,7 @@ export function HomeApp() {
             <h2 className="ui-type-h1">Популярные вакансии</h2>
           </div>
           <div className="home-section__rail" aria-label="РџРѕРїСѓР»СЏСЂРЅС‹Рµ РІР°РєР°РЅСЃРёРё">
-            {popularCardsWithDetails.map((item, index) => (
+            {nearbyItemsState.popularVacancyItems.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${item.status}-${index}`}
                 item={item}
@@ -1576,7 +1637,7 @@ export function HomeApp() {
             <h2 className="ui-type-h1">Рекомендуемые возможности</h2>
           </div>
           <div className="home-section__rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
-            {recommendedCardsWithDetails.map((item, index) => (
+            {nearbyItemsState.recommendedItems.map((item, index) => (
               <OpportunityBlockCard
                 key={`${item.title}-${index}`}
                 item={item}

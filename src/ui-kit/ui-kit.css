@@ -725,6 +725,12 @@ body.ui-kit-react-body {
   gap: 18px;
 }
 
+.ui-kit-catalog-preview__blocks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
 .ui-kit-slider-showcase,
 .ui-kit-slider-showcase__section,
 .ui-kit-slider-showcase__copy {

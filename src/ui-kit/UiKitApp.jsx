@@ -40,7 +40,7 @@ import {
   Switch,
   Textarea,
 } from "../shared/ui";
-import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { OpportunityBlockCard, OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { formatComplaintDate, moderatorComplaintActionOptions, moderatorComplaintExamples } from "../moderator-dashboard/complaints.mock";
 import { OpportunityDetailPreview } from "../opportunity-detail-card/OpportunityDetailCardApp";
 
@@ -235,6 +235,18 @@ const opportunityShowcaseRail = [
     chips: ["Дизайн", "Оплачиваемая"],
   },
 ];
+
+const opportunityShowcaseBlock = {
+  id: "block-vacancy",
+  type: "Vacancy",
+  status: "Urgent",
+  statusTone: "warning",
+  title: "Frontend Developer (React)",
+  company: "Neon Systems · Kazan · hybrid",
+  accent: "from 140 000 ₽",
+  note: "Product team with mentorship and fast delivery cycles on real features.",
+  chips: ["React", "TypeScript", "Middle"],
+};
 
 const opportunityShowcaseSliderItems = [
   {
@@ -1239,6 +1251,15 @@ function OpportunityCatalogAssembly() {
             detailAction={{ label: "Подробнее", variant: "secondary", href: "#internship" }}
           />
         </ContentRail>
+        <div className="ui-kit-catalog-preview__blocks">
+          <OpportunityBlockCard
+            data-testid="ui-kit-opportunity-block-featured"
+            item={opportunityShowcaseBlock}
+            surface="panel"
+            size="lg"
+            detailAction={{ label: UI_KIT_DETAIL_LABEL, variant: "secondary", href: "#block-vacancy" }}
+          />
+        </div>
       </div>
     </Card>
   );
