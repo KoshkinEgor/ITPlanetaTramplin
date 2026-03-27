@@ -37,7 +37,7 @@ internal sealed class SmtpEmailSender
     {
         if (!_options.IsConfigured)
         {
-            if (_environment.IsDevelopment())
+            if (_environment.IsDevelopment() || _options.LogToConsoleWhenUnconfigured)
             {
                 _logger.LogWarning(
                     "SMTP is not configured. Email to {Email} was written to the logs instead.\nSubject: {Subject}\n{Body}",

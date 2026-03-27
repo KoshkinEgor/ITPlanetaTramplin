@@ -146,6 +146,8 @@ describe("OpportunitiesCatalogApp", () => {
 
     expect(within(slider).getByText("Junior Security Analyst")).toBeInTheDocument();
     expect(slider.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(4);
+    expect(slider.closest(".ui-kit-slider-showcase__section")).not.toBeNull();
+    expect(slider.querySelector(".ui-kit-opportunity-slider__card")).not.toBeNull();
   });
 
   it("applies real filters and keeps unsupported controls disabled", async () => {

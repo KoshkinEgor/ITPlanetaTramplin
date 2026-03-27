@@ -3,7 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AuthApp } from "./AuthApp";
 
-function renderAuth(page) {
+function renderAuth(page, pathname = "/") {
+  window.history.pushState({}, "", pathname);
+
   return render(
     <MemoryRouter>
       <AuthApp page={page} />
@@ -24,5 +26,26 @@ describe("company registration forms", () => {
 
     expect(screen.getByRole("button", { name: /проверить инн/i })).toBeInTheDocument();
     expect(container.querySelector('input[type="email"]')).toBeNull();
+  });
+
+  it("does not render a curator role option on the quick company registration screen", () => {
+    renderAuth("company-quick", "/auth/register/company");
+
+    expect(screen.queryByRole("radio", { name: /я курирую платформу/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("candidate registration roles", () => {
+  it("does not render a curator role option on the candidate registration screen", () => {
+    renderAuth("register", "/auth/register/candidate");
+
+    expect(screen.queryByRole("radio", { name: /я курирую платформу/i })).not.toBeInTheDocument();
+  });
+
+  it("falls back to the candidate role when curator is passed in the query", () => {
+    renderAuth("register", "/auth/register/candidate?role=curator");
+
+    expect(screen.getByRole("radio", { name: /я ищу работу/i })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: /я ищу сотрудников/i })).toHaveAttribute("aria-checked", "false");
   });
 });

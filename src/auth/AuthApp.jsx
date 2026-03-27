@@ -30,6 +30,7 @@ import { useBodyClass } from "../shared/lib/useBodyClass";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const innPattern = /^\d{10,12}$/;
 const quickAside = companyQuickAside;
+const registrationRoleOptions = loginRoleOptions.filter(({ value }) => value !== "curator");
 
 function validateRegistrationPassword(password) {
   if (password.length < 8) {
@@ -70,6 +71,11 @@ function getInitialRole(defaultRole = "candidate") {
   }
 
   return defaultRole;
+}
+
+function getInitialRegistrationRole(defaultRole = "candidate") {
+  const role = getInitialRole(defaultRole);
+  return role === "candidate" || role === "employer" ? role : defaultRole;
 }
 
 function buildConfirmationTarget({ role, flow, email }) {
@@ -482,7 +488,7 @@ function LoginDetailsScreen() {
 
 function RegisterScreen() {
   const navigate = useNavigate();
-  const [role, setRole] = useState(() => getInitialRole("candidate"));
+  const [role, setRole] = useState(() => getInitialRegistrationRole("candidate"));
   const [candidateForm, setCandidateForm] = useState({
     email: "",
     displayName: "",
@@ -692,7 +698,7 @@ function RegisterScreen() {
               className="auth-screen__choice-group"
               contentClassName="auth-screen__stack"
             >
-              {loginRoleOptions.map((option) => (
+              {registrationRoleOptions.map((option) => (
                 <AuthOptionCard
                   key={option.value}
                   title={option.title}
@@ -798,7 +804,7 @@ function RegisterScreen() {
 
 function RegisterScreenRefined() {
   const navigate = useNavigate();
-  const [role, setRole] = useState(() => getInitialRole("candidate"));
+  const [role, setRole] = useState(() => getInitialRegistrationRole("candidate"));
   const [candidateForm, setCandidateForm] = useState({
     email: "",
     displayName: "",
@@ -949,7 +955,7 @@ function RegisterScreenRefined() {
               className="auth-screen__choice-group auth-register-choice-group"
               contentClassName="auth-screen__stack"
             >
-              {loginRoleOptions.map((option) => (
+              {registrationRoleOptions.map((option) => (
                 <AuthOptionCard
                   key={option.value}
                   title={option.title}
@@ -2638,7 +2644,7 @@ function CompanyQuickScreenCompact() {
               className="auth-screen__choice-group auth-register-choice-group"
               contentClassName="auth-screen__stack"
             >
-              {loginRoleOptions.map((option) => (
+              {registrationRoleOptions.map((option) => (
                 <AuthOptionCard
                   key={option.value}
                   title={option.title}

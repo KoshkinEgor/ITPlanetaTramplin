@@ -99,6 +99,8 @@ var app = builder.Build();
 
 var applyMigrationsOnStartup = app.Configuration.GetValue<bool?>("Database:ApplyMigrationsOnStartup")
     ?? app.Environment.IsDevelopment();
+var seedDemoDataOnStartup = app.Configuration.GetValue<bool?>("Database:SeedDemoDataOnStartup")
+    ?? app.Environment.IsDevelopment();
 
 if (applyMigrationsOnStartup)
 {
@@ -115,7 +117,7 @@ if (applyMigrationsOnStartup)
     }
 }
 
-if (app.Environment.IsDevelopment())
+if (seedDemoDataOnStartup)
 {
     try
     {

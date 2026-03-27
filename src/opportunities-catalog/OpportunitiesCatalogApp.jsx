@@ -16,6 +16,7 @@ import {
   SectionHeader,
   Tag,
 } from "../shared/ui";
+import "../ui-kit/ui-kit.css";
 import "./opportunities-catalog.css";
 
 const BODY_CLASS = "opportunities-browser-react-body";
@@ -578,16 +579,18 @@ export function OpportunitiesCatalogApp() {
               />
 
               {recommendedItems.length ? (
-                <OpportunityBlockSlider
-                  ariaLabel="Рекомендуемые возможности"
-                  variant="leading-featured"
-                  surface="plain"
-                  itemWidth="370px"
-                  featuredWidth="440px"
-                  gap="18px"
-                  items={recommendedItems.map((entry) => createRecommendationCard(entry.item, entry))}
-                  cardPropsBuilder={createRecommendationSliderCardProps}
-                />
+                <div className="ui-kit-slider-showcase">
+                  <div className="ui-kit-slider-showcase__section">
+                    <OpportunityBlockSlider
+                      ariaLabel="Рекомендуемые возможности"
+                      variant="leading-featured"
+                      surface="plain"
+                      items={recommendedItems.map((entry) => createRecommendationCard(entry.item, entry))}
+                      cardClassName="ui-kit-opportunity-slider__card"
+                      cardPropsBuilder={createRecommendationSliderCardProps}
+                    />
+                  </div>
+                </div>
               ) : (
                 <Card>
                   <EmptyState

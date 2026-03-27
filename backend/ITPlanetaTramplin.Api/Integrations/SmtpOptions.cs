@@ -16,6 +16,8 @@ public class SmtpOptions
 
     public string? FromName { get; set; }
 
+    public bool LogToConsoleWhenUnconfigured { get; set; }
+
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(Host)
         && !string.IsNullOrWhiteSpace(FromEmail);

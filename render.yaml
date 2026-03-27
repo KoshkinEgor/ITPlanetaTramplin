@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: tramplin-preview-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: kolya/frontend-react-2026-03-25
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile.frontend
+    dockerContext: .
+    envVars:
+      - key: INTERNAL_API_HOSTPORT
+        fromService:
+          name: tramplin-preview-api
+          type: pserv
+          property: hostport
+
+  - type: pserv
+    name: tramplin-preview-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: kolya/frontend-react-2026-03-25
+    autoDeploy: true
+    dockerfilePath: ./backend/ITPlanetaTramplin.Api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tramplin-preview-db
+          property: connectionString
+      - key: Database__ApplyMigrationsOnStartup
+        value: "true"
+      - key: Database__SeedDemoDataOnStartup
+        value: "true"
+      - key: Jwt__Key
+        generateValue: true
+      - key: EmailVerification__HashKey
+        generateValue: true
+      - key: PasswordReset__HashKey
+        generateValue: true
+      - key: Smtp__LogToConsoleWhenUnconfigured
+        value: "true"
+      - key: Dadata__ApiKey
+        sync: false
+
+databases:
+  - name: tramplin-preview-db
+    databaseName: tramplin_preview
+    user: tramplin_preview_user
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []

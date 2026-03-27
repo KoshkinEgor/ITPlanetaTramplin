@@ -1,0 +1,15 @@
+.git
+.gitignore
+.codex-dotnet
+.playwright-cli
+node_modules
+dist
+output
+artifacts
+test-results
+reserve
+trash.html
+
+backend/**/bin
+backend/**/obj
+backend/**/artifacts
