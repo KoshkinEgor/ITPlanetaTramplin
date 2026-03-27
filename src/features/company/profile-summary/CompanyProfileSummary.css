@@ -90,7 +90,7 @@
 
 .company-profile-summary__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.34fr) minmax(320px, 0.74fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 28px;
   align-items: start;
 }

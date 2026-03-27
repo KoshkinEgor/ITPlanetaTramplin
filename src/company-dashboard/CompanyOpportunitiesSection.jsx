@@ -61,12 +61,12 @@ export function CompanyOpportunitiesSection() {
     event.preventDefault();
 
     if (!draft.title.trim()) {
-      setSaveState({ status: "error", error: "Укажите название возможности." });
+      setSaveState({ status: "error", error: "Укажите название публикации." });
       return;
     }
 
     if (!draft.description.trim()) {
-      setSaveState({ status: "error", error: "Добавьте описание возможности." });
+      setSaveState({ status: "error", error: "Добавьте описание публикации." });
       return;
     }
 
@@ -79,7 +79,7 @@ export function CompanyOpportunitiesSection() {
         locationCity: draft.locationCity.trim() || null,
         locationAddress: draft.locationAddress.trim() || null,
         opportunityType: draft.opportunityType,
-        tags: parseTags(draft.tags).map((name) => ({ name })),
+        tags: parseTags(draft.tags),
       };
 
       if (draft.id) {
@@ -103,6 +103,10 @@ export function CompanyOpportunitiesSection() {
 
     try {
       await deleteOpportunity(opportunityId);
+      setState((current) => ({
+        ...current,
+        opportunities: current.opportunities.filter((item) => item.id !== opportunityId),
+      }));
       if (draft.id === opportunityId) {
         resetForm();
       }
@@ -121,7 +125,11 @@ export function CompanyOpportunitiesSection() {
 
       {state.status === "unauthorized" ? (
         <CabinetContentSection eyebrow="Доступ ограничен" title="Нужно войти как компания" description="Публикации доступны только работодателю.">
-          <EmptyState title="Нет доступа к публикациям" description="После авторизации здесь появится список карточек компании." tone="warning" />
+          <EmptyState
+            title="Нет доступа к публикациям"
+            description="После авторизации здесь появится список карточек компании."
+            tone="warning"
+          />
         </CabinetContentSection>
       ) : null}
 
@@ -139,16 +147,16 @@ export function CompanyOpportunitiesSection() {
 
       {saveState.status === "success" ? (
         <Alert tone="success" title="Изменения сохранены" showIcon>
-          Публикация отправлена в backend и при необходимости уйдет в новый цикл модерации.
+          Публикация обновлена. Если потребуется, она будет повторно проверена перед показом кандидатам.
         </Alert>
       ) : null}
 
       {state.status === "ready" ? (
-        <div className="company-dashboard-layout">
+        <div className="company-dashboard-stack">
           <CabinetContentSection
             eyebrow="Публикации"
             title={draft.id ? "Редактирование публикации" : "Новая публикация"}
-            description="Форма работает через общие company/opportunity endpoints."
+            description="Заполните карточку публикации, чтобы рассказать кандидатам о вакансии, стажировке или мероприятии."
           >
             <form className="company-dashboard-stack" onSubmit={handleSubmit} noValidate>
               <FormField label="Название" required>
@@ -193,7 +201,11 @@ export function CompanyOpportunitiesSection() {
             </form>
           </CabinetContentSection>
 
-          <CabinetContentSection eyebrow="Список" title="Публикации компании" description="Список карточек, которые уже привязаны к аккаунту компании.">
+          <CabinetContentSection
+            eyebrow="Список"
+            title="Публикации компании"
+            description="Здесь отображаются все активные публикации компании. Вы можете редактировать их или удалить ненужные."
+          >
             {state.opportunities.length ? (
               <div className="company-dashboard-stack">
                 {state.opportunities.map((item) => (
@@ -210,7 +222,7 @@ export function CompanyOpportunitiesSection() {
                         {translateModerationStatus(item.moderationStatus)}
                       </Badge>
                     </div>
-                    <p className="ui-type-body">{item.description || "Описание не заполнено."}</p>
+                    <p className="ui-type-body">{item.description || "Описание пока не заполнено."}</p>
                     <p className="ui-type-caption">Откликов: {item.applicationsCount}</p>
                     <div className="company-dashboard-panel__actions">
                       <Button type="button" variant="secondary" onClick={() => startEditing(item)}>
@@ -224,7 +236,12 @@ export function CompanyOpportunitiesSection() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="Публикаций пока нет" description="Создайте первую возможность через форму слева." tone="neutral" compact />
+              <EmptyState
+                title="Публикаций пока нет"
+                description="Создайте первую публикацию через форму выше, чтобы кандидаты увидели ваши предложения."
+                tone="neutral"
+                compact
+              />
             )}
           </CabinetContentSection>
         </div>

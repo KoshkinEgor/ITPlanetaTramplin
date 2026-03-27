@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCompanyProfile, updateCompanyProfile } from "../api/company";
 import { ApiError } from "../lib/http";
-import { Alert, Button, EmptyState, FormField, Input, Loader, PlaceholderMedia, Textarea } from "../shared/ui";
+import { Alert, Button, Card, EmptyState, FormField, Input, Loader, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import "./company-dashboard.css";
 
@@ -10,14 +10,68 @@ function createProfileDraft(profile) {
     companyName: profile?.companyName ?? "",
     legalAddress: profile?.legalAddress ?? "",
     description: profile?.description ?? "",
-    socials: profile?.socials ?? "",
-    verificationData: profile?.verificationData ?? "",
   };
+}
+
+function parseSocialLinks(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  }
+
+  const rawValue = String(value).trim();
+
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+
+    if (Array.isArray(parsedValue)) {
+      return parsedValue
+        .map((item) => {
+          if (typeof item === "string") {
+            return item.trim();
+          }
+
+          if (item && typeof item === "object") {
+            return String(item.url ?? item.href ?? item.value ?? item.link ?? "").trim();
+          }
+
+          return "";
+        })
+        .filter(Boolean);
+    }
+
+    if (parsedValue && typeof parsedValue === "object") {
+      return Object.values(parsedValue).map((item) => String(item ?? "").trim()).filter(Boolean);
+    }
+  } catch {
+    return rawValue
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function stringifySocialLinks(items) {
+  const normalizedItems = items
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return JSON.stringify(normalizedItems);
 }
 
 export function CompanyProfileSection() {
   const [state, setState] = useState({ status: "loading", profile: null, error: null });
   const [draft, setDraft] = useState(createProfileDraft(null));
+  const [socialLinks, setSocialLinks] = useState([""]);
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
 
   useEffect(() => {
@@ -28,6 +82,9 @@ export function CompanyProfileSection() {
         const profile = await getCompanyProfile(controller.signal);
         setState({ status: "ready", profile, error: null });
         setDraft(createProfileDraft(profile));
+
+        const links = parseSocialLinks(profile?.socials);
+        setSocialLinks(links.length > 0 ? links : [""]);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -50,6 +107,25 @@ export function CompanyProfileSection() {
     setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
   }
 
+  function handleSocialLinkChange(index, value) {
+    setSocialLinks((current) => current.map((link, currentIndex) => (currentIndex === index ? value : link)));
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  function handleAddSocialLink() {
+    setSocialLinks((current) => [...current, ""]);
+  }
+
+  function handleRemoveSocialLink(index) {
+    setSocialLinks((current) => {
+      if (current.length <= 1) {
+        return [""];
+      }
+
+      return current.filter((_, currentIndex) => currentIndex !== index);
+    });
+  }
+
   async function handleSave(event) {
     event.preventDefault();
     setSaveState({ status: "saving", error: "" });
@@ -59,12 +135,14 @@ export function CompanyProfileSection() {
         companyName: draft.companyName.trim(),
         legalAddress: draft.legalAddress.trim() || null,
         description: draft.description.trim() || null,
-        socials: draft.socials.trim() || null,
-        verificationData: draft.verificationData.trim() || null,
+        socials: stringifySocialLinks(socialLinks) || null,
+        verificationData: null,
       });
 
       setState((current) => ({ ...current, profile }));
       setDraft(createProfileDraft(profile));
+      const links = parseSocialLinks(profile?.socials);
+      setSocialLinks(links.length > 0 ? links : [""]);
       setSaveState({ status: "success", error: "" });
     } catch (error) {
       setSaveState({
@@ -80,7 +158,11 @@ export function CompanyProfileSection() {
 
       {state.status === "unauthorized" ? (
         <CabinetContentSection eyebrow="Доступ ограничен" title="Нужно войти как компания" description="Раздел компании доступен только работодателю.">
-          <EmptyState title="Нет доступа к данным компании" description="После авторизации здесь появятся основные блоки кабинета компании." tone="warning" />
+          <EmptyState
+            title="Нет доступа к данным компании"
+            description="После авторизации здесь появятся основные блоки кабинета компании."
+            tone="warning"
+          />
         </CabinetContentSection>
       ) : null}
 
@@ -100,16 +182,23 @@ export function CompanyProfileSection() {
 
           {saveState.status === "success" ? (
             <Alert tone="success" title="Профиль компании обновлен" showIcon>
-              Основные данные отправлены в backend.
+              Основные данные компании сохранены и уже отображаются в кабинете.
             </Alert>
           ) : null}
 
           <CabinetContentSection
             eyebrow="Страница компании"
             title="Основные данные"
-            description="Блок профиля компании сохранен как отдельная cabinet section. Медиа и gallery-модули пока представлены shared placeholders."
+            description="Настройте публичный профиль компании и добавьте ссылки для кандидатов."
           >
             <form className="company-dashboard-stack" onSubmit={handleSave} noValidate>
+              <Card className="company-dashboard-profile-hero-card" tone="neutral">
+                <span className="company-dashboard-profile-hero-card__eyebrow">Публичный профиль</span>
+                <h3 className="company-dashboard-profile-hero-card__title">{draft.companyName.trim() || "Название компании"}</h3>
+                {draft.legalAddress.trim() ? <p className="company-dashboard-profile-hero-card__meta">{draft.legalAddress.trim()}</p> : null}
+                {draft.description.trim() ? <p className="company-dashboard-profile-hero-card__description">{draft.description.trim()}</p> : null}
+              </Card>
+
               <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                 <FormField label="Название компании" required>
                   <Input value={draft.companyName} onValueChange={(value) => handleDraftChange("companyName", value)} />
@@ -123,14 +212,21 @@ export function CompanyProfileSection() {
                 <Textarea value={draft.description} onValueChange={(value) => handleDraftChange("description", value)} rows={5} autoResize />
               </FormField>
 
-              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Соцсети / ссылки">
-                  <Textarea value={draft.socials} onValueChange={(value) => handleDraftChange("socials", value)} rows={4} autoResize />
-                </FormField>
-                <FormField label="Данные для верификации">
-                  <Textarea value={draft.verificationData} onValueChange={(value) => handleDraftChange("verificationData", value)} rows={4} autoResize />
-                </FormField>
-              </div>
+              <FormField label="Соцсети / ссылки">
+                <div className="company-dashboard-social-links">
+                  {socialLinks.map((link, index) => (
+                    <div className="company-dashboard-social-links__row" key={`social-link-${index}`}>
+                      <Input value={link} onValueChange={(value) => handleSocialLinkChange(index, value)} placeholder="https://" />
+                      <Button type="button" variant="ghost" onClick={() => handleRemoveSocialLink(index)}>
+                        Удалить
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="secondary" onClick={handleAddSocialLink}>
+                    Добавить
+                  </Button>
+                </div>
+              </FormField>
 
               <div className="company-dashboard-panel__actions">
                 <Button type="submit" disabled={saveState.status === "saving"}>
@@ -140,30 +236,53 @@ export function CompanyProfileSection() {
             </form>
           </CabinetContentSection>
 
-          <div className="company-dashboard-layout">
-            <PlaceholderMedia
-              eyebrow="О компании"
-              title="Видео или hero-media"
-              description="Здесь будет общий media-блок компании. Пока он зафиксирован как shared placeholder."
-              actionLabel="Placeholder: video uploader"
-              actionDescription="После реализации общий компонент заменит этот слот и в ui-kit, и в кабинете."
-            />
+          <CabinetContentSection eyebrow="Проверка" title="Верификация" description="Подтвердите данные компании, чтобы профиль выглядел надежнее для кандидатов.">
+            <div className="company-dashboard-verification-block">
+              <p className="ui-type-body">
+                Отправьте компанию на проверку, чтобы показать кандидатам подтвержденный статус и повысить доверие к странице работодателя.
+              </p>
+              <Button type="button" variant="secondary">
+                Отправить на верификацию
+              </Button>
+            </div>
+          </CabinetContentSection>
 
-            <PlaceholderMedia
-              eyebrow="Кейсы"
-              title="Портфолио компании"
-              description="Секция для кейсов и карточек проектов. Пока оставляем shared scaffold вместо page-local реализации."
-              actionLabel="Placeholder: portfolio control"
-              actionDescription="Будущий shared action для добавления кейса."
-            />
-          </div>
+          <CabinetContentSection eyebrow="Кейсы" title="Портфолио компании" description="Подборка кейсов и проектов, которые можно показать кандидатам.">
+            <Card className="company-dashboard-profile-hero-card" tone="neutral">
+              <span className="company-dashboard-profile-hero-card__eyebrow">Портфолио</span>
+              <h3 className="company-dashboard-profile-hero-card__title">Добавьте проекты и кейсы компании</h3>
+              <p className="company-dashboard-profile-hero-card__description">
+                Здесь можно собрать витрину реализованных проектов, командных достижений и заметных запусков.
+              </p>
+              <div className="company-dashboard-panel__actions">
+                <Button type="button" variant="secondary">
+                  Добавить кейс
+                </Button>
+              </div>
+            </Card>
+          </CabinetContentSection>
 
-          <CabinetContentSection eyebrow="Галерея" title="Офис и media-слоты" description="Структура раздела зафиксирована до финальных uploader-компонентов.">
-            <div className="company-dashboard-media-grid">
-              <PlaceholderMedia eyebrow="Офис" title="Рабочее место" actionLabel="Placeholder: photo slot" />
-              <PlaceholderMedia eyebrow="Офис" title="Лаунж-зона" actionLabel="Placeholder: photo slot" />
-              <PlaceholderMedia eyebrow="Офис" title="Лекторий" actionLabel="Placeholder: photo slot" />
-              <PlaceholderMedia eyebrow="Офис" title="Добавить фото" actionLabel="Placeholder: photo slot" />
+          <CabinetContentSection eyebrow="Галерея" title="Галерея компании" description="Горизонтальная лента изображений с быстрыми действиями.">
+            <div className="company-dashboard-gallery-scroll" role="list" aria-label="Галерея компании">
+              {["Офис", "Команда", "Мероприятие"].map((imageTitle) => (
+                <Card className="company-dashboard-gallery-card" key={imageTitle} role="listitem" tone="neutral">
+                  <div className="company-dashboard-gallery-card__image" aria-hidden="true" />
+                  <div className="company-dashboard-gallery-card__footer">
+                    <p className="ui-type-body">{imageTitle}</p>
+                    <Button type="button" variant="ghost">
+                      Удалить
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+
+              <Card className="company-dashboard-gallery-card company-dashboard-gallery-card--add" role="listitem" tone="neutral">
+                <div className="company-dashboard-gallery-card__add">
+                  <Button type="button" variant="secondary">
+                    Добавить
+                  </Button>
+                </div>
+              </Card>
             </div>
           </CabinetContentSection>
         </>

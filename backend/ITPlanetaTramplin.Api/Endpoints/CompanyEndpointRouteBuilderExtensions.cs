@@ -141,7 +141,8 @@ internal static class CompanyEndpointRouteBuilderExtensions
             .Include(item => item.Applications)
             .Include(item => item.Tags)
             .Where(item => item.EmployerId == employerId)
-            .Where(item => includeAllStatuses || (item.DeletedAt == null && item.ModerationStatus == OpportunityModerationStatuses.Approved))
+            .Where(item => item.DeletedAt == null)
+            .Where(item => includeAllStatuses || item.ModerationStatus == OpportunityModerationStatuses.Approved)
             .Select(item => (object)new
             {
                 item.Id,
