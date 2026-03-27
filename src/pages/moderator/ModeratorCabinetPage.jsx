@@ -3,7 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { routes } from "../../app/routes";
 import { getModerationDashboard } from "../../api/moderation";
 import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
-import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "../../moderator-dashboard/config";
+import { HEADER_NAV, SIDEBAR_ITEMS } from "../../moderator-dashboard/config";
 import { ModeratorProfileSummary } from "../../features/moderator";
 import { useBodyClass } from "../../shared/lib/useBodyClass";
 import { Card, Loader } from "../../shared/ui";
@@ -124,16 +124,7 @@ export function ModeratorCabinetPage() {
           title="Кабинет модератора"
           items={SIDEBAR_ITEMS}
           activeKey={activeKey}
-          footerSummary={(
-            <div className="cabinet-sidebar__footer-stack">
-              <div className="moderator-sidebar__summary">
-                <span className="ui-type-caption">{MODERATOR_SUMMARY.eyebrow}</span>
-                <strong>{MODERATOR_SUMMARY.count}</strong>
-                <p className="ui-type-body">{MODERATOR_SUMMARY.text}</p>
-              </div>
-              <SessionLogoutButton />
-            </div>
-          )}
+          footerSummary={<SessionLogoutButton />}
         />
       )}
       summary={summary}
@@ -143,3 +134,4 @@ export function ModeratorCabinetPage() {
     </CabinetShell>
   );
 }
+

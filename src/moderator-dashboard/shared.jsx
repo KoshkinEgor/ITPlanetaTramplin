@@ -3,7 +3,7 @@ import { useBodyClass } from "../shared/lib/useBodyClass";
 import { routes } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
-import { HEADER_NAV, MODERATOR_SUMMARY, SIDEBAR_ITEMS } from "./config";
+import { HEADER_NAV, SIDEBAR_ITEMS } from "./config";
 import "./moderator-dashboard.css";
 
 function HeartIcon() {
@@ -99,25 +99,16 @@ export function ModeratorHeader() {
 }
 
 export function ModeratorSidebar({ activeKey }) {
-  const summary = (
-    <>
-      <span className="ui-type-caption">{MODERATOR_SUMMARY.eyebrow}</span>
-      <strong>{MODERATOR_SUMMARY.count}</strong>
-      <p className="ui-type-body">{MODERATOR_SUMMARY.text}</p>
-    </>
-  );
 
   return (
     <SidebarNav
       title="Кабинет модератора"
       items={SIDEBAR_ITEMS}
       activeKey={activeKey}
-      summary={summary}
       className="moderator-sidebar moderator-fade-up moderator-fade-up--delay-1"
       headClassName="moderator-sidebar__head"
       menuClassName="moderator-sidebar__menu"
       linkClassName="moderator-sidebar__link"
-      summaryClassName="moderator-sidebar__summary"
     />
   );
 }
