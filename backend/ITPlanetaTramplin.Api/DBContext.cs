@@ -21,9 +21,13 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<CandidateProject> CandidateProjects { get; set; }
 
+    public virtual DbSet<CandidateProjectInvite> CandidateProjectInvites { get; set; }
+
     public virtual DbSet<OpportunityApplication> Applications { get; set; }
 
     public virtual DbSet<Contact> Contacts { get; set; }
+
+    public virtual DbSet<FriendRequest> FriendRequests { get; set; }
 
     public virtual DbSet<CuratorProfile> CuratorProfiles { get; set; }
 
@@ -280,6 +284,93 @@ public partial class ApplicationDBContext : DbContext
                 .HasConstraintName("contacts_user_id_fkey");
 
             entity.HasCheckConstraint("CK_Contacts_UserNotEqualContact", "user_id <> contact_id");
+        });
+
+        modelBuilder.Entity<FriendRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("friend_requests_pkey");
+
+            entity.ToTable("friend_requests");
+
+            entity.HasIndex(e => e.SenderUserId, "idx_friend_requests_sender_user_id");
+
+            entity.HasIndex(e => e.RecipientUserId, "idx_friend_requests_recipient_user_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SenderUserId).HasColumnName("sender_user_id");
+            entity.Property(e => e.RecipientUserId).HasColumnName("recipient_user_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(32)
+                .HasDefaultValue(FriendRequestStatuses.Pending)
+                .HasColumnName("status");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.RespondedAt).HasColumnName("responded_at");
+
+            entity.HasOne(d => d.SenderUser).WithMany(p => p.OutgoingFriendRequests)
+                .HasForeignKey(d => d.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("friend_requests_sender_user_id_fkey");
+
+            entity.HasOne(d => d.RecipientUser).WithMany(p => p.IncomingFriendRequests)
+                .HasForeignKey(d => d.RecipientUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("friend_requests_recipient_user_id_fkey");
+
+            entity.HasCheckConstraint("CK_FriendRequests_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
+        });
+
+        modelBuilder.Entity<CandidateProjectInvite>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("candidate_project_invites_pkey");
+
+            entity.ToTable("candidate_project_invites");
+
+            entity.HasIndex(e => e.SenderUserId, "idx_candidate_project_invites_sender_user_id");
+
+            entity.HasIndex(e => e.RecipientUserId, "idx_candidate_project_invites_recipient_user_id");
+
+            entity.HasIndex(e => e.ProjectId, "idx_candidate_project_invites_project_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SenderUserId).HasColumnName("sender_user_id");
+            entity.Property(e => e.RecipientUserId).HasColumnName("recipient_user_id");
+            entity.Property(e => e.ProjectId).HasColumnName("project_id");
+            entity.Property(e => e.Role)
+                .HasMaxLength(255)
+                .HasColumnName("role");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.Status)
+                .HasMaxLength(32)
+                .HasDefaultValue(ProjectInviteStatuses.Pending)
+                .HasColumnName("status");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.RespondedAt).HasColumnName("responded_at");
+
+            entity.HasOne(d => d.Project).WithMany(p => p.Invites)
+                .HasForeignKey(d => d.ProjectId)
+                .HasConstraintName("candidate_project_invites_project_id_fkey");
+
+            entity.HasOne(d => d.SenderUser).WithMany(p => p.OutgoingProjectInvites)
+                .HasForeignKey(d => d.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("candidate_project_invites_sender_user_id_fkey");
+
+            entity.HasOne(d => d.RecipientUser).WithMany(p => p.IncomingProjectInvites)
+                .HasForeignKey(d => d.RecipientUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("candidate_project_invites_recipient_user_id_fkey");
+
+            entity.HasCheckConstraint("CK_CandidateProjectInvites_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
         });
 
         modelBuilder.Entity<CuratorProfile>(entity =>

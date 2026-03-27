@@ -52,6 +52,7 @@ import { CompanyPortfolioCarousel } from "../company-dashboard/CompanyPortfolioC
 import { CandidateSectionHeader } from "../candidate-portal/shared";
 import { OpportunityBlockCard, OpportunityBlockRail, OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { formatComplaintDate, moderatorComplaintActionOptions, moderatorComplaintExamples } from "../moderator-dashboard/complaints.mock";
+import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
 import { OpportunityDetailPreview } from "../opportunity-detail-card/OpportunityDetailCardApp";
 
 const UI_KIT_BODY_CLASS = "ui-kit-react-body";
@@ -162,6 +163,64 @@ const mapMarkerCountOptions = [
   { value: "3", label: "3" },
   { value: "8", label: "8" },
   { value: "12", label: "12" },
+];
+
+const uiKitMapPreviewItems = [
+  {
+    id: "ui-map-1",
+    title: "Frontend Hub",
+    coordinates: [37.6174, 55.7552],
+    detailHref: "#ui-kit-map-1",
+    eyebrow: "Вакансия",
+    type: "Вакансия",
+    status: "Активно",
+    statusTone: "success",
+    meta: "Sber • Москва • гибрид",
+    accent: "Кутузовский проспект, 32",
+    chips: ["React", "TypeScript", "UI"],
+    clusterGroup: "moscow-core",
+  },
+  {
+    id: "ui-map-2",
+    title: "Design Systems Lab",
+    coordinates: [37.6181, 55.7557],
+    detailHref: "#ui-kit-map-2",
+    eyebrow: "Стажировка",
+    type: "Стажировка",
+    status: "Активно",
+    statusTone: "success",
+    meta: "Yandex • Москва • удаленно",
+    accent: "улица Льва Толстого, 16",
+    chips: ["Tokens", "React", "Docs"],
+    clusterGroup: "moscow-core",
+  },
+  {
+    id: "ui-map-3",
+    title: "QA Platform Sprint",
+    coordinates: [37.6192, 55.7561],
+    detailHref: "#ui-kit-map-3",
+    eyebrow: "Вакансия",
+    type: "Вакансия",
+    status: "Активно",
+    statusTone: "success",
+    meta: "Rostelecom • Москва • гибрид",
+    accent: "Гончарная улица, 30",
+    chips: ["QA", "B2B", "Automation"],
+    clusterGroup: "moscow-core",
+  },
+  {
+    id: "ui-map-4",
+    title: "Career Meetup Volga",
+    coordinates: [47.2519, 56.1441],
+    detailHref: "#ui-kit-map-4",
+    eyebrow: "Мероприятие",
+    type: "Мероприятие",
+    status: "Регистрация",
+    statusTone: "neutral",
+    meta: "VK • Чебоксары • офлайн",
+    accent: "проспект Максима Горького, 10",
+    chips: ["Community", "Career"],
+  },
 ];
 
 const actionSelectOptions = [
@@ -1329,6 +1388,31 @@ function MapMarkerPlayground() {
           <MapMarker tone="green" size={size} ariaLabel="Green map marker" />
           <MapMarker tone="blue" size={size} ariaLabel="Blue map marker" />
           <MapMarker variant="cluster" size={size} count={Number(clusterCount)} ariaLabel={`Cluster marker ${clusterCount}`} />
+        </div>
+      </div>
+    </UiKitDemoCard>
+  );
+}
+
+function MapInteractionPlayground() {
+  const [activeId, setActiveId] = useState(null);
+
+  return (
+    <UiKitDemoCard
+      eyebrow="Behavior"
+      title="Interactive mini-map"
+      description="A live discovery-map specimen showing cluster zoom, street-level marker focus, and the compact preview card used on the home page."
+      className="ui-kit-specimen--wide"
+      footer="Click a cluster to zoom in. Click a marker to open the compact preview and keep the map focused at street scale."
+    >
+      <div className="ui-kit-map-live-preview" data-testid="ui-kit-map-live-preview">
+        <div className="ui-kit-map-live-frame">
+          <HomeOpportunityMap
+            items={uiKitMapPreviewItems}
+            selectedCity="Москва"
+            activeId={activeId}
+            onSelectItem={setActiveId}
+          />
         </div>
       </div>
     </UiKitDemoCard>
@@ -2583,7 +2667,10 @@ export function UiKitApp() {
           title="Map"
           description="Map pins, label-ready variants, and compact cluster counters for the discovery canvas."
         >
-          <MapMarkerPlayground />
+          <div className="ui-kit-demo-grid">
+            <MapMarkerPlayground />
+            <MapInteractionPlayground />
+          </div>
         </UiKitSection>
 
         <UiKitSection

@@ -23,6 +23,7 @@ export const routes = {
   candidate: {
     career: "/career",
     root: "/candidate",
+    public: "/candidate/public",
     profile: "/candidate/profile",
     resume: "/candidate/resume",
     resumeEdit: "/candidate/resume/edit",
@@ -96,6 +97,31 @@ export function buildOpportunityDetailRoute(opportunityId = "design-ui-ux") {
 
 export function buildCandidateSettingsRoute(section) {
   return withSearch(routes.candidate.settings, { section });
+}
+
+export function buildCandidatePublicProfileRoute({ userId, name, email, skills = [] } = {}) {
+  const normalizedSkills = Array.isArray(skills)
+    ? skills.map((skill) => (typeof skill === "string" ? skill.trim() : "")).filter(Boolean)
+    : [];
+
+  return withSearch(routes.candidate.public, {
+    userId,
+    name,
+    email,
+    skills: normalizedSkills.join(","),
+  });
+}
+
+export function buildCandidateProjectEditRoute({ participantUserId, participantName, participantRole } = {}) {
+  return withSearch(routes.candidate.projectEdit, {
+    participantUserId,
+    participantName,
+    participantRole,
+  });
+}
+
+export function buildCandidateContactsRoute({ tab } = {}) {
+  return withSearch(routes.candidate.contacts, { tab });
 }
 
 export function isInternalRouteHref(href) {

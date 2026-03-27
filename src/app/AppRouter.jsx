@@ -15,6 +15,7 @@ import {
   CandidateCareerPage,
   CandidateContactsPage,
   CandidateOverviewPage,
+  CandidatePublicProfilePage,
   CandidateProjectEditPage,
   CandidateProjectsPage,
   CandidateResponsesPage,
@@ -66,6 +67,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
       <Route path={routes.favorites} element={<FavoritesPage />} />
       <Route path={routes.candidate.career} element={<CandidateCareerPage />} />
+      <Route path={routes.candidate.public} element={<CandidatePublicProfilePage />} />
 
       <Route element={<CandidateAccessGuard />}>
         <Route path={routes.candidate.resumeEdit} element={<CandidateResumeEditPage />} />

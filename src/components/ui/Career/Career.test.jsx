@@ -111,6 +111,7 @@ describe("Career UI assemblies", () => {
           name="Александра Морева"
           initials="АМ"
           sharedSkills={["Web-design", "UX", "Figma"]}
+          profileHref="#peer-profile"
           href="#peer"
         />
       </>
@@ -118,6 +119,7 @@ describe("Career UI assemblies", () => {
 
     expect(screen.getByText("МС")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Профиль" })).toHaveAttribute("href", "#mentor");
+    expect(screen.getByRole("link", { name: /Александра Морева/ })).toHaveAttribute("href", "#peer-profile");
     expect(screen.getByText("3 общих навыка: Web-design, UX, Figma")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Добавить в контакты" })).toHaveAttribute("href", "#peer");
   });

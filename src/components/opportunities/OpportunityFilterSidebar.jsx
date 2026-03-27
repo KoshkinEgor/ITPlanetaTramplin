@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card, Checkbox, FormField, Input, Select } from "../ui";
+import { Button, Card, Checkbox, CityAutocomplete, FormField, Input, Select } from "../ui";
 import { cn } from "../../lib/cn";
 import "./OpportunityFilterSidebar.css";
 
@@ -48,7 +48,6 @@ export function OpportunityFilterSidebar({
   ...props
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const cityOptions = normalizeOptions(options?.cities);
   const specializationOptions = normalizeOptions(options?.specializations);
   const employmentOptions = normalizeOptions(options?.employmentTypes);
   const unsupportedHint = "Поле появится после подключения данных из backend.";
@@ -83,11 +82,11 @@ export function OpportunityFilterSidebar({
           <div className="opportunity-filter-sidebar__section">
             <SectionHead title="Регион" onReset={() => onResetSection?.("city")} />
             <FormField label="Город">
-              <Select
+              <CityAutocomplete
                 value={values?.city ?? ""}
                 onValueChange={(nextValue) => onChange?.("city", nextValue)}
                 placeholder="Поиск региона"
-                options={cityOptions}
+                fallbackOptions={options?.cities}
               />
             </FormField>
           </div>

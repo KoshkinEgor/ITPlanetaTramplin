@@ -116,6 +116,72 @@ export function deleteCandidateContact(contactId) {
   });
 }
 
+export function getCandidateFriends(signal) {
+  return apiRequest("/candidate/me/friends", { signal });
+}
+
+export function getCandidateFriendRequests(signal) {
+  return apiRequest("/candidate/me/friends/requests", { signal });
+}
+
+export function createCandidateFriendRequest(body) {
+  return apiRequest("/candidate/me/friends/requests", {
+    method: "POST",
+    body,
+  });
+}
+
+export function acceptCandidateFriendRequest(requestId) {
+  return apiRequest(`/candidate/me/friends/requests/${requestId}/accept`, {
+    method: "POST",
+  });
+}
+
+export function declineCandidateFriendRequest(requestId) {
+  return apiRequest(`/candidate/me/friends/requests/${requestId}/decline`, {
+    method: "POST",
+  });
+}
+
+export function cancelCandidateFriendRequest(requestId) {
+  return apiRequest(`/candidate/me/friends/requests/${requestId}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function getCandidateProjectInvites(signal) {
+  return apiRequest("/candidate/me/project-invites", { signal });
+}
+
+export function createCandidateProjectInvite(body) {
+  return apiRequest("/candidate/me/project-invites", {
+    method: "POST",
+    body,
+  });
+}
+
+export function acceptCandidateProjectInvite(inviteId) {
+  return apiRequest(`/candidate/me/project-invites/${inviteId}/accept`, {
+    method: "POST",
+  });
+}
+
+export function declineCandidateProjectInvite(inviteId) {
+  return apiRequest(`/candidate/me/project-invites/${inviteId}/decline`, {
+    method: "POST",
+  });
+}
+
+export function cancelCandidateProjectInvite(inviteId) {
+  return apiRequest(`/candidate/me/project-invites/${inviteId}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function getCandidatePublicProfile(userId, signal) {
+  return apiRequest(`/candidate/public/${userId}`, { signal });
+}
+
 export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }

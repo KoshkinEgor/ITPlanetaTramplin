@@ -1,3 +1,5 @@
+import { buildSocialProfileHref } from "./social";
+
 export function getCandidateDisplayName(profile) {
   if (!profile) {
     return "Кандидат";
@@ -163,19 +165,30 @@ export function mapCandidateApplicationToCard(application) {
 export function mapContactToCard(contact) {
   const name = contact.name || contact.email || "Контакт";
   const tags = Array.isArray(contact.skills) ? contact.skills.filter(Boolean).slice(0, 4) : [];
+  const userId = contact.contactProfileId ?? contact.userId ?? contact.id ?? null;
 
   return {
-    id: contact.contactProfileId,
+    id: userId,
+    userId,
     initials: buildInitials(name),
     name,
+    email: contact.email || "",
     summary: contact.email || "Без email",
     tags: tags.length ? tags : ["Контакт"],
+    relationship: contact.relationship ?? null,
+    href: buildSocialProfileHref({
+      userId,
+      name,
+      email: contact.email || "",
+      skills: tags,
+    }),
   };
 }
 
 export function mapContactToPeerCard(contact, candidateSkills = []) {
   const name = contact?.name || contact?.email || "Контакт";
   const contactSkills = Array.isArray(contact?.skills) ? contact.skills.filter(Boolean) : [];
+  const userId = contact?.contactProfileId ?? contact?.userId ?? contact?.id ?? null;
   const candidateSkillSet = new Set(
     (Array.isArray(candidateSkills) ? candidateSkills : [])
       .map(normalizeSkillKey)
@@ -186,10 +199,19 @@ export function mapContactToPeerCard(contact, candidateSkills = []) {
     .slice(0, 3);
 
   return {
-    id: contact?.contactProfileId ?? contact?.id ?? contact?.email ?? contact?.name,
+    id: userId ?? contact?.email ?? contact?.name,
+    userId,
     initials: buildInitials(name),
     name,
     sharedSkills: sharedSkills.length ? sharedSkills : contactSkills.slice(0, 3),
+    email: contact?.email || "",
+    relationship: contact?.relationship ?? null,
+    href: buildSocialProfileHref({
+      userId,
+      name,
+      email: contact?.email || "",
+      skills: sharedSkills.length ? sharedSkills : contactSkills.slice(0, 3),
+    }),
   };
 }
 

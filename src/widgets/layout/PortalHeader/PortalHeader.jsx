@@ -1,9 +1,24 @@
-import { Button, IconButton } from "../../../shared/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  acceptCandidateFriendRequest,
+  acceptCandidateProjectInvite,
+  declineCandidateFriendRequest,
+  declineCandidateProjectInvite,
+  getCandidateFriendRequests,
+  getCandidateProjectInvites,
+} from "../../../api/candidate";
 import { AppLink } from "../../../app/AppLink";
-import { routes } from "../../../app/routes";
+import { buildCandidateContactsRoute, routes } from "../../../app/routes";
 import { useAuthSession } from "../../../auth/api";
-import { AuthAccountMenu } from "../../../auth/AuthAccountMenu";
+import {
+  buildSocialProfileHref,
+  getIncomingFriendRequests,
+  getIncomingProjectInvites,
+  getPendingNotificationCount,
+} from "../../../candidate-portal/social";
+import { Button, IconButton } from "../../../shared/ui";
 import { cn } from "../../../shared/lib/cn";
+import { AuthAccountMenu } from "../../../auth/AuthAccountMenu";
 import "./PortalHeader.css";
 
 function HeartIcon() {
@@ -49,6 +64,197 @@ const DEFAULT_ICON_BUTTONS = [
   { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
 ];
 
+function PortalHeaderNotifications({ authUser }) {
+  const panelRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [busyKey, setBusyKey] = useState("");
+  const [state, setState] = useState({
+    status: "loading",
+    friendRequests: [],
+    projectInvites: [],
+    error: null,
+  });
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [friendRequests, projectInvites] = await Promise.all([
+          getCandidateFriendRequests(),
+          getCandidateProjectInvites(),
+        ]);
+
+        setState({
+          status: "ready",
+          friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
+          projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
+          error: null,
+        });
+      } catch (error) {
+        setState({
+          status: "error",
+          friendRequests: [],
+          projectInvites: [],
+          error,
+        });
+      }
+    }
+
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    function handlePointerDown(event) {
+      if (!panelRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  async function reload() {
+    try {
+      const [friendRequests, projectInvites] = await Promise.all([
+        getCandidateFriendRequests(),
+        getCandidateProjectInvites(),
+      ]);
+
+      setState({
+        status: "ready",
+        friendRequests: Array.isArray(friendRequests) ? friendRequests : [],
+        projectInvites: Array.isArray(projectInvites) ? projectInvites : [],
+        error: null,
+      });
+    } catch (error) {
+      setState((current) => ({ ...current, status: "error", error }));
+    }
+  }
+
+  async function runNotificationAction(actionKey, callback) {
+    try {
+      setBusyKey(actionKey);
+      await callback();
+      await reload();
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  const incomingFriendRequests = useMemo(
+    () => getIncomingFriendRequests(state.friendRequests, authUser?.id),
+    [authUser?.id, state.friendRequests]
+  );
+
+  const incomingProjectInvites = useMemo(
+    () => getIncomingProjectInvites(state.projectInvites, authUser?.id),
+    [authUser?.id, state.projectInvites]
+  );
+
+  const notificationItems = useMemo(() => {
+    const friendItems = incomingFriendRequests.map((request) => ({
+      id: `friend-${request.id}`,
+      href: buildSocialProfileHref(request.counterparty),
+      title: `${request.counterparty?.name || request.counterparty?.email || "Кандидат"} отправил заявку в друзья`,
+      description: request.createdAt ? `Получена ${new Date(request.createdAt).toLocaleDateString("ru-RU")}` : "Новая заявка в друзья",
+      primaryAction: {
+        key: `accept-friend-${request.id}`,
+        label: "Принять",
+        onClick: () => runNotificationAction(`accept-friend-${request.id}`, () => acceptCandidateFriendRequest(request.id)),
+      },
+      secondaryAction: {
+        key: `decline-friend-${request.id}`,
+        label: "Отклонить",
+        onClick: () => runNotificationAction(`decline-friend-${request.id}`, () => declineCandidateFriendRequest(request.id)),
+      },
+      createdAt: request.createdAt,
+    }));
+
+    const inviteItems = incomingProjectInvites.map((invite) => ({
+      id: `invite-${invite.id}`,
+      href: buildSocialProfileHref(invite.counterparty),
+      title: `${invite.counterparty?.name || invite.counterparty?.email || "Кандидат"} пригласил вас в проект`,
+      description: invite.projectTitle ? `Проект: ${invite.projectTitle}` : "Новое приглашение в проект",
+      primaryAction: {
+        key: `accept-invite-${invite.id}`,
+        label: "Принять",
+        onClick: () => runNotificationAction(`accept-invite-${invite.id}`, () => acceptCandidateProjectInvite(invite.id)),
+      },
+      secondaryAction: {
+        key: `decline-invite-${invite.id}`,
+        label: "Отклонить",
+        onClick: () => runNotificationAction(`decline-invite-${invite.id}`, () => declineCandidateProjectInvite(invite.id)),
+      },
+      createdAt: invite.createdAt,
+    }));
+
+    return [...friendItems, ...inviteItems].sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+  }, [incomingFriendRequests, incomingProjectInvites]);
+
+  const badgeCount = getPendingNotificationCount(state.friendRequests, state.projectInvites, authUser?.id);
+  const deepLink = incomingFriendRequests.length
+    ? buildCandidateContactsRoute({ tab: "incoming" })
+    : buildCandidateContactsRoute({ tab: "project-invites" });
+
+  return (
+    <div ref={panelRef} className="portal-header__notification-shell">
+      <button
+        type="button"
+        className={cn("portal-header__notification-button", open && "is-open")}
+        aria-label="Уведомления"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <BellIcon />
+        {badgeCount ? <span className="portal-header__notification-badge">{badgeCount}</span> : null}
+      </button>
+
+      {open ? (
+        <div className="portal-header__notification-panel" role="dialog" aria-label="Уведомления">
+          <div className="portal-header__notification-head">
+            <strong>Входящие действия</strong>
+            <AppLink href={deepLink}>Посмотреть все</AppLink>
+          </div>
+
+          {state.status === "loading" ? <p className="portal-header__notification-empty">Загружаем уведомления…</p> : null}
+          {state.status === "error" ? <p className="portal-header__notification-empty">{state.error?.message ?? "Не удалось загрузить уведомления."}</p> : null}
+          {state.status === "ready" && !notificationItems.length ? <p className="portal-header__notification-empty">Новых входящих действий нет.</p> : null}
+
+          {notificationItems.map((item) => (
+            <article key={item.id} className="portal-header__notification-item">
+              <div className="portal-header__notification-copy">
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+              </div>
+              <div className="portal-header__notification-actions">
+                <Button href={item.href} variant="secondary" size="sm">Открыть профиль</Button>
+                <Button size="sm" loading={busyKey === item.primaryAction.key} onClick={item.primaryAction.onClick}>{item.primaryAction.label}</Button>
+                <Button variant="ghost" size="sm" loading={busyKey === item.secondaryAction.key} onClick={item.secondaryAction.onClick}>{item.secondaryAction.label}</Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PortalHeader({
   navItems,
   currentKey,
@@ -65,6 +271,7 @@ export function PortalHeader({
 }) {
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
+  const isCandidate = authUser?.role === "candidate";
   const showActionButton = Boolean(actionHref && actionLabel && (!authUser || actionHref !== routes.auth.login));
   const isLoginAction = actionHref === routes.auth.login;
 
@@ -90,11 +297,18 @@ export function PortalHeader({
         </nav>
 
         <div className="portal-header__actions">
-          {iconButtons.map((item) => (
-            <IconButton key={item.key ?? item.label} label={item.label} href={item.href} size="lg" className="portal-header__icon-button">
-              {item.icon}
-            </IconButton>
-          ))}
+          {iconButtons.map((item) => {
+            if (item.key === "notifications" && isCandidate) {
+              return <PortalHeaderNotifications key={item.key} authUser={authUser} />;
+            }
+
+            return (
+              <IconButton key={item.key ?? item.label} label={item.label} href={item.href} size="lg" className="portal-header__icon-button">
+                {item.icon}
+              </IconButton>
+            );
+          })}
+
           {showActionButton ? (
             isLoginAction ? (
               <AppLink href={actionHref} className="portal-header__icon-button portal-header__auth" aria-label={actionLabel}>
@@ -108,6 +322,7 @@ export function PortalHeader({
               </Button>
             )
           ) : null}
+
           {authUser ? (
             <AuthAccountMenu
               user={authUser}

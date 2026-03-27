@@ -1,6 +1,160 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+﻿import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { UiKitApp } from "./UiKitApp";
+
+function createRect(left, top, width, height) {
+  return {
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON() {
+      return this;
+    },
+  };
+}
+
+function buildBounds(location) {
+  const [longitude, latitude] = location.center;
+  const span = 24 / Math.max(location.zoom ?? 10, 1);
+
+  return [
+    [longitude - span, latitude - span],
+    [longitude + span, latitude + span],
+  ];
+}
+
+const uiKitMapUpdateCalls = [];
+
+class MockUiKitYMap {
+  constructor(container, props) {
+    this.container = container;
+    this.listener = null;
+    this.location = {
+      ...props.location,
+      bounds: buildBounds(props.location),
+    };
+  }
+
+  addChild(child) {
+    if (child.kind === "listener") {
+      this.listener = child.props.onUpdate;
+      this.emit();
+      return;
+    }
+
+    if (child.kind === "clusterer") {
+      const clusteredFeatures = new Map();
+      const clusteredIds = new Set();
+
+      child.props.features.forEach((feature) => {
+        const clusterGroup = feature.properties?.point?.clusterGroup;
+
+        if (!clusterGroup) {
+          return;
+        }
+
+        const items = clusteredFeatures.get(clusterGroup) ?? [];
+        items.push(feature);
+        clusteredFeatures.set(clusterGroup, items);
+      });
+
+      clusteredFeatures.forEach((features) => {
+        if (features.length === 1) {
+          const marker = child.props.marker(features[0]);
+          this.container.appendChild(marker.element);
+          clusteredIds.add(String(features[0].id));
+          return;
+        }
+
+        const coordinates = features.reduce(
+          (accumulator, feature) => [
+            accumulator[0] + feature.geometry.coordinates[0],
+            accumulator[1] + feature.geometry.coordinates[1],
+          ],
+          [0, 0]
+        ).map((value) => value / features.length);
+        const cluster = child.props.cluster(coordinates, features);
+        this.container.appendChild(cluster.element);
+        features.forEach((feature) => clusteredIds.add(String(feature.id)));
+      });
+
+      child.props.features.forEach((feature) => {
+        if (clusteredIds.has(String(feature.id))) {
+          return;
+        }
+
+        const marker = child.props.marker(feature);
+        this.container.appendChild(marker.element);
+      });
+
+      this.emit();
+    }
+  }
+
+  emit() {
+    this.listener?.({ location: this.location });
+  }
+
+  update(nextProps) {
+    uiKitMapUpdateCalls.push(nextProps.location);
+    this.location = {
+      ...this.location,
+      ...nextProps.location,
+      bounds: buildBounds({
+        center: nextProps.location.center ?? this.location.center,
+        zoom: nextProps.location.zoom ?? this.location.zoom,
+      }),
+    };
+    this.emit();
+  }
+
+  destroy() {
+    this.container.innerHTML = "";
+  }
+}
+
+class MockUiKitYMapListener {
+  constructor(props) {
+    this.kind = "listener";
+    this.props = props;
+  }
+}
+
+class MockUiKitYMapClusterer {
+  constructor(props) {
+    this.kind = "clusterer";
+    this.props = props;
+  }
+}
+
+class MockUiKitYMapMarker {
+  constructor(config, element) {
+    this.config = config;
+    this.element = element;
+  }
+}
+
+const uiKitYmaps3Mock = {
+  ready: Promise.resolve(),
+  import: Object.assign(
+    vi.fn(async () => ({
+      YMapClusterer: MockUiKitYMapClusterer,
+      clusterByGrid: vi.fn(() => "cluster"),
+    })),
+    { registerCdn: vi.fn() }
+  ),
+  YMap: MockUiKitYMap,
+  YMapDefaultSchemeLayer: class {},
+  YMapFeatureDataSource: class {},
+  YMapLayer: class {},
+  YMapListener: MockUiKitYMapListener,
+  YMapMarker: MockUiKitYMapMarker,
+};
 
 describe("UiKitApp", () => {
   it("renders the consolidated ui kit and cleans up the body class", () => {
@@ -44,6 +198,7 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-opportunity-slider-raised")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-recommended-opportunities-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-recommended-opportunities-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("ui-kit-map-live-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-opportunity-detail-preview")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-portfolio-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-company-portfolio-viewer-assembly")).toBeInTheDocument();
@@ -60,8 +215,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-candidate-project-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-resume-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-portfolio-assembly")).toBeInTheDocument();
-    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Резюме" })).toBeInTheDocument();
-    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Портфолио" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Р РµР·СЋРјРµ" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Career dashboard assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Resume page assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Portfolio page assembly" })).toBeInTheDocument();
@@ -69,7 +224,7 @@ describe("UiKitApp", () => {
     expect(screen.getByRole("heading", { name: "Company portfolio carousel, viewer mode" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recommended opportunities rail" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Дашборд модерации" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Р”Р°С€Р±РѕСЂРґ РјРѕРґРµСЂР°С†РёРё" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Confirm Action Select" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderation Action Dialog" })).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-moderation-action-dialogs")).toBeInTheDocument();
@@ -93,6 +248,66 @@ describe("UiKitApp", () => {
 
     expect(screen.getByTestId("ui-kit-button-preview")).toHaveClass("ui-button--danger");
     expect(screen.getByTestId("ui-kit-button-preview")).toHaveClass("is-loading");
+  });
+
+  it("shows the interactive mini-map specimen with cluster zoom and compact marker preview", async () => {
+    const originalResizeObserver = global.ResizeObserver;
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    const originalApiKey = import.meta.env.VITE_YANDEX_MAPS_API_KEY;
+
+    import.meta.env.VITE_YANDEX_MAPS_API_KEY = "test-key";
+    global.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    };
+    global.window.ymaps3 = uiKitYmaps3Mock;
+    uiKitMapUpdateCalls.length = 0;
+
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (this.classList?.contains("home-yandex-map")) {
+        return createRect(0, 0, 420, 320);
+      }
+
+      if (this.classList?.contains("home-yandex-map__preview-card")) {
+        return createRect(0, 0, 248, 116);
+      }
+
+      if (this.classList?.contains("home-yandex-map__canvas")) {
+        return createRect(0, 0, 420, 320);
+      }
+
+      if (this.dataset?.pointId === "ui-map-4") {
+        return createRect(264, 186, 24, 32);
+      }
+
+      return createRect(0, 0, 0, 0);
+    };
+
+    try {
+      render(<UiKitApp />);
+
+      const mapPreview = screen.getByTestId("ui-kit-map-live-preview");
+
+      const cluster = await within(mapPreview).findByRole("button", { name: /3/ });
+      fireEvent.click(cluster);
+
+      await waitFor(() => expect(uiKitMapUpdateCalls.length).toBeGreaterThan(0));
+      expect(uiKitMapUpdateCalls.some((location) => location.zoom === 12.2)).toBe(true);
+
+      const marker = await within(mapPreview).findByLabelText("Career Meetup Volga");
+      fireEvent.click(marker);
+
+      await waitFor(() => expect(document.querySelector(".home-yandex-map__preview-card")).not.toBeNull());
+      const previewCard = document.querySelector(".home-yandex-map__preview-card");
+      expect(previewCard).toHaveClass("ui-opportunity-mini-card--map-compact");
+      expect(within(mapPreview).getByRole("link")).toBeInTheDocument();
+      expect(uiKitMapUpdateCalls.some((location) => location.zoom >= 16.5)).toBe(true);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+      global.ResizeObserver = originalResizeObserver;
+      import.meta.env.VITE_YANDEX_MAPS_API_KEY = originalApiKey;
+      delete global.window.ymaps3;
+    }
   });
 
   it("updates the search preview appearance and size inside the ui kit", () => {
@@ -135,14 +350,14 @@ describe("UiKitApp", () => {
     const actionSelectPreview = screen.getByTestId("ui-kit-action-select-preview");
     const actionSelectScope = within(actionSelectPreview);
 
-    fireEvent.click(actionSelectScope.getByRole("button", { name: "Заблокировать" }));
+    fireEvent.click(actionSelectScope.getByRole("button", { name: "Р—Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ" }));
     const deleteOption = screen
-      .getAllByRole("option", { name: "Удалить" })
+      .getAllByRole("option", { name: "РЈРґР°Р»РёС‚СЊ" })
       .find((element) => element.tagName === "BUTTON");
     expect(deleteOption).toBeTruthy();
     fireEvent.click(deleteOption);
 
-    expect(actionSelectScope.getByRole("button", { name: "Удалить" })).toHaveClass("ui-action-select--danger");
+    expect(actionSelectScope.getByRole("button", { name: "РЈРґР°Р»РёС‚СЊ" })).toHaveClass("ui-action-select--danger");
   });
 
   it("confirms the selected action inside the ui kit preview", () => {
@@ -151,9 +366,9 @@ describe("UiKitApp", () => {
     const confirmPreview = screen.getByTestId("ui-kit-confirm-action-select-preview");
     const confirmScope = within(confirmPreview);
 
-    fireEvent.click(confirmScope.getByRole("button", { name: "Одобрить" }));
+    fireEvent.click(confirmScope.getByRole("button", { name: "РћРґРѕР±СЂРёС‚СЊ" }));
     const rejectOption = screen
-      .getAllByRole("option", { name: "Отклонить" })
+      .getAllByRole("option", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" })
       .find((element) => element.tagName === "BUTTON");
 
     expect(rejectOption).toBeTruthy();
@@ -162,11 +377,11 @@ describe("UiKitApp", () => {
     const dialog = screen.getByRole("dialog");
 
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole("heading", { name: "Подтвердить: Отклонить?" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("heading", { name: "РџРѕРґС‚РІРµСЂРґРёС‚СЊ: РћС‚РєР»РѕРЅРёС‚СЊ?" })).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Отклонить" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" }));
 
-    expect(confirmScope.getByRole("button", { name: "Отклонить" })).toHaveClass("ui-action-select--reject");
+    expect(confirmScope.getByRole("button", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" })).toHaveClass("ui-action-select--reject");
   });
 
   it("updates the segmented control preview state inside the ui kit", () => {
@@ -175,10 +390,10 @@ describe("UiKitApp", () => {
     const segmentedPreview = screen.getByTestId("ui-kit-segmented-preview");
     const segmentedScope = within(segmentedPreview);
 
-    fireEvent.click(segmentedScope.getByRole("button", { name: "Резюме" }));
+    fireEvent.click(segmentedScope.getByRole("button", { name: "Р РµР·СЋРјРµ" }));
 
-    expect(segmentedScope.getByRole("button", { name: "Резюме" })).toHaveClass("is-active");
-    expect(segmentedScope.getByRole("button", { name: "Портфолио" })).not.toHaveClass("is-active");
+    expect(segmentedScope.getByRole("button", { name: "Р РµР·СЋРјРµ" })).toHaveClass("is-active");
+    expect(segmentedScope.getByRole("button", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).not.toHaveClass("is-active");
   });
   it("shows the full typography catalog and keeps the segmented preview at md by default", () => {
     render(<UiKitApp />);
@@ -197,8 +412,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-editable-card-default")).not.toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-active")).toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-compact")).toHaveClass("is-compact");
-    expect(editableScope.getByText("О себе")).toBeInTheDocument();
-    expect(editableScope.getAllByText("ЧГУ им. И. Н. Ульянова")).toHaveLength(2);
+    expect(editableScope.getByText("Рћ СЃРµР±Рµ")).toBeInTheDocument();
+    expect(editableScope.getAllByText("Р§Р“РЈ РёРј. Р. Рќ. РЈР»СЊСЏРЅРѕРІР°")).toHaveLength(2);
   });
 
   it("shows the input variants gallery with default, left-icon, and right-icon layouts", () => {
@@ -210,8 +425,8 @@ describe("UiKitApp", () => {
     expect(variantsScope.getByText("Default")).toBeInTheDocument();
     expect(variantsScope.getByText("Icon left")).toBeInTheDocument();
     expect(variantsScope.getByText("Icon right")).toBeInTheDocument();
-    expect(variantsScope.getByDisplayValue("IT - Планета")).toBeInTheDocument();
-    expect(variantsScope.getAllByText("Сбросить")).toHaveLength(3);
+    expect(variantsScope.getByDisplayValue("IT - РџР»Р°РЅРµС‚Р°")).toBeInTheDocument();
+    expect(variantsScope.getAllByText("РЎР±СЂРѕСЃРёС‚СЊ")).toHaveLength(3);
   });
 
   it("slides the company portfolio carousel inside the ui kit", () => {
@@ -224,11 +439,11 @@ describe("UiKitApp", () => {
 
     expect(track).toHaveStyle("transform: translateX(-0%)");
 
-    fireEvent.click(sliderScope.getByRole("button", { name: "Дальше" }));
+    fireEvent.click(sliderScope.getByRole("button", { name: "Р”Р°Р»СЊС€Рµ" }));
 
     expect(track).toHaveStyle("transform: translateX(-100%)");
 
-    fireEvent.click(sliderScope.getByRole("button", { name: "Назад" }));
+    fireEvent.click(sliderScope.getByRole("button", { name: "РќР°Р·Р°Рґ" }));
 
     expect(track).toHaveStyle("transform: translateX(-0%)");
   });
@@ -251,17 +466,17 @@ describe("UiKitApp", () => {
   it("updates the moderation revision reason inside the ui kit showcase", () => {
     render(<UiKitApp />);
 
-    fireEvent.change(screen.getByLabelText("Текст причины"), { target: { value: "Нужно уточнить программу мероприятия" } });
+    fireEvent.change(screen.getByLabelText("РўРµРєСЃС‚ РїСЂРёС‡РёРЅС‹"), { target: { value: "РќСѓР¶РЅРѕ СѓС‚РѕС‡РЅРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РјРµСЂРѕРїСЂРёСЏС‚РёСЏ" } });
 
     const moderationDialogs = within(screen.getByTestId("ui-kit-moderation-action-dialogs"));
 
-    expect(moderationDialogs.getByLabelText("Причина отказа")).toHaveValue("Нужно уточнить программу мероприятия");
+    expect(moderationDialogs.getByLabelText("РџСЂРёС‡РёРЅР° РѕС‚РєР°Р·Р°")).toHaveValue("РќСѓР¶РЅРѕ СѓС‚РѕС‡РЅРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РјРµСЂРѕРїСЂРёСЏС‚РёСЏ");
   });
 
   it("switches the complaint card preview to md size", () => {
     render(<UiKitApp />);
 
-    fireEvent.change(screen.getByLabelText("Размер"), { target: { value: "md" } });
+    fireEvent.change(screen.getByLabelText("Р Р°Р·РјРµСЂ"), { target: { value: "md" } });
 
     expect(screen.getByTestId("ui-kit-complaint-card-preview")).toHaveClass("ui-complaint-card--md");
   });

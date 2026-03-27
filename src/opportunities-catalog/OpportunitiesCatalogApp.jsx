@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
+import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS } from "../api/cities";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
@@ -226,7 +227,7 @@ export function OpportunitiesCatalogApp() {
   const [filters, setFilters] = useState({
     query: "",
     activeType: "all",
-    city: "",
+    city: DEFAULT_CITY_NAME,
     specialization: "",
     employmentTypes: [],
     incomeFrom: "",
@@ -295,7 +296,7 @@ export function OpportunitiesCatalogApp() {
 
   const filterOptions = useMemo(
     () => ({
-      cities: uniqueOptions(state.items.map((item) => item.locationCity)).map((value) => ({ value, label: value })),
+      cities: FALLBACK_CITY_OPTIONS,
       specializations: uniqueOptions(state.items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
       employmentTypes: uniqueOptions(state.items.map((item) => translateEmploymentType(item.employmentType)))
         .filter(Boolean)
@@ -405,7 +406,7 @@ export function OpportunitiesCatalogApp() {
     setFilters((current) => {
       switch (section) {
         case "city":
-          return { ...current, city: "" };
+          return { ...current, city: DEFAULT_CITY_NAME };
         case "income":
           return { ...current, incomeFrom: "", payoutPeriod: "" };
         case "specialization":
@@ -424,7 +425,7 @@ export function OpportunitiesCatalogApp() {
     setFilters({
       query: "",
       activeType: "all",
-      city: "",
+      city: DEFAULT_CITY_NAME,
       specialization: "",
       employmentTypes: [],
       incomeFrom: "",

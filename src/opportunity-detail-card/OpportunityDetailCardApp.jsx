@@ -17,123 +17,10 @@ const BODY_CLASS = "opportunity-card-react-body";
 
 const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
 
-const PRESETS = {
-  design: {
-    rating: "4.2",
-    reviews: "3 отзыва",
-    kind: "IT-компания",
-    kindInitials: "IT",
-    note: "У работодателя есть аккредитация",
-    watchers: 8,
-    media: "Программа стажировки",
-    summary: "Стажировка с Figma, UI-китами, гипотезами и плотной работой с наставником.",
-    facts: ["30 000 ₽ / мес", "2 раза / мес", "Не требуется", "5/2 или гибкий старт", "8 ч", "офис, онлайн"],
-    intro: [
-      "{companyName} развивает цифровые продукты и ищет начинающего дизайнера для реальных задач, а не учебных кейсов.",
-      "Роль рассчитана на быстрый рост через ревью, компонентное мышление и работу рядом с продуктовой командой.",
-    ],
-    sections: [
-      ["Основные задачи", ["Мобильные экраны и UI-киты в Figma.", "Прототипы и пользовательские сценарии.", "Поддержка дизайн-системы и презентационных материалов."]],
-      ["Что мы ожидаем", ["Базовый опыт в Figma или Adobe XD.", "Понимание UI/UX для мобильных интерфейсов.", "Портфолио с учебными или личными кейсами."]],
-      ["Что предлагаем", ["Наставничество и регулярные разборы работ.", "Плавный вход в продуктовую команду.", "Гибкий график и понятные шаги роста."]],
-    ],
-    skills: ["Adobe Photoshop", "Веб-дизайн", "Дизайн интерфейсов", "UX", "UI", "Adobe XD", "Прототипирование", "Sketch"],
-    card: ["от", "30 000 ₽", "/ мес"],
-  },
-  frontend: {
-    rating: "4.7",
-    reviews: "12 отзывов",
-    kind: "Продуктовая команда",
-    kindInitials: "IT",
-    note: "Есть roadmap роста и mentorship-программа",
-    watchers: 11,
-    media: "Стек и onboarding",
-    summary: "Junior frontend-роль с shared-компонентами, релизами и работой рядом с дизайном.",
-    facts: ["от 90 000 ₽", "2 раза / мес", "6-12 месяцев", "5/2", "8 ч", "офис, онлайн"],
-    intro: [
-      "{companyName} усиливает frontend-команду и ищет специалиста, который хочет расти через реальные релизы и код-ревью.",
-      "Фокус роли — аккуратные компоненты, API-интеграции и консистентность интерфейса на production-экранах.",
-    ],
-    sections: [
-      ["Основные задачи", ["React-экраны и shared UI-kit.", "Фикс адаптива и сложных состояний.", "Согласование изменений с дизайном и продуктом."]],
-      ["Что мы ожидаем", ["Опыт с React и современными компонентами.", "Уверенные JavaScript, HTML и CSS.", "Готовность быстро учиться на ревью."]],
-      ["Что предлагаем", ["Понятные задачи на стартовые 90 дней.", "Работу с реальным дизайн-системным слоем.", "Рост по прозрачным критериям."]],
-    ],
-    skills: ["React", "TypeScript", "JavaScript", "CSS", "Design systems", "Git"],
-    card: ["от", "90 000 ₽", ""],
-  },
-  systems: {
-    rating: "4.9",
-    reviews: "9 отзывов",
-    kind: "Платформенная команда",
-    kindInitials: "DS",
-    note: "Команда ведет дизайн-систему и продуктовый слой одновременно",
-    watchers: 6,
-    media: "Компонентная карта",
-    summary: "Роль на стыке frontend и design systems: токены, API компонентов и документация.",
-    facts: ["от 150 000 ₽", "2 раза / мес", "2+ года", "5/2", "8 ч", "распределенная команда"],
-    intro: [
-      "{companyName} ищет инженера, который умеет выстраивать мост между дизайн-китом и production-реализацией.",
-      "Главная ценность роли — системность: токены, документация, миграции и стабильный DX для команды.",
-    ],
-    sections: [
-      ["Основные задачи", ["Token-пайплайн и библиотека компонентов.", "Выравнивание API React-компонентов с design kit.", "Accessibility и migration-планы."]],
-      ["Что мы ожидаем", ["Сильный React и TypeScript.", "Понимание design tokens и variant API.", "Умение объяснять trade-off между DX и скоростью релизов."]],
-      ["Что предлагаем", ["Высокое влияние на UI-platform слой.", "Ownership компонентной модели.", "Отдельное время на техдолг и DX."]],
-    ],
-    skills: ["Design systems", "React", "Accessibility", "Tokens", "TypeScript", "Storybook"],
-    card: ["от", "150 000 ₽", ""],
-  },
-  security: {
-    rating: "4.5",
-    reviews: "6 отзывов",
-    kind: "SOC-команда",
-    kindInitials: "SOC",
-    note: "Стартовая роль с внутренним обучением и живыми сменами",
-    watchers: 9,
-    media: "Стартовый трек",
-    summary: "Стартовая позиция: мониторинг событий, SOC/SIEM и обучение внутри команды безопасности.",
-    facts: ["от 70 000 ₽", "2 раза / мес", "Не требуется", "2/2 или 5/2", "8-12 ч", "онлайн"],
-    intro: [
-      "{companyName} открывает стартовую security-позицию для кандидатов, которым нужен структурный вход в SOC.",
-      "Роль учит дисциплине расследований, работе с очередью алертов и аккуратной эскалации инцидентов.",
-    ],
-    sections: [
-      ["Основные задачи", ["Мониторинг очереди событий.", "Работа с SOC/SIEM под руководством наставника.", "Короткие отчеты по инцидентам и эскалация сложных кейсов."]],
-      ["Что мы ожидаем", ["Интерес к безопасности и расследованиям.", "Спокойствие при большом потоке событий.", "Готовность быстро учиться у старших аналитиков."]],
-      ["Что предлагаем", ["Внутреннюю программу обучения.", "Маршрут роста из junior в analyst.", "Доступ к лабораторным стендам и тренажерам."]],
-    ],
-    skills: ["Junior", "SOC", "SIEM", "Blue Team", "Логи", "Триаж"],
-    card: ["от", "70 000 ₽", ""],
-  },
-  event: {
-    rating: "4.9",
-    reviews: "18 отзывов",
-    kind: "Карьерное мероприятие",
-    kindInitials: "IT",
-    note: "Регистрация открыта, участие бесплатное",
-    watchers: 26,
-    media: "Программа мероприятия",
-    summary: "Карьерное событие с работодателями, ревью портфолио и короткими интервью.",
-    facts: ["155 регистраций", "Апрель 2026", "Бесплатно", "Студенты и junior", "Онлайн и офлайн", "карьерный трек"],
-    intro: [
-      "{companyName} собирает работодателей, студентов и начинающих специалистов в одном карьерном сценарии.",
-      "На площадке можно получить фидбек по портфолио, познакомиться с командами и быстро понять следующий шаг.",
-    ],
-    sections: [
-      ["Что будет в программе", ["Выступления команд и hiring-менеджеров.", "Портфолио-ревью и карьерные консультации.", "Короткие интервью и нетворкинг."]],
-      ["Кому подойдет", ["Студентам, выходящим на рынок стажировок.", "Junior-специалистам, которым нужен карьерный разгон.", "Тем, кто хочет прямой фидбек от работодателей."]],
-      ["Что вы получите", ["Контакты компаний и следующий шаг.", "Рекомендации по профилю и портфолио.", "Понимание, какие роли сейчас реально активны."]],
-    ],
-    skills: ["Студенты", "Мероприятие", "Нетворкинг", "Frontend", "Портфолио"],
-    card: ["", "155", "регистраций"],
-  },
-};
-
 const DEMO_OPPORTUNITIES = {
   "design-ui-ux": { id: "design-ui-ux", title: "Дизайнер интерфейсов мобильных приложений UI/UX", companyName: "White Tiger Soft", locationCity: "Москва", locationAddress: "Йошкар-Ола", opportunityType: "internship", employmentType: "Hybrid", moderationStatus: "approved", publishAt: "2026-02-27", description: "Стажировка для студентов и junior-специалистов: работа с Figma, UI-китами, прототипами и дизайном мобильных интерфейсов.", contactsJson: "{\"email\":\"hello@whitetigersoft.ru\",\"telegram\":\"@whitetigersoft\"}", mediaContentJson: "[{\"title\":\"Программа стажировки\"}]", tags: ["Figma", "UI / UX", "Мобильные приложения"] },
   "mobile-ui-ux-designer": { id: "mobile-ui-ux-designer", title: "Дизайнер интерфейсов мобильных приложений UI/UX", companyName: "White Tiger Soft", locationCity: "Москва", locationAddress: "Йошкар-Ола", opportunityType: "internship", employmentType: "Hybrid", moderationStatus: "approved", publishAt: "2026-02-27", description: "Стажировка с упором на мобильные сценарии, дизайн-системы и пользовательские исследования.", contactsJson: "{\"email\":\"hello@whitetigersoft.ru\",\"telegram\":\"@whitetigersoft\"}", mediaContentJson: "[{\"title\":\"Программа стажировки\"}]", tags: ["Figma", "UI / UX", "Прототипирование"] },
-  "junior-security-analyst": { id: "junior-security-analyst", title: "Junior Security Analyst", companyName: "Shield Ops", locationCity: "Москва", locationAddress: "Ленинградский проспект 39", opportunityType: "vacancy", employmentType: "Remote", moderationStatus: "approved", publishAt: "2026-03-10", description: "Стартовая позиция для кандидатов без опыта: мониторинг событий, работа с SOC/SIEM и обучение внутри команды информационной безопасности.", contactsJson: "{\"email\":\"jobs@shieldops.ru\"}", mediaContentJson: "[{\"title\":\"Стартовый трек\"}]", tags: ["Junior", "SOC", "SIEM"] },
+  "junior-security-analyst": { id: "junior-security-analyst", title: "Младший аналитик информационной безопасности", companyName: "Shield Ops", locationCity: "Москва", locationAddress: "Ленинградский проспект 39", opportunityType: "vacancy", employmentType: "Remote", moderationStatus: "approved", publishAt: "2026-03-10", description: "Стартовая позиция для кандидатов без опыта: мониторинг событий, работа с SOC/SIEM и обучение внутри команды информационной безопасности.", contactsJson: "{\"email\":\"jobs@shieldops.ru\"}", mediaContentJson: "[{\"title\":\"Стартовый трек\"}]", tags: ["Junior", "SOC", "SIEM"] },
   "it-planeta-event": { id: "it-planeta-event", title: "IT-Планета", companyName: "IT-Планета", locationCity: "Москва", locationAddress: "онлайн", opportunityType: "event", employmentType: "On-site", moderationStatus: "approved", publishAt: "2026-03-15", description: "Карьерное мероприятие с регистрацией, встречами с работодателями и практическими активностями для студентов и начинающих специалистов.", contactsJson: "{\"telegram\":\"@itplaneta_event\"}", mediaContentJson: "[{\"title\":\"Программа мероприятия\"}]", tags: ["Студенты", "Мероприятие", "Нетворкинг"] },
 };
 
@@ -147,14 +34,6 @@ function MoreIcon() {
 
 function MailIcon() {
   return <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.6" /><path d="m4.5 7 5.5 4 5.5-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
-function StarIcon() {
-  return <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2.75 12.08 7l4.67.68-3.38 3.31.8 4.68L10 13.43l-4.17 2.24.8-4.68-3.38-3.31L7.92 7 10 2.75Z" /></svg>;
-}
-
-function fillTemplate(template, values) {
-  return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, value || ""), template || "");
 }
 
 function uniqueItems(items) {
@@ -289,25 +168,80 @@ function getCompanyInitials(name) {
     .toLowerCase();
 }
 
-function resolvePresetKey(item) {
-  const fingerprint = `${item?.id || ""} ${item?.title || ""} ${item?.opportunityType || ""}`.toLowerCase();
+function getMediaEntries(value) {
+  const parsed = parseJsonSafe(value, []);
 
-  if (fingerprint.includes("security")) return "security";
-  if (fingerprint.includes("design systems")) return "systems";
-  if (fingerprint.includes("design") || fingerprint.includes("ui/ux") || fingerprint.includes("ux")) return "design";
-  if (fingerprint.includes("event") || fingerprint.includes("meetup") || fingerprint.includes("планета")) return "event";
-  if (String(item?.opportunityType || "").toLowerCase() === "event") return "event";
-  if (String(item?.opportunityType || "").toLowerCase() === "internship") return "design";
-  return "frontend";
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .map((item) => {
+      if (typeof item === "string") {
+        const title = item.trim();
+        return title ? { title, url: "" } : null;
+      }
+
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const title = String(item.title ?? item.label ?? "").trim();
+      const url = String(item.url ?? item.href ?? item.value ?? "").trim();
+
+      if (!title && !url) {
+        return null;
+      }
+
+      return {
+        title: title || url,
+        url,
+      };
+    })
+    .filter(Boolean);
 }
 
-function resolveMediaLabel(mediaItems, fallback) {
-  if (!Array.isArray(mediaItems) || !mediaItems.length) return fallback;
-  const [firstItem] = mediaItems;
-  if (typeof firstItem === "string" && firstItem.trim()) return firstItem.trim();
-  if (typeof firstItem?.title === "string" && firstItem.title.trim()) return firstItem.title.trim();
-  if (typeof firstItem?.label === "string" && firstItem.label.trim()) return firstItem.label.trim();
-  return fallback;
+function parseCompanySocialLinks(value) {
+  const parsed = parseJsonSafe(value, null);
+
+  if (Array.isArray(parsed)) {
+    return parsed
+      .map((item, index) => {
+        if (typeof item === "string") {
+          const url = item.trim();
+          return url ? { id: `social-${index}`, label: url, url } : null;
+        }
+
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+
+        const url = String(item.url ?? item.href ?? item.value ?? item.link ?? "").trim();
+        const type = String(item.type ?? "").trim();
+        const label = type || url;
+
+        return url ? { id: `social-${index}`, label, url } : null;
+      })
+      .filter(Boolean);
+  }
+
+  if (parsed && typeof parsed === "object") {
+    return Object.entries(parsed)
+      .map(([key, entryValue]) => {
+        const url = String(entryValue ?? "").trim();
+        return url ? { id: key, label: key, url } : null;
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function splitDescription(value) {
+  return String(value ?? "")
+    .split(/\r?\n\r?\n|\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function getContactAction(contacts) {
@@ -331,10 +265,9 @@ function getPublishedLabel(typeLabel, publishedAt, city) {
   return `${typeLabel} опубликована ${dateLabel}${city ? ` в ${city}` : ""}`;
 }
 
-function getWatchersLabel(type, watchers) {
-  const nounByType = { vacancy: "вакансию", internship: "стажировку", event: "мероприятие" };
-  const noun = nounByType[String(type || "").toLowerCase()] || "возможность";
-  return `Сейчас эту ${noun} смотрят ${watchers} человек`;
+function getExpiresLabel(expireAt) {
+  const dateLabel = formatDate(expireAt);
+  return dateLabel ? `До ${dateLabel}` : "Срок не указан";
 }
 
 function getApplyButtonLabel(type, status) {
@@ -370,59 +303,46 @@ function buildApplySuccessCopy(type, mode = "created") {
 }
 
 function buildOpportunityViewModel(item) {
-  const preset = PRESETS[resolvePresetKey(item)];
   const contacts = getOpportunityContacts(item.contactsJson);
-  const mediaItems = parseJsonSafe(item.mediaContentJson, []);
+  const mediaItems = getMediaEntries(item.mediaContentJson);
+  const socialLinks = parseCompanySocialLinks(item.companySocials);
   const typeLabel = translateOpportunityType(item.opportunityType);
   const employmentLabel = translateEmploymentType(item.employmentType);
-  const locationLine = formatLocationLine(item);
   const metaLine = [item.companyName, item.locationCity, employmentLabel === "Не указан" ? "" : employmentLabel.toLowerCase()].filter(Boolean).join(" • ");
-  const skills = uniqueItems([...(preset.skills || []), ...(item.tags || [])]).slice(0, 12);
-  const infoFacts =
-    typeLabel === "Мероприятие"
-      ? [
-          { label: "Регистрация", value: preset.facts[0] },
-          { label: "Дата", value: preset.facts[1] },
-          { label: "Участие", value: preset.facts[2] },
-          { label: "Для кого", value: preset.facts[3] },
-          { label: "Формат", value: preset.facts[4] },
-          { label: "Трек", value: preset.facts[5] },
-        ]
-      : [
-          { label: "Зарплата", value: preset.facts[0] },
-          { label: "Выплаты", value: preset.facts[1] },
-          { label: "Опыт работы", value: preset.facts[2] },
-          { label: "График", value: preset.facts[3] },
-          { label: "Рабочие часы", value: preset.facts[4] },
-          { label: "Формат работы", value: employmentLabel === "Не указан" ? preset.facts[5] : `${employmentLabel}, ${preset.facts[5]}` },
-        ];
-  const intro = uniqueItems([
-    fillTemplate(preset.intro[0], { companyName: item.companyName || "Команда" }),
-    item.description || preset.summary,
-    fillTemplate(preset.intro[1], { companyName: item.companyName || "Команда" }),
-  ]);
+  const infoFacts = [
+    { label: "Тип", value: typeLabel },
+    { label: "Формат", value: employmentLabel },
+    { label: "Город", value: item.locationCity || "Не указан" },
+    { label: "Адрес", value: item.locationAddress || "Не указан" },
+    { label: "Опубликовано", value: formatDate(item.publishAt) || "Не указано" },
+    { label: "Срок", value: getExpiresLabel(item.expireAt) },
+  ];
+  const descriptionParagraphs = splitDescription(item.description);
+  const intro = descriptionParagraphs.length
+    ? descriptionParagraphs
+    : ["Описание возможности пока не заполнено."];
+  const primarySocialLink = socialLinks[0] ?? null;
 
   return {
     typeLabel,
     metaLine,
-    summary: item.description || preset.summary,
+    summary: item.description || "Описание возможности пока не заполнено.",
     infoFacts,
     intro,
-    sections: preset.sections,
-    skills,
+    skills: uniqueItems(item.tags).slice(0, 12),
     published: getPublishedLabel(typeLabel, item.publishAt, item.locationCity),
-    watchers: getWatchersLabel(item.opportunityType, preset.watchers),
-    media: resolveMediaLabel(mediaItems, preset.media),
+    expires: getExpiresLabel(item.expireAt),
+    locationLine: formatLocationLine(item),
+    contacts,
+    mediaItems,
+    socialLinks,
     company: {
       initials: getCompanyInitials(item.companyName),
-      rating: preset.rating,
-      reviews: preset.reviews,
-      kind: preset.kind,
-      kindInitials: preset.kindInitials,
-      note: preset.note,
+      description: String(item.companyDescription ?? "").trim(),
+      legalAddress: String(item.companyLegalAddress ?? "").trim(),
     },
-    relatedCard: { prefix: preset.card[0], value: preset.card[1], suffix: preset.card[2] },
     contactAction: getContactAction(contacts),
+    companyAction: primarySocialLink,
     complaint: typeLabel === "Мероприятие" ? "Пожаловаться на событие" : "Пожаловаться на возможность",
   };
 }
@@ -437,9 +357,8 @@ function mapRelatedOpportunity(item) {
     statusTone: isEvent ? "neutral" : "success",
     title: item.title,
     meta: [item.companyName, item.locationCity, translateEmploymentType(item.employmentType).toLowerCase()].filter(Boolean).join(" • "),
-    valuePrefix: viewModel.relatedCard.prefix,
-    accent: viewModel.relatedCard.value,
-    valueSuffix: viewModel.relatedCard.suffix,
+    accent: translateEmploymentType(item.employmentType),
+    note: item.locationAddress || "",
     chips: uniqueItems(item.tags).slice(0, 3),
   };
 }
@@ -495,7 +414,7 @@ function OpportunityDetailLayout({
           ) : null}
 
           <div className="opportunity-focus-card__footer">
-            <div className="opportunity-focus-card__watchers">{viewModel.watchers}</div>
+            <div className="opportunity-focus-card__watchers">{viewModel.expires}</div>
             <div className="opportunity-focus-card__actions">
               <Button type="button" className="opportunity-focus-card__apply" onClick={onApply} disabled={applyState.status === "saving" || applyState.status === "success"}>
                 {applyLabel}
@@ -510,13 +429,23 @@ function OpportunityDetailLayout({
         <Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
           <div className="opportunity-media-panel__header">
             <h2 className="ui-type-h4">Медиа</h2>
-            <p className="ui-type-caption">Компания может приложить программу, визуалы или onboarding-пакет к карточке.</p>
+            <p className="ui-type-caption">Материалы, которые компания приложила к карточке возможности.</p>
           </div>
-          <div className="opportunity-media-panel__preview" aria-hidden="true">
-            <span className="opportunity-media-panel__glow opportunity-media-panel__glow--lime" />
-            <span className="opportunity-media-panel__glow opportunity-media-panel__glow--blue" />
-            <Tag className="opportunity-media-panel__badge">{viewModel.media}</Tag>
-          </div>
+          {viewModel.mediaItems.length ? (
+            <div className="opportunity-story-card__intro">
+              {viewModel.mediaItems.map((entry, index) => (
+                entry.url ? (
+                  <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">
+                    {entry.title}
+                  </AppLink>
+                ) : (
+                  <p key={`${entry.title}-${index}`} className="ui-type-body">{entry.title}</p>
+                )
+              ))}
+            </div>
+          ) : (
+            <p className="ui-type-body">Компания пока не добавила медиа-материалы к этой карточке.</p>
+          )}
         </Card>
 
         <Card className={cn("opportunity-story-card", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-2")}>
@@ -524,17 +453,40 @@ function OpportunityDetailLayout({
             {viewModel.intro.map((paragraph, index) => <p key={`${paragraph}-${index}`} className="ui-type-body">{paragraph}</p>)}
           </div>
 
-          {viewModel.sections.map(([title, items]) => (
-            <section key={title} className="opportunity-story-section">
-              <div className="opportunity-story-section__header"><h2 className="ui-type-h3">{title}</h2></div>
-              <ul className="opportunity-story-list">{items.map((entry) => <li key={entry}>{entry}</li>)}</ul>
-            </section>
-          ))}
-
           <section className="opportunity-story-section">
-            <div className="opportunity-story-section__header"><h2 className="ui-type-h2">Ключевые навыки</h2></div>
-            <div className="opportunity-skill-cloud">{viewModel.skills.map((tag) => <Tag key={tag} tone="accent">{tag}</Tag>)}</div>
+            <div className="opportunity-story-section__header"><h2 className="ui-type-h3">О публикации</h2></div>
+            <ul className="opportunity-story-list">
+              <li>{viewModel.published}</li>
+              <li>{viewModel.locationLine || "Локация не указана."}</li>
+              <li>{viewModel.expires}</li>
+            </ul>
           </section>
+
+          {viewModel.contacts.length ? (
+            <section className="opportunity-story-section">
+              <div className="opportunity-story-section__header"><h2 className="ui-type-h3">Контакты</h2></div>
+              <ul className="opportunity-story-list">
+                {viewModel.contacts.map((entry) => (
+                  <li key={`${entry.type}-${entry.value}`}>
+                    {entry.type === "email" ? (
+                      <AppLink href={`mailto:${entry.value}`}>{entry.value}</AppLink>
+                    ) : entry.type === "phone" ? (
+                      <AppLink href={`tel:${entry.value.replace(/\s+/g, "")}`}>{entry.value}</AppLink>
+                    ) : (
+                      <AppLink href={entry.value}>{entry.value}</AppLink>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {viewModel.skills.length ? (
+            <section className="opportunity-story-section">
+              <div className="opportunity-story-section__header"><h2 className="ui-type-h2">Ключевые навыки</h2></div>
+              <div className="opportunity-skill-cloud">{viewModel.skills.map((tag) => <Tag key={tag} tone="accent">{tag}</Tag>)}</div>
+            </section>
+          ) : null}
 
           <p className="ui-type-caption">{viewModel.published}</p>
           <div className="opportunity-story-card__bottom-actions">
@@ -550,24 +502,32 @@ function OpportunityDetailLayout({
             <Avatar size="lg" initials={viewModel.company.initials} className="company-spotlight__avatar company-spotlight__avatar--brand" />
             <div className="company-spotlight__copy">
               <h2 className="ui-type-h4">{item.companyName}</h2>
-              <div className="company-spotlight__rating">
-                <strong>{viewModel.company.rating}</strong>
-                <span className="company-spotlight__stars" aria-label={`Рейтинг ${viewModel.company.rating} из 5`}>{Array.from({ length: 5 }).map((_, index) => <StarIcon key={index} />)}</span>
-                <span className="company-spotlight__link">{viewModel.company.reviews}</span>
-              </div>
+              <p className="ui-type-body">{viewModel.company.description || "Описание компании пока не заполнено."}</p>
             </div>
           </div>
 
-          <div className="company-spotlight__company company-spotlight__company--compact">
-            <Avatar size="lg" initials={viewModel.company.kindInitials} tone="neutral" className="company-spotlight__avatar" />
-            <div className="company-spotlight__copy">
-              <strong className="ui-type-body">{viewModel.company.kind}</strong>
-              <p className="ui-type-body">{viewModel.company.note}</p>
+          {viewModel.company.legalAddress ? <p className="ui-type-body">{viewModel.company.legalAddress}</p> : null}
+
+          {viewModel.socialLinks.length ? (
+            <div className="opportunity-story-card__intro">
+              {viewModel.socialLinks.map((entry) => (
+                <AppLink key={entry.id} href={entry.url} className="opportunity-card-page__more-link">
+                  {entry.label}
+                </AppLink>
+              ))}
             </div>
-          </div>
+          ) : null}
 
           <div className="company-spotlight__footer">
-            <Button type="button" variant="secondary" className="company-spotlight__recommend">Рекомендовать возможность</Button>
+            {viewModel.companyAction ? (
+              <Button href={viewModel.companyAction.url} variant="secondary" className="company-spotlight__recommend">
+                Открыть сайт компании
+              </Button>
+            ) : (
+              <Button type="button" variant="secondary" className="company-spotlight__recommend" disabled>
+                Ссылки компании не указаны
+              </Button>
+            )}
             <IconButton href={viewModel.contactAction.href} label={viewModel.contactAction.label} variant="outline" size="xl" className="company-spotlight__message"><MailIcon /></IconButton>
           </div>
         </Card>

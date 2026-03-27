@@ -69,6 +69,28 @@ const opportunities = [
     employmentType: "office",
     moderationStatus: "approved",
   },
+  {
+    id: 6,
+    title: "Junior Security Analyst",
+    companyName: "Shield Ops",
+    locationCity: "Чебоксары",
+    description: "SOC monitoring and SIEM triage for junior analysts in the local team.",
+    tags: ["Security", "Junior", "SOC"],
+    opportunityType: "vacancy",
+    employmentType: "remote",
+    moderationStatus: "approved",
+  },
+  {
+    id: 7,
+    title: "Product Designer",
+    companyName: "Case Systems",
+    locationCity: "Чебоксары",
+    description: "Design systems and product discovery for regional B2B tools.",
+    tags: ["Design", "Product"],
+    opportunityType: "internship",
+    employmentType: "hybrid",
+    moderationStatus: "approved",
+  },
 ];
 
 function renderApp() {
@@ -115,7 +137,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     expect(await screen.findByRole("heading", { name: "Каталог возможностей для старта карьеры" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Мы проанализировали ваши навыки/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/В каталоге сейчас/)).toBeInTheDocument();
+    expect(screen.getByText(/В каталоге сейчас/i)).toBeInTheDocument();
   });
 
   it("shows the personalized hero when candidate skills are available", async () => {
@@ -180,30 +202,28 @@ describe("OpportunitiesCatalogApp", () => {
     const results = container.querySelector(".opportunities-browser__results");
 
     expect(results).not.toBeNull();
-    expect(within(results).getByText("Mobile UI/UX")).toBeInTheDocument();
-    expect(within(results).queryByText("Frontend Intern")).not.toBeInTheDocument();
+    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
+    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+    expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(within(results).queryByText("Product Designer")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Больше возможностей" }));
 
-    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
-    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+    expect(within(results).getByText("Product Designer")).toBeInTheDocument();
   });
 
-  it("aggregates companies by city and lets the user switch the city in the section", async () => {
+  it("aggregates companies for the default city section", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
     renderApp();
 
-    const companiesHeading = await screen.findByRole("heading", { name: "Вакансии в Москва" });
-    const companiesCard = companiesHeading.closest(".ui-card");
+    const caseSystems = await screen.findByText("Case Systems");
+    const companiesCard = caseSystems.closest(".ui-card");
 
     expect(companiesCard).not.toBeNull();
-    expect(within(companiesCard).getByText("IT-Планета")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Чебоксары" }));
-
     expect(screen.getByRole("heading", { name: "Вакансии в Чебоксары" })).toBeInTheDocument();
     expect(within(companiesCard).getByText("Case Systems")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
   });
 });

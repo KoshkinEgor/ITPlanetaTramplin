@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { getFallbackCityOption } from "../api/cities";
 import { buildOpportunityDetailRoute } from "../app/routes";
 import { OpportunityMiniCard } from "../shared/ui";
+import "./HomeOpportunityMap.css";
 
-const apiKey = import.meta.env.VITE_YANDEX_MAPS_API_KEY;
 const scriptId = "yandex-maps-js-api-v3";
 const clustererPackageName = "@yandex/ymaps3-clusterer";
 const clustererPackageVersion = "@yandex/ymaps3-clusterer@0.0";
@@ -13,6 +14,14 @@ const markerClusterMaxZoom = 13;
 const markerLabelZoomThreshold = 13.2;
 const markerLabelMaxLength = 16;
 const markerLabelMaxWords = 2;
+const markerFocusZoom = 16.5;
+const clusterZoomStep = 2;
+const clusterFocusMaxZoom = 17;
+const mapAnimationDuration = 280;
+const previewGap = 14;
+const previewSafePadding = 16;
+const previewShiftTolerance = 3;
+const maxPreviewShiftAttempts = 4;
 const defaultCenter = [37.617635, 55.755814];
 const cityCenters = {
   Москва: [37.617635, 55.755814],
@@ -27,7 +36,37 @@ const cityCenters = {
 let yandexMapsPromise;
 let yandexPackagesRegistered = false;
 
-function getFallbackCenter(selectedCity) {
+function getApiKey() {
+  return import.meta.env.VITE_YANDEX_MAPS_API_KEY;
+}
+
+function clamp(value, min, max) {
+  if (max < min) {
+    return min;
+  }
+
+  return Math.min(Math.max(value, min), max);
+}
+
+function roundToTwo(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function getFallbackCenter(selectedCity, selectedCityCoordinates) {
+  if (
+    Array.isArray(selectedCityCoordinates)
+    && selectedCityCoordinates.length === 2
+    && selectedCityCoordinates.every((coordinate) => Number.isFinite(Number(coordinate)))
+  ) {
+    return [Number(selectedCityCoordinates[0]), Number(selectedCityCoordinates[1])];
+  }
+
+  const fallbackCity = getFallbackCityOption(selectedCity);
+
+  if (fallbackCity?.longitude != null && fallbackCity?.latitude != null) {
+    return [fallbackCity.longitude, fallbackCity.latitude];
+  }
+
   return cityCenters[selectedCity] ?? defaultCenter;
 }
 
@@ -70,6 +109,8 @@ function registerYandexPackages(ymaps3) {
 }
 
 function loadYandexMaps() {
+  const apiKey = getApiKey();
+
   if (!apiKey) {
     return Promise.reject(new Error("missing-api-key"));
   }
@@ -180,6 +221,157 @@ function buildPointFeature(point) {
   };
 }
 
+function sortPointsForMap(points) {
+  return [...points].sort((left, right) => String(left.id).localeCompare(String(right.id)));
+}
+
+export function buildPointCollectionSignature(points) {
+  return sortPointsForMap(points)
+    .map((point) => {
+      const [longitude, latitude] = point.coordinates;
+      return [
+        String(point.id),
+        roundToTwo(Number(longitude)),
+        roundToTwo(Number(latitude)),
+        point.markerTone ?? "",
+        point.markerLabel ?? "",
+        point.title ?? "",
+      ].join(":");
+    })
+    .join("|");
+}
+
+function toLocalBox(rect, rootRect) {
+  return {
+    left: rect.left - rootRect.left,
+    top: rect.top - rootRect.top,
+    width: rect.width,
+    height: rect.height,
+    right: rect.right - rootRect.left,
+    bottom: rect.bottom - rootRect.top,
+  };
+}
+
+function getPreviewMaxWidth(mapWidth, safePadding) {
+  return Math.max(0, mapWidth - safePadding * 2);
+}
+
+export function computeAnchoredPreviewLayout({
+  mapSize,
+  markerBox,
+  previewSize,
+  safePadding = previewSafePadding,
+  gap = previewGap,
+}) {
+  const maxWidth = getPreviewMaxWidth(mapSize.width, safePadding);
+  const width = Math.min(previewSize.width, maxWidth);
+  const height = previewSize.height;
+  const markerCenterX = markerBox.left + markerBox.width / 2;
+  const preferredLeft = markerCenterX - width / 2;
+  const left = clamp(preferredLeft, safePadding, mapSize.width - safePadding - width);
+  const topPlacementTop = markerBox.top - gap - height;
+  const bottomPlacementTop = markerBox.bottom + gap;
+  const fitsTop = topPlacementTop >= safePadding;
+  const fitsBottom = bottomPlacementTop + height <= mapSize.height - safePadding;
+
+  let placement = "top";
+
+  if (!fitsTop && fitsBottom) {
+    placement = "bottom";
+  } else if (!fitsTop && !fitsBottom) {
+    const availableTop = markerBox.top - safePadding - gap;
+    const availableBottom = mapSize.height - markerBox.bottom - safePadding - gap;
+    placement = availableTop >= availableBottom ? "top" : "bottom";
+  }
+
+  const preferredTop = placement === "top" ? topPlacementTop : bottomPlacementTop;
+  const top = clamp(preferredTop, safePadding, mapSize.height - safePadding - height);
+  const anchorLeft = clamp(markerCenterX - left, 24, Math.max(24, width - 24));
+
+  return {
+    placement,
+    left,
+    top,
+    width,
+    height,
+    maxWidth,
+    anchorLeft,
+  };
+}
+
+export function computeViewportShift({
+  mapSize,
+  markerBox,
+  previewSize,
+  placement,
+  safePadding = previewSafePadding,
+  gap = previewGap,
+}) {
+  if (placement === "top") {
+    const desiredMarkerTop = safePadding + previewSize.height + gap;
+    return {
+      x: 0,
+      y: markerBox.top < desiredMarkerTop ? desiredMarkerTop - markerBox.top : 0,
+    };
+  }
+
+  const desiredMarkerBottom = mapSize.height - safePadding - previewSize.height - gap;
+
+  return {
+    x: 0,
+    y: markerBox.bottom > desiredMarkerBottom ? desiredMarkerBottom - markerBox.bottom : 0,
+  };
+}
+
+export function shiftLocationByPixels(location, shift, mapSize) {
+  if (!location?.bounds || !Array.isArray(location.center) || mapSize.width <= 0 || mapSize.height <= 0) {
+    return null;
+  }
+
+  const [firstBound, secondBound] = location.bounds;
+
+  if (!Array.isArray(firstBound) || !Array.isArray(secondBound)) {
+    return null;
+  }
+
+  const west = Math.min(firstBound[0], secondBound[0]);
+  const east = Math.max(firstBound[0], secondBound[0]);
+  const south = Math.min(firstBound[1], secondBound[1]);
+  const north = Math.max(firstBound[1], secondBound[1]);
+  const longitudePerPixel = (east - west) / mapSize.width;
+  const latitudePerPixel = (north - south) / mapSize.height;
+
+  if (!Number.isFinite(longitudePerPixel) || !Number.isFinite(latitudePerPixel)) {
+    return null;
+  }
+
+  return {
+    center: [
+      location.center[0] - shift.x * longitudePerPixel,
+      location.center[1] + shift.y * latitudePerPixel,
+    ],
+    zoom: location.zoom,
+  };
+}
+
+function isSameLayout(left, right) {
+  if (left === right) {
+    return true;
+  }
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.placement === right.placement
+    && Math.abs(left.left - right.left) < 0.5
+    && Math.abs(left.top - right.top) < 0.5
+    && Math.abs(left.maxWidth - right.maxWidth) < 0.5
+    && Math.abs(left.anchorLeft - right.anchorLeft) < 0.5
+  );
+}
+
 function createMarkerElement(point, isActive, onSelectPoint) {
   const marker = document.createElement("button");
   marker.type = "button";
@@ -208,10 +400,16 @@ function createMarkerElement(point, isActive, onSelectPoint) {
   return marker;
 }
 
-function createClusterElement(count) {
-  const cluster = document.createElement("div");
+function createClusterElement(count, onSelectCluster) {
+  const cluster = document.createElement("button");
+  cluster.type = "button";
   cluster.className = "ui-map-marker ui-map-marker--cluster ui-map-marker--md home-yandex-map__marker home-yandex-map__cluster";
   cluster.setAttribute("aria-label", `Группа из ${count} точек`);
+
+  cluster.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onSelectCluster?.();
+  });
 
   const clusterCount = document.createElement("span");
   clusterCount.className = "ui-map-marker__cluster-count";
@@ -222,15 +420,41 @@ function createClusterElement(count) {
   return cluster;
 }
 
-export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSelectItem }) {
+function updateMapLocation(mapInstance, location) {
+  if (!mapInstance) {
+    return;
+  }
+
+  if (typeof mapInstance.update === "function") {
+    mapInstance.update({ location });
+    return;
+  }
+
+  if (typeof mapInstance.setLocation === "function") {
+    mapInstance.setLocation(location);
+  }
+}
+
+export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinates = null, activeId = null, onSelectItem }) {
   const rootRef = useRef(null);
   const containerRef = useRef(null);
+  const previewRef = useRef(null);
   const onSelectItemRef = useRef(onSelectItem);
   const activeIdRef = useRef(activeId);
   const markerElementsRef = useRef(new Map());
-  const [status, setStatus] = useState(apiKey ? "loading" : "missing-key");
+  const mapInstanceRef = useRef(null);
+  const mapViewportRef = useRef(null);
+  const focusStateRef = useRef({ id: null, zoomApplied: false, shiftAttempts: 0 });
+  const [status, setStatus] = useState(getApiKey() ? "loading" : "missing-key");
   const [errorMessage, setErrorMessage] = useState("");
-  const fallbackCenter = useMemo(() => getFallbackCenter(selectedCity), [selectedCity]);
+  const [previewLayout, setPreviewLayout] = useState(null);
+  const [viewportState, setViewportState] = useState({ zoom: 10.4, revision: 0 });
+  const [measureRevision, setMeasureRevision] = useState(0);
+
+  const fallbackCenter = useMemo(
+    () => getFallbackCenter(selectedCity, selectedCityCoordinates),
+    [selectedCity, selectedCityCoordinates]
+  );
 
   const points = useMemo(
     () =>
@@ -242,25 +466,64 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
     [items]
   );
 
-  const mapLocation = useMemo(() => buildLocation(points, fallbackCenter), [fallbackCenter, points]);
-  const pointFeatures = useMemo(() => points.map(buildPointFeature), [points]);
+  const mapPoints = useMemo(() => sortPointsForMap(points), [points]);
+  const mapLocation = useMemo(() => buildLocation(mapPoints, fallbackCenter), [fallbackCenter, mapPoints]);
+  const pointFeatures = useMemo(() => mapPoints.map(buildPointFeature), [mapPoints]);
+  const mapDataSignature = useMemo(() => buildPointCollectionSignature(mapPoints), [mapPoints]);
   const activeItem = useMemo(
     () => points.find((point) => point.id === activeId) ?? null,
     [activeId, points]
   );
-  const [currentZoom, setCurrentZoom] = useState(mapLocation.zoom);
+  const currentZoom = viewportState.zoom;
 
   useEffect(() => {
     onSelectItemRef.current = onSelectItem;
   }, [onSelectItem]);
+
+  function handleClusterSelect(coordinates) {
+    const currentLocation = mapViewportRef.current ?? mapLocation;
+    const currentZoom = Number.isFinite(currentLocation?.zoom) ? currentLocation.zoom : mapLocation.zoom;
+    const nextZoom = Math.min(clusterFocusMaxZoom, currentZoom + clusterZoomStep);
+
+    focusStateRef.current = { id: null, zoomApplied: false, shiftAttempts: 0 };
+    setPreviewLayout(null);
+    onSelectItemRef.current?.(null);
+    updateMapLocation(mapInstanceRef.current, {
+      center: coordinates,
+      zoom: nextZoom,
+      duration: mapAnimationDuration,
+    });
+  }
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
 
   useEffect(() => {
-    setCurrentZoom(mapLocation.zoom);
-  }, [mapLocation.zoom]);
+    mapViewportRef.current = {
+      ...(mapViewportRef.current ?? {}),
+      center: mapLocation.center,
+      zoom: mapLocation.zoom,
+    };
+
+    setViewportState((previousState) => ({
+      zoom: mapLocation.zoom,
+      revision: previousState.revision + 1,
+    }));
+  }, [mapLocation.center[0], mapLocation.center[1], mapLocation.zoom]);
+
+  useEffect(() => {
+    if (!activeId) {
+      focusStateRef.current = { id: null, zoomApplied: false, shiftAttempts: 0 };
+      setPreviewLayout(null);
+      return;
+    }
+
+    if (focusStateRef.current.id !== activeId) {
+      focusStateRef.current = { id: activeId, zoomApplied: false, shiftAttempts: 0 };
+      setPreviewLayout(null);
+    }
+  }, [activeId]);
 
   useEffect(() => {
     const rootElement = rootRef.current;
@@ -298,7 +561,48 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
     markerElementsRef.current.forEach((markerElement, pointId) => {
       markerElement.setAttribute("aria-pressed", pointId === activeId ? "true" : "false");
     });
-  }, [activeId, points]);
+  }, [activeId, mapDataSignature]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setMeasureRevision((currentRevision) => currentRevision + 1);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const rootElement = rootRef.current;
+    const previewElement = previewRef.current;
+
+    if (!rootElement && !previewElement) {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      setMeasureRevision((currentRevision) => currentRevision + 1);
+    });
+
+    if (rootElement) {
+      observer.observe(rootElement);
+    }
+
+    if (previewElement) {
+      observer.observe(previewElement);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeItem, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,7 +613,7 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
         return;
       }
 
-      if (!apiKey) {
+      if (!getApiKey()) {
         setStatus("missing-key");
         return;
       }
@@ -340,6 +644,8 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
           location: mapLocation,
           mode: "vector",
         });
+        mapInstanceRef.current = mapInstance;
+        mapViewportRef.current = { ...mapLocation };
 
         mapInstance.addChild(new YMapDefaultSchemeLayer());
         mapInstance.addChild(new YMapFeatureDataSource({ id: markerSourceId }));
@@ -352,9 +658,11 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
                 return;
               }
 
-              setCurrentZoom((previousZoom) =>
-                Math.abs(previousZoom - location.zoom) < 0.01 ? previousZoom : location.zoom
-              );
+              mapViewportRef.current = location;
+              setViewportState((previousState) => ({
+                zoom: Number.isFinite(location?.zoom) ? location.zoom : previousState.zoom,
+                revision: previousState.revision + 1,
+              }));
             },
           })
         );
@@ -387,7 +695,7 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
                   coordinates,
                   source: markerSourceId,
                 },
-                createClusterElement(features.length)
+                createClusterElement(features.length, () => handleClusterSelect(coordinates))
               ),
           })
         );
@@ -418,13 +726,96 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
         mapInstance.destroy?.();
       }
 
+      if (mapInstanceRef.current === mapInstance) {
+        mapInstanceRef.current = null;
+      }
+
       markerElementsRef.current = new Map();
 
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
     };
-  }, [mapLocation, pointFeatures]);
+  }, [mapDataSignature, mapLocation.center[0], mapLocation.center[1], mapLocation.zoom]);
+
+  useLayoutEffect(() => {
+    if (status !== "ready" || !activeItem || !rootRef.current || !previewRef.current) {
+      return;
+    }
+
+    if (focusStateRef.current.id !== activeItem.id) {
+      focusStateRef.current = { id: activeItem.id, zoomApplied: false, shiftAttempts: 0 };
+    }
+
+    const markerElement = markerElementsRef.current.get(activeItem.id);
+    const previewCardElement = previewRef.current.querySelector(".home-yandex-map__preview-card");
+
+    if (!markerElement || !(previewCardElement instanceof HTMLElement)) {
+      return;
+    }
+
+    const rootRect = rootRef.current.getBoundingClientRect();
+    const markerRect = markerElement.getBoundingClientRect();
+    const previewRect = previewCardElement.getBoundingClientRect();
+
+    if (!rootRect.width || !rootRect.height || !previewRect.width || !previewRect.height) {
+      return;
+    }
+
+    const localMarkerBox = toLocalBox(markerRect, rootRect);
+    const mapSize = { width: rootRect.width, height: rootRect.height };
+    const nextLayout = computeAnchoredPreviewLayout({
+      mapSize,
+      markerBox: localMarkerBox,
+      previewSize: { width: previewRect.width, height: previewRect.height },
+    });
+
+    setPreviewLayout((currentLayout) => (isSameLayout(currentLayout, nextLayout) ? currentLayout : nextLayout));
+
+    const focusState = focusStateRef.current;
+    const mapViewport = mapViewportRef.current;
+
+    if (!mapViewport) {
+      return;
+    }
+
+    if (!focusState.zoomApplied && Number.isFinite(mapViewport.zoom) && mapViewport.zoom < markerFocusZoom - 0.05) {
+      focusState.zoomApplied = true;
+      updateMapLocation(mapInstanceRef.current, {
+        center: activeItem.coordinates,
+        zoom: markerFocusZoom,
+        duration: mapAnimationDuration,
+      });
+      return;
+    }
+
+    focusState.zoomApplied = true;
+
+    const shift = computeViewportShift({
+      mapSize,
+      markerBox: localMarkerBox,
+      previewSize: { width: nextLayout.width, height: nextLayout.height },
+      placement: nextLayout.placement,
+    });
+
+    if (
+      (Math.abs(shift.x) > previewShiftTolerance || Math.abs(shift.y) > previewShiftTolerance)
+      && focusState.shiftAttempts < maxPreviewShiftAttempts
+    ) {
+      const shiftedLocation = shiftLocationByPixels(mapViewport, shift, mapSize);
+
+      if (shiftedLocation) {
+        focusState.shiftAttempts += 1;
+        updateMapLocation(mapInstanceRef.current, {
+          ...shiftedLocation,
+          duration: mapAnimationDuration,
+        });
+        return;
+      }
+    }
+
+    focusState.shiftAttempts = 0;
+  }, [activeItem, measureRevision, status, viewportState.revision]);
 
   const overlayState =
     status === "error"
@@ -449,6 +840,16 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
               }
             : null;
 
+  const previewStyle =
+    previewLayout == null
+      ? { visibility: "hidden" }
+      : {
+          left: `${previewLayout.left}px`,
+          top: `${previewLayout.top}px`,
+          maxWidth: `${previewLayout.maxWidth}px`,
+          "--home-yandex-map-preview-anchor": `${previewLayout.anchorLeft}px`,
+        };
+
   return (
     <div
       ref={rootRef}
@@ -457,10 +858,14 @@ export function HomeOpportunityMap({ items, selectedCity, activeId = null, onSel
       <div ref={containerRef} className="home-yandex-map__canvas" />
 
       {status === "ready" && activeItem ? (
-        <div className="home-yandex-map__preview">
+        <div
+          ref={previewRef}
+          className={`home-yandex-map__preview home-yandex-map__preview--${previewLayout?.placement ?? "top"}${previewLayout ? " is-positioned" : " is-measuring"}`}
+          style={previewStyle}
+        >
           <OpportunityMiniCard
             item={activeItem}
-            variant="compact"
+            variant="map-compact"
             className="home-yandex-map__preview-card"
             dismissAction={{
               label: "Закрыть карточку",
