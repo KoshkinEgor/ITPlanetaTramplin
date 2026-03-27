@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { AppLink } from "../app/AppLink";
 import { getCurrentAuthUser } from "../auth/api";
+import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { ApiError } from "../lib/http";
 import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
@@ -136,6 +137,7 @@ const nearbyCardsCatalog = nearbyCards.map((item, index) => {
   return {
     ...item,
     ...runtimeData,
+    sortMeta: nearbyCardSortMeta[index] ?? {},
     chips: Array.from(new Set([...(runtimeData.extraChips ?? []), ...(item.chips ?? [])])),
   };
 });
@@ -300,6 +302,121 @@ function CloseTinyIcon() {
 
 function normalizeOptionValue(value) {
   return String(value).trim().toLowerCase();
+}
+
+function translateOpportunityType(value) {
+  switch (String(value ?? "").trim().toLowerCase()) {
+    case "vacancy":
+      return "Вакансия";
+    case "internship":
+      return "Стажировка";
+    case "event":
+      return "Мероприятие";
+    default:
+      return "Возможность";
+  }
+}
+
+function translateEmploymentType(value) {
+  switch (normalizeOptionValue(value)) {
+    case "remote":
+      return "Удаленно";
+    case "hybrid":
+      return "Гибрид";
+    case "office":
+    case "onsite":
+    case "on-site":
+      return "Офис";
+    case "online":
+      return "Онлайн";
+    default:
+      return value && normalizeOptionValue(value) !== "unspecified" ? String(value).trim() : "";
+  }
+}
+
+function shortenText(value, maxLength = 92) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "";
+  }
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength).trimEnd()}…`;
+}
+
+function createSortMeta(item, index) {
+  const fingerprint = `${item?.id ?? index}-${item?.title ?? ""}-${(item?.tags ?? []).join("|")}`;
+  const hash = Array.from(fingerprint).reduce((total, character, currentIndex) => (
+    total + character.charCodeAt(0) * (currentIndex + 1)
+  ), 0);
+  const type = String(item?.opportunityType ?? "").toLowerCase();
+  const baseSalary = type === "vacancy" ? 90 : type === "internship" ? 35 : 12;
+  const typeBoost = type === "event" ? 18 : type === "internship" ? 11 : 7;
+
+  return {
+    popularity: 60 + (hash % 40),
+    rating: 40 + (hash % 10),
+    salary: baseSalary + (hash % 25),
+    responses: 20 + ((hash + typeBoost) % 180),
+  };
+}
+
+function deriveStatus(item) {
+  const tags = Array.isArray(item?.tags) ? item.tags.map(normalizeOptionValue) : [];
+
+  if (tags.includes("middle")) {
+    return "Middle";
+  }
+
+  if (tags.includes("junior")) {
+    return "Junior";
+  }
+
+  if (tags.includes("без опыта") || String(item?.opportunityType ?? "").toLowerCase() === "internship") {
+    return "Без опыта";
+  }
+
+  if (String(item?.opportunityType ?? "").toLowerCase() === "event") {
+    return "Открыта запись";
+  }
+
+  return "Активно";
+}
+
+function hasValidCoordinates(item) {
+  return Number.isFinite(Number(item?.longitude)) && Number.isFinite(Number(item?.latitude));
+}
+
+function mapOpportunityToHomeCard(item, index) {
+  if (!item || !hasValidCoordinates(item)) {
+    return null;
+  }
+
+  const typeLabel = translateOpportunityType(item.opportunityType);
+  const employmentLabel = translateEmploymentType(item.employmentType);
+
+  return {
+    id: String(item.id),
+    eyebrow: typeLabel,
+    type: typeLabel,
+    status: deriveStatus(item),
+    statusTone: String(item?.opportunityType ?? "").toLowerCase() === "event" ? "warning" : "neutral",
+    title: item.title ?? "",
+    meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
+    accent: item.locationAddress ?? employmentLabel,
+    note: shortenText(item.description),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    primaryAction: String(item?.opportunityType ?? "").toLowerCase() === "event" ? "Подать заявку" : "Откликнуться",
+    secondaryAction: "Связаться",
+    city: item.locationCity ?? "",
+    coordinates: [Number(item.longitude), Number(item.latitude)],
+    detailHref: buildOpportunityDetailRoute(String(item.id)),
+    sortMeta: createSortMeta(item, index),
+  };
 }
 
 function isValidEmail(value) {
@@ -950,6 +1067,11 @@ export function HomeApp() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
+  const [nearbyItemsState, setNearbyItemsState] = useState({
+    status: "loading",
+    items: nearbyCardsCatalog,
+    error: null,
+  });
   const newsletterInputRef = useRef(null);
   const resultsGridRef = useRef(null);
   const [advancedSearchValues, setAdvancedSearchValues] = useState({
@@ -1010,6 +1132,46 @@ export function HomeApp() {
     setNewsletterSubmitted(true);
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadNearbyItems() {
+      try {
+        const items = await getOpportunities(controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const mappedItems = (Array.isArray(items) ? items : [])
+          .map(mapOpportunityToHomeCard)
+          .filter(Boolean);
+
+        setNearbyItemsState({
+          status: "ready",
+          items: mappedItems,
+          error: null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setNearbyItemsState({
+          status: "error",
+          items: nearbyCardsCatalog,
+          error,
+        });
+      }
+    }
+
+    loadNearbyItems();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
   const filteredNearbyCards = useMemo(() => {
     const normalizedQuery = normalizeOptionValue(query);
     const normalizedSelectedCity = normalizeOptionValue(selectedCity);
@@ -1017,7 +1179,7 @@ export function HomeApp() {
     const normalizedSelectedFormat = normalizeOptionValue(filterValues.format);
     const normalizedSelectedLevel = normalizeOptionValue(filterValues.level);
 
-    return nearbyCardsCatalog.filter((item) => {
+    return nearbyItemsState.items.filter((item) => {
       const searchContent = [
         item.title,
         item.meta,
@@ -1044,15 +1206,15 @@ export function HomeApp() {
 
       return matchesQuery && matchesCity && matchesType && matchesFormat && matchesLevel && matchesSkills;
     });
-  }, [filterValues.format, filterValues.level, filterValues.type, query, selectedCity, selectedSkills]);
+  }, [filterValues.format, filterValues.level, filterValues.type, nearbyItemsState.items, query, selectedCity, selectedSkills]);
 
   const sortedNearbyCards = useMemo(() => {
     const directionFactor = sortDirection === "asc" ? 1 : -1;
 
     return filteredNearbyCards
-      .map((item) => ({
+      .map((item, index) => ({
         item,
-        meta: nearbyCardSortMeta[nearbyCardsCatalog.findIndex((candidate) => candidate.id === item.id)] ?? {},
+        meta: item.sortMeta ?? createSortMeta(item, index),
       }))
       .sort((left, right) => {
         const leftValue = left.meta[sortKey] ?? 0;

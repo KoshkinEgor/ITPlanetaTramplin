@@ -49,6 +49,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             Description = request.Description ?? string.Empty,
             LocationAddress = request.LocationAddress,
             LocationCity = request.LocationCity,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             ExpireAt = request.ExpireAt.HasValue
                 ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
                 : null,
@@ -156,6 +158,16 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (request.LocationCity is not null)
         {
             opportunity.LocationCity = request.LocationCity;
+        }
+
+        if (request.Latitude.HasValue)
+        {
+            opportunity.Latitude = request.Latitude.Value;
+        }
+
+        if (request.Longitude.HasValue)
+        {
+            opportunity.Longitude = request.Longitude.Value;
         }
 
         if (request.ExpireAt.HasValue)

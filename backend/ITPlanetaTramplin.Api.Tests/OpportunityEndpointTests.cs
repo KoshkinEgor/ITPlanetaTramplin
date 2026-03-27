@@ -126,4 +126,57 @@ public class OpportunityEndpointTests
         Assert.NotNull(applyError);
         Assert.Contains("Подтвердите аккаунт", applyError!.Message);
     }
+    [Fact]
+    public async Task CreateAndUpdateOpportunity_PersistsCoordinatesFromRequest()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Coordinate opportunity",
+            description = "Created from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            latitude = 56.123456m,
+            longitude = 47.654321m,
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Coordinate opportunity");
+            opportunityId = opportunity.Id;
+            Assert.Equal(56.123456m, opportunity.Latitude);
+            Assert.Equal(47.654321m, opportunity.Longitude);
+        }
+
+        var updateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}", new
+        {
+            latitude = 56.111111m,
+            longitude = 47.222222m,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
+            Assert.Equal(56.111111m, opportunity.Latitude);
+            Assert.Equal(47.222222m, opportunity.Longitude);
+        }
+    }
 }

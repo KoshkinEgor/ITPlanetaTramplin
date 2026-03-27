@@ -13,6 +13,10 @@ namespace DTO
 
         public string? LocationCity { get; set; }
 
+        public decimal? Latitude { get; set; }
+
+        public decimal? Longitude { get; set; }
+
         public long? ExpireAt { get; set; }
 
         public string OpportunityType { get; set; } = string.Empty;
@@ -69,6 +73,10 @@ namespace DTO
         public string? LocationAddress { get; set; }
 
         public string? LocationCity { get; set; }
+
+        public decimal? Latitude { get; set; }
+
+        public decimal? Longitude { get; set; }
 
         public long? ExpireAt { get; set; }
 
