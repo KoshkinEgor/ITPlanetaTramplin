@@ -151,4 +151,35 @@ describe("PortalHeader", () => {
       expect(acceptCandidateFriendRequest).toHaveBeenCalledWith(17);
     });
   });
+
+  it("hides the account menu in public-profile variant while keeping public actions", () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 7,
+        role: "candidate",
+        email: "candidate@tramplin.local",
+        displayName: "Candidate",
+      },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <PortalHeader
+          navItems={[
+            { key: "home", label: "Главная", href: routes.home },
+          ]}
+          currentKey="home"
+          actionHref={routes.candidate.profile}
+          actionLabel="Профиль"
+          variant="public-profile"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: "Профиль" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Уведомления" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /меню аккаунта/i })).not.toBeInTheDocument();
+  });
 });

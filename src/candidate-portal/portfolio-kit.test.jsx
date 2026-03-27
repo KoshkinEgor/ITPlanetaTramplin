@@ -67,7 +67,7 @@ describe("CandidateResumeMiniCard", () => {
     );
 
     expect(screen.queryByText("Видимость резюме")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Открыть публичное резюме" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Открыть действия с резюме" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Открыть публичное резюме" }));
 

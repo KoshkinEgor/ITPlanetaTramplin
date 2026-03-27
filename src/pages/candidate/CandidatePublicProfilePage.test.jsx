@@ -5,7 +5,6 @@ import { CandidatePublicProfilePage } from "./CandidatePublicProfilePage";
 import {
   acceptCandidateFriendRequest,
   createCandidateProjectInvite,
-  deleteCandidateFriend,
   getCandidateProjects,
   getCandidatePublicProfile,
 } from "../../api/candidate";
@@ -17,7 +16,6 @@ vi.mock("../../api/candidate", () => ({
   createCandidateContact: vi.fn(),
   createCandidateFriendRequest: vi.fn(),
   acceptCandidateFriendRequest: vi.fn(),
-  deleteCandidateFriend: vi.fn(),
   declineCandidateFriendRequest: vi.fn(),
   cancelCandidateFriendRequest: vi.fn(),
   acceptCandidateProjectInvite: vi.fn(),
@@ -134,11 +132,11 @@ describe("CandidatePublicProfilePage", () => {
     });
   });
 
-  it("allows removing an existing friend from the public profile", async () => {
+  it("shows friend status without destructive control on the public profile", async () => {
     getCandidatePublicProfile.mockResolvedValue({
       userId: 42,
-      name: "РњР°СЂРёСЏ",
-      surname: "РЎРѕРєРѕР»РѕРІР°",
+      name: "Мария",
+      surname: "Соколова",
       description: "",
       skills: ["Research"],
       links: { onboarding: {} },
@@ -158,15 +156,12 @@ describe("CandidatePublicProfilePage", () => {
       canSeeProjects: true,
       canSeeSocialLinks: false,
     });
-    deleteCandidateFriend.mockResolvedValue({});
 
     renderPage("/candidate/public?userId=42");
 
-    fireEvent.click(await screen.findByRole("button", { name: "РЈРґР°Р»РёС‚СЊ РёР· РґСЂСѓР·РµР№" }));
-
-    await waitFor(() => {
-      expect(deleteCandidateFriend).toHaveBeenCalledWith(42);
-    });
+    expect(await screen.findByText("В друзьях")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Пригласить в проект" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Удалить из друзей" })).not.toBeInTheDocument();
   });
 
   it("opens the invite modal for saved contacts and sends a project invite", async () => {
@@ -237,5 +232,113 @@ describe("CandidatePublicProfilePage", () => {
         message: "Присоединяйся к discovery-команде",
       });
     });
+  });
+
+  it("shows create-project CTA when there are no projects for an invite", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 7,
+        role: "candidate",
+        email: "viewer@tramplin.local",
+      },
+      error: null,
+    });
+
+    getCandidatePublicProfile.mockResolvedValue({
+      userId: 42,
+      name: "Мария",
+      surname: "Соколова",
+      description: "",
+      skills: ["Research"],
+      links: { onboarding: {} },
+      education: null,
+      projects: [],
+      resumes: [],
+      socialLinks: null,
+      relationship: {
+        contactState: "saved",
+        friendState: "none",
+        projectInviteState: "none",
+        canInviteToProject: true,
+      },
+      hasProjects: false,
+      hasResumes: false,
+      hasSocialLinks: false,
+      canSeeProjects: true,
+      canSeeSocialLinks: false,
+    });
+    getCandidateProjects.mockResolvedValue([]);
+
+    renderPage("/candidate/public?userId=42");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Пригласить в проект" }));
+
+    expect(await screen.findByRole("link", { name: "Создать проект" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/candidate/projects/edit")
+    );
+  });
+
+  it("opens a read-only resume modal from the public profile", async () => {
+    getCandidatePublicProfile.mockResolvedValue({
+      userId: 42,
+      name: "Мария",
+      surname: "Соколова",
+      description: "",
+      skills: ["Research"],
+      links: { onboarding: {} },
+      education: null,
+      projects: [],
+      resumes: [
+        {
+          id: "resume-1",
+          title: "Веб-дизайнер",
+          updatedAt: "2026-03-12T09:00:00.000Z",
+          city: "Москва",
+          experienceLabel: "Опыт: 1 год",
+          stats: {
+            impressions: 0,
+            views: 4,
+            invitations: 1,
+          },
+          about: "Собираю понятные интерфейсы и люблю исследование сценариев.",
+          education: [
+            {
+              institutionName: "МГТУ им. Баумана",
+              faculty: "Информатика",
+              graduationYear: 2027,
+            },
+          ],
+          achievements: [
+            {
+              title: "UX Hackathon",
+              description: "Победа в студенческом треке",
+              obtainDate: "2025-06-01T00:00:00.000Z",
+            },
+          ],
+        },
+      ],
+      socialLinks: null,
+      relationship: {
+        contactState: "none",
+        friendState: "none",
+        projectInviteState: "none",
+      },
+      hasProjects: false,
+      hasResumes: true,
+      hasSocialLinks: false,
+      canSeeProjects: true,
+      canSeeSocialLinks: false,
+    });
+
+    renderPage("/candidate/public?userId=42");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть публичное резюме Веб-дизайнер" }));
+
+    expect(await screen.findByRole("dialog", { name: "Веб-дизайнер" })).toBeInTheDocument();
+    expect(screen.queryByText("Видимость резюме")).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Редактировать" })).not.toBeInTheDocument();
+    expect(screen.getByText("UX Hackathon")).toBeInTheDocument();
   });
 });
