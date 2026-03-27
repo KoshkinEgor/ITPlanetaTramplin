@@ -165,7 +165,7 @@ export function serializeOpportunityContacts(value) {
     }))
     .filter((item) => item.value);
 
-  return normalized.length ? JSON.stringify(normalized) : null;
+  return JSON.stringify(normalized);
 }
 
 export function formatOpportunityDeadlineInput(value) {

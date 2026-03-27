@@ -1,14 +1,12 @@
 ﻿import { useEffect, useState } from "react";
 import { getCompanyOpportunities } from "../api/company";
-import { createOpportunity, deleteOpportunity, updateOpportunity } from "../api/opportunities";
+import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
 import { ApiError } from "../lib/http";
 import { Alert, Badge, Button, EmptyState, FormField, Input, Loader, Select, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import {
   createOpportunityContactDraft,
   createOpportunityDraft,
-  normalizeOpportunityContacts,
-  OPPORTUNITY_CONTACT_TYPE_OPTIONS,
   parseOpportunityDeadlineInput,
   parseTags,
   serializeOpportunityContacts,
@@ -23,27 +21,6 @@ const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "event", label: "Мероприятие" },
 ];
 
-const CONTACT_TYPE_META = {
-  phone: {
-    label: "Телефон",
-    eyebrow: "Позвонить",
-    placeholder: "+7 (999) 123-45-67",
-    hint: "Укажите номер, по которому кандидат сможет быстро связаться с вами.",
-  },
-  email: {
-    label: "Email",
-    eyebrow: "Написать",
-    placeholder: "team@company.ru",
-    hint: "Подойдет рабочая почта для откликов и уточняющих вопросов.",
-  },
-  link: {
-    label: "Ссылка",
-    eyebrow: "Перейти",
-    placeholder: "https://t.me/company или https://company.ru/careers",
-    hint: "Добавьте сайт, Telegram, форму записи или другую ссылку для связи.",
-  },
-};
-
 function formatDeadlineLabel(value) {
   if (!value) {
     return "Срок не указан";
@@ -57,56 +34,36 @@ function formatDeadlineLabel(value) {
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
 }
 
-function getContactSummary(items) {
-  const filledCount = (Array.isArray(items) ? items : []).filter((item) => String(item?.value ?? "").trim()).length;
+function getContactPlaceholder(value) {
+  const normalized = String(value ?? "").trim();
 
-  if (!filledCount) {
-    return "Контакты для связи еще не добавлены.";
+  if (normalized.includes("@") && !normalized.includes(" ")) {
+    return "team@company.ru";
   }
 
-  if (filledCount === 1) {
-    return "1 контакт для связи";
+  if (/^[+\d][\d\s().-]{5,}$/.test(normalized)) {
+    return "+7 (999) 123-45-67";
   }
 
-  if (filledCount < 5) {
-    return `${filledCount} контакта для связи`;
-  }
-
-  return `${filledCount} контактов для связи`;
+  return "https://t.me/company или team@company.ru";
 }
 
-function OpportunityContactEditor({ item, index, onChange, onRemove, canRemove }) {
-  const meta = CONTACT_TYPE_META[item.type] ?? CONTACT_TYPE_META.link;
+function detectContactType(value) {
+  const normalized = String(value ?? "").trim();
 
-  return (
-    <article className="ui-card ui-card--neutral company-dashboard-opportunity-contact-card">
-      <div className="company-dashboard-opportunity-contact-card__head">
-        <div className="company-dashboard-opportunity-contact-card__avatar" aria-hidden="true">
-          {meta.label.slice(0, 1)}
-        </div>
-        <div className="company-dashboard-opportunity-contact-card__copy">
-          <span>{meta.eyebrow}</span>
-          <strong>{meta.label} {index + 1}</strong>
-        </div>
-      </div>
+  if (!normalized) {
+    return "link";
+  }
 
-      <div className="company-dashboard-opportunity-contact-card__fields">
-        <FormField label="Тип контакта">
-          <Select value={item.type} onValueChange={(value) => onChange(index, "type", value)} options={OPPORTUNITY_CONTACT_TYPE_OPTIONS} />
-        </FormField>
+  if (normalized.includes("@") && !normalized.includes(" ")) {
+    return "email";
+  }
 
-        <FormField label="Контакт" hint={meta.hint}>
-          <Input value={item.value} onValueChange={(value) => onChange(index, "value", value)} placeholder={meta.placeholder} />
-        </FormField>
-      </div>
+  if (/^[+\d][\d\s().-]{5,}$/.test(normalized)) {
+    return "phone";
+  }
 
-      <div className="company-dashboard-opportunity-contact-card__actions">
-        <Button type="button" variant="ghost" onClick={() => onRemove(index)} disabled={!canRemove}>
-          Удалить
-        </Button>
-      </div>
-    </article>
-  );
+  return "link";
 }
 
 export function CompanyOpportunitiesSection() {
@@ -144,10 +101,10 @@ export function CompanyOpportunitiesSection() {
     setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
   }
 
-  function updateContact(index, field, value) {
+  function updateContact(index, value) {
     setDraft((current) => ({
       ...current,
-      contacts: current.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
+      contacts: current.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, value, type: detectContactType(value) } : item)),
     }));
     setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
   }
@@ -172,9 +129,15 @@ export function CompanyOpportunitiesSection() {
     setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
   }
 
-  function startEditing(item) {
-    setDraft(createOpportunityDraft(item));
+  async function startEditing(item) {
     setSaveState({ status: "idle", error: "" });
+
+    try {
+      const opportunity = await getOpportunity(item.id);
+      setDraft(createOpportunityDraft(opportunity));
+    } catch {
+      setDraft(createOpportunityDraft(item));
+    }
   }
 
   function resetForm() {
@@ -196,10 +159,6 @@ export function CompanyOpportunitiesSection() {
     }
 
     const contactsJson = serializeOpportunityContacts(draft.contacts);
-    if (!contactsJson) {
-      setSaveState({ status: "error", error: "Добавьте хотя бы один контакт для связи." });
-      return;
-    }
 
     setSaveState({ status: "saving", error: "" });
 
@@ -290,7 +249,7 @@ export function CompanyOpportunitiesSection() {
           <CabinetContentSection
             eyebrow="Публикации"
             title={draft.id ? "Редактирование публикации" : "Новая публикация"}
-            description="Заполните карточку возможности: опишите предложение, укажите срок и добавьте контакты, по которым кандидат сможет связаться с вашей командой."
+            description="Заполните карточку возможности: опишите предложение, укажите срок и добавьте основные параметры публикации."
           >
             <form className="company-dashboard-stack" onSubmit={handleSubmit} noValidate>
               <FormField label="Название" required>
@@ -323,31 +282,25 @@ export function CompanyOpportunitiesSection() {
                 <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />
               </FormField>
 
-              <section className="company-dashboard-opportunity-contacts" aria-label="Контакты для публикации">
-                <div className="company-dashboard-opportunity-contacts__header">
-                  <div>
-                    <p className="company-dashboard-opportunity-contacts__eyebrow">Контакты для связи</p>
-                    <h3 className="ui-type-h3">Список контактов</h3>
-                    <p className="ui-type-body">Добавьте телефон, почту или ссылку. Кандидат увидит их в карточке возможности.</p>
-                  </div>
+              <FormField label="Контакты / ссылки">
+                <div className="company-dashboard-social-links">
+                  {draft.contacts.map((item, index) => (
+                    <div className="company-dashboard-social-links__row" key={`opportunity-contact-${index}`}>
+                      <Input
+                        value={item.value}
+                        onValueChange={(value) => updateContact(index, value)}
+                        placeholder={getContactPlaceholder(item.value)}
+                      />
+                      <Button type="button" variant="ghost" onClick={() => removeContact(index)}>
+                        Удалить
+                      </Button>
+                    </div>
+                  ))}
                   <Button type="button" variant="secondary" onClick={addContact}>
-                    Добавить контакт
+                    Добавить
                   </Button>
                 </div>
-
-                <div className="company-dashboard-opportunity-contacts__list">
-                  {draft.contacts.map((item, index) => (
-                    <OpportunityContactEditor
-                      key={`${item.type}-${index}`}
-                      item={item}
-                      index={index}
-                      onChange={updateContact}
-                      onRemove={removeContact}
-                      canRemove={draft.contacts.length > 1}
-                    />
-                  ))}
-                </div>
-              </section>
+              </FormField>
 
               <div className="company-dashboard-panel__actions">
                 <Button type="submit" disabled={saveState.status === "saving"}>
@@ -394,10 +347,6 @@ export function CompanyOpportunitiesSection() {
                       <div className="company-dashboard-list-item__meta-card">
                         <span>Срок</span>
                         <strong>{formatDeadlineLabel(item.expireAt)}</strong>
-                      </div>
-                      <div className="company-dashboard-list-item__meta-card">
-                        <span>Контакты</span>
-                        <strong>{getContactSummary(normalizeOpportunityContacts(item.contactsJson))}</strong>
                       </div>
                       <div className="company-dashboard-list-item__meta-card">
                         <span>Отклики</span>
