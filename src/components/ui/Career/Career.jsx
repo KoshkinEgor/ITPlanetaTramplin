@@ -4,6 +4,8 @@ import { Card } from "../Card/Card";
 import { IconButton } from "../IconButton/IconButton";
 import { StatusBadge } from "../StatusBadge/StatusBadge";
 import { Tag } from "../Tag/Tag";
+import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
+import { normalizeOpportunityId } from "../../../features/favorites/storage";
 
 function HeartIcon() {
   return (
@@ -191,6 +193,7 @@ export function CareerCourseCard({
 }
 
 export function CareerOpportunityCard({
+  opportunityId,
   type,
   status,
   statusTone = "neutral",
@@ -207,8 +210,18 @@ export function CareerOpportunityCard({
   className,
   ...props
 }) {
+  const { opportunityId: resolvedOpportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(normalizeOpportunityId(opportunityId), favoritePressed);
+  const handleFavoriteClick = () => {
+    const nextState = toggleFavorite();
+    onFavoriteClick?.(resolvedOpportunityId, nextState);
+  };
+
   return (
-    <Card className={["ui-career-opportunity-card", featured && "ui-career-opportunity-card--featured", className].filter(Boolean).join(" ")} {...props}>
+    <Card
+      className={["ui-career-opportunity-card", featured && "ui-career-opportunity-card--featured", className].filter(Boolean).join(" ")}
+      data-opportunity-id={resolvedOpportunityId ?? undefined}
+      {...props}
+    >
       <div className="ui-career-opportunity-card__top">
         <div className="ui-career-opportunity-card__badges">
           {type ? <Tag variant="surface">{type}</Tag> : null}
@@ -221,8 +234,10 @@ export function CareerOpportunityCard({
           size="sm"
           className="ui-career-opportunity-card__save"
           label={favoriteLabel}
-          aria-pressed={favoritePressed}
-          onClick={onFavoriteClick}
+          aria-pressed={isFavorite}
+          active={isFavorite}
+          data-opportunity-id={resolvedOpportunityId ?? undefined}
+          onClick={handleFavoriteClick}
         >
           <HeartIcon />
         </IconButton>

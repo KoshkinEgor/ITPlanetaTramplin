@@ -1,4 +1,6 @@
 import { buildOpportunityDetailRoute } from "../../../app/routes";
+import { extractOpportunityId } from "../../../features/favorites/storage";
+import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
 import { cn } from "../../../lib/cn";
 import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
@@ -82,12 +84,21 @@ export function OpportunityMiniCard({
   ...props
 }) {
   const data = normalizeOpportunity(item);
+  const { opportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(extractOpportunityId(item), favoritePressed);
   const action = resolveDetailAction(detailAction, item);
   const hasValue = data.valuePrefix || data.accent || data.valueSuffix;
   const isCompact = variant === "compact";
+  const handleFavoriteClick = () => {
+    const nextState = toggleFavorite();
+    onFavoriteClick?.(opportunityId, nextState);
+  };
 
   return (
-    <Card className={cn("ui-opportunity-mini-card", isCompact && "ui-opportunity-mini-card--compact", className)} {...props}>
+    <Card
+      className={cn("ui-opportunity-mini-card", isCompact && "ui-opportunity-mini-card--compact", className)}
+      data-opportunity-id={opportunityId ?? undefined}
+      {...props}
+    >
       <div className="ui-opportunity-mini-card__top">
         <div className="ui-opportunity-mini-card__badges">
           {data.type ? (
@@ -121,8 +132,10 @@ export function OpportunityMiniCard({
             size={isCompact ? "xl" : "2xl"}
             className="ui-opportunity-mini-card__favorite"
             label={favoriteLabel}
-            aria-pressed={favoritePressed}
-            onClick={onFavoriteClick}
+            aria-pressed={isFavorite}
+            active={isFavorite}
+            data-opportunity-id={opportunityId ?? undefined}
+            onClick={handleFavoriteClick}
           >
             <HeartIcon />
           </IconButton>

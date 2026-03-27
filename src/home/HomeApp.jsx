@@ -6,7 +6,7 @@ import { getCurrentAuthUser } from "../auth/api";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { ApiError } from "../lib/http";
-import { Button, Card, Checkbox, IconButton, Input, Modal, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
+import { Button, Card, Checkbox, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
@@ -1578,15 +1578,25 @@ export function HomeApp() {
               <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
                 {prioritizedNearbyCards.length ? (
                   prioritizedNearbyCards.map((item) => (
-                    <OpportunityRowCard
-                      key={item.id ?? item.title}
-                      item={item}
-                      surface="plain"
-                      size="sm"
-                      className={`home-opportunity-entry ${selectedOpportunityId === item.id ? "is-selected" : ""}`.trim()}
-                      primaryAction={createSafeHomeRowActions(item).primaryAction}
-                      detailAction={createSafeHomeRowActions(item).detailAction}
-                    />
+                    view === "map" ? (
+                      <OpportunityMiniCard
+                        key={item.id ?? item.title}
+                        variant="compact"
+                        item={item}
+                        className={`home-opportunity-entry ${selectedOpportunityId === item.id ? "is-selected" : ""}`.trim()}
+                        detailAction={createSafeHomeRowActions(item).detailAction}
+                      />
+                    ) : (
+                      <OpportunityRowCard
+                        key={item.id ?? item.title}
+                        item={item}
+                        surface="plain"
+                        size="sm"
+                        className={`home-opportunity-entry ${selectedOpportunityId === item.id ? "is-selected" : ""}`.trim()}
+                        primaryAction={createSafeHomeRowActions(item).primaryAction}
+                        detailAction={createSafeHomeRowActions(item).detailAction}
+                      />
+                    )
                   ))
                 ) : (
                   <Card className="home-results-empty">

@@ -1,4 +1,4 @@
-import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
+﻿import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
 import {
   buildCandidateEducationLinkItems,
   createCandidateEducationDraftList,
@@ -8,61 +8,69 @@ import {
 import { getCandidateSkills } from "./mappers";
 
 export const CANDIDATE_ONBOARDING_STEPS = [
-  { key: "profession", label: "Профессия" },
-  { key: "basics", label: "Основная информация" },
-  { key: "education", label: "Образование" },
-  { key: "skills", label: "Навыки" },
-  { key: "experience", label: "Опыт работы" },
-  { key: "goal", label: "Цель" },
+  { key: "profession", label: "РџСЂРѕС„РµСЃСЃРёСЏ" },
+  { key: "basics", label: "РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ" },
+  { key: "education", label: "РћР±СЂР°Р·РѕРІР°РЅРёРµ" },
+  { key: "skills", label: "РќР°РІС‹РєРё" },
+  { key: "experience", label: "РћРїС‹С‚ СЂР°Р±РѕС‚С‹" },
+  { key: "goal", label: "Р¦РµР»СЊ" },
 ];
 
 export const CANDIDATE_PROFESSION_OPTIONS = [
-  "Начинающий специалист",
-  "Администратор",
-  "Аналитик",
-  "Бухгалтер",
-  "Водитель",
-  "Врач",
-  "Графический дизайнер",
-  "Дизайнер интерфейсов",
-  "Маркетолог",
-  "Менеджер проектов",
-  "Разработчик",
-  "Тестировщик",
+  "Frontend developer",
+  "Backend developer",
+  "Fullstack developer",
+  "Mobile developer",
+  "QA engineer",
+  "DevOps engineer",
+  "Data analyst",
+  "Data engineer",
+  "Data scientist",
+  "Product manager",
+  "Project manager (IT)",
+  "System analyst",
+  "UI/UX designer",
+  "Graphic designer (digital)",
+  "Product designer",
+  "Cybersecurity specialist",
+  "ML engineer",
+  "Business analyst (IT)",
+  "Technical support specialist",
+  "1C developer",
 ];
 
 export const CANDIDATE_GENDER_OPTIONS = [
-  { value: "female", label: "Женский" },
-  { value: "male", label: "Мужской" },
-  { value: "other", label: "Другой" },
+  { value: "female", label: "Р–РµРЅСЃРєРёР№" },
+  { value: "male", label: "РњСѓР¶СЃРєРѕР№" },
+  { value: "other", label: "Р”СЂСѓРіРѕР№" },
 ];
 
 export const CANDIDATE_CITY_OPTIONS = [
-  "Чебоксары",
-  "Москва",
-  "Санкт-Петербург",
-  "Казань",
-  "Нижний Новгород",
-  "Екатеринбург",
-  "Новосибирск",
+  "Р§РµР±РѕРєСЃР°СЂС‹",
+  "РњРѕСЃРєРІР°",
+  "РЎР°РЅРєС‚-РџРµС‚РµСЂР±СѓСЂРі",
+  "РљР°Р·Р°РЅСЊ",
+  "РќРёР¶РЅРёР№ РќРѕРІРіРѕСЂРѕРґ",
+  "Р•РєР°С‚РµСЂРёРЅР±СѓСЂРі",
+  "РќРѕРІРѕСЃРёР±РёСЂСЃРє",
 ];
 
 export const CANDIDATE_CITIZENSHIP_OPTIONS = [
-  "Россия",
-  "Беларусь",
-  "Казахстан",
-  "Армения",
-  "Киргизия",
-  "Другое",
+  "Р РѕСЃСЃРёСЏ",
+  "Р‘РµР»Р°СЂСѓСЃСЊ",
+  "РљР°Р·Р°С…СЃС‚Р°РЅ",
+  "РђСЂРјРµРЅРёСЏ",
+  "РљРёСЂРіРёР·РёСЏ",
+  "Р”СЂСѓРіРѕРµ",
 ];
 
 export const CANDIDATE_SKILL_OPTIONS = [
   ...CANDIDATE_SKILL_SUGGESTIONS,
   "Motion-design",
-  "Дизайн-мышление",
+  "Р”РёР·Р°Р№РЅ-РјС‹С€Р»РµРЅРёРµ",
   "Adobe After Effects",
   "Adobe Illustrator",
-  "A/B тесты",
+  "A/B С‚РµСЃС‚С‹",
   "Photoshop",
   "Sketch",
   "Usability",
@@ -146,19 +154,19 @@ export function createCandidateOnboardingDraft({ profile, education = [] }) {
 
 export function getCandidateOnboardingStepError(stepKey, draft) {
   if (!draft) {
-    return "Не удалось загрузить данные анкеты.";
+    return "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ Р°РЅРєРµС‚С‹.";
   }
 
   switch (stepKey) {
     case "profession":
-      return draft.profession ? "" : "Выберите профессию, чтобы перейти к следующему шагу.";
+      return draft.profession ? "" : "Р’С‹Р±РµСЂРёС‚Рµ РїСЂРѕС„РµСЃСЃРёСЋ, С‡С‚РѕР±С‹ РїРµСЂРµР№С‚Рё Рє СЃР»РµРґСѓСЋС‰РµРјСѓ С€Р°РіСѓ.";
     case "basics":
       if (!draft.surname || !draft.name) {
-        return "Укажите имя и фамилию.";
+        return "РЈРєР°Р¶РёС‚Рµ РёРјСЏ Рё С„Р°РјРёР»РёСЋ.";
       }
 
       if (!draft.gender || !draft.birthDate || !draft.phone || !draft.city || !draft.citizenship) {
-        return "Заполните пол, дату рождения, телефон, город и гражданство.";
+        return "Р—Р°РїРѕР»РЅРёС‚Рµ РїРѕР», РґР°С‚Сѓ СЂРѕР¶РґРµРЅРёСЏ, С‚РµР»РµС„РѕРЅ, РіРѕСЂРѕРґ Рё РіСЂР°Р¶РґР°РЅСЃС‚РІРѕ.";
       }
 
       return "";
@@ -167,19 +175,19 @@ export function getCandidateOnboardingStepError(stepKey, draft) {
       return formError;
     }
     case "skills":
-      return Array.isArray(draft.skills) && draft.skills.length ? "" : "Добавьте хотя бы один навык.";
+      return Array.isArray(draft.skills) && draft.skills.length ? "" : "Р”РѕР±Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РЅР°РІС‹Рє.";
     case "experience":
       if (draft.experience?.noExperience) {
         return "";
       }
 
       if (!draft.experience?.company || !draft.experience?.role || !draft.experience?.period || !draft.experience?.summary) {
-        return "Заполните компанию, роль, период и краткое описание опыта или отметьте, что опыта пока нет.";
+        return "Р—Р°РїРѕР»РЅРёС‚Рµ РєРѕРјРїР°РЅРёСЋ, СЂРѕР»СЊ, РїРµСЂРёРѕРґ Рё РєСЂР°С‚РєРѕРµ РѕРїРёСЃР°РЅРёРµ РѕРїС‹С‚Р° РёР»Рё РѕС‚РјРµС‚СЊС‚Рµ, С‡С‚Рѕ РѕРїС‹С‚Р° РїРѕРєР° РЅРµС‚.";
       }
 
       return "";
     case "goal":
-      return draft.goal ? "" : "Сформулируйте карьерную цель.";
+      return draft.goal ? "" : "РЎС„РѕСЂРјСѓР»РёСЂСѓР№С‚Рµ РєР°СЂСЊРµСЂРЅСѓСЋ С†РµР»СЊ.";
     default:
       return "";
   }
@@ -227,3 +235,4 @@ export function buildCandidateOnboardingLinks(profile, draft) {
     },
   };
 }
+

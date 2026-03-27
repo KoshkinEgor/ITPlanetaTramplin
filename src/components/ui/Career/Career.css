@@ -273,6 +273,14 @@
   border-color: rgba(24, 29, 45, 0.08);
 }
 
+.ui-career-opportunity-card__save.ui-icon-button[aria-pressed="true"],
+.ui-career-opportunity-card__save.ui-icon-button.is-active {
+  border-color: rgba(236, 72, 153, 0.38);
+  background: linear-gradient(180deg, rgba(255, 244, 250, 0.98), rgba(255, 235, 246, 0.96));
+  color: #db2777;
+  box-shadow: 0 12px 24px rgba(219, 39, 119, 0.18);
+}
+
 .ui-career-opportunity-card__chips {
   margin-top: auto;
 }
