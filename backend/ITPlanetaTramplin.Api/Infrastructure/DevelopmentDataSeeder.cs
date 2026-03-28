@@ -3,6 +3,7 @@ using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using System.Text.Json;
 
 namespace ITPlanetaTramplin.Api.Infrastructure;
 
@@ -15,8 +16,9 @@ internal static class DevelopmentDataSeeder
 
     private static readonly SeedCurator[] SeedCurators =
     [
-        new(DemoCuratorEmail, DemoCuratorPassword, "Demo", "Curator", null),
-        new("olga.curator@tramplin.local", "Moderator1234", "Olga", "Morozova", "Sergeevna"),
+        new(DemoCuratorEmail, DemoCuratorPassword, "Demo", "Curator", null, false),
+        new("olga.curator@tramplin.local", "Moderator1234", "Olga", "Morozova", "Sergeevna", false),
+        new("administrator@tramplin.local", "Administrator1234", "administrator", string.Empty, null, true),
     ];
 
     private static readonly SeedCandidate[] SeedCandidates =
@@ -29,7 +31,8 @@ internal static class DevelopmentDataSeeder
             null,
             "Frontend-разработчик с фокусом на библиотеки компонентов, доступность и быстрые продуктовые итерации.",
             ["React", "TypeScript", "Accessibility", "Figma"],
-            """{"portfolio":"https://anna.tramplin.local","github":"https://github.com/anna-petrova","telegram":"https://t.me/annapetrova"}"""),
+            """{"portfolio":"https://anna.tramplin.local","github":"https://github.com/anna-petrova","telegram":"https://t.me/annapetrova"}""",
+            CandidateModerationStatuses.Approved),
         new(
             "ivan.smirnov@tramplin.local",
             "Analyst1234",
@@ -38,7 +41,8 @@ internal static class DevelopmentDataSeeder
             "Olegovich",
             "Продуктовый аналитик, который работает с SQL, Python, дашбордами и дизайном экспериментов для цифровых продуктов.",
             ["SQL", "Python", "A/B testing", "Analytics"],
-            """{"portfolio":"https://ivan.tramplin.local","github":"https://github.com/ivan-smirnov","telegram":"https://t.me/ivansmirnov"}"""),
+            """{"portfolio":"https://ivan.tramplin.local","github":"https://github.com/ivan-smirnov","telegram":"https://t.me/ivansmirnov"}""",
+            CandidateModerationStatuses.Approved),
         new(
             "polina.sokolova@tramplin.local",
             "Designer1234",
@@ -47,7 +51,8 @@ internal static class DevelopmentDataSeeder
             null,
             "Продуктовый дизайнер с сильной исследовательской базой, навыками прототипирования и интересом к стажировочным программам.",
             ["Figma", "UX research", "Prototyping", "Design systems"],
-            """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova"}"""),
+            """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova"}""",
+            CandidateModerationStatuses.Approved),
     ];
 
     private static readonly SeedCompany[] SeedCompanies =
@@ -105,6 +110,17 @@ internal static class DevelopmentDataSeeder
                     "Office",
                     """{"email":"demo-company@tramplin.local","telegram":"@sber_it"}""",
                     ["Career event", "Networking", "Students", "Frontend"]),
+                new(
+                    "Менторская программа Sber Frontend",
+                    "Практический формат с еженедельными созвонами, code review и персональным планом роста для junior frontend-специалистов.",
+                    "Москва",
+                    "улица Вавилова, 19",
+                    55.7002000m,
+                    37.5803000m,
+                    OpportunityTypes.Mentoring,
+                    "Remote",
+                    """{"email":"demo-company@tramplin.local","telegram":"@sber_it"}""",
+                    ["Mentoring", "Frontend", "React", "Career growth"]),
             ]),
         new(
             "company-vk@tramplin.local",
@@ -378,6 +394,7 @@ internal static class DevelopmentDataSeeder
             user.CuratorProfile.Name = seedCurator.Name;
             user.CuratorProfile.Surname = seedCurator.Surname;
             user.CuratorProfile.Thirdname = seedCurator.Thirdname;
+            user.CuratorProfile.IsAdministrator = seedCurator.IsAdministrator;
             users.Add(user);
         }
 
@@ -419,6 +436,7 @@ internal static class DevelopmentDataSeeder
             user.ApplicantProfile.Description = seedCandidate.Description;
             user.ApplicantProfile.Skills = seedCandidate.Skills.ToList();
             user.ApplicantProfile.Links = seedCandidate.LinksJson;
+            user.ApplicantProfile.ModerationStatus = CandidateModerationStatuses.Normalize(seedCandidate.ModerationStatus);
             users.Add(user);
         }
 
@@ -467,6 +485,9 @@ internal static class DevelopmentDataSeeder
             user.EmployerProfile.Description = seedCompany.Description;
             user.EmployerProfile.Socials = seedCompany.SocialsJson;
             user.EmployerProfile.MediaContent = "[]";
+            user.EmployerProfile.HeroMediaJson = BuildHeroMediaJson(seedCompany);
+            user.EmployerProfile.CaseStudiesJson = BuildCaseStudiesJson(seedCompany);
+            user.EmployerProfile.GalleryJson = BuildGalleryJson(seedCompany);
             users.Add(user);
         }
 
@@ -555,7 +576,7 @@ internal static class DevelopmentDataSeeder
                 opportunity.LocationAddress = seedOpportunity.LocationAddress;
                 opportunity.Latitude = seedOpportunity.Latitude;
                 opportunity.Longitude = seedOpportunity.Longitude;
-                opportunity.OpportunityType = seedOpportunity.OpportunityType;
+                opportunity.OpportunityType = OpportunityTypes.Normalize(seedOpportunity.OpportunityType) ?? OpportunityTypes.Vacancy;
                 opportunity.EmploymentType = seedOpportunity.EmploymentType;
                 opportunity.ModerationStatus = OpportunityModerationStatuses.Approved;
                 opportunity.DeletedAt = null;
@@ -696,7 +717,84 @@ internal static class DevelopmentDataSeeder
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private sealed record SeedCurator(string Email, string Password, string Name, string Surname, string? Thirdname);
+    private static string BuildHeroMediaJson(SeedCompany seedCompany) =>
+        JsonSerializer.Serialize(new
+        {
+            type = "image",
+            title = $"Команда {seedCompany.CompanyName}",
+            description = seedCompany.Description,
+            previewUrl = $"https://images.unsplash.com/photo-{GetHeroMediaImageId(seedCompany.CompanyName)}?auto=format&fit=crop&w=1600&q=80",
+            sourceUrl = $"https://{seedCompany.CompanyName.ToLowerInvariant()}.tramplin.local/about",
+        });
+
+    private static string BuildCaseStudiesJson(SeedCompany seedCompany) =>
+        JsonSerializer.Serialize(
+            seedCompany.Opportunities
+                .Take(3)
+                .Select((opportunity, index) => new
+                {
+                    id = $"{seedCompany.CompanyName.ToLowerInvariant()}-case-{index + 1}",
+                    title = opportunity.Title,
+                    subtitle = opportunity.LocationCity,
+                    description = opportunity.Description,
+                    mediaType = "image",
+                    previewUrl = $"https://images.unsplash.com/photo-{GetCaseStudyImageId(seedCompany.CompanyName, index)}?auto=format&fit=crop&w=1200&q=80",
+                    sourceUrl = $"https://{seedCompany.CompanyName.ToLowerInvariant()}.tramplin.local/cases/{index + 1}",
+                }));
+
+    private static string BuildGalleryJson(SeedCompany seedCompany) =>
+        JsonSerializer.Serialize(
+            Enumerable.Range(1, 4)
+                .Select(index => new
+                {
+                    id = $"{seedCompany.CompanyName.ToLowerInvariant()}-gallery-{index}",
+                    alt = $"{seedCompany.CompanyName} gallery {index}",
+                    imageUrl = $"https://images.unsplash.com/photo-{GetGalleryImageId(seedCompany.CompanyName, index)}?auto=format&fit=crop&w=1200&q=80",
+                }));
+
+    private static string GetHeroMediaImageId(string companyName) =>
+        companyName switch
+        {
+            "Sber" => "1520607162513-77705c0f0d4a",
+            "VK" => "1516321318423-f06f85e504b3",
+            "Yandex" => "1497366754035-f200968a6e72",
+            _ => "1521737604893-d14cc237f11d",
+        };
+
+    private static string GetCaseStudyImageId(string companyName, int index) =>
+        (companyName, index) switch
+        {
+            ("Sber", 0) => "1516321497487-e288fb19713f",
+            ("Sber", 1) => "1516321318423-f06f85e504b3",
+            ("Sber", 2) => "1552664730-d307ca884978",
+            ("VK", 0) => "1498050108023-c5249f4df085",
+            ("VK", 1) => "1522071820081-009f0129c71c",
+            ("VK", 2) => "1516321165247-4aa89a48be28",
+            ("Yandex", 0) => "1497366412874-3415097a27e7",
+            ("Yandex", 1) => "1524758631624-e2822e304c36",
+            ("Yandex", 2) => "1517245386807-bb43f82c33c4",
+            _ => "1521737604893-d14cc237f11d",
+        };
+
+    private static string GetGalleryImageId(string companyName, int index) =>
+        (companyName, index) switch
+        {
+            ("Sber", 1) => "1516321497487-e288fb19713f",
+            ("Sber", 2) => "1520607162513-77705c0f0d4a",
+            ("Sber", 3) => "1552664730-d307ca884978",
+            ("Sber", 4) => "1497366754035-f200968a6e72",
+            ("VK", 1) => "1516321318423-f06f85e504b3",
+            ("VK", 2) => "1498050108023-c5249f4df085",
+            ("VK", 3) => "1522071820081-009f0129c71c",
+            ("VK", 4) => "1516321165247-4aa89a48be28",
+            ("Yandex", 1) => "1497366412874-3415097a27e7",
+            ("Yandex", 2) => "1524758631624-e2822e304c36",
+            ("Yandex", 3) => "1517245386807-bb43f82c33c4",
+            ("Yandex", 4) => "1519389950473-47ba0277781c",
+            _ => "1521737604893-d14cc237f11d",
+        };
+
+    private sealed record SeedCurator(string Email, string Password, string Name, string Surname, string? Thirdname, bool IsAdministrator);
 
     private sealed record SeedCandidate(
         string Email,
@@ -706,7 +804,8 @@ internal static class DevelopmentDataSeeder
         string? Thirdname,
         string Description,
         string[] Skills,
-        string LinksJson);
+        string LinksJson,
+        string ModerationStatus);
 
     private sealed record SeedCompany(
         string Email,

@@ -3,7 +3,12 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
-import { FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, writeFavoriteOpportunityIds } from "../features/favorites/storage";
+import {
+  FAVORITE_COMPANY_IDS_STORAGE_KEY,
+  FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY,
+  writeFavoriteCompanyIds,
+  writeFavoriteOpportunityIds,
+} from "../features/favorites/storage";
 import { OpportunitiesCatalogApp } from "./OpportunitiesCatalogApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -23,7 +28,8 @@ vi.mock("../home/HomeOpportunityMap", () => ({
           <button
             key={item.id}
             type="button"
-            data-favorite={item.isFavorite ? "true" : "false"}
+            data-favorite={item.isFavoriteOpportunity ? "true" : "false"}
+            data-company-favorite={item.isFavoriteCompanyOpportunity ? "true" : "false"}
             onClick={() => onSelectItem?.(item.id)}
           >
             {item.title}
@@ -39,6 +45,7 @@ vi.mock("../home/HomeOpportunityMap", () => ({
 const opportunities = [
   {
     id: 1,
+    employerId: 101,
     title: "Junior Security Analyst",
     companyName: "IGrids",
     locationCity: "Москва",
@@ -53,6 +60,7 @@ const opportunities = [
   },
   {
     id: 2,
+    employerId: 202,
     title: "IT-Планета",
     companyName: "IT-Планета",
     locationCity: "Москва",
@@ -67,6 +75,7 @@ const opportunities = [
   },
   {
     id: 3,
+    employerId: 303,
     title: "Mobile UI/UX",
     companyName: "White Tiger Soft",
     locationCity: "Москва",
@@ -81,6 +90,7 @@ const opportunities = [
   },
   {
     id: 4,
+    employerId: 101,
     title: "Frontend Intern",
     companyName: "IGrids",
     locationCity: "Чебоксары",
@@ -95,6 +105,7 @@ const opportunities = [
   },
   {
     id: 5,
+    employerId: 404,
     title: "QA Engineer",
     companyName: "Case Systems",
     locationCity: "Чебоксары",
@@ -107,6 +118,7 @@ const opportunities = [
   },
   {
     id: 6,
+    employerId: 505,
     title: "Junior Security Analyst",
     companyName: "Shield Ops",
     locationCity: "Чебоксары",
@@ -121,6 +133,7 @@ const opportunities = [
   },
   {
     id: 7,
+    employerId: 404,
     title: "Product Designer",
     companyName: "Case Systems",
     locationCity: "Чебоксары",
@@ -403,7 +416,43 @@ describe("OpportunitiesCatalogApp", () => {
     expect(companiesCard).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Вакансии в Чебоксары" })).toBeInTheDocument();
     expect(within(companiesCard).getByText("Case Systems")).toBeInTheDocument();
+    expect(within(companiesCard).getByText("Case Systems").closest("a")).toHaveAttribute("href", "/companies/404");
     expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
+  });
 
+  it("supports company favorites and propagates them to the map", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    const caseSystemsTile = await screen.findByText("Case Systems");
+    const tileCard = caseSystemsTile.closest(".ui-company-vacancy-tile");
+
+    expect(tileCard).not.toBeNull();
+
+    fireEvent.click(within(tileCard).getByRole("button", { name: "Сохранить компанию" }));
+
+    expect(JSON.parse(window.localStorage.getItem(FAVORITE_COMPANY_IDS_STORAGE_KEY) ?? "[]")).toEqual(["404"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Product Designer" })).toHaveAttribute(
+        "data-company-favorite",
+        "true"
+      );
+    });
+  });
+
+  it("shows the mentoring legend on the map", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Карта" }));
+
+    expect(screen.getByText("Менторская программа")).toBeInTheDocument();
   });
 });

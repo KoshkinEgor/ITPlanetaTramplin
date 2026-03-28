@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuthSession } from "../auth/api";
 import { createModeratorInvitation, getModeratorInvitations } from "../api/moderation";
 import { ApiError } from "../lib/http";
 import {
@@ -60,17 +61,32 @@ function createEmptyForm() {
 }
 
 export function ModeratorInvitationsApp() {
+  const authSession = useAuthSession();
   const [state, setState] = useState({ status: "loading", invitations: [], error: null });
   const [form, setForm] = useState(createEmptyForm());
   const [saveState, setSaveState] = useState({ status: "idle", error: "", payload: null });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (authSession.status === "idle" || authSession.status === "loading") {
+      return undefined;
+    }
+
+    if (authSession.status !== "authenticated" || authSession.user?.role !== "moderator") {
+      setState({ status: "unauthorized", invitations: [], error: null });
+      return undefined;
+    }
+
     const controller = new AbortController();
 
     async function load() {
       try {
         const invitations = await getModeratorInvitations(controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
         setState({
           status: "ready",
           invitations: Array.isArray(invitations) ? invitations : [],
@@ -82,7 +98,7 @@ export function ModeratorInvitationsApp() {
         }
 
         setState({
-          status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
+          status: error instanceof ApiError && (error.status === 401 || error.status === 403) ? "unauthorized" : "error",
           invitations: [],
           error,
         });
@@ -91,8 +107,9 @@ export function ModeratorInvitationsApp() {
 
     load();
     return () => controller.abort();
-  }, [reloadKey]);
+  }, [authSession.status, authSession.user?.id, authSession.user?.role, reloadKey]);
 
+  const canInvite = authSession.status === "authenticated" && authSession.user?.role === "moderator" && authSession.user?.isAdministrator === true;
   const activeInvitationCount = useMemo(
     () => state.invitations.filter((item) => getInvitationStatus(item).label === "Активно").length,
     [state.invitations]
@@ -105,6 +122,15 @@ export function ModeratorInvitationsApp() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (!canInvite) {
+      setSaveState({
+        status: "error",
+        error: "Приглашать кураторов может только administrator.",
+        payload: null,
+      });
+      return;
+    }
 
     if (!form.email.trim() || !form.name.trim() || !form.surname.trim()) {
       setSaveState({
@@ -146,7 +172,7 @@ export function ModeratorInvitationsApp() {
           <EmptyState
             eyebrow="Доступ ограничен"
             title="Нужна роль модератора"
-            description="Создавать приглашения могут только действующие модераторы платформы."
+            description="Создавать и просматривать приглашения могут только действующие модераторы платформы."
             tone="warning"
           />
         </Card>
@@ -182,50 +208,66 @@ export function ModeratorInvitationsApp() {
         <div className="moderator-dashboard-stack">
           <DashboardPageHeader
             title="Приглашения модераторов"
-            description="Приглашайте новых модераторов по email. Пользователь получит ссылку, задаст пароль и активирует доступ к кабинету."
+            description="История приглашений и доступ к созданию новых кураторов без отдельной административной панели."
             className="moderator-fade-up moderator-fade-up--delay-1"
           />
 
+          {!canInvite ? (
+            <Alert tone="warning" title="Создание приглашений ограничено" showIcon>
+              Приглашать кураторов может только <strong>administrator</strong>. История уже созданных приглашений остаётся доступной.
+            </Alert>
+          ) : null}
+
           <section className="moderator-invitations-layout">
-            <Card className="moderator-panel moderator-panel--invite-form moderator-fade-up moderator-fade-up--delay-2">
-              <DashboardSectionHeader
-                eyebrow="Новый доступ"
-                title="Создать приглашение"
-                description="Заполните данные будущего модератора. После отправки приглашение придет на указанный email."
-              />
+            {canInvite ? (
+              <Card className="moderator-panel moderator-panel--invite-form moderator-fade-up moderator-fade-up--delay-2">
+                <DashboardSectionHeader
+                  eyebrow="Новый доступ"
+                  title="Создать приглашение"
+                  description="Заполните данные будущего модератора. После отправки приглашение придет на указанный email."
+                />
 
-              <form className="moderator-invitations-form" onSubmit={handleSubmit} noValidate>
-                <div className="moderator-invitations-form__grid moderator-invitations-form__grid--two">
-                  <FormField label="Имя" required>
-                    <Input value={form.name} onValueChange={(value) => updateField("name", value)} />
-                  </FormField>
-                  <FormField label="Фамилия" required>
-                    <Input value={form.surname} onValueChange={(value) => updateField("surname", value)} />
-                  </FormField>
-                </div>
+                <form className="moderator-invitations-form" onSubmit={handleSubmit} noValidate>
+                  <div className="moderator-invitations-form__grid moderator-invitations-form__grid--two">
+                    <FormField label="Имя" required>
+                      <Input value={form.name} onValueChange={(value) => updateField("name", value)} />
+                    </FormField>
+                    <FormField label="Фамилия" required>
+                      <Input value={form.surname} onValueChange={(value) => updateField("surname", value)} />
+                    </FormField>
+                  </div>
 
-                <div className="moderator-invitations-form__grid moderator-invitations-form__grid--two">
-                  <FormField label="Отчество">
-                    <Input value={form.thirdname} onValueChange={(value) => updateField("thirdname", value)} />
-                  </FormField>
-                  <FormField label="Email" required>
-                    <Input type="email" value={form.email} onValueChange={(value) => updateField("email", value)} />
-                  </FormField>
-                </div>
+                  <div className="moderator-invitations-form__grid moderator-invitations-form__grid--two">
+                    <FormField label="Отчество">
+                      <Input value={form.thirdname} onValueChange={(value) => updateField("thirdname", value)} />
+                    </FormField>
+                    <FormField label="Email" required>
+                      <Input type="email" value={form.email} onValueChange={(value) => updateField("email", value)} />
+                    </FormField>
+                  </div>
 
-                <div className="moderator-invitations-form__actions">
-                  <Button type="submit" disabled={saveState.status === "saving"}>
-                    {saveState.status === "saving" ? "Отправляем..." : "Отправить приглашение"}
-                  </Button>
-                </div>
-              </form>
-            </Card>
+                  <div className="moderator-invitations-form__actions">
+                    <Button type="submit" disabled={saveState.status === "saving"}>
+                      {saveState.status === "saving" ? "Отправляем..." : "Отправить приглашение"}
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            ) : (
+              <Card className="moderator-panel moderator-panel--invite-form moderator-fade-up moderator-fade-up--delay-2">
+                <DashboardSectionHeader
+                  eyebrow="Права доступа"
+                  title="Форма скрыта для обычных модераторов"
+                  description="Вы можете просматривать историю приглашений, но создавать новые записи может только administrator."
+                />
+              </Card>
+            )}
 
             <Card className="moderator-panel moderator-panel--invite-side moderator-fade-up moderator-fade-up--delay-3">
               <DashboardSectionHeader
                 eyebrow="Правила"
                 title="Как это работает"
-                description="Новый модератор не регистрируется сам. Доступ появляется только после приглашения от действующего модератора."
+                description="Новый модератор не регистрируется сам. Доступ появляется только после приглашения от administrator."
               />
 
               <div className="moderator-invitations-note-list">
@@ -235,11 +277,11 @@ export function ModeratorInvitationsApp() {
                 </article>
                 <article className="moderator-invitations-note-card">
                   <strong>2. Активация доступа</strong>
-                  <p className="ui-type-body">Получатель задает пароль и сразу получает роль модератора.</p>
+                  <p className="ui-type-body">Получатель задает пароль и сразу получает роль модератора без прав администратора.</p>
                 </article>
                 <article className="moderator-invitations-note-card">
                   <strong>3. Контроль статуса</strong>
-                  <p className="ui-type-body">Внизу страницы видно, какие приглашения еще активны, а какие уже приняты.</p>
+                  <p className="ui-type-body">Ниже видно, какие приглашения ещё активны, а какие уже приняты или истекли.</p>
                 </article>
               </div>
             </Card>
@@ -289,7 +331,7 @@ export function ModeratorInvitationsApp() {
             ) : (
               <EmptyState
                 title="Приглашений пока нет"
-                description="Создайте первое приглашение через форму выше, чтобы добавить нового модератора."
+                description="История появится после первой отправки приглашения."
                 tone="neutral"
                 compact
               />

@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
-import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
+import {
+  readFavoriteCompanyIds,
+  readFavoriteOpportunityIds,
+  subscribeToFavorites,
+  toggleFavoriteCompany,
+} from "../features/favorites/storage";
 import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
+import { getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
   Alert,
@@ -32,6 +38,7 @@ const TYPE_FILTERS = [
   { value: "vacancy", label: "Вакансии" },
   { value: "internship", label: "Стажировки" },
   { value: "event", label: "Мероприятия" },
+  { value: "mentoring", label: "Менторские программы" },
 ];
 
 const VIEW_ITEMS = [
@@ -43,6 +50,7 @@ const MAP_LEGEND_ITEMS = [
   { tone: "blue", label: "Вакансия" },
   { tone: "green", label: "Стажировка" },
   { tone: "orange", label: "Мероприятие" },
+  { tone: "teal", label: "Менторская программа" },
 ];
 
 const MAP_DISPLAY_ITEMS = [
@@ -106,6 +114,8 @@ function formatCount(count, words) {
 }
 
 function translateOpportunityType(value) {
+  return translateSharedOpportunityType(value);
+/*
   switch (value) {
     case "vacancy":
       return "Вакансия";
@@ -115,7 +125,7 @@ function translateOpportunityType(value) {
       return "Мероприятие";
     default:
       return value || "Возможность";
-  }
+  }*/
 }
 
 function translateEmploymentType(value) {
@@ -174,6 +184,7 @@ function createMapCardItem(item) {
 
   return {
     id: String(item.id),
+    employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: typeLabel,
     type: typeLabel,
     title: item.title,
@@ -183,6 +194,8 @@ function createMapCardItem(item) {
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
     coordinates: [Number(item.longitude), Number(item.latitude)],
     detailHref: buildOpportunityDetailRoute(item.id),
+    isFavoriteOpportunity: Boolean(item.isFavoriteOpportunity ?? item.isFavorite),
+    isFavoriteCompanyOpportunity: Boolean(item.isFavoriteCompanyOpportunity),
     isFavorite: Boolean(item.isFavorite),
   };
 }
@@ -264,17 +277,24 @@ function buildCompanyGroups(items) {
   items.forEach((item) => {
     const city = String(item.locationCity ?? "").trim();
     const companyName = String(item.companyName ?? "").trim();
+    const employerId = item?.employerId != null ? String(item.employerId) : "";
 
     if (!city || !companyName) {
       return;
     }
 
     const cityEntry = cityMap.get(city) ?? { city, count: 0, companies: new Map() };
-    const companyEntry = cityEntry.companies.get(companyName) ?? { name: companyName, count: 0 };
+    const companyKey = employerId || companyName.toLowerCase();
+    const companyEntry = cityEntry.companies.get(companyKey) ?? {
+      id: companyKey,
+      employerId,
+      name: companyName,
+      count: 0,
+    };
 
     companyEntry.count += 1;
     cityEntry.count += 1;
-    cityEntry.companies.set(companyName, companyEntry);
+    cityEntry.companies.set(companyKey, companyEntry);
     cityMap.set(city, cityEntry);
   });
 
@@ -310,6 +330,7 @@ export function OpportunitiesCatalogApp() {
   const [filtersDropdownOpen, setFiltersDropdownOpen] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
+  const [favoriteCompanyIds, setFavoriteCompanyIds] = useState(() => readFavoriteCompanyIds());
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(3);
   const [expandedCompanies, setExpandedCompanies] = useState(false);
@@ -324,6 +345,7 @@ export function OpportunitiesCatalogApp() {
   }, []);
 
   useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
+  useEffect(() => subscribeToFavorites(setFavoriteCompanyIds, { scope: "companies" }), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -441,25 +463,36 @@ export function OpportunitiesCatalogApp() {
     () => new Set(favoriteOpportunityIds.map((id) => String(id))),
     [favoriteOpportunityIds]
   );
+  const favoriteCompanyIdSet = useMemo(
+    () => new Set(favoriteCompanyIds.map((id) => String(id))),
+    [favoriteCompanyIds]
+  );
   const mapFilteredItems = useMemo(
     () =>
       filteredItems
         .map((item) => ({
           ...item,
+          isFavoriteOpportunity: favoriteOpportunityIdSet.has(String(item.id)),
+          isFavoriteCompanyOpportunity:
+            item?.employerId != null && item.employerId !== ""
+              ? favoriteCompanyIdSet.has(String(item.employerId))
+              : false,
           isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
         }))
         .filter((item) => {
+          const isFavoriteMatch = item.isFavoriteOpportunity || item.isFavoriteCompanyOpportunity;
+
           if (favoritesDisplay === "favorites") {
-            return item.isFavorite;
+            return isFavoriteMatch;
           }
 
           if (favoritesDisplay === "non-favorites") {
-            return !item.isFavorite;
+            return !isFavoriteMatch;
           }
 
           return true;
         }),
-    [favoriteOpportunityIdSet, favoritesDisplay, filteredItems]
+    [favoriteCompanyIdSet, favoriteOpportunityIdSet, favoritesDisplay, filteredItems]
   );
   const mapItems = useMemo(() => mapFilteredItems.filter(hasValidCoordinates).map(createMapCardItem), [mapFilteredItems]);
   const mapResultsDescription = useMemo(
@@ -501,6 +534,7 @@ export function OpportunitiesCatalogApp() {
     const vacancies = personalizedItems.filter((entry) => entry.item.opportunityType === "vacancy").length;
     const events = personalizedItems.filter((entry) => entry.item.opportunityType === "event").length;
     const internships = personalizedItems.filter((entry) => entry.item.opportunityType === "internship").length;
+    const mentoringPrograms = personalizedItems.filter((entry) => entry.item.opportunityType === "mentoring").length;
     const parts = [];
 
     if (events) {
@@ -513,6 +547,10 @@ export function OpportunitiesCatalogApp() {
 
     if (internships) {
       parts.push(formatCount(internships, ["стажировка", "стажировки", "стажировок"]));
+    }
+
+    if (mentoringPrograms) {
+      parts.push(formatCount(mentoringPrograms, ["менторская программа", "менторские программы", "менторских программ"]));
     }
 
     return `Тебе подходит ${parts.join(" и ")}.`;
@@ -719,7 +757,7 @@ export function OpportunitiesCatalogApp() {
                             }}
                             detailAction={{
                               href: buildOpportunityDetailRoute(item.id),
-                              label: item.opportunityType === "event" ? "Подать заявку" : "Откликнуться",
+                              label: getOpportunityApplyLabel(item.opportunityType),
                               variant: "secondary",
                             }}
                           />
@@ -904,10 +942,23 @@ export function OpportunitiesCatalogApp() {
                     <div className="opportunities-browser__company-grid">
                       {visibleCompanies.map((item, index) => (
                         <CompanyVacancyTile
-                          key={`${activeCompanyGroup.city}-${item.name}`}
+                          key={item.id}
+                          href={item.employerId ? buildCompanyPublicRoute(item.employerId) : undefined}
                           name={item.name}
                           count={formatCount(item.count, ["вакансия", "вакансии", "вакансий"])}
                           tone={index % 3 === 0 ? "lime" : "neutral"}
+                          showFavorite={Boolean(item.employerId)}
+                          favoritePressed={item.employerId ? favoriteCompanyIdSet.has(String(item.employerId)) : false}
+                          favoriteLabel={
+                            item.employerId && favoriteCompanyIdSet.has(String(item.employerId))
+                              ? "Убрать компанию из избранного"
+                              : "Сохранить компанию"
+                          }
+                          onFavoriteClick={() => {
+                            if (item.employerId) {
+                              toggleFavoriteCompany(item.employerId);
+                            }
+                          }}
                         />
                       ))}
                     </div>

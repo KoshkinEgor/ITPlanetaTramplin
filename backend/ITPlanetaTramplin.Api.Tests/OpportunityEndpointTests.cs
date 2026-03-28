@@ -342,4 +342,80 @@ public class OpportunityEndpointTests
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companyLegalAddress").GetString()));
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companySocials").GetString()));
     }
+
+    [Fact]
+    public async Task CreateAndUpdateOpportunity_ValidatesMentoringTypeAndRejectsUnknownTypes()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Mentoring opportunity",
+            description = "Created from test",
+            opportunityType = "mentoring",
+            employmentType = "remote",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Mentoring opportunity");
+            opportunityId = opportunity.Id;
+            Assert.Equal("mentoring", opportunity.OpportunityType);
+        }
+
+        var invalidCreateResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Invalid type create",
+            description = "Created from test",
+            opportunityType = "unknown-type",
+            employmentType = "remote",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, invalidCreateResponse.StatusCode);
+
+        var invalidUpdateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}", new
+        {
+            opportunityType = "unknown-type",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, invalidUpdateResponse.StatusCode);
+
+        var validUpdateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}", new
+        {
+            opportunityType = "mentoring",
+            employmentType = "hybrid",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, validUpdateResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetOpportunities_ReturnsEmployerIdInPublicPayload()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/opportunities");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var firstOpportunity = payload.RootElement.EnumerateArray().First();
+
+        Assert.True(firstOpportunity.TryGetProperty("employerId", out var employerIdElement));
+        Assert.True(employerIdElement.GetInt32() > 0);
+    }
 }

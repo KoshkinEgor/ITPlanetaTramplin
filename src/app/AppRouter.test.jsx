@@ -1,8 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
+
+vi.mock("../pages/company/index.jsx", async () => {
+  const actual = await vi.importActual("../pages/company/index.jsx");
+
+  return {
+    ...actual,
+    CompanyPublicPage: () => <div data-testid="company-public-route">Company public route</div>,
+  };
+});
 
 function renderRoutes(path, uiKitEnabled) {
   return render(
@@ -33,9 +42,16 @@ describe("AppRoutes", () => {
     expect(screen.queryByTestId("ui-kit-page")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Возможности рядом" })).toBeInTheDocument();
   });
+
   it("renders the demo opportunity detail route", async () => {
     renderRoutes(routes.opportunities.detailCard, false);
 
     expect(await screen.findByRole("heading", { name: /UI\/UX/i, level: 1 })).toBeInTheDocument();
+  });
+
+  it("renders the public company route", () => {
+    renderRoutes("/companies/42", false);
+
+    expect(screen.getByTestId("company-public-route")).toBeInTheDocument();
   });
 });

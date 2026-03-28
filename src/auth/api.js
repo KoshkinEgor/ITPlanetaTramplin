@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { ApiError, apiRequest } from "../lib/http";
 import { normalizeAuthRole } from "./session-utils";
+import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from "./session-token";
 
 function mapApiError(error) {
   if (error instanceof ApiError) {
@@ -66,10 +67,13 @@ function setAuthSessionLoading() {
   });
 }
 
-function captureAuthenticatedUser(result) {
-  if (result?.user) {
-    setAuthenticatedSession(result.user);
+function captureAuthenticatedSession(result) {
+  if (!result?.user || typeof result?.token !== "string" || !result.token.trim()) {
+    return null;
   }
+
+  setStoredAuthToken(result.token);
+  return setAuthenticatedSession(result.user);
 }
 
 export function getAuthSessionSnapshot() {
@@ -102,6 +106,7 @@ export function setAuthenticatedSession(user) {
 
 export function clearAuthSession() {
   authSessionRequest = null;
+  clearStoredAuthToken();
 
   setAuthSessionSnapshot({
     status: "guest",
@@ -111,6 +116,13 @@ export function clearAuthSession() {
 }
 
 export async function refreshAuthSession({ force = false } = {}) {
+  const authToken = getStoredAuthToken();
+
+  if (!authToken) {
+    clearAuthSession();
+    throw new ApiError("Unauthorized", { status: 401 });
+  }
+
   if (!force) {
     if (authSessionSnapshot.status === "authenticated") {
       return authSessionSnapshot.user;
@@ -188,7 +200,7 @@ export async function submitLogin({ role, email, inn, password }) {
       },
     });
 
-    captureAuthenticatedUser(result);
+    captureAuthenticatedSession(result);
     return result;
   } catch (error) {
     throw mapApiError(error);
@@ -221,7 +233,7 @@ export async function submitRegistration({
         },
       });
 
-      captureAuthenticatedUser(result);
+      captureAuthenticatedSession(result);
       return result;
     }
 
@@ -236,7 +248,7 @@ export async function submitRegistration({
       },
     });
 
-    captureAuthenticatedUser(result);
+    captureAuthenticatedSession(result);
     return result;
   } catch (error) {
     throw mapApiError(error);
@@ -254,7 +266,7 @@ export async function confirmEmail({ email, role, code }) {
       },
     });
 
-    captureAuthenticatedUser(result);
+    captureAuthenticatedSession(result);
     return result;
   } catch (error) {
     throw mapApiError(error);
@@ -346,7 +358,7 @@ export async function acceptModeratorInvitation({ token, password }) {
       body: { password },
     });
 
-    captureAuthenticatedUser(result);
+    captureAuthenticatedSession(result);
     return result;
   } catch (error) {
     throw mapApiError(error);

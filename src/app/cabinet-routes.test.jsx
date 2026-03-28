@@ -5,7 +5,7 @@ import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../au
 import { updateCandidateProfile } from "../api/candidate";
 import { getCompanyOpportunities, getCompanyProfile } from "../api/company";
 import { resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
-import { getModerationDashboard } from "../api/moderation";
+import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
 import { AppRoutes } from "./AppRouter";
 import { routes } from "./routes";
 
@@ -116,13 +116,6 @@ vi.mock("../api/opportunities", () => ({
 }));
 
 vi.mock("../api/moderation", () => ({
-  getModerationDashboard: vi.fn(() =>
-    Promise.resolve({
-      opportunitiesPending: 4,
-      companiesPending: 2,
-      totalUsers: 16,
-    })
-  ),
   getModerationCompanies: vi.fn(() => Promise.resolve([])),
   getModerationOpportunities: vi.fn(() => Promise.resolve([])),
   getModerationUsers: vi.fn(() => Promise.resolve([])),
@@ -340,7 +333,35 @@ describe("cabinet shell routes", () => {
     expect(await screen.findByRole("heading", { name: /Signal Hub/i })).toBeInTheDocument();
   });
 
-  it("shows the moderator summary only on the dashboard route", async () => {
+  it("hides moderator invitations in the sidebar for non-admin moderators", async () => {
+    setSession({
+      id: 7,
+      role: "moderator",
+      email: "moderator@example.com",
+      isAdministrator: false,
+    });
+
+    renderRoute(routes.moderator.logs);
+
+    expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Приглашения модераторов/i })).not.toBeInTheDocument();
+  });
+
+  it("shows moderator invitations in the sidebar for administrator", async () => {
+    setSession({
+      id: 1,
+      role: "moderator",
+      email: "administrator@tramplin.local",
+      isAdministrator: true,
+    });
+
+    renderRoute(routes.moderator.logs);
+
+    expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Приглашения модераторов/i })).toBeInTheDocument();
+  });
+
+  it("loads moderator dashboard data only on the dashboard route", async () => {
     setSession({
       id: 7,
       role: "moderator",
@@ -350,15 +371,17 @@ describe("cabinet shell routes", () => {
     const { container } = renderRoute(routes.moderator.dashboard);
 
     await waitFor(() => {
-      expect(getModerationDashboard).toHaveBeenCalledTimes(1);
+      expect(getModerationCompanies).toHaveBeenCalledTimes(1);
+      expect(getModerationOpportunities).toHaveBeenCalledTimes(1);
+      expect(getModerationUsers).toHaveBeenCalledTimes(1);
     });
 
     expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
-    expect(container.querySelector(".moderator-profile-summary")).toBeInTheDocument();
     expect(container.querySelector(".moderator-dashboard-stack")).toBeInTheDocument();
-  });
+    expect(screen.getByRole("heading", { name: /дашборд модерации/i })).toBeInTheDocument();
+  }, 15000);
 
-  it("skips the moderator summary fetch outside the dashboard route", async () => {
+  it("skips the moderator dashboard data fetch outside the dashboard route", async () => {
     setSession({
       id: 7,
       role: "moderator",
@@ -368,8 +391,10 @@ describe("cabinet shell routes", () => {
     const { container } = renderRoute(routes.moderator.logs);
 
     expect(await screen.findByTestId("moderator-activity-log")).toBeInTheDocument();
-    expect(container.querySelector(".moderator-profile-summary")).not.toBeInTheDocument();
-    expect(getModerationDashboard).not.toHaveBeenCalled();
+    expect(container.querySelector(".moderator-dashboard-stack")).not.toBeInTheDocument();
+    expect(getModerationCompanies).not.toHaveBeenCalled();
+    expect(getModerationOpportunities).not.toHaveBeenCalled();
+    expect(getModerationUsers).not.toHaveBeenCalled();
   });
 
   it("redirects guests from moderator routes to the login page", async () => {

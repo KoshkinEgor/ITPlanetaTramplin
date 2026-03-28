@@ -117,6 +117,12 @@
     drop-shadow(0 10px 18px rgba(255, 95, 128, 0.26));
 }
 
+.home-yandex-map__marker--company-favorite .ui-map-marker__pin {
+  filter:
+    drop-shadow(0 0 12px rgba(31, 159, 154, 0.18))
+    drop-shadow(0 10px 18px rgba(31, 159, 154, 0.22));
+}
+
 .home-yandex-map__marker-favorite-badge {
   position: absolute;
   top: -4px;

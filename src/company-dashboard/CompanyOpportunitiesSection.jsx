@@ -2,6 +2,7 @@
 import { getCompanyOpportunities } from "../api/company";
 import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
 import { ApiError } from "../lib/http";
+import { OPPORTUNITY_TYPE_OPTIONS } from "../shared/lib/opportunityTypes";
 import { Alert, Badge, Button, EmptyState, FormField, Input, Loader, Select, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import {
@@ -16,13 +17,8 @@ import {
   translateModerationStatus,
   translateOpportunityType,
 } from "./utils";
+import { OpportunityLocationPicker } from "./OpportunityLocationPicker";
 import "./company-dashboard.css";
-
-const OPPORTUNITY_TYPE_OPTIONS = [
-  { value: "vacancy", label: "Вакансия" },
-  { value: "internship", label: "Стажировка" },
-  { value: "event", label: "Мероприятие" },
-];
 
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: "office", label: "Офис" },
@@ -312,29 +308,17 @@ export function CompanyOpportunitiesSection() {
                 </FormField>
               </div>
 
-              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Срок или дата">
-                  <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
-                </FormField>
-                <FormField label="Широта">
-                  <Input value={draft.latitude} onValueChange={(value) => updateField("latitude", value)} placeholder="56.123456" />
-                </FormField>
-              </div>
+              <FormField label="Срок или дата">
+                <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
+              </FormField>
 
-              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Город">
-                  <Input value={draft.locationCity} onValueChange={(value) => updateField("locationCity", value)} />
-                </FormField>
-                <FormField label="Долгота">
-                  <Input value={draft.longitude} onValueChange={(value) => updateField("longitude", value)} placeholder="47.654321" />
-                </FormField>
-              </div>
-
-              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Адрес">
-                  <Input value={draft.locationAddress} onValueChange={(value) => updateField("locationAddress", value)} />
-                </FormField>
-              </div>
+              <OpportunityLocationPicker
+                locationCity={draft.locationCity}
+                locationAddress={draft.locationAddress}
+                latitude={draft.latitude}
+                longitude={draft.longitude}
+                onFieldChange={updateField}
+              />
 
               <FormField label="Теги через запятую">
                 <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />

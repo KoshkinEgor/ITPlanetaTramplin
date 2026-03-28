@@ -1,5 +1,7 @@
 ﻿import { getOpportunityApplications } from "../api/company";
 
+import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
+
 export const OPPORTUNITY_CONTACT_TYPE_OPTIONS = [
   { value: "phone", label: "Телефон" },
   { value: "email", label: "Email" },
@@ -33,16 +35,7 @@ export function translateVerificationStatus(status) {
 }
 
 export function translateOpportunityType(type) {
-  switch (type) {
-    case "vacancy":
-      return "Вакансия";
-    case "internship":
-      return "Стажировка";
-    case "event":
-      return "Мероприятие";
-    default:
-      return type || "Возможность";
-  }
+  return translateSharedOpportunityType(type);
 }
 
 export function translateApplicationStatus(status) {

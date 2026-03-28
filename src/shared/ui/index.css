@@ -24,6 +24,7 @@
 @import "../../components/ui/Avatar/Avatar.css";
 @import "../../components/ui/SearchInput/SearchInput.css";
 @import "../../components/ui/CityAutocomplete/CityAutocomplete.css";
+@import "../../components/ui/AddressAutocomplete/AddressAutocomplete.css";
 @import "../../components/ui/TagSelector/TagSelector.css";
 @import "../../components/ui/SegmentedControl/SegmentedControl.css";
 @import "../../components/ui/SettingsSectionCard/SettingsSectionCard.css";

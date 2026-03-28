@@ -1,3 +1,4 @@
+import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { buildSocialProfileHref } from "./social";
 
 export function getCandidateDisplayName(profile) {
@@ -216,6 +217,8 @@ export function mapContactToPeerCard(contact, candidateSkills = []) {
 }
 
 export function translateOpportunityType(value) {
+  return translateSharedOpportunityType(value);
+/*
   switch (value) {
     case "internship":
       return "Стажировка";
@@ -225,7 +228,7 @@ export function translateOpportunityType(value) {
       return "Мероприятие";
     default:
       return value || "Возможность";
-  }
+  }*/
 }
 
 export function translateApplicationStatus(value) {

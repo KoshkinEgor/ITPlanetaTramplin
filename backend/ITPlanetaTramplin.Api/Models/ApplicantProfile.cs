@@ -17,6 +17,8 @@ public partial class ApplicantProfile
 
     public string? Description { get; set; }
 
+    public string ModerationStatus { get; set; } = string.Empty;
+
     public List<string>? Skills { get; set; }
 
     public string? Links { get; set; }

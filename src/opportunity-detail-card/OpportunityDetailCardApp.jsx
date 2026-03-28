@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
-import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
 import {
   refreshCandidateApplications,
@@ -9,6 +9,7 @@ import {
 } from "../candidate-portal/candidate-applications-store";
 import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
+import { getOpportunityApplyLabel, isEventOpportunity, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { Alert, Avatar, Button, Card, EmptyState, IconButton, Loader, OpportunityMiniCard, Tag } from "../shared/ui";
 import "./opportunity-detail-card.css";
@@ -102,6 +103,8 @@ function isNumericOpportunityId(value) {
 }
 
 function translateOpportunityType(value) {
+  return translateSharedOpportunityType(value);
+/*
   switch (String(value || "").toLowerCase()) {
     case "vacancy":
       return "Вакансия";
@@ -111,7 +114,7 @@ function translateOpportunityType(value) {
       return "Мероприятие";
     default:
       return "Возможность";
-  }
+  }*/
 }
 
 function translateEmploymentType(value) {
@@ -272,8 +275,8 @@ function getExpiresLabel(expireAt) {
 
 function getApplyButtonLabel(type, status) {
   if (status === "saving") return "Отправляем...";
-  if (status === "success") return String(type || "").toLowerCase() === "event" ? "Заявка отправлена" : "Отклик отправлен";
-  return String(type || "").toLowerCase() === "event" ? "Подать заявку" : "Откликнуться";
+  if (status === "success") return isEventOpportunity(type) ? "Заявка отправлена" : "Отклик отправлен";
+  return getOpportunityApplyLabel(type);
 }
 
 function createApplyState(status = "idle", overrides = {}) {
@@ -287,7 +290,7 @@ function createApplyState(status = "idle", overrides = {}) {
 }
 
 function buildApplySuccessCopy(type, mode = "created") {
-  const isEvent = String(type || "").toLowerCase() === "event";
+  const isEvent = isEventOpportunity(type);
 
   if (mode === "existing") {
     return {
@@ -341,6 +344,7 @@ function buildOpportunityViewModel(item) {
       description: String(item.companyDescription ?? "").trim(),
       legalAddress: String(item.companyLegalAddress ?? "").trim(),
     },
+    publicCompanyHref: item?.employerId ? buildCompanyPublicRoute(item.employerId) : "",
     contactAction: getContactAction(contacts),
     companyAction: primarySocialLink,
     complaint: typeLabel === "Мероприятие" ? "Пожаловаться на событие" : "Пожаловаться на возможность",
@@ -349,7 +353,7 @@ function buildOpportunityViewModel(item) {
 
 function mapRelatedOpportunity(item) {
   const viewModel = buildOpportunityViewModel(item);
-  const isEvent = String(item?.opportunityType || "").toLowerCase() === "event";
+  const isEvent = isEventOpportunity(item?.opportunityType);
 
   return {
     type: viewModel.typeLabel,
@@ -501,7 +505,13 @@ function OpportunityDetailLayout({
           <div className="company-spotlight__company">
             <Avatar size="lg" initials={viewModel.company.initials} className="company-spotlight__avatar company-spotlight__avatar--brand" />
             <div className="company-spotlight__copy">
-              <h2 className="ui-type-h4">{item.companyName}</h2>
+              {viewModel.publicCompanyHref ? (
+                <AppLink href={viewModel.publicCompanyHref} className="opportunity-card-page__more-link">
+                  <h2 className="ui-type-h4">{item.companyName}</h2>
+                </AppLink>
+              ) : (
+                <h2 className="ui-type-h4">{item.companyName}</h2>
+              )}
               <p className="ui-type-body">{viewModel.company.description || "Описание компании пока не заполнено."}</p>
             </div>
           </div>
@@ -519,6 +529,11 @@ function OpportunityDetailLayout({
           ) : null}
 
           <div className="company-spotlight__footer">
+            {viewModel.publicCompanyHref ? (
+              <Button href={viewModel.publicCompanyHref} variant="secondary" className="company-spotlight__recommend">
+                Открыть профиль компании
+              </Button>
+            ) : null}
             {viewModel.companyAction ? (
               <Button href={viewModel.companyAction.url} variant="secondary" className="company-spotlight__recommend">
                 Открыть сайт компании

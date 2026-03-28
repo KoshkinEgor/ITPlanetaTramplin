@@ -44,6 +44,12 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.NotFound("Профиль работодателя не найден.");
         }
 
+        var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
+        if (normalizedOpportunityType is null)
+        {
+            return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
+        }
+
         var opportunity = new Opportunity
         {
             Title = request.Title.Trim(),
@@ -56,7 +62,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
                 : null,
             EmployerId = employer.Id,
-            OpportunityType = request.OpportunityType,
+            OpportunityType = normalizedOpportunityType,
             EmploymentType = NormalizeEmploymentType(request.EmploymentType),
             ModerationStatus = OpportunityModerationStatuses.Pending,
             ContactsJson = NormalizeContactsJson(request.ContactsJson),
@@ -143,48 +149,11 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.NotFound("Возможность не найдена или доступ запрещен.");
         }
 
-        if (request.Title is not null)
+        var validationResult = await ApplyOpportunityUpdateAsync(db, opportunity, request, resetModerationStatus: true);
+        if (validationResult is not null)
         {
-            opportunity.Title = request.Title.Trim();
+            return validationResult;
         }
-
-        if (request.Description is not null)
-        {
-            opportunity.Description = request.Description.Trim();
-        }
-
-        if (request.OpportunityType is not null)
-        {
-            opportunity.OpportunityType = request.OpportunityType;
-        }
-
-        if (request.EmploymentType is not null)
-        {
-            opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
-        }
-
-        opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
-
-        opportunity.LocationCity = NormalizeOptionalText(request.LocationCity);
-
-        opportunity.Latitude = request.Latitude;
-
-        opportunity.Longitude = request.Longitude;
-
-        opportunity.ExpireAt = request.ExpireAt.HasValue
-            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
-            : null;
-
-        opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
-
-        opportunity.MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson);
-
-        if (request.Tags is not null)
-        {
-            opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
-        }
-
-        opportunity.ModerationStatus = OpportunityModerationStatuses.Pending;
 
         await db.SaveChangesAsync();
         return Results.Ok();
@@ -199,6 +168,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             .Select(item => new
             {
                 item.Id,
+                EmployerId = item.EmployerId,
                 item.Title,
                 item.Description,
                 item.Longitude,
@@ -435,13 +405,71 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         });
     }
 
-    private static string NormalizeEmploymentType(string? value) =>
+    internal static async Task<IResult?> ApplyOpportunityUpdateAsync(
+        ApplicationDBContext db,
+        Opportunity opportunity,
+        OpportunityUpdateDTO request,
+        bool resetModerationStatus)
+    {
+        if (request.Title is not null)
+        {
+            opportunity.Title = request.Title.Trim();
+        }
+
+        if (request.Description is not null)
+        {
+            opportunity.Description = request.Description.Trim();
+        }
+
+        if (request.OpportunityType is not null)
+        {
+            var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
+            if (normalizedOpportunityType is null)
+            {
+                return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
+            }
+
+            opportunity.OpportunityType = normalizedOpportunityType;
+        }
+
+        if (request.EmploymentType is not null)
+        {
+            opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
+        }
+
+        opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
+        opportunity.LocationCity = NormalizeOptionalText(request.LocationCity);
+        opportunity.Latitude = request.Latitude;
+        opportunity.Longitude = request.Longitude;
+        opportunity.ExpireAt = request.ExpireAt.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
+            : null;
+        opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
+        opportunity.MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson);
+
+        if (request.Tags is not null)
+        {
+            opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
+        }
+
+        if (resetModerationStatus)
+        {
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Pending;
+        }
+
+        return null;
+    }
+
+    internal static string? NormalizeOpportunityType(string? value) =>
+        OpportunityTypes.Normalize(value);
+
+    internal static string NormalizeEmploymentType(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unspecified" : value.Trim();
 
-    private static string? NormalizeOptionalText(string? value) =>
+    internal static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static string? NormalizeContactsJson(string? value)
+    internal static string? NormalizeContactsJson(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -495,7 +523,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
     }
 
-    private static async Task<List<Tag>> ResolveOpportunityTagsAsync(ApplicationDBContext db, IEnumerable<string>? requestTags)
+    internal static async Task<List<Tag>> ResolveOpportunityTagsAsync(ApplicationDBContext db, IEnumerable<string>? requestTags)
     {
         var normalizedNames = (requestTags ?? [])
             .Select(item => item?.Trim())
@@ -601,7 +629,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         return value;
     }
 
-    private static string? NormalizeMediaContentJson(string? value)
+    internal static string? NormalizeMediaContentJson(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

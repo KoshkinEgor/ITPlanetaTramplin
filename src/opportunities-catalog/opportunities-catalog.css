@@ -197,6 +197,10 @@ body.opportunities-browser-react-body {
   background: #f6a01f;
 }
 
+.opportunities-browser__map-dot--teal {
+  background: #1f9f9a;
+}
+
 .opportunities-browser__map-surface {
   position: relative;
   min-height: clamp(420px, 62vh, 680px);

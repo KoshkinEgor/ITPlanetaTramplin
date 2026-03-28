@@ -89,36 +89,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Name))
-        {
-            profile.Name = request.Name.Trim();
-        }
-
-        if (request.Surname is not null)
-        {
-            profile.Surname = request.Surname.Trim();
-        }
-
-        if (request.Thirdname is not null)
-        {
-            profile.Thirdname = string.IsNullOrWhiteSpace(request.Thirdname) ? null : request.Thirdname.Trim();
-        }
-
-        if (request.Description is not null)
-        {
-            profile.Description = request.Description;
-        }
-
-        if (request.Skills is not null)
-        {
-            profile.Skills = request.Skills;
-        }
-
-        if (request.Links is not null)
-        {
-            profile.Links = JsonSerializer.Serialize(request.Links);
-        }
-
+        ApplyCandidateProfileUpdate(profile, request);
         await db.SaveChangesAsync();
         return Results.Ok(MapCandidateProfile(profile));
     }
@@ -596,7 +567,40 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
     }
 
-    private static CandidateProfileReadDTO MapCandidateProfile(ApplicantProfile profile) =>
+    internal static void ApplyCandidateProfileUpdate(ApplicantProfile profile, CandidateProfileUpdateDTO request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            profile.Name = request.Name.Trim();
+        }
+
+        if (request.Surname is not null)
+        {
+            profile.Surname = request.Surname.Trim();
+        }
+
+        if (request.Thirdname is not null)
+        {
+            profile.Thirdname = string.IsNullOrWhiteSpace(request.Thirdname) ? null : request.Thirdname.Trim();
+        }
+
+        if (request.Description is not null)
+        {
+            profile.Description = request.Description;
+        }
+
+        if (request.Skills is not null)
+        {
+            profile.Skills = request.Skills;
+        }
+
+        if (request.Links is not null)
+        {
+            profile.Links = JsonSerializer.Serialize(request.Links);
+        }
+    }
+
+    internal static CandidateProfileReadDTO MapCandidateProfile(ApplicantProfile profile) =>
         new()
         {
             UserId = profile.UserId,
@@ -606,6 +610,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             Surname = profile.Surname,
             Thirdname = profile.Thirdname,
             Description = profile.Description,
+            ModerationStatus = CandidateModerationStatuses.Normalize(profile.ModerationStatus),
             Skills = profile.Skills,
             Links = AuthEndpointSupport.TryParseJsonValue(profile.Links),
         };

@@ -29,6 +29,7 @@ import {
   CompanyCabinetPage,
   CompanyDashboardPage,
   CompanyOpportunitiesPage,
+  CompanyPublicPage,
   CompanyResponsesPage,
 } from "../pages/company/index.jsx";
 import { HomePage } from "../pages/home/HomePage";
@@ -69,6 +70,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />
       <Route path={routes.opportunities.detail} element={<OpportunityDetailPage />} />
+      <Route path={routes.companies.detail} element={<CompanyPublicPage />} />
       <Route path={routes.favorites} element={<FavoritesPage />} />
       <Route path={routes.candidate.career} element={<CandidateCareerPage />} />
       <Route path={routes.candidate.public} element={<CandidatePublicProfilePage />} />

@@ -35,15 +35,15 @@ function getCompanyInitial(profile) {
 }
 
 function getLegalAddress(profile) {
-  return String(profile?.legalAddress ?? "").trim() || "Добавьте юридический адрес в профиле компании.";
+  return String(profile?.legalAddress ?? "").trim() || "Юридический адрес пока не указан.";
 }
 
 function getInn(profile) {
-  return String(profile?.inn ?? "").trim() || "Добавьте ИНН в данные компании.";
+  return String(profile?.inn ?? "").trim() || "ИНН пока не указан.";
 }
 
 function getDescription(profile) {
-  return String(profile?.description ?? "").trim() || "Краткое описание компании появится после заполнения основного профиля.";
+  return String(profile?.description ?? "").trim() || "Краткое описание компании появится после заполнения профиля.";
 }
 
 function getPresenceBadge(status) {
@@ -214,13 +214,14 @@ function parseSocialLinks(rawValue) {
   return [];
 }
 
-export function CompanyProfileSummary({ profile, stats = [], verification, variant = "default" }) {
+export function CompanyProfileSummary({ profile, stats = [], verification, variant = "default", mode = "cabinet" }) {
   const companyName = getCompanyName(profile);
   const description = getDescription(profile);
   const verificationTone = verification?.tone || "pending";
   const presenceBadge = getPresenceBadge(verificationTone);
   const verificationPanelTone = getVerificationPanelTone(verificationTone);
   const socialLinks = parseSocialLinks(profile?.socials);
+  const isPublicMode = mode === "public";
 
   return (
     <Card className={`company-profile-summary ${variant === "default" ? "company-profile-summary--default" : ""}`.trim()}>
@@ -234,7 +235,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
 
       <div className="company-profile-summary__body">
         <div className="company-profile-summary__pills" aria-label="Статусы профиля компании">
-          <span className="company-profile-summary__pill company-profile-summary__pill--accent">Личный кабинет компании</span>
+          <span className="company-profile-summary__pill company-profile-summary__pill--accent">{isPublicMode ? "Компания" : "Личный кабинет компании"}</span>
           <span className={`company-profile-summary__pill company-profile-summary__pill--${presenceBadge.tone}`}>{presenceBadge.label}</span>
         </div>
 
@@ -291,7 +292,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
                     ))}
                   </div>
                 ) : (
-                  <span className="company-profile-summary__fact-note">Добавьте ссылки на сайт, Telegram или VK компании.</span>
+                  <span className="company-profile-summary__fact-note">Ссылки на сайт и соцсети компании пока не указаны.</span>
                 )}
               </article>
             </div>
@@ -303,9 +304,11 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
                 <span className="company-profile-summary__panel-label">{verification.label || "Статус профиля"}</span>
                 <strong className="company-profile-summary__panel-value">{verification.statusText || presenceBadge.label}</strong>
                 {verification.note ? <p>{verification.note}</p> : null}
-                <AppLink className="company-profile-summary__panel-link" href={routes.company.dashboard}>
-                  Перейти к редактированию
-                </AppLink>
+                {!isPublicMode ? (
+                  <AppLink className="company-profile-summary__panel-link" href={routes.company.dashboard}>
+                    Перейти к редактированию
+                  </AppLink>
+                ) : null}
               </div>
             </aside>
           ) : null}

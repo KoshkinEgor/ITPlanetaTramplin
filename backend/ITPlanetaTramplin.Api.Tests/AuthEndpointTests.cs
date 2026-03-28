@@ -32,6 +32,13 @@ public class AuthEndpointTests
         Assert.Equal("candidate", payload!.Role);
         Assert.False(string.IsNullOrWhiteSpace(payload.DebugCode));
 
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var userCount = await db.Users.CountAsync(item => item.Email == payload.Email);
+            Assert.Equal(0, userCount);
+        }
+
         var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
         {
             email = payload.Email,
@@ -74,6 +81,13 @@ public class AuthEndpointTests
         var payload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
         Assert.NotNull(payload);
         Assert.Equal("employer-start", payload!.VerificationFlow);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var userCount = await db.Users.CountAsync(item => item.Email == payload.Email);
+            Assert.Equal(0, userCount);
+        }
 
         var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
         {
@@ -268,7 +282,7 @@ public class AuthEndpointTests
     }
 
     [Fact]
-    public async Task Login_ForUnverifiedCandidateWithPreVerify_Succeeds()
+    public async Task Login_ForPendingCandidateRegistration_ReturnsVerificationChallenge()
     {
         await using var factory = new TestApplicationFactory();
         using var client = factory.CreateClient();
@@ -294,12 +308,20 @@ public class AuthEndpointTests
             password = "Password1",
         });
 
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, loginResponse.StatusCode);
 
-        var authResponse = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDTO>();
-        Assert.NotNull(authResponse);
-        Assert.True(authResponse!.User.PreVerify);
-        Assert.False(authResponse.User.IsVerified);
+        var pendingPayload = await loginResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(pendingPayload);
+        Assert.Equal(registrationPayload.Email, pendingPayload!.Email);
+        Assert.Equal("candidate", pendingPayload.Role);
+        Assert.True(pendingPayload.RequiresEmailVerification);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var userCount = await db.Users.CountAsync(item => item.Email == registrationPayload.Email);
+            Assert.Equal(0, userCount);
+        }
     }
 
     [Fact]
@@ -322,10 +344,20 @@ public class AuthEndpointTests
         var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
         Assert.NotNull(registrationPayload);
 
+        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
+        {
+            email = registrationPayload!.Email,
+            role = registrationPayload.Role,
+            code = registrationPayload.DebugCode,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+        await client.PostAsync("/api/auth/logout", null);
+
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
-            var user = await db.Users.SingleAsync(item => item.Email == registrationPayload!.Email);
+            var user = await db.Users.SingleAsync(item => item.Email == registrationPayload.Email);
 
             user.PreVerify = false;
             user.IsVerified = false;
@@ -354,14 +386,14 @@ public class AuthEndpointTests
         Assert.False(string.IsNullOrWhiteSpace(pendingPayload.DebugCode));
         Assert.NotNull(pendingPayload.ExpiresAtUtc);
 
-        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
+        var secondConfirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
         {
             email = pendingPayload.Email,
             role = pendingPayload.Role,
             code = pendingPayload.DebugCode,
         });
 
-        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, secondConfirmResponse.StatusCode);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -375,5 +407,48 @@ public class AuthEndpointTests
             Assert.Null(user.EmailVerificationSentAt);
             Assert.Equal(0, user.EmailVerificationAttemptCount);
         }
+    }
+
+    [Fact]
+    public async Task AuthMe_ReturnsAdministratorFlag_ForModeratorAccounts()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var adminLoginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "moderator",
+            login = "administrator@tramplin.local",
+            password = "Administrator1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, adminLoginResponse.StatusCode);
+
+        var adminMeResponse = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, adminMeResponse.StatusCode);
+
+        var adminMe = await adminMeResponse.Content.ReadFromJsonAsync<AuthUserDTO>();
+        Assert.NotNull(adminMe);
+        Assert.Equal("moderator", adminMe!.Role);
+        Assert.True(adminMe.IsAdministrator);
+
+        await client.PostAsync("/api/auth/logout", null);
+
+        var moderatorLoginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "moderator",
+            login = "demo-curator@tramplin.local",
+            password = "Curator1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, moderatorLoginResponse.StatusCode);
+
+        var moderatorMeResponse = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, moderatorMeResponse.StatusCode);
+
+        var moderatorMe = await moderatorMeResponse.Content.ReadFromJsonAsync<AuthUserDTO>();
+        Assert.NotNull(moderatorMe);
+        Assert.Equal("moderator", moderatorMe!.Role);
+        Assert.False(moderatorMe.IsAdministrator);
     }
 }

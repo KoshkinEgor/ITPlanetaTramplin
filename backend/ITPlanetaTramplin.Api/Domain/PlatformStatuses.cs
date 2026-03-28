@@ -42,6 +42,47 @@ internal static class OpportunityModerationStatuses
         value?.Trim().ToLowerInvariant() is Pending or Approved or Revision or Rejected;
 }
 
+internal static class CandidateModerationStatuses
+{
+    public const string Pending = "pending";
+    public const string Approved = "approved";
+    public const string Revision = "revision";
+    public const string Rejected = "rejected";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Pending => Pending,
+            Approved => Approved,
+            Revision => Revision,
+            Rejected => Rejected,
+            _ => Pending,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Pending or Approved or Revision or Rejected;
+}
+
+internal static class OpportunityTypes
+{
+    public const string Vacancy = "vacancy";
+    public const string Internship = "internship";
+    public const string Event = "event";
+    public const string Mentoring = "mentoring";
+
+    public static string? Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Vacancy => Vacancy,
+            Internship => Internship,
+            Event => Event,
+            Mentoring => Mentoring,
+            _ => null,
+        };
+
+    public static bool IsKnown(string? value) => Normalize(value) is not null;
+}
+
 internal static class OpportunityApplicationStatuses
 {
     public const string Submitted = "submitted";

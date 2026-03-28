@@ -11,15 +11,10 @@ import {
   updateOpportunityApplicationStatus,
 } from "../api/company";
 import { ApiError } from "../lib/http";
+import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import "./company-dashboard.css";
 
 const navItems = PUBLIC_HEADER_NAV_ITEMS;
-
-const OPPORTUNITY_TYPE_OPTIONS = [
-  { value: "vacancy", label: "Вакансия" },
-  { value: "internship", label: "Стажировка" },
-  { value: "event", label: "Мероприятие" },
-];
 
 const APPLICATION_STATUS_OPTIONS = [
   { value: "submitted", label: "Отправлено" },
@@ -57,16 +52,7 @@ function translateVerificationStatus(status) {
 }
 
 function translateOpportunityType(type) {
-  switch (type) {
-    case "vacancy":
-      return "Вакансия";
-    case "internship":
-      return "Стажировка";
-    case "event":
-      return "Мероприятие";
-    default:
-      return type || "Возможность";
-  }
+  return translateSharedOpportunityType(type);
 }
 
 function translateApplicationStatus(status) {

@@ -12,10 +12,43 @@
   gap: 18px;
 }
 
+.favorites-page__section {
+  display: grid;
+  gap: 16px;
+}
+
+.favorites-page__section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .favorites-page__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+}
+
+.favorites-page__company-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.favorites-page__company-card.ui-card {
+  gap: 14px;
+}
+
+.favorites-page__company-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.favorites-page__company-meta p {
+  margin: 0;
+  color: var(--ui-color-text-muted);
 }
 
 .favorites-page__row-card.ui-card {
@@ -41,6 +74,10 @@
   }
 
   .favorites-page__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .favorites-page__company-grid {
     grid-template-columns: 1fr;
   }
 }

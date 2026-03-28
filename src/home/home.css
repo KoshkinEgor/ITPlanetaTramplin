@@ -1076,6 +1076,10 @@ body.home-react-body {
   background: #63cb69;
 }
 
+.home-map-card__dot--teal {
+  background: #1f9f9a;
+}
+
 .home-map-card__surface {
   position: relative;
   min-height: 0;

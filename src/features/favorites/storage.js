@@ -1,4 +1,5 @@
 export const FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY = "tramplin.favoriteOpportunityIds";
+export const FAVORITE_COMPANY_IDS_STORAGE_KEY = "tramplin.favoriteCompanyIds";
 export const FAVORITES_UPDATED_EVENT = "tramplin:favorites-updated";
 
 function getStorage() {
@@ -9,9 +10,17 @@ function getStorage() {
   return window.localStorage;
 }
 
+function normalizeId(value) {
+  const normalizedValue = String(value ?? "").trim();
+  return normalizedValue || null;
+}
+
 export function normalizeOpportunityId(opportunityId) {
-  const value = String(opportunityId ?? "").trim();
-  return value || null;
+  return normalizeId(opportunityId);
+}
+
+export function normalizeCompanyId(companyId) {
+  return normalizeId(companyId);
 }
 
 export function extractOpportunityId(item) {
@@ -22,19 +31,19 @@ export function extractOpportunityId(item) {
   return normalizeOpportunityId(item.id ?? item.opportunityId);
 }
 
-function uniqueIds(ids) {
-  return Array.from(new Set(ids.map(normalizeOpportunityId).filter(Boolean)));
-}
-
-function emitFavoritesUpdated(ids) {
-  if (typeof window === "undefined") {
-    return;
+export function extractCompanyId(item) {
+  if (!item || typeof item !== "object") {
+    return null;
   }
 
-  window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT, { detail: uniqueIds(ids) }));
+  return normalizeCompanyId(item.id ?? item.companyId ?? item.employerId);
 }
 
-export function readFavoriteOpportunityIds() {
+function uniqueIds(ids, normalize) {
+  return Array.from(new Set(ids.map(normalize).filter(Boolean)));
+}
+
+function readIds(storageKey, normalize) {
   const storage = getStorage();
 
   if (!storage) {
@@ -42,35 +51,73 @@ export function readFavoriteOpportunityIds() {
   }
 
   try {
-    const rawValue = storage.getItem(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY);
+    const rawValue = storage.getItem(storageKey);
 
     if (!rawValue) {
       return [];
     }
 
     const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? uniqueIds(parsedValue) : [];
+    return Array.isArray(parsedValue) ? uniqueIds(parsedValue, normalize) : [];
   } catch {
     return [];
   }
 }
 
-export function writeFavoriteOpportunityIds(ids) {
+function readFavoritesSnapshot() {
+  return {
+    opportunityIds: readIds(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, normalizeOpportunityId),
+    companyIds: readIds(FAVORITE_COMPANY_IDS_STORAGE_KEY, normalizeCompanyId),
+  };
+}
+
+function emitFavoritesUpdated(snapshot) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(FAVORITES_UPDATED_EVENT, {
+      detail: {
+        opportunityIds: uniqueIds(snapshot.opportunityIds ?? [], normalizeOpportunityId),
+        companyIds: uniqueIds(snapshot.companyIds ?? [], normalizeCompanyId),
+      },
+    })
+  );
+}
+
+function writeIds(storageKey, ids, normalize) {
   const storage = getStorage();
-  const nextIds = uniqueIds(ids);
+  const nextIds = uniqueIds(ids, normalize);
 
   if (!storage) {
     return nextIds;
   }
 
   try {
-    storage.setItem(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, JSON.stringify(nextIds));
+    storage.setItem(storageKey, JSON.stringify(nextIds));
   } catch {
     return nextIds;
   }
 
-  emitFavoritesUpdated(nextIds);
+  emitFavoritesUpdated(readFavoritesSnapshot());
   return nextIds;
+}
+
+export function readFavoriteOpportunityIds() {
+  return readIds(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, normalizeOpportunityId);
+}
+
+export function readFavoriteCompanyIds() {
+  return readIds(FAVORITE_COMPANY_IDS_STORAGE_KEY, normalizeCompanyId);
+}
+
+export function writeFavoriteOpportunityIds(ids) {
+  return writeIds(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, ids, normalizeOpportunityId);
+}
+
+export function writeFavoriteCompanyIds(ids) {
+  return writeIds(FAVORITE_COMPANY_IDS_STORAGE_KEY, ids, normalizeCompanyId);
 }
 
 export function isFavoriteOpportunity(opportunityId) {
@@ -83,6 +130,16 @@ export function isFavoriteOpportunity(opportunityId) {
   return readFavoriteOpportunityIds().includes(normalizedOpportunityId);
 }
 
+export function isFavoriteCompany(companyId) {
+  const normalizedCompanyId = normalizeCompanyId(companyId);
+
+  if (!normalizedCompanyId) {
+    return false;
+  }
+
+  return readFavoriteCompanyIds().includes(normalizedCompanyId);
+}
+
 export function setFavoriteOpportunity(opportunityId, enabled) {
   const normalizedOpportunityId = normalizeOpportunityId(opportunityId);
 
@@ -92,10 +149,26 @@ export function setFavoriteOpportunity(opportunityId, enabled) {
 
   const currentIds = readFavoriteOpportunityIds();
   const nextIds = enabled
-    ? uniqueIds([...currentIds, normalizedOpportunityId])
+    ? uniqueIds([...currentIds, normalizedOpportunityId], normalizeOpportunityId)
     : currentIds.filter((id) => id !== normalizedOpportunityId);
 
   writeFavoriteOpportunityIds(nextIds);
+  return enabled;
+}
+
+export function setFavoriteCompany(companyId, enabled) {
+  const normalizedCompanyId = normalizeCompanyId(companyId);
+
+  if (!normalizedCompanyId) {
+    return false;
+  }
+
+  const currentIds = readFavoriteCompanyIds();
+  const nextIds = enabled
+    ? uniqueIds([...currentIds, normalizedCompanyId], normalizeCompanyId)
+    : currentIds.filter((id) => id !== normalizedCompanyId);
+
+  writeFavoriteCompanyIds(nextIds);
   return enabled;
 }
 
@@ -111,13 +184,47 @@ export function toggleFavoriteOpportunity(opportunityId) {
   return nextState;
 }
 
-export function subscribeToFavorites(listener) {
+export function toggleFavoriteCompany(companyId) {
+  const normalizedCompanyId = normalizeCompanyId(companyId);
+
+  if (!normalizedCompanyId) {
+    return false;
+  }
+
+  const nextState = !isFavoriteCompany(normalizedCompanyId);
+  setFavoriteCompany(normalizedCompanyId, nextState);
+  return nextState;
+}
+
+function getScopedFavorites(snapshot, scope) {
+  if (scope === "all") {
+    return snapshot;
+  }
+
+  if (scope === "companies") {
+    return snapshot.companyIds;
+  }
+
+  return snapshot.opportunityIds;
+}
+
+export function subscribeToFavorites(listener, options = {}) {
   if (typeof window === "undefined") {
     return () => {};
   }
 
-  const handleUpdate = () => {
-    listener(readFavoriteOpportunityIds());
+  const scope = options.scope ?? "opportunities";
+
+  const handleUpdate = (event) => {
+    const snapshot =
+      event?.type === FAVORITES_UPDATED_EVENT && event.detail && typeof event.detail === "object"
+        ? {
+            opportunityIds: uniqueIds(event.detail.opportunityIds ?? [], normalizeOpportunityId),
+            companyIds: uniqueIds(event.detail.companyIds ?? [], normalizeCompanyId),
+          }
+        : readFavoritesSnapshot();
+
+    listener(getScopedFavorites(snapshot, scope));
   };
 
   window.addEventListener(FAVORITES_UPDATED_EVENT, handleUpdate);

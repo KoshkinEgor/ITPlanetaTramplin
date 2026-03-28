@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateApplications } from "../api/candidate";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
-import { useCandidateApplications, resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
+import { resetCandidateApplicationsStore, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
 import { ApiError } from "../lib/http";
 import { OpportunityDetailCardApp } from "./OpportunityDetailCardApp";
 
@@ -23,6 +23,7 @@ vi.mock("../widgets/layout/PortalHeader/PortalHeader", () => ({
 
 const apiOpportunity = {
   id: 101,
+  employerId: 404,
   title: "Junior Security Analyst",
   companyName: "ООО Компани",
   locationCity: "Москва",
@@ -32,8 +33,8 @@ const apiOpportunity = {
   moderationStatus: "approved",
   publishAt: "2026-03-10",
   description: "Сильная стартовая вакансия для кандидатов без большого коммерческого опыта.",
-  contactsJson: "{\"email\":\"career@example.com\"}",
-  mediaContentJson: "[{\"title\":\"Программа вакансии\"}]",
+  contactsJson: '{"email":"career@example.com"}',
+  mediaContentJson: '[{"title":"Программа вакансии"}]',
   tags: ["SOC", "SIEM"],
 };
 
@@ -114,8 +115,16 @@ describe("OpportunityDetailCardApp", () => {
     });
   });
 
+  it("links the company spotlight to the public company page", async () => {
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByRole("link", { name: "Открыть профиль компании" })).toHaveAttribute("href", "/companies/404");
+  });
+
   it("treats a 409 application response as a synced success state instead of an error", async () => {
-    applyToOpportunity.mockRejectedValue(new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } }));
+    applyToOpportunity.mockRejectedValue(
+      new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } })
+    );
     getCandidateApplications.mockResolvedValue([appliedSummary]);
 
     renderDetail("/opportunities/101");

@@ -1,22 +1,37 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getOpportunities } from "../../api/opportunities";
-import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../../app/routes";
 import { OpportunityRowCard } from "../../components/opportunities";
-import { readFavoriteOpportunityIds, subscribeToFavorites } from "../../features/favorites/storage";
+import {
+  readFavoriteCompanyIds,
+  readFavoriteOpportunityIds,
+  setFavoriteCompany,
+  subscribeToFavorites,
+} from "../../features/favorites/storage";
 import { PortalHeader } from "../../widgets/layout";
-import { Alert, Button, DashboardPageHeader, EmptyState, Loader } from "../../shared/ui";
+import { translateOpportunityType } from "../../shared/lib/opportunityTypes";
+import { Alert, Button, Card, CompanyVacancyTile, DashboardPageHeader, EmptyState, Loader, SectionHeader, Tag } from "../../shared/ui";
 import "./favorites-page.css";
 
 const headerNav = PUBLIC_HEADER_NAV_ITEMS;
 
-function mapOpportunityType(value) {
-  const normalizedType = String(value ?? "").trim().toLowerCase();
+function formatCount(count, [one, few, many]) {
+  const absolute = Math.abs(count) % 100;
+  const tail = absolute % 10;
 
-  if (normalizedType === "vacancy") return "Вакансия";
-  if (normalizedType === "internship") return "Стажировка";
-  if (normalizedType === "event") return "Мероприятие";
+  if (absolute > 10 && absolute < 20) {
+    return `${count} ${many}`;
+  }
 
-  return "Возможность";
+  if (tail === 1) {
+    return `${count} ${one}`;
+  }
+
+  if (tail >= 2 && tail <= 4) {
+    return `${count} ${few}`;
+  }
+
+  return `${count} ${many}`;
 }
 
 function mapModerationStatus(value) {
@@ -30,6 +45,14 @@ function mapModerationStatus(value) {
     return { label: "На проверке", tone: "warning" };
   }
 
+  if (normalizedStatus === "revision") {
+    return { label: "Нужна доработка", tone: "warning" };
+  }
+
+  if (normalizedStatus === "rejected") {
+    return { label: "Отклонено", tone: "error" };
+  }
+
   return { label: "Актуально", tone: "neutral" };
 }
 
@@ -38,7 +61,7 @@ function mapOpportunityToFavoriteCard(item) {
 
   return {
     id: String(item?.id ?? ""),
-    type: mapOpportunityType(item?.opportunityType),
+    type: translateOpportunityType(item?.opportunityType),
     status: status.label,
     statusTone: status.tone,
     title: item?.title ?? "Без названия",
@@ -49,23 +72,77 @@ function mapOpportunityToFavoriteCard(item) {
   };
 }
 
+function buildFavoriteCompanies(items, favoriteCompanyIds) {
+  const groupedCompanies = new Map();
+
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const employerId = item?.employerId != null ? String(item.employerId) : "";
+
+    if (!employerId || !favoriteCompanyIds.includes(employerId)) {
+      return;
+    }
+
+    const entry = groupedCompanies.get(employerId) ?? {
+      id: employerId,
+      employerId,
+      name: String(item?.companyName ?? "").trim() || `Компания #${employerId}`,
+      city: String(item?.locationCity ?? "").trim(),
+      opportunities: [],
+    };
+
+    entry.opportunities.push(item);
+    if (!entry.city && item?.locationCity) {
+      entry.city = String(item.locationCity).trim();
+    }
+
+    groupedCompanies.set(employerId, entry);
+  });
+
+  return favoriteCompanyIds.map((companyId) => {
+    const entry = groupedCompanies.get(companyId);
+
+    if (entry) {
+      return {
+        ...entry,
+        count: entry.opportunities.length,
+      };
+    }
+
+    return {
+      id: companyId,
+      employerId: companyId,
+      name: `Компания #${companyId}`,
+      city: "",
+      count: 0,
+      opportunities: [],
+    };
+  });
+}
+
+function createHeaderDescription(opportunityCount, companyCount) {
+  if (!opportunityCount && !companyCount) {
+    return "Здесь появляются компании и возможности, которые вы отметили сердцем.";
+  }
+
+  return [
+    formatCount(opportunityCount, ["возможность", "возможности", "возможностей"]),
+    formatCount(companyCount, ["компания", "компании", "компаний"]),
+  ].join(" · ");
+}
+
 export function FavoritesPage() {
-  const [favoriteIds, setFavoriteIds] = useState(() => readFavoriteOpportunityIds());
+  const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
+  const [favoriteCompanyIds, setFavoriteCompanyIds] = useState(() => readFavoriteCompanyIds());
   const [state, setState] = useState({ status: "idle", items: [], error: null });
   const [reloadToken, setReloadToken] = useState(0);
 
-  useEffect(() => {
-    return subscribeToFavorites((ids) => {
-      setFavoriteIds(ids);
-    });
-  }, []);
-
-  const favoriteIdsKey = useMemo(() => favoriteIds.join("|"), [favoriteIds]);
+  useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds, { scope: "opportunities" }), []);
+  useEffect(() => subscribeToFavorites(setFavoriteCompanyIds, { scope: "companies" }), []);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    if (!favoriteIds.length) {
+    if (!favoriteOpportunityIds.length && !favoriteCompanyIds.length) {
       setState({ status: "ready", items: [], error: null });
       return () => controller.abort();
     }
@@ -80,20 +157,9 @@ export function FavoritesPage() {
           return;
         }
 
-        const byId = new Map(
-          (Array.isArray(allOpportunities) ? allOpportunities : [])
-            .map((item) => [String(item?.id ?? ""), item])
-            .filter(([id]) => id)
-        );
-
-        const resolvedItems = favoriteIds
-          .map((id) => byId.get(id))
-          .filter(Boolean)
-          .map(mapOpportunityToFavoriteCard);
-
         setState({
           status: "ready",
-          items: resolvedItems,
+          items: Array.isArray(allOpportunities) ? allOpportunities : [],
           error: null,
         });
       } catch (error) {
@@ -114,7 +180,25 @@ export function FavoritesPage() {
     return () => {
       controller.abort();
     };
-  }, [favoriteIds, favoriteIdsKey, reloadToken]);
+  }, [favoriteCompanyIds.length, favoriteOpportunityIds.length, reloadToken]);
+
+  const favoriteOpportunities = useMemo(() => {
+    const itemsById = new Map(
+      state.items
+        .map((item) => [String(item?.id ?? ""), item])
+        .filter(([id]) => id)
+    );
+
+    return favoriteOpportunityIds
+      .map((id) => itemsById.get(String(id)))
+      .filter(Boolean)
+      .map(mapOpportunityToFavoriteCard);
+  }, [favoriteOpportunityIds, state.items]);
+
+  const favoriteCompanies = useMemo(
+    () => buildFavoriteCompanies(state.items, favoriteCompanyIds),
+    [favoriteCompanyIds, state.items]
+  );
 
   return (
     <main className="favorites-page">
@@ -130,15 +214,13 @@ export function FavoritesPage() {
         <section className="favorites-page__content">
           <DashboardPageHeader
             title="Избранное"
-            description={favoriteIds.length
-              ? `Сохранено возможностей: ${favoriteIds.length}`
-              : "Здесь появляются возможности, которые вы отметили сердцем."}
+            description={createHeaderDescription(favoriteOpportunities.length, favoriteCompanies.length)}
           />
 
-          {state.status === "loading" ? <Loader label="Загружаем избранные возможности" surface /> : null}
+          {state.status === "loading" ? <Loader label="Загружаем избранное" surface /> : null}
 
           {state.status === "error" ? (
-            <Alert tone="error" title="Не удалось загрузить избранные возможности" showIcon>
+            <Alert tone="error" title="Не удалось загрузить избранное" showIcon>
               <div className="favorites-page__error-actions">
                 <p>{state.error?.message ?? "Попробуйте обновить список."}</p>
                 <Button type="button" variant="secondary" onClick={() => setReloadToken((current) => current + 1)}>
@@ -148,37 +230,100 @@ export function FavoritesPage() {
             </Alert>
           ) : null}
 
-          {state.status === "ready" && state.items.length ? (
-            <div className="favorites-page__grid">
-              {state.items.map((item) => (
-                <OpportunityRowCard
-                  key={item.id}
-                  item={item}
-                  surface="plain"
-                  size="sm"
-                  className="favorites-page__row-card"
-                  detailAction={{
-                    href: buildOpportunityDetailRoute(item.id),
-                    label: "Открыть карточку",
-                    variant: "secondary",
-                  }}
-                />
-              ))}
-            </div>
-          ) : null}
+          {state.status === "ready" ? (
+            <>
+              <section className="favorites-page__section">
+                <div className="favorites-page__section-head">
+                  <SectionHeader
+                    size="md"
+                    title="Избранные возможности"
+                    description="Карточки, которые вы сохранили напрямую."
+                  />
+                  <Tag tone="accent">{formatCount(favoriteOpportunities.length, ["карточка", "карточки", "карточек"])}</Tag>
+                </div>
 
-          {state.status === "ready" && !state.items.length ? (
-            <EmptyState
-              className="favorites-page__empty-state"
-              eyebrow="Пока здесь пусто"
-              title="Добавляйте возможности в избранное"
-              description="Нажимайте на иконку сердца в карточках возможностей. Мы сохраним id в localStorage для быстрого доступа."
-              actions={<Button href={routes.opportunities.catalog}>Перейти в каталог возможностей</Button>}
-            />
+                {favoriteOpportunities.length ? (
+                  <div className="favorites-page__grid">
+                    {favoriteOpportunities.map((item) => (
+                      <OpportunityRowCard
+                        key={item.id}
+                        item={item}
+                        surface="plain"
+                        size="sm"
+                        className="favorites-page__row-card"
+                        favoritePressed
+                        favoriteLabel="Убрать возможность из избранного"
+                        detailAction={{
+                          href: buildOpportunityDetailRoute(item.id),
+                          label: "Открыть карточку",
+                          variant: "secondary",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    className="favorites-page__empty-state"
+                    eyebrow="Пока пусто"
+                    title="Сохраните первую возможность"
+                    description="Нажимайте на сердечко в карточках вакансий, стажировок, мероприятий и менторских программ."
+                    actions={<Button href={routes.opportunities.catalog}>Перейти в каталог</Button>}
+                  />
+                )}
+              </section>
+
+              <section className="favorites-page__section">
+                <div className="favorites-page__section-head">
+                  <SectionHeader
+                    size="md"
+                    title="Избранные компании"
+                    description="Здесь собраны работодатели, за чьими публикациями вы хотите следить."
+                  />
+                  <Tag tone="accent">{formatCount(favoriteCompanies.length, ["компания", "компании", "компаний"])}</Tag>
+                </div>
+
+                {favoriteCompanies.length ? (
+                  <div className="favorites-page__company-grid">
+                    {favoriteCompanies.map((company) => (
+                      <Card key={company.id} className="favorites-page__company-card">
+                        <CompanyVacancyTile
+                          href={buildCompanyPublicRoute(company.employerId)}
+                          name={company.name}
+                          count={formatCount(company.count, ["публикация", "публикации", "публикаций"])}
+                          showFavorite
+                          favoritePressed
+                          favoriteLabel="Убрать компанию из избранного"
+                          onFavoriteClick={() => setFavoriteCompany(company.employerId, false)}
+                        />
+                        <div className="favorites-page__company-meta">
+                          <p>{company.city || "Город пока не указан"}</p>
+                          <p>
+                            {company.opportunities.length
+                              ? company.opportunities
+                                  .slice(0, 2)
+                                  .map((item) => item.title)
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : "Компания появится здесь, как только у неё будут публичные карточки в текущем каталоге."}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    className="favorites-page__empty-state"
+                    eyebrow="Пока пусто"
+                    title="Сохраните первую компанию"
+                    description="Добавляйте работодателей в избранное из каталога компаний. Их публикации будут подсвечиваться и на карте."
+                    actions={<Button href={routes.opportunities.catalog}>Открыть каталог</Button>}
+                  />
+                )}
+              </section>
+            </>
           ) : null}
         </section>
       </div>
     </main>
   );
 }
-

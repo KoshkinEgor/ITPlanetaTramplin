@@ -1,0 +1,116 @@
+.company-public-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(201, 255, 31, 0.18), transparent 24%),
+    radial-gradient(circle at 100% 10%, rgba(47, 128, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #f4f8ff 0%, #f7fafc 44%, #eef4fb 100%);
+}
+
+.company-public-page__shell {
+  display: grid;
+  gap: 28px;
+  padding: 24px 0 64px;
+}
+
+.company-public-page__content {
+  display: grid;
+  gap: 30px;
+}
+
+.company-public-page__about-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.92fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.company-public-page__section {
+  display: grid;
+  gap: 18px;
+}
+
+.company-public-page__section-top {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.company-public-page__section-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.company-public-page__section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(47, 128, 255, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(93, 110, 143, 0.96);
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.company-public-page__section-title {
+  margin: 0;
+  color: #1c2238;
+  font-size: clamp(var(--ui-font-size-h3), 3vw, var(--ui-font-size-h2));
+  line-height: var(--ui-line-height-h2);
+}
+
+.company-public-page__section-link {
+  color: var(--ui-color-accent);
+  font-size: var(--ui-font-size-body);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.company-public-page__section-link:hover {
+  text-decoration: underline;
+}
+
+.company-public-page__opportunity-rail .opportunity-block-rail__item {
+  flex-basis: 344px;
+}
+
+.company-public-page__opportunity-rail .opportunity-block-rail__card.ui-card {
+  min-height: 272px;
+}
+
+.company-public-page__empty-card.ui-card,
+.company-public-page__fallback.ui-card {
+  padding: clamp(24px, 3vw, 36px);
+}
+
+@media (max-width: 980px) {
+  .company-public-page__about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-public-page__section-top {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .company-public-page__shell {
+    gap: 24px;
+    padding: 16px 0 48px;
+  }
+
+  .company-public-page__content {
+    gap: 24px;
+  }
+
+  .company-public-page__opportunity-rail .opportunity-block-rail__item {
+    flex-basis: min(344px, calc(100vw - 56px));
+  }
+}
