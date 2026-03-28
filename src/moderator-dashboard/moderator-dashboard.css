@@ -817,26 +817,44 @@ body.moderator-dashboard-react-body {
 
 .moderator-opportunity-modal {
   width: min(100%, 820px);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
 }
 
 .moderator-company-modal {
   width: min(100%, 820px);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
 }
 
 .moderator-user-modal {
   width: min(100%, 820px);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
 }
 
 .moderator-opportunity-modal .ui-modal__content {
   gap: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .moderator-company-modal .ui-modal__content {
   gap: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .moderator-user-modal .ui-modal__content {
   gap: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .moderator-detail-surface__top {
