@@ -456,7 +456,7 @@ function LoginDetailsScreen() {
               </FormField>
             </div>
 
-            {role === "curator" ? (
+            {false ? (
               <Alert tone="info" showIcon title="Доступ куратора">
                 Учётную запись куратора выдаёт администратор. Для local dev можно использовать `demo-curator@tramplin.local` / `Curator1234`.
               </Alert>

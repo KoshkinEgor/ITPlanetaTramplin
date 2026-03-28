@@ -154,6 +154,7 @@ function createOpportunityMeta(item) {
 
 function createRowCardItem(item) {
   return {
+    id: item.id,
     type: translateOpportunityType(item.opportunityType),
     title: item.title,
     meta: createOpportunityMeta(item),

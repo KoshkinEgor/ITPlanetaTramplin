@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
-import { writeFavoriteOpportunityIds } from "../features/favorites/storage";
+import { FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY, writeFavoriteOpportunityIds } from "../features/favorites/storage";
 import { OpportunitiesCatalogApp } from "./OpportunitiesCatalogApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -256,6 +256,26 @@ describe("OpportunitiesCatalogApp", () => {
     expect(within(results).getByText("Product Designer")).toBeInTheDocument();
   });
 
+  it("saves an opportunity id to localStorage from the catalog results", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    const { container } = renderApp();
+    await screen.findAllByRole("heading", { name: "Junior Security Analyst" });
+    const results = container.querySelector(".opportunities-browser__results");
+
+    expect(results).not.toBeNull();
+
+    const firstResultCard = results.querySelector('[data-opportunity-id="4"]');
+    expect(firstResultCard).not.toBeNull();
+
+    const favoriteButton = within(firstResultCard).getByRole("button", { name: "Сохранить возможность" });
+    fireEvent.click(favoriteButton);
+
+    expect(JSON.parse(window.localStorage.getItem(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY) ?? "[]")).toEqual(["4"]);
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("switches to an inline map and preserves the current filters for mapped items", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
@@ -384,5 +404,6 @@ describe("OpportunitiesCatalogApp", () => {
     expect(screen.getByRole("heading", { name: "Вакансии в Чебоксары" })).toBeInTheDocument();
     expect(within(companiesCard).getByText("Case Systems")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
+
   });
 });
