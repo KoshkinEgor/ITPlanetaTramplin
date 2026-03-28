@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { routes } from "../../app/routes";
+import { useAuthSession } from "../../auth/api";
 import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
-import { HEADER_NAV, SIDEBAR_ITEMS } from "../../moderator-dashboard/config";
+import { getModeratorSidebarItems, HEADER_NAV } from "../../moderator-dashboard/config";
 import { useBodyClass } from "../../shared/lib/useBodyClass";
 import { CabinetShell, CabinetSidebar, PortalHeader } from "../../widgets/layout";
 import "../../moderator-dashboard/moderator-dashboard.css";
@@ -45,8 +46,12 @@ function resolveModeratorActiveKey(pathname) {
 export function ModeratorCabinetPage() {
   useBodyClass("moderator-dashboard-react-body");
 
+  const authSession = useAuthSession();
   const location = useLocation();
   const activeKey = resolveModeratorActiveKey(location.pathname);
+  const sidebarItems = getModeratorSidebarItems(
+    authSession.status === "authenticated" && authSession.user?.isAdministrator === true
+  );
 
   return (
     <CabinetShell
@@ -61,7 +66,7 @@ export function ModeratorCabinetPage() {
       sidebar={(
         <CabinetSidebar
           title="Кабинет модератора"
-          items={SIDEBAR_ITEMS}
+          items={sidebarItems}
           activeKey={activeKey}
           footerSummary={<SessionLogoutButton />}
         />
@@ -73,4 +78,3 @@ export function ModeratorCabinetPage() {
     </CabinetShell>
   );
 }
-
