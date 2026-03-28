@@ -690,6 +690,7 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.ContactCount).HasColumnName("contact_count");
             entity.Property(e => e.EducationsCount).HasColumnName("educations_count");
             entity.Property(e => e.ProfileId).HasColumnName("profile_id");
+            entity.Property(e => e.ProjectsCount).HasColumnName("projects_count");
             entity.Property(e => e.ResponsesCount).HasColumnName("responses_count");
         });
 
