@@ -103,6 +103,10 @@ export function getCandidateContacts(signal) {
   return apiRequest("/candidate/me/contacts", { signal });
 }
 
+export function getCandidateDirectory(signal) {
+  return apiRequest("/candidate/me/directory", { signal });
+}
+
 export function createCandidateContact(body) {
   return apiRequest("/candidate/me/contacts", {
     method: "POST",
