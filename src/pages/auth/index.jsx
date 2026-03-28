@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { AuthApp } from "../../auth/AuthApp";
+import { ModeratorInvitationAcceptApp } from "../../auth/ModeratorInvitationAcceptApp";
 
 export function AuthLoginPage() {
   const [searchParams] = useSearchParams();
@@ -30,4 +31,8 @@ export function ForgotPasswordPage() {
 
 export function ResetPasswordPage() {
   return <AuthApp page="reset-password" />;
+}
+
+export function ModeratorInvitationAcceptPage() {
+  return <ModeratorInvitationAcceptApp />;
 }

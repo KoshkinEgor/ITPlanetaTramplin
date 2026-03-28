@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Tag } from "../shared/ui";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Modal, Tag } from "../shared/ui";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 
 const USER_FILTERS = [
@@ -91,7 +91,6 @@ export function ModeratorUsersApp() {
         const items = await getModerationUsers(controller.signal);
         const normalizedItems = Array.isArray(items) ? items : [];
         setState({ status: "ready", items: normalizedItems, error: null });
-        setSelectedId((current) => current ?? normalizedItems[0]?.id ?? null);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -121,7 +120,17 @@ export function ModeratorUsersApp() {
     });
   }, [query, state.items, statusFilter]);
 
-  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
+  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (selectedId === null) {
+      return;
+    }
+
+    if (!filteredItems.some((item) => item.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [filteredItems, selectedId]);
 
   return (
     <>
@@ -170,7 +179,7 @@ export function ModeratorUsersApp() {
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Пользователи</Tag>
                 <h2 className="ui-type-h2">Список профилей</h2>
-                <p className="ui-type-body">Просмотр состава платформы без локальных заглушек и несуществующих действий.</p>
+                <p className="ui-type-body">Выберите пользователя из списка, чтобы открыть детальную информацию в модальном окне.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -194,52 +203,55 @@ export function ModeratorUsersApp() {
             )}
           </Card>
 
-          <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
-            <div className="moderator-panel__copy">
-              <h2 className="ui-type-h2">Детали пользователя</h2>
-            </div>
-
-            {activeItem ? (
-              <div className="moderator-detail-surface">
-                <div className="moderator-detail-surface__top">
-                  <Tag tone="accent">Профиль</Tag>
-                  <ModeratorStatusBadge label={activeItem.isVerified ? "Подтвержден" : "Не подтвержден"} tone={activeItem.isVerified ? "approved" : "pending"} />
-                </div>
-
-                <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h3">{getUserDisplayName(activeItem)}</h3>
-                  {shouldShowUserEmail(activeItem) ? <p className="moderator-detail-surface__meta">{activeItem.email}</p> : null}
-                </div>
-
-                <dl className="moderator-detail-facts moderator-detail-facts--stack">
-                  <div>
-                    <dt>Роль</dt>
-                    <dd>{translateRole(activeItem.role)}</dd>
-                  </div>
-                  <div>
-                    <dt>Дата регистрации</dt>
-                    <dd>{formatDate(activeItem.createdAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>Допуск ко входу</dt>
-                    <dd>{activeItem.preVerify ? "Да" : "Нет"}</dd>
-                  </div>
-                  <div>
-                    <dt>Подтверждение email</dt>
-                    <dd>{activeItem.isVerified ? "Да" : "Нет"}</dd>
-                  </div>
-                </dl>
-
-                <p className="ui-type-body moderator-detail-surface__description">
-                  Для пользователей пока доступен только обзор данных. Управляющие действия не рендерятся, пока в backend не появится отдельный moderation endpoint.
-                </p>
-              </div>
-            ) : (
-              <EmptyState title="Пользователь не выбран" description="Выберите строку в таблице, чтобы открыть детали." tone="neutral" compact />
-            )}
-          </Card>
         </section>
       ) : null}
+
+      <Modal
+        open={Boolean(activeItem)}
+        onClose={() => setSelectedId(null)}
+        title="Детали пользователя"
+        description="Просмотрите профиль пользователя и его текущий статус."
+        size="lg"
+        closeLabel="Закрыть окно пользователя"
+        className="moderator-user-modal"
+      >
+        {activeItem ? (
+          <div className="moderator-detail-surface moderator-detail-surface--modal">
+            <div className="moderator-detail-surface__top">
+              <Tag tone="accent">Профиль</Tag>
+              <ModeratorStatusBadge label={activeItem.isVerified ? "Подтвержден" : "Не подтвержден"} tone={activeItem.isVerified ? "approved" : "pending"} />
+            </div>
+
+            <div className="moderator-detail-surface__copy">
+              <h3 className="ui-type-h3">{getUserDisplayName(activeItem)}</h3>
+              {shouldShowUserEmail(activeItem) ? <p className="moderator-detail-surface__meta">{activeItem.email}</p> : null}
+            </div>
+
+            <dl className="moderator-detail-facts moderator-detail-facts--stack">
+              <div>
+                <dt>Роль</dt>
+                <dd>{translateRole(activeItem.role)}</dd>
+              </div>
+              <div>
+                <dt>Дата регистрации</dt>
+                <dd>{formatDate(activeItem.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Допуск ко входу</dt>
+                <dd>{activeItem.preVerify ? "Да" : "Нет"}</dd>
+              </div>
+              <div>
+                <dt>Подтверждение email</dt>
+                <dd>{activeItem.isVerified ? "Да" : "Нет"}</dd>
+              </div>
+            </dl>
+
+            <p className="ui-type-body moderator-detail-surface__description">
+              Для пользователей пока доступен только обзор данных. Управляющие действия появятся, когда в backend будет добавлен отдельный moderation endpoint.
+            </p>
+          </div>
+        ) : null}
+      </Modal>
     </>
   );
 }

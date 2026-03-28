@@ -42,11 +42,13 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtSigningKey);
 var connectionString = ResolveConnectionString(builder.Configuration);
 
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection("EmailVerification"));
+builder.Services.Configure<ModeratorInvitationOptions>(builder.Configuration.GetSection("ModeratorInvitations"));
 builder.Services.Configure<PasswordResetOptions>(builder.Configuration.GetSection("PasswordReset"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.Configure<DadataOptions>(builder.Configuration.GetSection("Dadata"));
 builder.Services.AddSingleton(new AuthRuntimeOptions(authCookieName, keyBytes, accessTokenLifetime));
 builder.Services.AddSingleton<EmailVerificationService>();
+builder.Services.AddSingleton<ModeratorInvitationService>();
 builder.Services.AddSingleton<PasswordResetService>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();

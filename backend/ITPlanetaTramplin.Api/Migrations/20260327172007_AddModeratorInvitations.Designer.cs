@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Application.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace ITPlanetaTramplin.Api.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260327172007_AddModeratorInvitations")]
+    partial class AddModeratorInvitations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -325,75 +328,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.ToTable("candidate_projects", (string)null);
                 });
 
-            modelBuilder.Entity("Models.CandidateProjectInvite", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("text")
-                        .HasColumnName("message");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer")
-                        .HasColumnName("project_id");
-
-                    b.Property<int>("RecipientUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("recipient_user_id");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("responded_at");
-
-                    b.Property<string>("Role")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("role");
-
-                    b.Property<int>("SenderUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("sender_user_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("pending")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.HasKey("Id")
-                        .HasName("candidate_project_invites_pkey");
-
-                    b.HasIndex(new[] { "ProjectId" }, "idx_candidate_project_invites_project_id");
-
-                    b.HasIndex(new[] { "RecipientUserId" }, "idx_candidate_project_invites_recipient_user_id");
-
-                    b.HasIndex(new[] { "SenderUserId" }, "idx_candidate_project_invites_sender_user_id");
-
-                    b.ToTable("candidate_project_invites", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_CandidateProjectInvites_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
-                        });
-                });
-
             modelBuilder.Entity("Models.Contact", b =>
                 {
                     b.Property<int>("UserId")
@@ -537,60 +471,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.HasIndex(new[] { "UserId" }, "idx_employer_profiles_user_id");
 
                     b.ToTable("employer_profiles", (string)null);
-                });
-
-            modelBuilder.Entity("Models.FriendRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<int>("RecipientUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("recipient_user_id");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("responded_at");
-
-                    b.Property<int>("SenderUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("sender_user_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("pending")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.HasKey("Id")
-                        .HasName("friend_requests_pkey");
-
-                    b.HasIndex(new[] { "RecipientUserId" }, "idx_friend_requests_recipient_user_id");
-
-                    b.HasIndex(new[] { "SenderUserId" }, "idx_friend_requests_sender_user_id");
-
-                    b.ToTable("friend_requests", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_FriendRequests_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
-                        });
                 });
 
             modelBuilder.Entity("Models.ModeratorInvitation", b =>
@@ -1109,36 +989,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("Applicant");
                 });
 
-            modelBuilder.Entity("Models.CandidateProjectInvite", b =>
-                {
-                    b.HasOne("Models.CandidateProject", "Project")
-                        .WithMany("Invites")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("candidate_project_invites_project_id_fkey");
-
-                    b.HasOne("Models.User", "RecipientUser")
-                        .WithMany("IncomingProjectInvites")
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("candidate_project_invites_recipient_user_id_fkey");
-
-                    b.HasOne("Models.User", "SenderUser")
-                        .WithMany("OutgoingProjectInvites")
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("candidate_project_invites_sender_user_id_fkey");
-
-                    b.Navigation("Project");
-
-                    b.Navigation("RecipientUser");
-
-                    b.Navigation("SenderUser");
-                });
-
             modelBuilder.Entity("Models.Contact", b =>
                 {
                     b.HasOne("Models.User", "ContactProfile")
@@ -1179,27 +1029,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Models.FriendRequest", b =>
-                {
-                    b.HasOne("Models.User", "RecipientUser")
-                        .WithMany("IncomingFriendRequests")
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("friend_requests_recipient_user_id_fkey");
-
-                    b.HasOne("Models.User", "SenderUser")
-                        .WithMany("OutgoingFriendRequests")
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("friend_requests_sender_user_id_fkey");
-
-                    b.Navigation("RecipientUser");
-
-                    b.Navigation("SenderUser");
                 });
 
             modelBuilder.Entity("Models.ModeratorInvitation", b =>
@@ -1328,11 +1157,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("RecommendationRecommenders");
                 });
 
-            modelBuilder.Entity("Models.CandidateProject", b =>
-                {
-                    b.Navigation("Invites");
-                });
-
             modelBuilder.Entity("Models.EmployerProfile", b =>
                 {
                     b.Navigation("Opportunities");
@@ -1354,14 +1178,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("CuratorProfile");
 
                     b.Navigation("EmployerProfile");
-
-                    b.Navigation("IncomingFriendRequests");
-
-                    b.Navigation("IncomingProjectInvites");
-
-                    b.Navigation("OutgoingFriendRequests");
-
-                    b.Navigation("OutgoingProjectInvites");
 
                     b.Navigation("Tags");
                 });
