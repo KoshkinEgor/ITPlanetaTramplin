@@ -20,6 +20,7 @@ internal static class AuthEndpointRouteBuilderExtensions
             ApplicationDBContext db,
             AuthRuntimeOptions authRuntimeOptions,
             EmailVerificationService verificationService,
+            PendingRegistrationStore pendingRegistrationStore,
             SmtpEmailSender emailSender,
             CancellationToken cancellationToken,
             ILoggerFactory loggerFactory) => HandleLoginAsync(
@@ -28,6 +29,7 @@ internal static class AuthEndpointRouteBuilderExtensions
                 db,
                 authRuntimeOptions,
                 verificationService,
+                pendingRegistrationStore,
                 emailSender,
                 cancellationToken,
                 loggerFactory));
@@ -37,6 +39,7 @@ internal static class AuthEndpointRouteBuilderExtensions
             ApplicationDBContext db,
             AuthRuntimeOptions authRuntimeOptions,
             EmailVerificationService verificationService,
+            PendingRegistrationStore pendingRegistrationStore,
             SmtpEmailSender emailSender,
             CancellationToken cancellationToken,
             ILoggerFactory loggerFactory) => HandleLoginAsync(
@@ -45,6 +48,7 @@ internal static class AuthEndpointRouteBuilderExtensions
                 db,
                 authRuntimeOptions,
                 verificationService,
+                pendingRegistrationStore,
                 emailSender,
                 cancellationToken,
                 loggerFactory));
@@ -54,6 +58,7 @@ internal static class AuthEndpointRouteBuilderExtensions
             ApplicationDBContext db,
             AuthRuntimeOptions authRuntimeOptions,
             EmailVerificationService verificationService,
+            PendingRegistrationStore pendingRegistrationStore,
             SmtpEmailSender emailSender,
             CancellationToken cancellationToken,
             ILoggerFactory loggerFactory) => HandleLoginAsync(
@@ -62,6 +67,7 @@ internal static class AuthEndpointRouteBuilderExtensions
                 db,
                 authRuntimeOptions,
                 verificationService,
+                pendingRegistrationStore,
                 emailSender,
                 cancellationToken,
                 loggerFactory));
@@ -103,6 +109,7 @@ internal static class AuthEndpointRouteBuilderExtensions
         ApplicationDBContext db,
         AuthRuntimeOptions authRuntimeOptions,
         EmailVerificationService verificationService,
+        PendingRegistrationStore pendingRegistrationStore,
         SmtpEmailSender emailSender,
         CancellationToken cancellationToken,
         ILoggerFactory loggerFactory)
@@ -114,7 +121,36 @@ internal static class AuthEndpointRouteBuilderExtensions
         }
 
         var user = await FindUserForLoginAsync(db, role, request.Login);
-        if (user is null || !AuthSupport.VerifyPasswordAndUpgrade(user, request.Password, out var passwordUpgraded))
+        if (user is null)
+        {
+            var pendingRegistration = FindPendingRegistrationForLogin(pendingRegistrationStore, role, request.Login);
+            if (pendingRegistration is null
+                || !AuthSupport.VerifyPasswordAndUpgrade(
+                    pendingRegistration.Email,
+                    pendingRegistration.PasswordHash,
+                    request.Password,
+                    out var pendingPasswordUpgraded,
+                    out var upgradedPendingPasswordHash))
+            {
+                return AuthEndpointSupport.InvalidCredentialsResult();
+            }
+
+            if (pendingPasswordUpgraded)
+            {
+                pendingRegistration.PasswordHash = upgradedPendingPasswordHash;
+            }
+
+            var pendingPayload = await BuildLoginVerificationPayloadAsync(
+                pendingRegistration,
+                pendingRegistrationStore,
+                emailSender,
+                cancellationToken,
+                loggerFactory.CreateLogger("AuthEndpoints"));
+
+            return Results.Json(pendingPayload, statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        if (!AuthSupport.VerifyPasswordAndUpgrade(user, request.Password, out var passwordUpgraded))
         {
             return AuthEndpointSupport.InvalidCredentialsResult();
         }
@@ -124,7 +160,7 @@ internal static class AuthEndpointRouteBuilderExtensions
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        if (role is PublicRoles.Candidate or PublicRoles.Company && user.PreVerify != true)
+        if ((role is PublicRoles.Candidate or PublicRoles.Company) && user.PreVerify != true)
         {
             var payload = await BuildLoginVerificationPayloadAsync(
                 user,
@@ -166,8 +202,10 @@ internal static class AuthEndpointRouteBuilderExtensions
         [FromBody] EmailVerificationConfirmDTO request,
         HttpContext context,
         EmailVerificationService verificationService,
+        PendingRegistrationStore pendingRegistrationStore,
         ApplicationDBContext db,
-        AuthRuntimeOptions authRuntimeOptions)
+        AuthRuntimeOptions authRuntimeOptions,
+        CancellationToken cancellationToken)
     {
         var role = PublicRoles.Normalize(request.Role);
         if (role is not (PublicRoles.Candidate or PublicRoles.Company) || !AuthSupport.IsValidEmail(request.Email))
@@ -176,27 +214,61 @@ internal static class AuthEndpointRouteBuilderExtensions
         }
 
         var user = await FindUserByEmailAndRoleAsync(db, request.Email, role);
-        if (user is null)
+        if (user is not null)
+        {
+            var verificationResult = verificationService.Verify(user, request.Code);
+            if (!verificationResult.Succeeded)
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return AuthEndpointSupport.MessageResult(
+                    AuthEndpointSupport.GetEmailVerificationFailureMessage(verificationResult.FailureReason),
+                    StatusCodes.Status400BadRequest);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return AuthEndpointSupport.SignInUser(context, user, role, authRuntimeOptions);
+        }
+
+        var pendingRegistration = pendingRegistrationStore.FindByEmailAndRole(request.Email, role);
+        if (pendingRegistration is null)
         {
             return AuthEndpointSupport.MessageResult("Аккаунт не найден.", StatusCodes.Status404NotFound);
         }
 
-        var verificationResult = verificationService.Verify(user, request.Code);
-        if (!verificationResult.Succeeded)
+        var pendingVerificationResult = pendingRegistrationStore.Verify(pendingRegistration, request.Code);
+        if (!pendingVerificationResult.Succeeded)
         {
-            await db.SaveChangesAsync();
             return AuthEndpointSupport.MessageResult(
-                AuthEndpointSupport.GetEmailVerificationFailureMessage(verificationResult.FailureReason),
+                AuthEndpointSupport.GetEmailVerificationFailureMessage(pendingVerificationResult.FailureReason),
                 StatusCodes.Status400BadRequest);
         }
 
-        await db.SaveChangesAsync();
-        return AuthEndpointSupport.SignInUser(context, user, role, authRuntimeOptions);
+        if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == pendingRegistration.Email, cancellationToken))
+        {
+            pendingRegistrationStore.Remove(pendingRegistration);
+            return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+        }
+
+        if (role == PublicRoles.Company
+            && !string.IsNullOrWhiteSpace(pendingRegistration.CompanyInn)
+            && await db.EmployerProfiles.Include(item => item.User)
+                .AnyAsync(item => item.Inn == pendingRegistration.CompanyInn && item.User.DeletedAt == null, cancellationToken))
+        {
+            pendingRegistrationStore.Remove(pendingRegistration);
+            return AuthEndpointSupport.MessageResult("Компания с таким ИНН уже зарегистрирована.", StatusCodes.Status409Conflict);
+        }
+
+        var confirmedUser = BuildConfirmedUserFromPendingRegistration(pendingRegistration);
+        db.Users.Add(confirmedUser);
+        await db.SaveChangesAsync(cancellationToken);
+        pendingRegistrationStore.Remove(pendingRegistration);
+        return AuthEndpointSupport.SignInUser(context, confirmedUser, role, authRuntimeOptions);
     }
 
     private static async Task<IResult> HandleResendConfirmationAsync(
         [FromBody] EmailVerificationResendDTO request,
         EmailVerificationService verificationService,
+        PendingRegistrationStore pendingRegistrationStore,
         SmtpEmailSender emailSender,
         ApplicationDBContext db,
         CancellationToken cancellationToken,
@@ -209,35 +281,57 @@ internal static class AuthEndpointRouteBuilderExtensions
         }
 
         var user = await FindUserByEmailAndRoleAsync(db, request.Email, role);
-        if (user is null)
+        if (user is not null)
+        {
+            if (user.IsVerified == true)
+            {
+                return AuthEndpointSupport.MessageResult("Email уже подтвержден.", StatusCodes.Status409Conflict);
+            }
+
+            if (!verificationService.CanResend(user, out var retryAfter))
+            {
+                return AuthEndpointSupport.MessageResult(
+                    $"Повторная отправка будет доступна через {Math.Ceiling(retryAfter.TotalSeconds)} сек.",
+                    StatusCodes.Status429TooManyRequests);
+            }
+
+            var userPayload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
+                user,
+                role,
+                verificationService,
+                emailSender,
+                cancellationToken,
+                "Новый код подтверждения отправлен.",
+                "Новый код создан, но письмо отправить не удалось. Попробуйте повторить отправку позже.",
+                loggerFactory.CreateLogger("AuthEndpoints"));
+
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Ok(userPayload);
+        }
+
+        var pendingRegistration = pendingRegistrationStore.FindByEmailAndRole(request.Email, role);
+        if (pendingRegistration is null)
         {
             return AuthEndpointSupport.MessageResult("Аккаунт не найден.", StatusCodes.Status404NotFound);
         }
 
-        if (user.IsVerified == true)
-        {
-            return AuthEndpointSupport.MessageResult("Email уже подтвержден.", StatusCodes.Status409Conflict);
-        }
-
-        if (!verificationService.CanResend(user, out var retryAfter))
+        if (!pendingRegistrationStore.CanResend(pendingRegistration, out var pendingRetryAfter))
         {
             return AuthEndpointSupport.MessageResult(
-                $"Повторная отправка будет доступна через {Math.Ceiling(retryAfter.TotalSeconds)} сек.",
+                $"Повторная отправка будет доступна через {Math.Ceiling(pendingRetryAfter.TotalSeconds)} сек.",
                 StatusCodes.Status429TooManyRequests);
         }
 
-        var payload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
-            user,
-            role,
-            verificationService,
+        var pendingPayload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
+            pendingRegistration,
+            pendingRegistrationStore,
             emailSender,
             cancellationToken,
             "Новый код подтверждения отправлен.",
             "Новый код создан, но письмо отправить не удалось. Попробуйте повторить отправку позже.",
             loggerFactory.CreateLogger("AuthEndpoints"));
 
-        await db.SaveChangesAsync();
-        return Results.Ok(payload);
+        return Results.Ok(pendingPayload);
     }
 
     private static async Task<IResult> HandleForgotPasswordAsync(
@@ -407,6 +501,7 @@ internal static class AuthEndpointRouteBuilderExtensions
             PreVerify = true,
             CuratorProfile = new CuratorProfile
             {
+                IsAdministrator = false,
                 Name = invitation.Name,
                 Surname = invitation.Surname,
                 Thirdname = invitation.Thirdname,
@@ -457,7 +552,7 @@ internal static class AuthEndpointRouteBuilderExtensions
 
     private static async Task<IResult> HandleRegisterCandidateAsync(
         [FromBody] ApplicantRegistrationDTO request,
-        EmailVerificationService verificationService,
+        PendingRegistrationStore pendingRegistrationStore,
         SmtpEmailSender emailSender,
         ApplicationDBContext db,
         CancellationToken cancellationToken,
@@ -484,43 +579,35 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
         }
 
-        var user = new User
+        var pendingRegistrationResult = pendingRegistrationStore.UpsertCandidate(
+            normalizedEmail,
+            AuthSupport.HashPassword(normalizedEmail, request.Password),
+            request.Name,
+            request.Surname ?? string.Empty,
+            request.Thirdname);
+
+        if (!pendingRegistrationResult.Succeeded)
         {
-            Email = normalizedEmail,
-            IsVerified = false,
-            PreVerify = true,
-            ApplicantProfile = new ApplicantProfile
-            {
-                Name = request.Name.Trim(),
-                Surname = request.Surname?.Trim() ?? string.Empty,
-                Thirdname = string.IsNullOrWhiteSpace(request.Thirdname) ? null : request.Thirdname.Trim(),
-            },
-        };
-
-        user.PasswordHash = AuthSupport.HashPassword(user, request.Password);
-
-        db.Users.Add(user);
-        await db.SaveChangesAsync(cancellationToken);
+            return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+        }
 
         var payload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
-            user,
-            PublicRoles.Candidate,
-            verificationService,
+            pendingRegistrationResult.Registration!,
+            pendingRegistrationStore,
             emailSender,
             cancellationToken,
-            "Аккаунт создан. Отправили код подтверждения на email.",
-            "Аккаунт создан, но письмо отправить не удалось. Запросите код повторно.",
+            "Аккаунт будет создан после подтверждения email. Мы отправили код на почту.",
+            "Код создан, но письмо отправить не удалось. Запросите код повторно.",
             loggerFactory.CreateLogger("AuthEndpoints"));
 
-        await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/users/{user.Id}", payload);
+        return Results.Created("/api/auth/confirm-email", payload);
     }
 
     private static async Task<IResult> HandleRegisterCompanyAsync(
         [FromBody] EmployerRegistrationDTO request,
         HttpContext context,
         AuthRuntimeOptions authRuntimeOptions,
-        EmailVerificationService verificationService,
+        PendingRegistrationStore pendingRegistrationStore,
         SmtpEmailSender emailSender,
         DadataService dadataService,
         ApplicationDBContext db,
@@ -603,48 +690,66 @@ internal static class AuthEndpointRouteBuilderExtensions
             return AuthEndpointSupport.MessageResult("Компания с таким ИНН уже зарегистрирована.", StatusCodes.Status409Conflict);
         }
 
-        var user = new User
-        {
-            Email = normalizedEmail,
-            IsVerified = !hasExplicitEmail,
-            PreVerify = true,
-            EmployerProfile = new EmployerProfile
-            {
-                CompanyName = request.CompanyName.Trim(),
-                Inn = string.IsNullOrEmpty(normalizedInn) ? null : normalizedInn,
-                VerificationData = AuthEndpointSupport.BuildEmployerVerificationData(request.VerificationData, innLookup),
-                VerificationMethod = innLookup is null ? (string.IsNullOrWhiteSpace(request.VerificationData) ? null : "manual") : "dadata",
-                VerificationStatus = CompanyVerificationStatuses.Pending,
-                LegalAddress = !string.IsNullOrWhiteSpace(innLookup?.LegalAddress)
-                    ? innLookup.LegalAddress
-                    : string.IsNullOrWhiteSpace(request.LegalAddress)
-                        ? null
-                        : request.LegalAddress.Trim(),
-            },
-        };
-
-        user.PasswordHash = AuthSupport.HashPassword(user, request.Password);
-
-        db.Users.Add(user);
-        await db.SaveChangesAsync(cancellationToken);
+        var verificationData = AuthEndpointSupport.BuildEmployerVerificationData(request.VerificationData, innLookup);
+        var verificationMethod = innLookup is null ? (string.IsNullOrWhiteSpace(request.VerificationData) ? null : "manual") : "dadata";
+        var legalAddress = !string.IsNullOrWhiteSpace(innLookup?.LegalAddress)
+            ? innLookup.LegalAddress
+            : string.IsNullOrWhiteSpace(request.LegalAddress)
+                ? null
+                : request.LegalAddress.Trim();
 
         if (!hasExplicitEmail)
         {
+            var user = new User
+            {
+                Email = normalizedEmail,
+                IsVerified = true,
+                PreVerify = true,
+                EmployerProfile = new EmployerProfile
+                {
+                    CompanyName = request.CompanyName.Trim(),
+                    Inn = string.IsNullOrEmpty(normalizedInn) ? null : normalizedInn,
+                    VerificationData = verificationData,
+                    VerificationMethod = verificationMethod,
+                    VerificationStatus = CompanyVerificationStatuses.Pending,
+                    LegalAddress = legalAddress,
+                },
+            };
+
+            user.PasswordHash = AuthSupport.HashPassword(user, request.Password);
+
+            db.Users.Add(user);
+            await db.SaveChangesAsync(cancellationToken);
             return AuthEndpointSupport.SignInUser(context, user, PublicRoles.Company, authRuntimeOptions);
         }
 
+        var pendingRegistrationResult = pendingRegistrationStore.UpsertCompany(
+            normalizedEmail,
+            AuthSupport.HashPassword(normalizedEmail, request.Password),
+            request.CompanyName,
+            normalizedInn,
+            verificationData,
+            verificationMethod,
+            legalAddress);
+
+        if (!pendingRegistrationResult.Succeeded)
+        {
+            var message = pendingRegistrationResult.ConflictReason == PendingRegistrationConflictReason.InnTaken
+                ? "Компания с таким ИНН уже зарегистрирована."
+                : "Пользователь с таким email уже существует.";
+            return AuthEndpointSupport.MessageResult(message, StatusCodes.Status409Conflict);
+        }
+
         var payload = await AuthEndpointSupport.IssueAndSendVerificationAsync(
-            user,
-            PublicRoles.Company,
-            verificationService,
+            pendingRegistrationResult.Registration!,
+            pendingRegistrationStore,
             emailSender,
             cancellationToken,
-            "Аккаунт компании создан. Отправили код подтверждения на email.",
-            "Аккаунт компании создан, но письмо отправить не удалось. Запросите код повторно.",
+            "Аккаунт компании будет создан после подтверждения email. Мы отправили код на почту.",
+            "Код создан, но письмо отправить не удалось. Запросите код повторно.",
             loggerFactory.CreateLogger("AuthEndpoints"));
 
-        await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/users/{user.Id}", payload);
+        return Results.Created("/api/auth/confirm-email", payload);
     }
 
     private static IResult HandleRegisterModeratorAlias() =>
@@ -721,6 +826,52 @@ internal static class AuthEndpointRouteBuilderExtensions
         };
     }
 
+    private static PendingRegistration? FindPendingRegistrationForLogin(PendingRegistrationStore pendingRegistrationStore, string role, string login) =>
+        role switch
+        {
+            PublicRoles.Candidate when AuthSupport.IsValidEmail(login)
+                => pendingRegistrationStore.FindByEmailAndRole(login, role),
+            PublicRoles.Company when !string.IsNullOrWhiteSpace(AuthSupport.NormalizeInn(login))
+                => pendingRegistrationStore.FindCompanyByInn(login),
+            _ => null,
+        };
+
+    private static User BuildConfirmedUserFromPendingRegistration(PendingRegistration registration) =>
+        registration.Role switch
+        {
+            PublicRoles.Candidate => new User
+            {
+                Email = registration.Email,
+                PasswordHash = registration.PasswordHash,
+                IsVerified = true,
+                PreVerify = true,
+                ApplicantProfile = new ApplicantProfile
+                {
+                    ModerationStatus = CandidateModerationStatuses.Pending,
+                    Name = registration.CandidateName ?? string.Empty,
+                    Surname = registration.CandidateSurname ?? string.Empty,
+                    Thirdname = registration.CandidateThirdname,
+                },
+            },
+            PublicRoles.Company => new User
+            {
+                Email = registration.Email,
+                PasswordHash = registration.PasswordHash,
+                IsVerified = true,
+                PreVerify = true,
+                EmployerProfile = new EmployerProfile
+                {
+                    CompanyName = registration.CompanyName ?? string.Empty,
+                    Inn = registration.CompanyInn,
+                    VerificationData = registration.CompanyVerificationData,
+                    VerificationMethod = registration.CompanyVerificationMethod,
+                    VerificationStatus = CompanyVerificationStatuses.Pending,
+                    LegalAddress = registration.CompanyLegalAddress,
+                },
+            },
+            _ => throw new InvalidOperationException($"Unsupported pending registration role '{registration.Role}'."),
+        };
+
     private static Task<ModeratorInvitation?> FindModeratorInvitationByTokenAsync(
         ApplicationDBContext db,
         ModeratorInvitationService invitationService,
@@ -761,6 +912,37 @@ internal static class AuthEndpointRouteBuilderExtensions
             cancellationToken,
             "Подтвердите email, чтобы войти в аккаунт. Мы отправили код подтверждения на почту.",
             "Подтвердите email, чтобы войти в аккаунт. Код создан, но письмо отправить не удалось. Запросите отправку ещё раз.",
+            logger);
+    }
+
+    private static async Task<PendingEmailVerificationDTO> BuildLoginVerificationPayloadAsync(
+        PendingRegistration registration,
+        PendingRegistrationStore pendingRegistrationStore,
+        SmtpEmailSender emailSender,
+        CancellationToken cancellationToken,
+        ILogger logger)
+    {
+        var hasActiveCode = !string.IsNullOrWhiteSpace(registration.EmailVerificationCodeHash)
+            && registration.EmailVerificationExpiresAt is DateTime expiresAtUtc
+            && expiresAtUtc > DateTime.UtcNow;
+
+        if (hasActiveCode && !pendingRegistrationStore.CanResend(registration, out var retryAfter))
+        {
+            var payload = AuthEndpointSupport.BuildPendingEmailVerificationPayload(
+                registration,
+                $"Подтвердите email, чтобы завершить регистрацию. Код уже отправлен, повторная отправка будет доступна через {Math.Ceiling(retryAfter.TotalSeconds)} сек.");
+
+            payload.ExpiresAtUtc = registration.EmailVerificationExpiresAt;
+            return payload;
+        }
+
+        return await AuthEndpointSupport.IssueAndSendVerificationAsync(
+            registration,
+            pendingRegistrationStore,
+            emailSender,
+            cancellationToken,
+            "Подтвердите email, чтобы завершить регистрацию. Мы отправили код подтверждения на почту.",
+            "Подтвердите email, чтобы завершить регистрацию. Код создан, но письмо отправить не удалось. Запросите отправку еще раз.",
             logger);
     }
 

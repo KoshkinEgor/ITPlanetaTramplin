@@ -7,8 +7,9 @@ import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
-import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
+import { readFavoriteCompanyIds, readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
+import { getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
@@ -21,7 +22,7 @@ const filterSelects = [
     key: "type",
     label: "Тип",
     value: "Тип",
-    options: ["Тип", "Вакансия", "Стажировка", "Мероприятие"],
+    options: ["Тип", "Вакансия", "Стажировка", "Мероприятие", "Менторская программа"],
   },
   {
     key: "format",
@@ -61,7 +62,7 @@ const visibleFilterSelects = filterSelects.filter((filter) => filter.key !== "mo
 const defaultFilterValues = Object.fromEntries(filterSelects.map((filter) => [filter.key, filter.value]));
 
 const advancedSearchSections = {
-  directions: ["Вакансии", "Стажировки", "Мероприятия"],
+  directions: ["Вакансии", "Стажировки", "Мероприятия", "Менторские программы"],
   formats: ["Офис", "Гибрид", "Онлайн"],
   schedules: ["Полный день", "Частичная", "По выходным"],
   extras: ["Можно удаленно", "С контактами", "Быстрый отклик", "Только активные"],
@@ -314,6 +315,8 @@ function normalizeOptionValue(value) {
 }
 
 function translateOpportunityType(value) {
+  return translateSharedOpportunityType(value);
+/*
   switch (String(value ?? "").trim().toLowerCase()) {
     case "vacancy":
       return "Вакансия";
@@ -323,7 +326,7 @@ function translateOpportunityType(value) {
       return "Мероприятие";
     default:
       return "Возможность";
-  }
+  }*/
 }
 
 function translateEmploymentType(value) {
@@ -434,6 +437,7 @@ function mapOpportunityToHomeCard(item, index) {
 
   return {
     id: getOpportunityIdentifier(item, `nearby-${index}`),
+    employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: typeLabel,
     type: typeLabel,
     status: deriveStatus(item),
@@ -443,7 +447,7 @@ function mapOpportunityToHomeCard(item, index) {
     accent: item.locationAddress ?? employmentLabel,
     note: shortenText(item.description),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
-    primaryAction: String(item?.opportunityType ?? "").toLowerCase() === "event" ? "Подать заявку" : "Откликнуться",
+    primaryAction: getOpportunityApplyLabel(item?.opportunityType),
     secondaryAction: "Связаться",
     city: item.locationCity ?? "",
     coordinates: [Number(item.longitude), Number(item.latitude)],
@@ -488,6 +492,7 @@ function mapOpportunityToRecommendedCard(item, index) {
 
   return {
     id: getOpportunityIdentifier(item, `recommended-${index}`),
+    employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: typeLabel,
     type: typeLabel,
     status: deriveStatus(item),
@@ -1022,6 +1027,7 @@ export function HomeApp() {
   const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
   const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
+  const [favoriteCompanyIds, setFavoriteCompanyIds] = useState(() => readFavoriteCompanyIds());
   const [nearbyItemsState, setNearbyItemsState] = useState({
     status: "loading",
     items: [],
@@ -1090,6 +1096,7 @@ export function HomeApp() {
   };
 
   useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
+  useEffect(() => subscribeToFavorites(setFavoriteCompanyIds, { scope: "companies" }), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1233,14 +1240,21 @@ export function HomeApp() {
     () => new Set(favoriteOpportunityIds.map((id) => String(id))),
     [favoriteOpportunityIds]
   );
+  const favoriteCompanyIdSet = useMemo(
+    () => new Set(favoriteCompanyIds.map((id) => String(id))),
+    [favoriteCompanyIds]
+  );
 
   const displayedNearbyCards = useMemo(
     () =>
       prioritizedNearbyCards.map((item) => ({
         ...item,
+        isFavoriteOpportunity: favoriteOpportunityIdSet.has(String(item.id)),
+        isFavoriteCompanyOpportunity:
+          item.employerId != null && item.employerId !== "" ? favoriteCompanyIdSet.has(String(item.employerId)) : false,
         isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
       })),
-    [favoriteOpportunityIdSet, prioritizedNearbyCards]
+    [favoriteCompanyIdSet, favoriteOpportunityIdSet, prioritizedNearbyCards]
   );
 
   useEffect(() => {
@@ -1492,6 +1506,7 @@ export function HomeApp() {
             {view === "map" ? (
               <Card className="home-map-card">
                 <div className="home-map-card__legend">
+                  <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--teal" aria-hidden="true" />Менторская программа</Tag>
                   <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--blue" aria-hidden="true" />Вакансия</Tag>
                   <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--green" aria-hidden="true" />Стажировка</Tag>
                   <Tag className="home-map-card__legend-chip"><span className="home-map-card__dot home-map-card__dot--orange" aria-hidden="true" />Мероприятие</Tag>

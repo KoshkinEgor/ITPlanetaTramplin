@@ -40,6 +40,9 @@ export const routes = {
     opportunities: "/company/dashboard/opportunities",
     responses: "/company/dashboard/responses",
   },
+  companies: {
+    detail: "/companies/:id",
+  },
   moderator: {
     root: "/moderator",
     dashboard: "/moderator/dashboard",
@@ -99,6 +102,10 @@ export function buildModeratorInvitationRoute({ token } = {}) {
 
 export function buildOpportunityDetailRoute(opportunityId = "design-ui-ux") {
   return routes.opportunities.detail.replace(":id", opportunityId);
+}
+
+export function buildCompanyPublicRoute(companyId) {
+  return routes.companies.detail.replace(":id", companyId);
 }
 
 export function buildCandidateSettingsRoute(section) {

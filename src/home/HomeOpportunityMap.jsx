@@ -176,6 +176,10 @@ function getMarkerTone(item) {
     return "orange";
   }
 
+  if (eyebrow.includes("ментор") || eyebrow.includes("РјРµРЅС‚РѕСЂ")) {
+    return "teal";
+  }
+
   return "blue";
 }
 
@@ -225,6 +229,18 @@ function sortPointsForMap(points) {
   return [...points].sort((left, right) => String(left.id).localeCompare(String(right.id)));
 }
 
+function getPointFavoriteState(point) {
+  if (point?.isFavoriteOpportunity ?? point?.isFavorite) {
+    return "favorite";
+  }
+
+  if (point?.isFavoriteCompanyOpportunity) {
+    return "company-favorite";
+  }
+
+  return "regular";
+}
+
 export function buildPointCollectionSignature(points) {
   return sortPointsForMap(points)
     .map((point) => {
@@ -234,7 +250,7 @@ export function buildPointCollectionSignature(points) {
         roundToTwo(Number(longitude)),
         roundToTwo(Number(latitude)),
         point.markerTone ?? "",
-        point.isFavorite ? "favorite" : "regular",
+        getPointFavoriteState(point),
         point.markerLabel ?? "",
         point.title ?? "",
       ].join(":");
@@ -373,17 +389,41 @@ function isSameLayout(left, right) {
   );
 }
 
-function createMarkerElement(point, isActive, onSelectPoint) {
+function createMarkerElement(point, isActive, handlers = {}) {
+  const favoriteState = getPointFavoriteState(point);
+  const isFavorite = favoriteState === "favorite";
+  const isCompanyFavorite = favoriteState === "company-favorite";
   const marker = document.createElement("button");
   marker.type = "button";
-  marker.className = `ui-map-marker ui-map-marker--pin ui-map-marker--md ui-map-marker--${point.markerTone} ui-map-marker--with-label home-yandex-map__marker${point.isFavorite ? " home-yandex-map__marker--favorite" : ""}`;
+  marker.className = `ui-map-marker ui-map-marker--pin ui-map-marker--md ui-map-marker--${point.markerTone} ui-map-marker--with-label home-yandex-map__marker${isFavorite ? " home-yandex-map__marker--favorite" : ""}${isCompanyFavorite ? " home-yandex-map__marker--company-favorite" : ""}`;
   marker.setAttribute("aria-label", point.isFavorite ? `${point.title}, в избранном` : point.title);
   marker.setAttribute("aria-pressed", isActive ? "true" : "false");
+  marker.setAttribute(
+    "aria-label",
+    isFavorite
+      ? `${point.title}, в избранном`
+      : isCompanyFavorite
+        ? `${point.title}, в избранной компании`
+        : point.title
+  );
   marker.dataset.pointId = String(point.id);
-  marker.dataset.favorite = point.isFavorite ? "true" : "false";
+  marker.dataset.favorite = favoriteState === "regular" ? "false" : "true";
+  marker.dataset.favoriteState = favoriteState;
   marker.addEventListener("click", (event) => {
     event.stopPropagation();
-    onSelectPoint?.(point.id);
+    handlers.onTogglePoint?.(point.id);
+  });
+  marker.addEventListener("mouseenter", () => {
+    handlers.onPreviewStart?.(point.id);
+  });
+  marker.addEventListener("mouseleave", () => {
+    handlers.onPreviewEnd?.(point.id);
+  });
+  marker.addEventListener("focus", () => {
+    handlers.onPreviewStart?.(point.id);
+  });
+  marker.addEventListener("blur", () => {
+    handlers.onPreviewEnd?.(point.id);
   });
 
   const markerPin = document.createElement("span");
@@ -393,7 +433,7 @@ function createMarkerElement(point, isActive, onSelectPoint) {
   markerShape.className = "ui-map-marker__pin-shape";
   markerPin.append(markerShape);
 
-  if (point.isFavorite) {
+  if (isFavorite) {
     const favoriteBadge = document.createElement("span");
     favoriteBadge.className = "home-yandex-map__marker-favorite-badge";
     favoriteBadge.setAttribute("aria-hidden", "true");
@@ -450,6 +490,7 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
   const rootRef = useRef(null);
   const containerRef = useRef(null);
   const previewRef = useRef(null);
+  const previewCloseTimeoutRef = useRef(null);
   const onSelectItemRef = useRef(onSelectItem);
   const activeIdRef = useRef(activeId);
   const markerElementsRef = useRef(new Map());
@@ -461,6 +502,7 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
   const [previewLayout, setPreviewLayout] = useState(null);
   const [viewportState, setViewportState] = useState({ zoom: 10.4, revision: 0 });
   const [measureRevision, setMeasureRevision] = useState(0);
+  const [hoveredId, setHoveredId] = useState(null);
 
   const fallbackCenter = useMemo(
     () => getFallbackCenter(selectedCity, selectedCityCoordinates),
@@ -481,15 +523,44 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
   const mapLocation = useMemo(() => buildLocation(mapPoints, fallbackCenter), [fallbackCenter, mapPoints]);
   const pointFeatures = useMemo(() => mapPoints.map(buildPointFeature), [mapPoints]);
   const mapDataSignature = useMemo(() => buildPointCollectionSignature(mapPoints), [mapPoints]);
+  const previewActiveId = activeId ?? hoveredId;
   const activeItem = useMemo(
-    () => points.find((point) => point.id === activeId) ?? null,
-    [activeId, points]
+    () => points.find((point) => point.id === previewActiveId) ?? null,
+    [points, previewActiveId]
   );
   const currentZoom = viewportState.zoom;
 
   useEffect(() => {
     onSelectItemRef.current = onSelectItem;
   }, [onSelectItem]);
+
+  function clearPendingPreviewClose() {
+    if (previewCloseTimeoutRef.current == null) {
+      return;
+    }
+
+    window.clearTimeout(previewCloseTimeoutRef.current);
+    previewCloseTimeoutRef.current = null;
+  }
+
+  function schedulePreviewClose(pointId = null) {
+    clearPendingPreviewClose();
+
+    previewCloseTimeoutRef.current = window.setTimeout(() => {
+      if (activeIdRef.current) {
+        return;
+      }
+
+      setHoveredId((current) => {
+        if (pointId == null || String(current) === String(pointId)) {
+          return null;
+        }
+
+        return current;
+      });
+      previewCloseTimeoutRef.current = null;
+    }, 80);
+  }
 
   function handleClusterSelect(coordinates) {
     const currentLocation = mapViewportRef.current ?? mapLocation;
@@ -506,9 +577,37 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
     });
   }
 
+  function handlePreviewStart(pointId) {
+    if (activeIdRef.current) {
+      return;
+    }
+
+    clearPendingPreviewClose();
+    setHoveredId(String(pointId));
+  }
+
+  function handlePreviewEnd(pointId) {
+    if (activeIdRef.current) {
+      return;
+    }
+
+    schedulePreviewClose(pointId);
+  }
+
+  function handleTogglePoint(pointId) {
+    onSelectItemRef.current?.(String(activeIdRef.current) === String(pointId) ? null : pointId);
+  }
+
   useEffect(() => {
     activeIdRef.current = activeId;
+    clearPendingPreviewClose();
+
+    if (activeId !== null && activeId !== undefined) {
+      setHoveredId(null);
+    }
   }, [activeId]);
+
+  useEffect(() => () => clearPendingPreviewClose(), []);
 
   useEffect(() => {
     mapViewportRef.current = {
@@ -570,9 +669,9 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
 
   useEffect(() => {
     markerElementsRef.current.forEach((markerElement, pointId) => {
-      markerElement.setAttribute("aria-pressed", pointId === activeId ? "true" : "false");
+      markerElement.setAttribute("aria-pressed", pointId === previewActiveId ? "true" : "false");
     });
-  }, [activeId, mapDataSignature]);
+  }, [mapDataSignature, previewActiveId]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -687,7 +786,11 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
               const markerElement = createMarkerElement(
                 point,
                 point.id === activeIdRef.current,
-                (nextId) => onSelectItemRef.current?.(nextId)
+                {
+                  onTogglePoint: handleTogglePoint,
+                  onPreviewStart: handlePreviewStart,
+                  onPreviewEnd: handlePreviewEnd,
+                }
               );
 
               markerElementsRef.current.set(point.id, markerElement);
@@ -783,6 +886,10 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
 
     setPreviewLayout((currentLayout) => (isSameLayout(currentLayout, nextLayout) ? currentLayout : nextLayout));
 
+    if (!activeId) {
+      return;
+    }
+
     const focusState = focusStateRef.current;
     const mapViewport = mapViewportRef.current;
 
@@ -826,7 +933,7 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
     }
 
     focusState.shiftAttempts = 0;
-  }, [activeItem, measureRevision, status, viewportState.revision]);
+  }, [activeId, activeItem, measureRevision, status, viewportState.revision]);
 
   const overlayState =
     status === "error"
@@ -873,6 +980,10 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
           ref={previewRef}
           className={`home-yandex-map__preview home-yandex-map__preview--${previewLayout?.placement ?? "top"}${previewLayout ? " is-positioned" : " is-measuring"}`}
           style={previewStyle}
+          onMouseEnter={() => handlePreviewStart(activeItem.id)}
+          onMouseLeave={() => handlePreviewEnd(activeItem.id)}
+          onFocusCapture={() => handlePreviewStart(activeItem.id)}
+          onBlurCapture={() => handlePreviewEnd(activeItem.id)}
         >
           <OpportunityMiniCard
             item={activeItem}

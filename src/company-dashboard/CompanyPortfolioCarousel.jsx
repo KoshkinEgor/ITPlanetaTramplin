@@ -1,16 +1,23 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CandidatePortfolioProjectCard } from "../candidate-portal/portfolio-kit";
-import { Button, Card } from "../shared/ui";
+import { Button, Card, EmptyState } from "../shared/ui";
 import "./company-dashboard.css";
 
 const COMPANY_PORTFOLIO_DETAIL_HREF = "#company-portfolio-projects";
+
 const PORTFOLIO_COPY = {
   editor: {
-    description: "Мини-версии карточек пролистываются прямо в кабинете компании, чтобы кейсы можно было быстро просматривать внутри блока портфолио.",
+    eyebrow: "Кейсы",
+    title: "Портфолио компании",
+    description:
+      "Тот же slider используется и в кабинете компании, и на публичной странице. Здесь он помогает быстро проверить, как выглядят кейсы после сохранения.",
     showCreateAction: true,
   },
   viewer: {
-    description: "Компактные карточки кейсов помогают быстро просмотреть проекты компании без перехода в режим редактирования.",
+    eyebrow: "Кейсы",
+    title: "Портфолио компании",
+    description:
+      "Компактные карточки помогают быстро посмотреть проекты и перейти по ссылке на кейс без отдельного режима редактирования.",
     showCreateAction: false,
   },
 };
@@ -87,59 +94,153 @@ const COMPANY_PORTFOLIO_PROJECTS = [
   },
 ];
 
-export function CompanyPortfolioCarousel({ mode = "editor", testId = "company-profile-portfolio-slider" }) {
+function mapPortfolioItems(items) {
+  return items
+    .map((item, index) => {
+      const title = String(item?.title ?? "").trim();
+      const subtitle = String(item?.subtitle ?? "").trim();
+      const previewUrl = String(item?.previewUrl ?? "").trim();
+      const sourceUrl = String(item?.sourceUrl ?? "").trim();
+
+      if (!title && !subtitle && !previewUrl) {
+        return null;
+      }
+
+      return {
+        id: String(item?.id ?? `company-portfolio-project-${index + 1}`),
+        title: title || `Кейс ${index + 1}`,
+        coverImageUrl:
+          previewUrl ||
+          createCompanyPortfolioCover({
+            eyebrow: subtitle || "Company case",
+            title: title || `Case ${index + 1}`,
+            accentStart: "#F6FBFF",
+            accentEnd: "#DCE8FF",
+            glow: "#DFFF95",
+          }),
+        actionHref: sourceUrl || COMPANY_PORTFOLIO_DETAIL_HREF,
+        actionLabel: sourceUrl ? "Открыть проект" : "Подробнее",
+      };
+    })
+    .filter(Boolean);
+}
+
+export function CompanyPortfolioCarousel({
+  mode = "editor",
+  items,
+  testId = "company-profile-portfolio-slider",
+  showCreateAction,
+  emptyTitle = "Кейсы пока не добавлены",
+  emptyDescription = "После заполнения карточек здесь появится slider с проектами компании.",
+  eyebrow,
+  title,
+  description,
+  compact = false,
+  ctaLabel = "Добавить проект",
+  onCtaClick,
+  ctaHref,
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const totalItems = COMPANY_PORTFOLIO_PROJECTS.length;
+  const portfolioItems = useMemo(
+    () => (items === undefined ? COMPANY_PORTFOLIO_PROJECTS : mapPortfolioItems(items)),
+    [items]
+  );
+  const totalItems = portfolioItems.length;
   const canMoveBackward = activeIndex > 0;
   const canMoveForward = activeIndex < totalItems - 1;
   const copy = PORTFOLIO_COPY[mode] ?? PORTFOLIO_COPY.editor;
+  const shouldShowCreateAction =
+    typeof showCreateAction === "boolean" ? showCreateAction : copy.showCreateAction;
+
+  useEffect(() => {
+    setActiveIndex((currentIndex) => Math.min(currentIndex, Math.max(totalItems - 1, 0)));
+  }, [totalItems]);
+
+  const resolvedEyebrow = eyebrow ?? copy.eyebrow;
+  const resolvedTitle = title ?? copy.title;
+  const resolvedDescription = description ?? copy.description;
 
   return (
-    <Card className="company-dashboard-portfolio" data-testid={testId}>
+    <Card
+      className={[
+        "company-dashboard-portfolio",
+        compact ? "company-dashboard-portfolio--compact" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-testid={testId}
+    >
       <div className="company-dashboard-portfolio__head">
         <div className="company-dashboard-portfolio__copy">
-          <span className="company-dashboard-portfolio__eyebrow">Кейсы</span>
-          <h2 className="company-dashboard-portfolio__title">Портфолио компании</h2>
-          <p className="company-dashboard-portfolio__description">{copy.description}</p>
+          {resolvedEyebrow ? (
+            <span className="company-dashboard-portfolio__eyebrow">{resolvedEyebrow}</span>
+          ) : null}
+          {resolvedTitle ? <h2 className="company-dashboard-portfolio__title">{resolvedTitle}</h2> : null}
+          {resolvedDescription ? (
+            <p className="company-dashboard-portfolio__description">{resolvedDescription}</p>
+          ) : null}
         </div>
 
-        <div className="company-dashboard-portfolio__controls">
-          <span className="company-dashboard-portfolio__counter" aria-live="polite">
-            {String(activeIndex + 1).padStart(2, "0")} / {String(totalItems).padStart(2, "0")}
-          </span>
-          <div className="company-dashboard-portfolio__actions">
-            <Button variant="secondary" size="sm" onClick={() => setActiveIndex((index) => Math.max(index - 1, 0))} disabled={!canMoveBackward}>
-              Назад
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => setActiveIndex((index) => Math.min(index + 1, totalItems - 1))} disabled={!canMoveForward}>
-              Дальше
-            </Button>
+        {totalItems ? (
+          <div className="company-dashboard-portfolio__controls">
+            <span className="company-dashboard-portfolio__counter" aria-live="polite">
+              {String(activeIndex + 1).padStart(2, "0")} / {String(totalItems).padStart(2, "0")}
+            </span>
+            <div className="company-dashboard-portfolio__actions">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setActiveIndex((index) => Math.max(index - 1, 0))}
+                disabled={!canMoveBackward}
+              >
+                Назад
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setActiveIndex((index) => Math.min(index + 1, totalItems - 1))}
+                disabled={!canMoveForward}
+              >
+                Дальше
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {totalItems ? (
+        <div className="company-dashboard-portfolio__viewport">
+          <div
+            className="company-dashboard-portfolio__track"
+            data-testid="company-profile-portfolio-track"
+            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+          >
+            {portfolioItems.map((item) => (
+              <div key={item.id} className="company-dashboard-portfolio__slide">
+                <CandidatePortfolioProjectCard
+                  item={item}
+                  variant="media"
+                  actionHref={item.actionHref}
+                  actionLabel={item.actionLabel}
+                  className="company-dashboard-portfolio__card"
+                />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      ) : (
+        <EmptyState compact tone="neutral" title={emptyTitle} description={emptyDescription} />
+      )}
 
-      <div className="company-dashboard-portfolio__viewport">
-        <div
-          className="company-dashboard-portfolio__track"
-          data-testid="company-profile-portfolio-track"
-          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+      {shouldShowCreateAction ? (
+        <Button
+          type="button"
+          href={ctaHref}
+          onClick={onCtaClick}
+          width="full"
+          className="company-dashboard-portfolio__cta"
         >
-          {COMPANY_PORTFOLIO_PROJECTS.map((item) => (
-            <div key={item.id} className="company-dashboard-portfolio__slide">
-              <CandidatePortfolioProjectCard
-                item={item}
-                variant="media"
-                actionHref={COMPANY_PORTFOLIO_DETAIL_HREF}
-                className="company-dashboard-portfolio__card"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {copy.showCreateAction ? (
-        <Button type="button" width="full" className="company-dashboard-portfolio__cta">
-          Добавить проект
+          {ctaLabel}
         </Button>
       ) : null}
     </Card>

@@ -1,7 +1,8 @@
 using Application.DBContext;
+using DTO;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
-using DTO;
+using ITPlanetaTramplin.Api.Infrastructure;
 using ITPlanetaTramplin.Api.Integrations;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -14,12 +15,20 @@ internal static class ModerationEndpointRouteBuilderExtensions
     {
         api.MapGet("/moderation/dashboard", GetModerationDashboardAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/companies", GetModerationCompaniesAsync).RequireAuthorization("requireModeratorRole");
+        api.MapGet("/moderation/companies/{id:int}", GetModerationCompanyByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapGet("/moderation/companies/{id:int}/verification-document", GetModerationCompanyVerificationDocumentAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPut("/moderation/companies/{id:int}", UpdateModerationCompanyByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPost("/moderation/companies/{id:int}/decision", ApplyCompanyDecisionAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/opportunities", GetModerationOpportunitiesAsync).RequireAuthorization("requireModeratorRole");
+        api.MapGet("/moderation/opportunities/{id:int}", GetModerationOpportunityByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPut("/moderation/opportunities/{id:int}", UpdateModerationOpportunityByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPost("/moderation/opportunities/{id:int}/decision", ApplyOpportunityDecisionAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/users", GetModerationUsersAsync).RequireAuthorization("requireModeratorRole");
+        api.MapGet("/moderation/users/{id:int}", GetModerationUserByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPut("/moderation/users/{id:int}", UpdateModerationUserByIdAsync).RequireAuthorization("requireModeratorRole");
+        api.MapPost("/moderation/users/{id:int}/decision", ApplyCandidateDecisionAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/moderator-invitations", GetModeratorInvitationsAsync).RequireAuthorization("requireModeratorRole");
         api.MapPost("/moderation/moderator-invitations", CreateModeratorInvitationAsync).RequireAuthorization("requireModeratorRole");
-        api.MapPost("/moderation/companies/{id:int}/decision", ApplyCompanyDecisionAsync).RequireAuthorization("requireModeratorRole");
-        api.MapPost("/moderation/opportunities/{id:int}/decision", ApplyOpportunityDecisionAsync).RequireAuthorization("requireModeratorRole");
 
         return api;
     }
@@ -31,6 +40,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
         var totalOpportunities = await db.Opportunities.CountAsync(item => item.DeletedAt == null);
         var companiesPending = await db.EmployerProfiles.CountAsync(item => item.VerificationStatus == CompanyVerificationStatuses.Pending);
         var opportunitiesPending = await db.Opportunities.CountAsync(item => item.DeletedAt == null && item.ModerationStatus == OpportunityModerationStatuses.Pending);
+        var candidatesPending = await db.ApplicantProfiles.CountAsync(item => CandidateModerationStatuses.Normalize(item.ModerationStatus) == CandidateModerationStatuses.Pending);
 
         return Results.Ok(new
         {
@@ -41,6 +51,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
             TotalOpportunities = totalOpportunities,
             CompaniesPending = companiesPending,
             OpportunitiesPending = opportunitiesPending,
+            CandidatesPending = candidatesPending,
         });
     }
 
@@ -57,7 +68,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
                 item.Inn,
                 item.LegalAddress,
                 item.Description,
-                item.VerificationStatus,
+                VerificationStatus = CompanyVerificationStatuses.Normalize(item.VerificationStatus),
                 item.VerificationMethod,
                 item.VerificationData,
                 item.User.Email,
@@ -69,6 +80,49 @@ internal static class ModerationEndpointRouteBuilderExtensions
             .ToListAsync();
 
         return Results.Ok(companies);
+    }
+
+    private static async Task<IResult> GetModerationCompanyByIdAsync(int id, ApplicationDBContext db)
+    {
+        var profile = await db.EmployerProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.Id == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(CompanyEndpointRouteBuilderExtensions.MapCompanyProfile(profile));
+    }
+
+    private static async Task<IResult> UpdateModerationCompanyByIdAsync(int id, CompanyProfileUpdateDTO request, ApplicationDBContext db)
+    {
+        var profile = await db.EmployerProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.Id == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        CompanyEndpointRouteBuilderExtensions.ApplyCompanyProfileUpdate(profile, request);
+        await db.SaveChangesAsync();
+        return Results.Ok(CompanyEndpointRouteBuilderExtensions.MapCompanyProfile(profile));
+    }
+
+    private static async Task<IResult> GetModerationCompanyVerificationDocumentAsync(
+        int id,
+        ApplicationDBContext db,
+        CompanyVerificationStorage storage)
+    {
+        var profile = await db.EmployerProfiles
+            .FirstOrDefaultAsync(item => item.Id == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        return CompanyEndpointRouteBuilderExtensions.GetVerificationDocumentResult(profile, storage);
     }
 
     private static async Task<IResult> GetModerationOpportunitiesAsync(ApplicationDBContext db)
@@ -86,7 +140,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
                 item.PublishAt,
                 item.ExpireAt,
                 item.DeletedAt,
-                item.ModerationStatus,
+                ModerationStatus = OpportunityModerationStatuses.Normalize(item.ModerationStatus),
                 EmployerId = item.EmployerId,
                 CompanyName = item.Employer.CompanyName,
                 EmployerEmail = item.Employer.User.Email,
@@ -94,6 +148,46 @@ internal static class ModerationEndpointRouteBuilderExtensions
             .ToListAsync();
 
         return Results.Ok(opportunities);
+    }
+
+    private static async Task<IResult> GetModerationOpportunityByIdAsync(int id, ApplicationDBContext db)
+    {
+        var opportunity = await db.Opportunities
+            .Include(item => item.Employer)
+            .Include(item => item.Tags)
+            .FirstOrDefaultAsync(item => item.Id == id);
+        if (opportunity is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(BuildModerationOpportunityResponse(opportunity));
+    }
+
+    private static async Task<IResult> UpdateModerationOpportunityByIdAsync(int id, OpportunityUpdateDTO request, ApplicationDBContext db)
+    {
+        var opportunity = await db.Opportunities
+            .Include(item => item.Employer)
+            .Include(item => item.Tags)
+            .FirstOrDefaultAsync(item => item.Id == id);
+        if (opportunity is null)
+        {
+            return Results.NotFound();
+        }
+
+        var validationResult = await OpportunityEndpointRouteBuilderExtensions.ApplyOpportunityUpdateAsync(
+            db,
+            opportunity,
+            request,
+            resetModerationStatus: false);
+
+        if (validationResult is not null)
+        {
+            return validationResult;
+        }
+
+        await db.SaveChangesAsync();
+        return Results.Ok(BuildModerationOpportunityResponse(opportunity));
     }
 
     private static async Task<IResult> GetModerationUsersAsync(ApplicationDBContext db)
@@ -119,11 +213,72 @@ internal static class ModerationEndpointRouteBuilderExtensions
                     item.CreatedAt,
                     Role = role,
                     DisplayName = AuthEndpointSupport.BuildDisplayName(item, role),
+                    CandidateModerationStatus = item.ApplicantProfile is null
+                        ? null
+                        : CandidateModerationStatuses.Normalize(item.ApplicantProfile.ModerationStatus),
+                    CompanyVerificationStatus = item.EmployerProfile is null
+                        ? null
+                        : CompanyVerificationStatuses.Normalize(item.EmployerProfile.VerificationStatus),
+                    IsAdministrator = item.CuratorProfile?.IsAdministrator == true,
                 };
             })
             .ToList();
 
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> GetModerationUserByIdAsync(int id, ApplicationDBContext db)
+    {
+        var profile = await db.ApplicantProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.UserId == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(CandidateEndpointRouteBuilderExtensions.MapCandidateProfile(profile));
+    }
+
+    private static async Task<IResult> UpdateModerationUserByIdAsync(int id, CandidateProfileUpdateDTO request, ApplicationDBContext db)
+    {
+        var profile = await db.ApplicantProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.UserId == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        CandidateEndpointRouteBuilderExtensions.ApplyCandidateProfileUpdate(profile, request);
+        await db.SaveChangesAsync();
+        return Results.Ok(CandidateEndpointRouteBuilderExtensions.MapCandidateProfile(profile));
+    }
+
+    private static async Task<IResult> ApplyCandidateDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)
+    {
+        var profile = await db.ApplicantProfiles
+            .Include(item => item.User)
+            .FirstOrDefaultAsync(item => item.UserId == id);
+        if (profile is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (!CandidateModerationStatuses.IsKnown(request.Status))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите корректный статус модерации кандидата.", StatusCodes.Status400BadRequest);
+        }
+
+        var normalizedStatus = CandidateModerationStatuses.Normalize(request.Status);
+        profile.ModerationStatus = normalizedStatus;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            profile.UserId,
+            ModerationStatus = normalizedStatus,
+        });
     }
 
     private static async Task<IResult> GetModeratorInvitationsAsync(ApplicationDBContext db)
@@ -187,6 +342,20 @@ internal static class ModerationEndpointRouteBuilderExtensions
         if (currentUserId is null)
         {
             return Results.Unauthorized();
+        }
+
+        var currentModerator = await db.Users
+            .Include(item => item.CuratorProfile)
+            .FirstOrDefaultAsync(item => item.Id == currentUserId.Value && item.DeletedAt == null, cancellationToken);
+
+        if (currentModerator?.CuratorProfile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!currentModerator.CuratorProfile.IsAdministrator)
+        {
+            return AuthEndpointSupport.MessageResult("Only administrator can invite moderators.", StatusCodes.Status403Forbidden);
         }
 
         if (!AuthSupport.IsValidEmail(request.Email))
@@ -320,6 +489,29 @@ internal static class ModerationEndpointRouteBuilderExtensions
             ModerationStatus = normalizedStatus,
         });
     }
+
+    private static object BuildModerationOpportunityResponse(Opportunity opportunity) =>
+        new
+        {
+            opportunity.Id,
+            opportunity.EmployerId,
+            CompanyName = opportunity.Employer.CompanyName,
+            opportunity.Title,
+            opportunity.Description,
+            opportunity.LocationAddress,
+            opportunity.LocationCity,
+            opportunity.Latitude,
+            opportunity.Longitude,
+            opportunity.EmploymentType,
+            opportunity.OpportunityType,
+            opportunity.PublishAt,
+            opportunity.ExpireAt,
+            opportunity.ContactsJson,
+            opportunity.MediaContentJson,
+            opportunity.DeletedAt,
+            ModerationStatus = OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus),
+            Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
+        };
 
     private static string BuildModeratorInvitationUrl(HttpContext context, ModeratorInvitationService invitationService, string token) =>
         $"{invitationService.ResolveFrontendBaseUrl(context)}/auth/moderator-invite?token={Uri.EscapeDataString(token)}";

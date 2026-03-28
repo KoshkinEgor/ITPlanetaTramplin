@@ -85,8 +85,13 @@ export function Modal({
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
   const previousActiveElementRef = useRef(null);
   const hasHeader = Boolean(title || description || showIcon || showDismiss);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const getFocusableElements = () => {
     if (!dialogRef.current) {
@@ -109,7 +114,7 @@ export function Modal({
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event) => {
       if (closeOnEscape && event.key === "Escape") {
-        onClose?.();
+        onCloseRef.current?.();
       }
 
       if (event.key === "Tab") {
@@ -144,7 +149,7 @@ export function Modal({
       window.removeEventListener("keydown", handleKeyDown);
       previousActiveElementRef.current?.focus?.();
     };
-  }, [open, onClose, closeOnEscape, initialFocusRef]);
+  }, [open, closeOnEscape, initialFocusRef]);
 
   if (!open || typeof document === "undefined") {
     return null;
@@ -156,7 +161,7 @@ export function Modal({
       role="presentation"
       onMouseDown={(event) => {
         if (closeOnOverlayClick && event.target === event.currentTarget) {
-          onClose?.();
+          onCloseRef.current?.();
         }
       }}
     >
@@ -192,7 +197,7 @@ export function Modal({
                 type="button"
                 className="ui-modal__dismiss"
                 aria-label={closeLabel}
-                onClick={() => onClose?.()}
+                onClick={() => onCloseRef.current?.()}
               >
                 <DismissIcon />
               </button>

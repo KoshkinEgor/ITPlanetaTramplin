@@ -313,6 +313,7 @@ function LoginDetailsScreen() {
   const [loading, setLoading] = useState(false);
   const currentView = loginRoleViews[role];
   const activeForm = isEmployerRole(role) ? employerForm : candidateForm;
+  const showCuratorHint = false;
 
   const updateActiveForm = (field, nextValue) => {
     setSubmitError("");
@@ -456,7 +457,7 @@ function LoginDetailsScreen() {
               </FormField>
             </div>
 
-            {false ? (
+            {showCuratorHint ? (
               <Alert tone="info" showIcon title="Доступ куратора">
                 Учётную запись куратора выдаёт администратор. Для local dev можно использовать `demo-curator@tramplin.local` / `Curator1234`.
               </Alert>

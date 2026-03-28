@@ -143,6 +143,10 @@ public partial class ApplicationDBContext : DbContext
                 .HasDefaultValueSql("'{}'::jsonb")
                 .HasColumnType("jsonb")
                 .HasColumnName("links");
+            entity.Property(e => e.ModerationStatus)
+                .HasMaxLength(50)
+                .HasDefaultValue(CandidateModerationStatuses.Pending)
+                .HasColumnName("moderation_status");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
@@ -384,6 +388,9 @@ public partial class ApplicationDBContext : DbContext
             entity.HasIndex(e => e.UserId, "curator_profiles_user_id_key").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.IsAdministrator)
+                .HasDefaultValue(false)
+                .HasColumnName("is_administrator");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
@@ -413,7 +420,16 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.CompanyName)
                 .HasMaxLength(255)
                 .HasColumnName("company_name");
+            entity.Property(e => e.CaseStudiesJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("case_studies");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.GalleryJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("gallery");
+            entity.Property(e => e.HeroMediaJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("hero_media");
             entity.Property(e => e.Inn)
                 .HasMaxLength(20)
                 .HasColumnName("inn");

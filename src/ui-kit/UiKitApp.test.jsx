@@ -2,6 +2,26 @@
 import { describe, expect, it, vi } from "vitest";
 import { UiKitApp } from "./UiKitApp";
 
+const TEXT = {
+  resume: /Резюме/i,
+  portfolio: /Портфолио/i,
+  moderatorDashboard: /Дашборд модерации/i,
+  block: /Заблокировать/i,
+  remove: /Удалить/i,
+  approve: /Одобрить/i,
+  reject: /Отклонить/i,
+  confirmReject: /Подтвердить:\s*Отклонить\?/i,
+  about: /О себе/i,
+  university: /ЧГУ им\. И\. Н\. Ульянова/i,
+  itPlanet: /IT - Планета/i,
+  reset: /Сбросить/i,
+  next: /Дальше/i,
+  previous: /Назад/i,
+  reasonText: /Текст причины/i,
+  rejectionReason: /Причина отказа/i,
+  size: /Размер/i,
+};
+
 function createRect(left, top, width, height) {
   return {
     left,
@@ -215,8 +235,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-candidate-project-card")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-resume-assembly")).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-candidate-portfolio-assembly")).toBeInTheDocument();
-    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "Р РµР·СЋРјРµ" })).toBeInTheDocument();
-    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: TEXT.resume })).toBeInTheDocument();
+    expect(within(screen.getByTestId("ui-kit-candidate-switcher")).getByRole("link", { name: TEXT.portfolio })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Career dashboard assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Resume page assembly" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Portfolio page assembly" })).toBeInTheDocument();
@@ -224,7 +244,7 @@ describe("UiKitApp", () => {
     expect(screen.getByRole("heading", { name: "Company portfolio carousel, viewer mode" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recommended opportunities rail" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderator dashboard surfaces" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Р”Р°С€Р±РѕСЂРґ РјРѕРґРµСЂР°С†РёРё" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: TEXT.moderatorDashboard })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Confirm Action Select" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Moderation Action Dialog" })).toBeInTheDocument();
     expect(screen.getByTestId("ui-kit-moderation-action-dialogs")).toBeInTheDocument();
@@ -350,14 +370,14 @@ describe("UiKitApp", () => {
     const actionSelectPreview = screen.getByTestId("ui-kit-action-select-preview");
     const actionSelectScope = within(actionSelectPreview);
 
-    fireEvent.click(actionSelectScope.getByRole("button", { name: "Р—Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ" }));
+    fireEvent.click(actionSelectScope.getByRole("button", { name: TEXT.block }));
     const deleteOption = screen
-      .getAllByRole("option", { name: "РЈРґР°Р»РёС‚СЊ" })
+      .getAllByRole("option", { name: TEXT.remove })
       .find((element) => element.tagName === "BUTTON");
     expect(deleteOption).toBeTruthy();
     fireEvent.click(deleteOption);
 
-    expect(actionSelectScope.getByRole("button", { name: "РЈРґР°Р»РёС‚СЊ" })).toHaveClass("ui-action-select--danger");
+    expect(actionSelectScope.getByRole("button", { name: TEXT.remove })).toHaveClass("ui-action-select--danger");
   });
 
   it("confirms the selected action inside the ui kit preview", () => {
@@ -366,9 +386,9 @@ describe("UiKitApp", () => {
     const confirmPreview = screen.getByTestId("ui-kit-confirm-action-select-preview");
     const confirmScope = within(confirmPreview);
 
-    fireEvent.click(confirmScope.getByRole("button", { name: "РћРґРѕР±СЂРёС‚СЊ" }));
+    fireEvent.click(confirmScope.getByRole("button", { name: TEXT.approve }));
     const rejectOption = screen
-      .getAllByRole("option", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" })
+      .getAllByRole("option", { name: TEXT.reject })
       .find((element) => element.tagName === "BUTTON");
 
     expect(rejectOption).toBeTruthy();
@@ -377,11 +397,11 @@ describe("UiKitApp", () => {
     const dialog = screen.getByRole("dialog");
 
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole("heading", { name: "РџРѕРґС‚РІРµСЂРґРёС‚СЊ: РћС‚РєР»РѕРЅРёС‚СЊ?" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("heading", { name: TEXT.confirmReject })).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: TEXT.reject }));
 
-    expect(confirmScope.getByRole("button", { name: "РћС‚РєР»РѕРЅРёС‚СЊ" })).toHaveClass("ui-action-select--reject");
+    expect(confirmScope.getByRole("button", { name: TEXT.reject })).toHaveClass("ui-action-select--reject");
   });
 
   it("updates the segmented control preview state inside the ui kit", () => {
@@ -390,10 +410,10 @@ describe("UiKitApp", () => {
     const segmentedPreview = screen.getByTestId("ui-kit-segmented-preview");
     const segmentedScope = within(segmentedPreview);
 
-    fireEvent.click(segmentedScope.getByRole("button", { name: "Р РµР·СЋРјРµ" }));
+    fireEvent.click(segmentedScope.getByRole("button", { name: TEXT.resume }));
 
-    expect(segmentedScope.getByRole("button", { name: "Р РµР·СЋРјРµ" })).toHaveClass("is-active");
-    expect(segmentedScope.getByRole("button", { name: "РџРѕСЂС‚С„РѕР»РёРѕ" })).not.toHaveClass("is-active");
+    expect(segmentedScope.getByRole("button", { name: TEXT.resume })).toHaveClass("is-active");
+    expect(segmentedScope.getByRole("button", { name: TEXT.portfolio })).not.toHaveClass("is-active");
   });
   it("shows the full typography catalog and keeps the segmented preview at md by default", () => {
     render(<UiKitApp />);
@@ -412,8 +432,8 @@ describe("UiKitApp", () => {
     expect(screen.getByTestId("ui-kit-editable-card-default")).not.toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-active")).toHaveClass("is-active");
     expect(screen.getByTestId("ui-kit-editable-card-compact")).toHaveClass("is-compact");
-    expect(editableScope.getByText("Рћ СЃРµР±Рµ")).toBeInTheDocument();
-    expect(editableScope.getAllByText("Р§Р“РЈ РёРј. Р. Рќ. РЈР»СЊСЏРЅРѕРІР°")).toHaveLength(2);
+    expect(editableScope.getByText(TEXT.about)).toBeInTheDocument();
+    expect(editableScope.getAllByText(TEXT.university)).toHaveLength(2);
   });
 
   it("shows the input variants gallery with default, left-icon, and right-icon layouts", () => {
@@ -425,8 +445,8 @@ describe("UiKitApp", () => {
     expect(variantsScope.getByText("Default")).toBeInTheDocument();
     expect(variantsScope.getByText("Icon left")).toBeInTheDocument();
     expect(variantsScope.getByText("Icon right")).toBeInTheDocument();
-    expect(variantsScope.getByDisplayValue("IT - РџР»Р°РЅРµС‚Р°")).toBeInTheDocument();
-    expect(variantsScope.getAllByText("РЎР±СЂРѕСЃРёС‚СЊ")).toHaveLength(3);
+    expect(variantsScope.getByDisplayValue(TEXT.itPlanet)).toBeInTheDocument();
+    expect(variantsScope.getAllByText(TEXT.reset)).toHaveLength(3);
   });
 
   it("slides the company portfolio carousel inside the ui kit", () => {
@@ -439,11 +459,11 @@ describe("UiKitApp", () => {
 
     expect(track).toHaveStyle("transform: translateX(-0%)");
 
-    fireEvent.click(sliderScope.getByRole("button", { name: "Р”Р°Р»СЊС€Рµ" }));
+    fireEvent.click(sliderScope.getByRole("button", { name: TEXT.next }));
 
     expect(track).toHaveStyle("transform: translateX(-100%)");
 
-    fireEvent.click(sliderScope.getByRole("button", { name: "РќР°Р·Р°Рґ" }));
+    fireEvent.click(sliderScope.getByRole("button", { name: TEXT.previous }));
 
     expect(track).toHaveStyle("transform: translateX(-0%)");
   });
@@ -466,17 +486,17 @@ describe("UiKitApp", () => {
   it("updates the moderation revision reason inside the ui kit showcase", () => {
     render(<UiKitApp />);
 
-    fireEvent.change(screen.getByLabelText("РўРµРєСЃС‚ РїСЂРёС‡РёРЅС‹"), { target: { value: "РќСѓР¶РЅРѕ СѓС‚РѕС‡РЅРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РјРµСЂРѕРїСЂРёСЏС‚РёСЏ" } });
+    fireEvent.change(screen.getByLabelText(TEXT.reasonText), { target: { value: "Нужно уточнить программу мероприятия" } });
 
     const moderationDialogs = within(screen.getByTestId("ui-kit-moderation-action-dialogs"));
 
-    expect(moderationDialogs.getByLabelText("РџСЂРёС‡РёРЅР° РѕС‚РєР°Р·Р°")).toHaveValue("РќСѓР¶РЅРѕ СѓС‚РѕС‡РЅРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РјРµСЂРѕРїСЂРёСЏС‚РёСЏ");
+    expect(moderationDialogs.getByLabelText(TEXT.rejectionReason)).toHaveValue("Нужно уточнить программу мероприятия");
   });
 
   it("switches the complaint card preview to md size", () => {
     render(<UiKitApp />);
 
-    fireEvent.change(screen.getByLabelText("Р Р°Р·РјРµСЂ"), { target: { value: "md" } });
+    fireEvent.change(screen.getByLabelText(TEXT.size), { target: { value: "md" } });
 
     expect(screen.getByTestId("ui-kit-complaint-card-preview")).toHaveClass("ui-complaint-card--md");
   });

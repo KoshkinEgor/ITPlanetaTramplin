@@ -5,6 +5,7 @@ using ITPlanetaTramplin.Api.Infrastructure;
 using ITPlanetaTramplin.Api.Integrations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Security.Claims;
@@ -46,12 +47,17 @@ builder.Services.Configure<ModeratorInvitationOptions>(builder.Configuration.Get
 builder.Services.Configure<PasswordResetOptions>(builder.Configuration.GetSection("PasswordReset"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.Configure<DadataOptions>(builder.Configuration.GetSection("Dadata"));
+builder.Services.AddSingleton(Options.Create(BuildYandexGeocoderOptions(builder.Configuration, builder.Environment)));
+builder.Services.Configure<CompanyVerificationOptions>(builder.Configuration.GetSection("CompanyVerification"));
 builder.Services.AddSingleton(new AuthRuntimeOptions(authCookieName, keyBytes, accessTokenLifetime));
 builder.Services.AddSingleton<EmailVerificationService>();
+builder.Services.AddSingleton<PendingRegistrationStore>();
 builder.Services.AddSingleton<ModeratorInvitationService>();
 builder.Services.AddSingleton<PasswordResetService>();
+builder.Services.AddSingleton<CompanyVerificationStorage>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();
+builder.Services.AddHttpClient<YandexGeocoderService>();
 builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddHealthChecks();
 
@@ -257,6 +263,68 @@ static IEnumerable<(string Key, string Value)> ParseQueryString(string query)
         var value = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]).Trim() : string.Empty;
         yield return (key, value);
     }
+}
+
+static YandexGeocoderOptions BuildYandexGeocoderOptions(IConfiguration configuration, IWebHostEnvironment environment)
+{
+    var options = new YandexGeocoderOptions();
+    configuration.GetSection("YandexGeocoder").Bind(options);
+
+    if (string.IsNullOrWhiteSpace(options.ApiKey))
+    {
+        options.ApiKey = configuration["VITE_YANDEX_MAPS_API_KEY"] ?? string.Empty;
+    }
+
+    if (string.IsNullOrWhiteSpace(options.ApiKey) && environment.IsDevelopment())
+    {
+        options.ApiKey = TryReadDotEnvValue(environment.ContentRootPath, "VITE_YANDEX_MAPS_API_KEY") ?? string.Empty;
+    }
+
+    return options;
+}
+
+static string? TryReadDotEnvValue(string contentRootPath, string key)
+{
+    var directory = new DirectoryInfo(contentRootPath);
+
+    while (directory is not null)
+    {
+        foreach (var fileName in new[] { ".env.local", ".env" })
+        {
+            var filePath = Path.Combine(directory.FullName, fileName);
+            if (!File.Exists(filePath))
+            {
+                continue;
+            }
+
+            foreach (var rawLine in File.ReadLines(filePath))
+            {
+                var line = rawLine.Trim();
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                var separatorIndex = line.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                var currentKey = line[..separatorIndex].Trim();
+                if (!string.Equals(currentKey, key, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                return line[(separatorIndex + 1)..].Trim().Trim('"');
+            }
+        }
+
+        directory = directory.Parent;
+    }
+
+    return null;
 }
 
 public partial class Program;

@@ -36,6 +36,10 @@
   --ui-map-marker-color: #327df2;
 }
 
+.ui-map-marker--teal {
+  --ui-map-marker-color: #1f9f9a;
+}
+
 .ui-map-marker__pin {
   width: var(--ui-map-marker-size);
   height: var(--ui-map-marker-size);

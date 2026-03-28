@@ -1,9 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
-import { decideOpportunityModeration, getModerationOpportunities } from "../api/moderation";
+import { decideOpportunityModeration, getModerationOpportunities, getModerationOpportunity, updateModerationOpportunity } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Modal, ModerationDecisionSelect, Tag } from "../shared/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  DashboardPageHeader,
+  EmptyState,
+  FormField,
+  Input,
+  Loader,
+  Modal,
+  Select,
+  Tag,
+  Textarea,
+} from "../shared/ui";
+import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
-import { MODERATION_DECISION_OPTIONS } from "./moderationDecisionOptions";
+import {
+  createOpportunityContactDraft,
+  createOpportunityDraft,
+  createOpportunityMediaDraft,
+  parseOpportunityCoordinateInput,
+  parseOpportunityDeadlineInput,
+  parseTags,
+  serializeOpportunityContacts,
+  serializeOpportunityMedia,
+} from "../company-dashboard/utils";
 
 const MODERATION_FILTERS = [
   { value: "all", label: "Все" },
@@ -13,25 +36,30 @@ const MODERATION_FILTERS = [
   { value: "rejected", label: "Отклонено" },
 ];
 
+const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: "office", label: "Офис" },
+  { value: "hybrid", label: "Гибрид" },
+  { value: "remote", label: "Удаленно" },
+  { value: "online", label: "Онлайн" },
+];
+
+const DECISION_OPTIONS = [
+  { value: "pending", label: "На проверке" },
+  { value: "approved", label: "Одобрить" },
+  { value: "revision", label: "Вернуть на доработку" },
+  { value: "rejected", label: "Отклонить" },
+];
+
 function normalize(value) {
   return String(value ?? "").trim().toLowerCase();
 }
 
 function translateOpportunityType(value) {
-  switch (value) {
-    case "vacancy":
-      return "Вакансия";
-    case "internship":
-      return "Стажировка";
-    case "event":
-      return "Мероприятие";
-    default:
-      return value || "Возможность";
-  }
+  return translateSharedOpportunityType(value);
 }
 
 function translateStatus(status) {
-  switch (status) {
+  switch (normalize(status)) {
     case "approved":
       return "Одобрено";
     case "revision":
@@ -64,43 +92,22 @@ function getOpportunityLocation(item) {
   return item.locationCity || item.locationAddress || "Не указана";
 }
 
-function getInitialDecision(item) {
-  return MODERATION_DECISION_OPTIONS.some((option) => option.value === item?.moderationStatus) ? item.moderationStatus : "approved";
-}
+function detectContactType(value) {
+  const normalized = String(value ?? "").trim();
 
-function getOpportunityDecisionDialog(option, item) {
-  const actionLabelByDecision = {
-    approved: "Одобрить публикацию",
-    revision: "Отправить публикацию на доработку",
-    rejected: "Отклонить публикацию",
-  };
+  if (!normalized) {
+    return "link";
+  }
 
-  const descriptionByDecision = item?.title
-    ? {
-        approved: `Публикация «${item.title}» будет одобрена сразу после подтверждения.`,
-        revision: `Публикация «${item.title}» вернется компании со статусом «Доработка».`,
-        rejected: `Публикация «${item.title}» получит статус «Отклонено» после подтверждения.`,
-      }
-    : {
-        approved: "Выбранная публикация будет одобрена сразу после подтверждения.",
-        revision: "Выбранная публикация вернется компании со статусом «Доработка».",
-        rejected: "Выбранная публикация получит статус «Отклонено» после подтверждения.",
-      };
+  if (normalized.includes("@") && !normalized.includes(" ")) {
+    return "email";
+  }
 
-  return {
-    actionLabel: actionLabelByDecision[option.value] ?? option.label,
-    question: "Вы уверены?",
-    description: descriptionByDecision[option.value] ?? "Изменение будет применено после подтверждения.",
-    confirmLabel: option.confirmationButtonLabel ?? option.label,
-    reasonLabel: option.value === "approved" ? undefined : "Причина отказа",
-    reasonPlaceholder:
-      option.value === "revision"
-        ? "Например, не указан формат мероприятия"
-        : option.value === "rejected"
-          ? "Например, публикация нарушает правила платформы"
-          : undefined,
-    reasonResetLabel: option.value === "approved" ? undefined : "Сбросить",
-  };
+  if (/^[+\d][\d\s().-]{5,}$/.test(normalized)) {
+    return "phone";
+  }
+
+  return "link";
 }
 
 function OpportunityRow({ item, selected, onSelect }) {
@@ -153,10 +160,13 @@ function OpportunityCompactCard({ item, selected, onSelect }) {
 export function ModeratorOpportunitiesApp() {
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState({ status: "loading", items: [], error: null });
+  const [detailState, setDetailState] = useState({ status: "idle", detail: null, error: null });
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
+  const [draft, setDraft] = useState(null);
   const [decision, setDecision] = useState("approved");
+  const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
 
   useEffect(() => {
@@ -190,40 +200,171 @@ export function ModeratorOpportunitiesApp() {
     });
   }, [query, state.items, statusFilter]);
 
-  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? null;
+  const activeItem = detailState.detail ?? filteredItems.find((item) => item.id === selectedId) ?? state.items.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
     if (selectedId === null) {
       return;
     }
 
-    if (!filteredItems.some((item) => item.id === selectedId)) {
+    if (!state.items.some((item) => item.id === selectedId)) {
       setSelectedId(null);
     }
-  }, [filteredItems, selectedId]);
+  }, [selectedId, state.items]);
 
   useEffect(() => {
-    setDecision(getInitialDecision(activeItem));
-  }, [activeItem]);
+    if (!selectedId) {
+      setDetailState({ status: "idle", detail: null, error: null });
+      setDraft(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadDetail() {
+      setDetailState({ status: "loading", detail: null, error: null });
+
+      try {
+        const detail = await getModerationOpportunity(selectedId, controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setDetailState({ status: "ready", detail, error: null });
+        setDraft(createOpportunityDraft(detail));
+        setDecision(normalize(detail?.moderationStatus) || "approved");
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setDetailState({ status: "error", detail: null, error });
+      }
+    }
+
+    loadDetail();
+    return () => controller.abort();
+  }, [reloadKey, selectedId]);
 
   function handleOpportunitySelect(nextId) {
     setSelectedId((current) => (current === nextId ? null : nextId));
+    setSaveState({ status: "idle", error: "" });
+    setDecisionState({ status: "idle", error: "" });
+  }
 
-    if (decisionState.status !== "idle") {
-      setDecisionState({ status: "idle", error: "" });
+  function updateField(field, value) {
+    setDraft((current) => ({ ...(current ?? {}), [field]: value }));
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  function updateContact(index, value) {
+    setDraft((current) => ({
+      ...current,
+      contacts: current.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, value, type: detectContactType(value) } : item)),
+    }));
+  }
+
+  function addContact() {
+    setDraft((current) => ({
+      ...current,
+      contacts: [...current.contacts, createOpportunityContactDraft()],
+    }));
+  }
+
+  function removeContact(index) {
+    setDraft((current) => {
+      const nextContacts = current.contacts.filter((_, itemIndex) => itemIndex !== index);
+      return {
+        ...current,
+        contacts: nextContacts.length ? nextContacts : [createOpportunityContactDraft()],
+      };
+    });
+  }
+
+  function updateMedia(index, field, value) {
+    setDraft((current) => ({
+      ...current,
+      media: current.media.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
+    }));
+  }
+
+  function addMedia() {
+    setDraft((current) => ({
+      ...current,
+      media: [...current.media, createOpportunityMediaDraft()],
+    }));
+  }
+
+  function removeMedia(index) {
+    setDraft((current) => {
+      const nextMedia = current.media.filter((_, itemIndex) => itemIndex !== index);
+      return {
+        ...current,
+        media: nextMedia.length ? nextMedia : [createOpportunityMediaDraft()],
+      };
+    });
+  }
+
+  async function handleSave() {
+    if (!selectedId || !draft) {
+      return;
+    }
+
+    if (!draft.title.trim()) {
+      setSaveState({ status: "error", error: "Укажите название публикации." });
+      return;
+    }
+
+    if (!draft.description.trim()) {
+      setSaveState({ status: "error", error: "Добавьте описание публикации." });
+      return;
+    }
+
+    setSaveState({ status: "saving", error: "" });
+
+    try {
+      await updateModerationOpportunity(selectedId, {
+        title: draft.title.trim(),
+        description: draft.description.trim(),
+        locationCity: draft.locationCity.trim() || null,
+        locationAddress: draft.locationAddress.trim() || null,
+        opportunityType: draft.opportunityType,
+        employmentType: draft.employmentType,
+        latitude: parseOpportunityCoordinateInput(draft.latitude),
+        longitude: parseOpportunityCoordinateInput(draft.longitude),
+        expireAt: parseOpportunityDeadlineInput(draft.expireAt),
+        contactsJson: serializeOpportunityContacts(draft.contacts),
+        mediaContentJson: serializeOpportunityMedia(draft.media),
+        tags: parseTags(draft.tags),
+      });
+
+      const refreshed = await getModerationOpportunity(selectedId);
+      setDetailState({ status: "ready", detail: refreshed, error: null });
+      setDraft(createOpportunityDraft(refreshed));
+      setSaveState({ status: "success", error: "" });
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "Не удалось сохранить публикацию.",
+      });
     }
   }
 
-  async function handleDecisionSubmit(nextDecision) {
-    if (!activeItem) {
+  async function handleDecisionSave() {
+    if (!selectedId) {
       return;
     }
 
     setDecisionState({ status: "saving", error: "" });
 
     try {
-      await decideOpportunityModeration(activeItem.id, nextDecision);
-      setDecision(nextDecision);
+      await decideOpportunityModeration(selectedId, decision);
+      const refreshed = await getModerationOpportunity(selectedId);
+      setDetailState({ status: "ready", detail: refreshed, error: null });
+      setDraft(createOpportunityDraft(refreshed));
+      setDecision(normalize(refreshed?.moderationStatus) || decision);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -231,7 +372,6 @@ export function ModeratorOpportunitiesApp() {
         status: "error",
         error: error?.message ?? "Не удалось применить решение модерации.",
       });
-      throw error;
     }
   }
 
@@ -239,7 +379,7 @@ export function ModeratorOpportunitiesApp() {
     <>
       <DashboardPageHeader
         title="Модерация возможностей"
-        description="Проверка вакансий, стажировок и мероприятий с быстрыми решениями и детальной карточкой."
+        description="Проверка и редактирование вакансий, стажировок, мероприятий и менторских программ в одном окне."
       />
 
       <div className="moderator-toolbar-stack">
@@ -275,18 +415,6 @@ export function ModeratorOpportunitiesApp() {
         </Card>
       ) : null}
 
-      {decisionState.status === "error" ? (
-        <Alert tone="error" title="Решение не применено" showIcon>
-          {decisionState.error}
-        </Alert>
-      ) : null}
-
-      {decisionState.status === "success" ? (
-        <Alert tone="success" title="Решение применено" showIcon>
-          Статус публикации обновлен в backend.
-        </Alert>
-      ) : null}
-
       {state.status === "ready" ? (
         <section className="moderator-review-grid">
           <Card className="moderator-panel moderator-panel--list moderator-fade-up moderator-fade-up--delay-2">
@@ -294,7 +422,7 @@ export function ModeratorOpportunitiesApp() {
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Возможности</Tag>
                 <h2 className="ui-type-h2">Список публикаций</h2>
-                <p className="ui-type-body">Выберите карточку слева и примените решение модерации справа.</p>
+                <p className="ui-type-body">Выберите карточку слева, чтобы открыть форму редактирования и смены moderation status.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -320,12 +448,7 @@ export function ModeratorOpportunitiesApp() {
 
                 <div className="moderator-opportunity-compact-list">
                   {filteredItems.map((item) => (
-                    <OpportunityCompactCard
-                      key={item.id}
-                      item={item}
-                      selected={item.id === selectedId}
-                      onSelect={handleOpportunitySelect}
-                    />
+                    <OpportunityCompactCard key={item.id} item={item} selected={item.id === selectedId} onSelect={handleOpportunitySelect} />
                   ))}
                 </div>
               </>
@@ -339,8 +462,8 @@ export function ModeratorOpportunitiesApp() {
       <Modal
         open={Boolean(activeItem)}
         onClose={() => setSelectedId(null)}
-        title="Детальная проверка"
-        description="Проверьте детали публикации и примените решение модерации."
+        title="Проверка публикации"
+        description="Форма использует moderation detail/update endpoints и не меняет статус автоматически."
         size="lg"
         closeLabel="Закрыть окно проверки"
         className="moderator-opportunity-modal"
@@ -372,21 +495,154 @@ export function ModeratorOpportunitiesApp() {
               </div>
             </dl>
 
-            <p className="ui-type-body moderator-detail-surface__description">
-              {activeItem.description || "Описание публикации пока не заполнено."}
-            </p>
+            {detailState.status === "loading" ? <Loader label="Загружаем публикацию" surface /> : null}
 
-            <section className="moderator-detail-group">
-              <h4 className="ui-type-h3">Решение модерации</h4>
-              <ModerationDecisionSelect
-                value={decision}
-                options={MODERATION_DECISION_OPTIONS}
-                disabled={!activeItem}
-                busy={decisionState.status === "saving"}
-                onConfirm={handleDecisionSubmit}
-                getDialogProps={(option) => getOpportunityDecisionDialog(option, activeItem)}
-              />
-            </section>
+            {detailState.status === "error" ? (
+              <Alert tone="error" title="Не удалось загрузить публикацию" showIcon>
+                {detailState.error?.message ?? "Попробуйте открыть карточку ещё раз."}
+              </Alert>
+            ) : null}
+
+            {saveState.status === "error" ? (
+              <Alert tone="error" title="Изменения не сохранены" showIcon>
+                {saveState.error}
+              </Alert>
+            ) : null}
+
+            {saveState.status === "success" ? (
+              <Alert tone="success" title="Публикация обновлена" showIcon>
+                Контент сохранен через moderation API без неявного перевода в pending.
+              </Alert>
+            ) : null}
+
+            {decisionState.status === "error" ? (
+              <Alert tone="error" title="Решение не применено" showIcon>
+                {decisionState.error}
+              </Alert>
+            ) : null}
+
+            {decisionState.status === "success" ? (
+              <Alert tone="success" title="Статус обновлен" showIcon>
+                Решение модерации сохранено.
+              </Alert>
+            ) : null}
+
+            {detailState.status === "ready" && draft ? (
+              <div className="moderator-dashboard-stack">
+                <section className="moderator-detail-group">
+                  <h4 className="ui-type-h3">Редактирование публикации</h4>
+
+                  <FormField label="Название" required>
+                    <Input value={draft.title} onValueChange={(value) => updateField("title", value)} />
+                  </FormField>
+
+                  <FormField label="Описание" required>
+                    <Textarea value={draft.description} onValueChange={(value) => updateField("description", value)} rows={5} autoResize />
+                  </FormField>
+
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                    <FormField label="Тип публикации">
+                      <Select value={draft.opportunityType} onValueChange={(value) => updateField("opportunityType", value)} options={OPPORTUNITY_TYPE_OPTIONS} />
+                    </FormField>
+                    <FormField label="Формат">
+                      <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
+                    </FormField>
+                  </div>
+
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                    <FormField label="Город">
+                      <Input value={draft.locationCity} onValueChange={(value) => updateField("locationCity", value)} />
+                    </FormField>
+                    <FormField label="Адрес">
+                      <Input value={draft.locationAddress} onValueChange={(value) => updateField("locationAddress", value)} />
+                    </FormField>
+                  </div>
+
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                    <FormField label="Широта">
+                      <Input value={draft.latitude} onValueChange={(value) => updateField("latitude", value)} />
+                    </FormField>
+                    <FormField label="Долгота">
+                      <Input value={draft.longitude} onValueChange={(value) => updateField("longitude", value)} />
+                    </FormField>
+                  </div>
+
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                    <FormField label="Срок или дата">
+                      <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
+                    </FormField>
+                    <FormField label="Теги через запятую">
+                      <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />
+                    </FormField>
+                  </div>
+
+                  <FormField label="Контакты / ссылки">
+                    <div className="company-dashboard-social-links">
+                      {draft.contacts.map((item, index) => (
+                        <div className="company-dashboard-social-links__row" key={`moderation-contact-${index}`}>
+                          <Input
+                            value={item.value}
+                            onValueChange={(value) => updateContact(index, value)}
+                            placeholder="https://t.me/company или team@company.ru"
+                          />
+                          <Button type="button" variant="ghost" onClick={() => removeContact(index)}>
+                            Удалить
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="secondary" onClick={addContact}>
+                        Добавить контакт
+                      </Button>
+                    </div>
+                  </FormField>
+
+                  <FormField label="Медиа / вложения">
+                    <div className="company-dashboard-social-links">
+                      {draft.media.map((item, index) => (
+                        <div className="company-dashboard-social-links__row" key={`moderation-media-${index}`}>
+                          <Input
+                            value={item.title}
+                            onValueChange={(value) => updateMedia(index, "title", value)}
+                            placeholder="Название медиа"
+                          />
+                          <Input
+                            value={item.url}
+                            onValueChange={(value) => updateMedia(index, "url", value)}
+                            placeholder="https://..."
+                          />
+                          <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
+                            Удалить
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="secondary" onClick={addMedia}>
+                        Добавить медиа
+                      </Button>
+                    </div>
+                  </FormField>
+
+                  <div className="company-dashboard-panel__actions">
+                    <Button type="button" onClick={handleSave} disabled={saveState.status === "saving"}>
+                      {saveState.status === "saving" ? "Сохраняем..." : "Сохранить публикацию"}
+                    </Button>
+                  </div>
+                </section>
+
+                <section className="moderator-detail-group">
+                  <h4 className="ui-type-h3">Решение модерации</h4>
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                    <FormField label="Статус модерации">
+                      <Select value={decision} onValueChange={setDecision} options={DECISION_OPTIONS} />
+                    </FormField>
+                  </div>
+                  <div className="company-dashboard-panel__actions">
+                    <Button type="button" variant="secondary" onClick={handleDecisionSave} disabled={decisionState.status === "saving"}>
+                      {decisionState.status === "saving" ? "Обновляем..." : "Применить решение"}
+                    </Button>
+                  </div>
+                </section>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Modal>

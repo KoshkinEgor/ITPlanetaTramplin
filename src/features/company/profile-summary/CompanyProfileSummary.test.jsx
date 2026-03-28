@@ -24,10 +24,10 @@ const verification = {
   note: "Компания отображается в каталоге и может обновлять контент секциями.",
 };
 
-function renderSummary() {
+function renderSummary(props = {}) {
   return render(
     <MemoryRouter>
-      <CompanyProfileSummary profile={profile} stats={stats} verification={verification} />
+      <CompanyProfileSummary profile={profile} stats={stats} verification={verification} {...props} />
     </MemoryRouter>
   );
 }
@@ -44,10 +44,18 @@ describe("CompanyProfileSummary", () => {
     expect(screen.queryByText(/"type":"telegram"/i)).not.toBeInTheDocument();
   });
 
-  it("shows the verification call to action for the company profile", () => {
+  it("shows the verification call to action for the company cabinet", () => {
     renderSummary();
 
     expect(screen.getByText("Готов к редактированию")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Перейти к редактированию" })).toHaveAttribute("href", "/company/dashboard");
+    expect(screen.getByText("Личный кабинет компании")).toBeInTheDocument();
+  });
+
+  it("hides the edit call to action in public mode", () => {
+    renderSummary({ mode: "public" });
+
+    expect(screen.getByText("Компания")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Перейти к редактированию" })).not.toBeInTheDocument();
   });
 });

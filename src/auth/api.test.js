@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   confirmEmail,
   lookupEmployerInn,
+  logoutCurrentAuthUser,
   requestPasswordReset,
   resendEmailConfirmation,
   submitLogin,
@@ -9,10 +10,23 @@ import {
   submitRegistration,
 } from "./api";
 import { apiRequest } from "../lib/http";
+import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from "./session-token";
 
 vi.mock("../lib/http", () => ({
-  ApiError: class ApiError extends Error {},
+  ApiError: class ApiError extends Error {
+    constructor(message, { status, data } = {}) {
+      super(message);
+      this.status = status ?? 500;
+      this.data = data ?? null;
+    }
+  },
   apiRequest: vi.fn(),
+}));
+
+vi.mock("./session-token", () => ({
+  clearStoredAuthToken: vi.fn(),
+  getStoredAuthToken: vi.fn(() => null),
+  setStoredAuthToken: vi.fn(),
 }));
 
 afterEach(() => {
@@ -158,5 +172,37 @@ describe("auth api", () => {
         password: "NewPassword1",
       },
     });
+  });
+
+  it("stores the window auth token after successful login", async () => {
+    apiRequest.mockResolvedValue({
+      token: "window-token",
+      user: {
+        id: 42,
+        role: "candidate",
+        email: "candidate@tramplin.local",
+      },
+    });
+
+    await submitLogin({
+      role: "candidate",
+      email: "candidate@tramplin.local",
+      inn: "",
+      password: "Password1",
+    });
+
+    expect(setStoredAuthToken).toHaveBeenCalledWith("window-token");
+  });
+
+  it("clears the window auth token on logout", async () => {
+    getStoredAuthToken.mockReturnValue("window-token");
+    apiRequest.mockResolvedValue({ message: "" });
+
+    await logoutCurrentAuthUser();
+
+    expect(apiRequest).toHaveBeenCalledWith("/auth/logout", {
+      method: "POST",
+    });
+    expect(clearStoredAuthToken).toHaveBeenCalledTimes(1);
   });
 });

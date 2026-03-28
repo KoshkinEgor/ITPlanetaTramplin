@@ -56,6 +56,7 @@ internal static class AuthEndpointSupport
             IsVerified = user.IsVerified ?? false,
             PreVerify = user.PreVerify ?? false,
             DisplayName = BuildDisplayName(user, role),
+            IsAdministrator = role == PublicRoles.Moderator && user.CuratorProfile?.IsAdministrator == true,
         };
 
     public static string BuildVerificationFlow(User user, string role) =>
@@ -66,6 +67,9 @@ internal static class AuthEndpointSupport
             _ => "register-candidate",
         };
 
+    public static string BuildVerificationFlow(PendingRegistration registration) =>
+        registration.VerificationFlow;
+
     public static PendingEmailVerificationDTO BuildPendingEmailVerificationPayload(User user, string role, string message) =>
         new()
         {
@@ -74,6 +78,16 @@ internal static class AuthEndpointSupport
             Role = role,
             VerificationFlow = BuildVerificationFlow(user, role),
             ExpiresAtUtc = user.EmailVerificationExpiresAt,
+            Message = message,
+        };
+
+    public static PendingEmailVerificationDTO BuildPendingEmailVerificationPayload(PendingRegistration registration, string message) =>
+        new()
+        {
+            Email = registration.Email,
+            Role = registration.Role,
+            VerificationFlow = BuildVerificationFlow(registration),
+            ExpiresAtUtc = registration.EmailVerificationExpiresAt,
             Message = message,
         };
 
@@ -120,26 +134,41 @@ internal static class AuthEndpointSupport
         var payload = BuildPendingEmailVerificationPayload(user, role, successMessage);
         payload.ExpiresAtUtc = issue.ExpiresAtUtc;
 
-        try
-        {
-            var dispatchResult = await emailSender.SendAsync(
-                user.Email,
-                "Код подтверждения email",
-                BuildVerificationEmailPlainTextBody(issue.Code, issue.ExpiresAtUtc),
-                BuildVerificationEmailHtmlBody(issue.Code, issue.ExpiresAtUtc),
-                cancellationToken);
+        await TrySendVerificationEmailAsync(
+            user.Email,
+            issue.Code,
+            issue.ExpiresAtUtc,
+            payload,
+            emailFailureMessage,
+            emailSender,
+            cancellationToken,
+            logger);
 
-            if (dispatchResult.Mode == EmailDispatchMode.LoggedToConsole)
-            {
-                payload.DebugCode = issue.Code;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to send email verification code to {Email}.", user.Email);
-            payload.EmailDeliveryFailed = true;
-            payload.Message = emailFailureMessage;
-        }
+        return payload;
+    }
+
+    public static async Task<PendingEmailVerificationDTO> IssueAndSendVerificationAsync(
+        PendingRegistration registration,
+        PendingRegistrationStore pendingRegistrationStore,
+        SmtpEmailSender emailSender,
+        CancellationToken cancellationToken,
+        string successMessage,
+        string emailFailureMessage,
+        ILogger logger)
+    {
+        var issue = pendingRegistrationStore.IssueCode(registration);
+        var payload = BuildPendingEmailVerificationPayload(registration, successMessage);
+        payload.ExpiresAtUtc = issue.ExpiresAtUtc;
+
+        await TrySendVerificationEmailAsync(
+            registration.Email,
+            issue.Code,
+            issue.ExpiresAtUtc,
+            payload,
+            emailFailureMessage,
+            emailSender,
+            cancellationToken,
+            logger);
 
         return payload;
     }
@@ -187,6 +216,16 @@ internal static class AuthEndpointSupport
             EmailVerificationFailureReason.TooManyAttempts => "Лимит попыток исчерпан. Запросите новый код.",
             EmailVerificationFailureReason.InvalidCode => "Код введен неверно.",
             EmailVerificationFailureReason.AlreadyVerified => "Email уже подтвержден.",
+            _ => "Не удалось подтвердить email.",
+        };
+
+    public static string GetEmailVerificationFailureMessage(PendingRegistrationFailureReason reason) =>
+        reason switch
+        {
+            PendingRegistrationFailureReason.MissingCode => "Для этой регистрации не найден активный код. Запросите новый.",
+            PendingRegistrationFailureReason.Expired => "Срок действия кода истек. Запросите новый код.",
+            PendingRegistrationFailureReason.TooManyAttempts => "Лимит попыток исчерпан. Запросите новый код.",
+            PendingRegistrationFailureReason.InvalidCode => "Код введен неверно.",
             _ => "Не удалось подтвердить email.",
         };
 
@@ -248,6 +287,38 @@ internal static class AuthEndpointSupport
     {
         var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private static async Task TrySendVerificationEmailAsync(
+        string email,
+        string code,
+        DateTime expiresAtUtc,
+        PendingEmailVerificationDTO payload,
+        string emailFailureMessage,
+        SmtpEmailSender emailSender,
+        CancellationToken cancellationToken,
+        ILogger logger)
+    {
+        try
+        {
+            var dispatchResult = await emailSender.SendAsync(
+                email,
+                "Код подтверждения email",
+                BuildVerificationEmailPlainTextBody(code, expiresAtUtc),
+                BuildVerificationEmailHtmlBody(code, expiresAtUtc),
+                cancellationToken);
+
+            if (dispatchResult.Mode == EmailDispatchMode.LoggedToConsole)
+            {
+                payload.DebugCode = code;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send email verification code to {Email}.", email);
+            payload.EmailDeliveryFailed = true;
+            payload.Message = emailFailureMessage;
+        }
     }
 
     private static string BuildVerificationEmailPlainTextBody(string code, DateTime expiresAtUtc) =>

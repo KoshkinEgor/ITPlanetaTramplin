@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/http";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
-import { writeFavoriteOpportunityIds } from "../features/favorites/storage";
+import { writeFavoriteCompanyIds, writeFavoriteOpportunityIds } from "../features/favorites/storage";
 import { HomeApp } from "./HomeApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -28,7 +28,12 @@ vi.mock("./HomeOpportunityMap", () => ({
   HomeOpportunityMap: ({ items }) => (
     <div data-testid="home-opportunity-map">
       {items.map((item) => (
-        <button key={item.id} type="button" data-favorite={item.isFavorite ? "true" : "false"}>
+        <button
+          key={item.id}
+          type="button"
+          data-favorite={item.isFavoriteOpportunity ? "true" : "false"}
+          data-company-favorite={item.isFavoriteCompanyOpportunity ? "true" : "false"}
+        >
           {item.title}
         </button>
       ))}
@@ -56,6 +61,7 @@ describe("HomeApp", () => {
     getOpportunities.mockResolvedValue([
       {
         id: "vacancy-1",
+        employerId: 1,
         opportunityType: "vacancy",
         title: "Popular Vacancy Only",
         companyName: "Signal Hub",
@@ -68,6 +74,7 @@ describe("HomeApp", () => {
     getCandidateRecommendations.mockResolvedValue([
       {
         opportunityId: "recommendation-1",
+        employerId: 2,
         opportunityType: "internship",
         title: "Personal Recommendation",
         companyName: "Design Lab",
@@ -88,6 +95,7 @@ describe("HomeApp", () => {
     getOpportunities.mockResolvedValue([
       {
         id: "vacancy-1",
+        employerId: 1,
         opportunityType: "vacancy",
         title: "Popular Vacancy Only",
         companyName: "Signal Hub",
@@ -105,10 +113,11 @@ describe("HomeApp", () => {
     await waitFor(() => expect(getCandidateRecommendations).toHaveBeenCalledTimes(1));
   });
 
-  it("passes favorite opportunities to the home map and reacts to storage updates", async () => {
+  it("passes direct and company favorites to the home map and reacts to storage updates", async () => {
     getOpportunities.mockResolvedValue([
       {
         id: "fav-1",
+        employerId: 11,
         opportunityType: "vacancy",
         title: "Favorite on Home Map",
         companyName: "Signal Hub",
@@ -120,16 +129,56 @@ describe("HomeApp", () => {
         longitude: 47.251942,
         latitude: 56.1439,
       },
+      {
+        id: "company-fav-1",
+        employerId: 22,
+        opportunityType: "mentoring",
+        title: "Company Favorite Mentoring",
+        companyName: "Mentor Hub",
+        locationCity: "Чебоксары",
+        locationAddress: "Ярославская, 4",
+        employmentType: "online",
+        description: "Mentoring opportunity visible on the home map.",
+        tags: ["Mentoring"],
+        longitude: 47.2442,
+        latitude: 56.1322,
+      },
     ]);
 
     renderApp();
 
     expect(await screen.findByRole("button", { name: "Favorite on Home Map" })).toHaveAttribute("data-favorite", "false");
+    expect(screen.getByRole("button", { name: "Company Favorite Mentoring" })).toHaveAttribute("data-company-favorite", "false");
 
     writeFavoriteOpportunityIds(["fav-1"]);
+    writeFavoriteCompanyIds(["22"]);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Favorite on Home Map" })).toHaveAttribute("data-favorite", "true");
+      expect(screen.getByRole("button", { name: "Company Favorite Mentoring" })).toHaveAttribute("data-company-favorite", "true");
     });
+  });
+
+  it("renders the mentoring label in the home discovery area", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "mentor-1",
+        employerId: 22,
+        opportunityType: "mentoring",
+        title: "Mentoring Track",
+        companyName: "Mentor Hub",
+        locationCity: "Москва",
+        locationAddress: "Онлайн",
+        employmentType: "online",
+        description: "Mentoring program.",
+        tags: ["Career"],
+        longitude: 37.617635,
+        latitude: 55.755814,
+      },
+    ]);
+
+    renderApp();
+
+    expect(await screen.findByText("Менторская программа")).toBeInTheDocument();
   });
 });

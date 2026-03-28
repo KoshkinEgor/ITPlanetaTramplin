@@ -70,20 +70,31 @@ internal static class AuthSupport
     }
 
     public static string HashPassword(User user, string password) =>
-        PasswordHasher.HashPassword(user, password);
+        HashPassword(user.Email, password);
 
-    public static bool VerifyPasswordAndUpgrade(User user, string password, out bool passwordUpgraded)
+    public static string HashPassword(string email, string password) =>
+        PasswordHasher.HashPassword(CreatePasswordHasherUser(email), password);
+
+    public static bool VerifyPasswordAndUpgrade(
+        string email,
+        string passwordHash,
+        string password,
+        out bool passwordUpgraded,
+        out string upgradedPasswordHash)
     {
         passwordUpgraded = false;
+        upgradedPasswordHash = passwordHash;
 
-        if (string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(password))
+        if (string.IsNullOrEmpty(passwordHash) || string.IsNullOrEmpty(password))
         {
             return false;
         }
 
+        var passwordHasherUser = CreatePasswordHasherUser(email);
+
         try
         {
-            var verificationResult = PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
+            var verificationResult = PasswordHasher.VerifyHashedPassword(passwordHasherUser, passwordHash, password);
 
             if (verificationResult == PasswordVerificationResult.Success)
             {
@@ -92,7 +103,7 @@ internal static class AuthSupport
 
             if (verificationResult == PasswordVerificationResult.SuccessRehashNeeded)
             {
-                user.PasswordHash = PasswordHasher.HashPassword(user, password);
+                upgradedPasswordHash = PasswordHasher.HashPassword(passwordHasherUser, password);
                 passwordUpgraded = true;
                 return true;
             }
@@ -102,14 +113,25 @@ internal static class AuthSupport
             // Legacy plain-text passwords are upgraded below after a successful match.
         }
 
-        if (!string.Equals(user.PasswordHash, password, StringComparison.Ordinal))
+        if (!string.Equals(passwordHash, password, StringComparison.Ordinal))
         {
             return false;
         }
 
-        user.PasswordHash = PasswordHasher.HashPassword(user, password);
+        upgradedPasswordHash = PasswordHasher.HashPassword(passwordHasherUser, password);
         passwordUpgraded = true;
         return true;
+    }
+
+    public static bool VerifyPasswordAndUpgrade(User user, string password, out bool passwordUpgraded)
+    {
+        var verified = VerifyPasswordAndUpgrade(user.Email, user.PasswordHash, password, out passwordUpgraded, out var upgradedPasswordHash);
+        if (verified && passwordUpgraded)
+        {
+            user.PasswordHash = upgradedPasswordHash;
+        }
+
+        return verified;
     }
 
     public static AuthTokenResult CreateToken(User user, string role, byte[] keyBytes, TimeSpan lifetime)
@@ -166,4 +188,10 @@ internal static class AuthSupport
             ? cookieValue[bearerPrefix.Length..].Trim()
             : cookieValue.Trim();
     }
+
+    private static User CreatePasswordHasherUser(string email) =>
+        new()
+        {
+            Email = NormalizeEmail(email),
+        };
 }

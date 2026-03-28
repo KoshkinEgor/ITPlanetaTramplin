@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { routes } from "../app/routes";
+import { useAuthSession } from "../auth/api";
 import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
+import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import {
   Alert,
   Card,
@@ -136,16 +138,7 @@ function translateCompanyStatus(status) {
 }
 
 function translateOpportunityType(value) {
-  switch (value) {
-    case "vacancy":
-      return "Вакансия";
-    case "internship":
-      return "Стажировка";
-    case "event":
-      return "Событие";
-    default:
-      return "Возможность";
-  }
+  return translateSharedOpportunityType(value);
 }
 
 function translateUserRole(role) {
@@ -283,6 +276,7 @@ function buildVerificationQueueItem(item) {
 }
 
 export function ModeratorDashboardApp() {
+  const authSession = useAuthSession();
   const [state, setState] = useState({
     status: "loading",
     companies: [],
@@ -294,7 +288,40 @@ export function ModeratorDashboardApp() {
   const [queueFilter, setQueueFilter] = useState("all");
 
   useEffect(() => {
+    if (authSession.status === "idle" || authSession.status === "loading") {
+      setState((current) => (
+        current.status === "loading"
+          ? current
+          : {
+            status: "loading",
+            companies: [],
+            opportunities: [],
+            users: [],
+            error: null,
+          }
+      ));
+      return undefined;
+    }
+
+    if (authSession.status !== "authenticated" || authSession.user?.role !== "moderator") {
+      setState({
+        status: "unauthorized",
+        companies: [],
+        opportunities: [],
+        users: [],
+        error: null,
+      });
+      return undefined;
+    }
+
     const controller = new AbortController();
+    setState({
+      status: "loading",
+      companies: [],
+      opportunities: [],
+      users: [],
+      error: null,
+    });
 
     async function load() {
       try {
@@ -317,7 +344,7 @@ export function ModeratorDashboardApp() {
         }
 
         setState({
-          status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
+          status: error instanceof ApiError && (error.status === 401 || error.status === 403) ? "unauthorized" : "error",
           companies: [],
           opportunities: [],
           users: [],
@@ -328,7 +355,7 @@ export function ModeratorDashboardApp() {
 
     load();
     return () => controller.abort();
-  }, []);
+  }, [authSession.status, authSession.user?.id, authSession.user?.role]);
 
   const pendingCompanies = useMemo(() => state.companies.filter(isPendingCompany), [state.companies]);
   const pendingOpportunities = useMemo(() => state.opportunities.filter(isPendingOpportunity), [state.opportunities]);

@@ -13,6 +13,8 @@ public class AuthUserDTO
     public bool PreVerify { get; set; }
 
     public string? DisplayName { get; set; }
+
+    public bool IsAdministrator { get; set; }
 }
 
 public class AuthResponseDTO

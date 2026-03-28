@@ -415,4 +415,22 @@ describe("HomeOpportunityMap", () => {
 
     expect(onSelectItem).toHaveBeenCalledWith("1");
   });
+
+  it("opens preview on hover or focus and closes it after pointer leave", async () => {
+    render(<HomeOpportunityMap items={baseItems} selectedCity="РњРѕСЃРєРІР°" activeId={null} onSelectItem={vi.fn()} />);
+
+    const marker = await screen.findByLabelText("Alpha Point");
+
+    fireEvent.mouseEnter(marker);
+
+    await waitFor(() => expect(document.querySelector(".home-yandex-map__preview")).not.toBeNull());
+
+    fireEvent.mouseLeave(marker);
+
+    await waitFor(() => expect(document.querySelector(".home-yandex-map__preview")).toBeNull());
+
+    fireEvent.focus(marker);
+
+    await waitFor(() => expect(document.querySelector(".home-yandex-map__preview")).not.toBeNull());
+  });
 });

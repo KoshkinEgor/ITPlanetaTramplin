@@ -28,6 +28,12 @@ public partial class EmployerProfile
 
     public string? MediaContent { get; set; }
 
+    public string? HeroMediaJson { get; set; }
+
+    public string? CaseStudiesJson { get; set; }
+
+    public string? GalleryJson { get; set; }
+
     public virtual ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
 
     public virtual User User { get; set; } = null!;

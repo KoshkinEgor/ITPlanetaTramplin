@@ -3,7 +3,7 @@ import { useBodyClass } from "../shared/lib/useBodyClass";
 import { routes } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
-import { HEADER_NAV, SIDEBAR_ITEMS } from "./config";
+import { getModeratorSidebarItems, HEADER_NAV } from "./config";
 import "./moderator-dashboard.css";
 
 function HeartIcon() {
@@ -100,10 +100,11 @@ export function ModeratorHeader() {
 
 export function ModeratorSidebar({ activeKey }) {
 
+  const sidebarItems = getModeratorSidebarItems();
   return (
     <SidebarNav
       title="Кабинет модератора"
-      items={SIDEBAR_ITEMS}
+      items={sidebarItems}
       activeKey={activeKey}
       className="moderator-sidebar moderator-fade-up moderator-fade-up--delay-1"
       headClassName="moderator-sidebar__head"

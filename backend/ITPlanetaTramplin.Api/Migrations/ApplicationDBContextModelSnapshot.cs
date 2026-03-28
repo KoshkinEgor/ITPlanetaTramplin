@@ -145,6 +145,14 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnName("links")
                         .HasDefaultValueSql("'{}'::jsonb");
 
+                    b.Property<string>("ModerationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("pending")
+                        .HasColumnName("moderation_status");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -432,6 +440,12 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("IsAdministrator")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_administrator");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -471,6 +485,10 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CaseStudiesJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("case_studies");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -480,6 +498,14 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<string>("GalleryJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("gallery");
+
+                    b.Property<string>("HeroMediaJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("hero_media");
 
                     b.Property<string>("Inn")
                         .HasMaxLength(20)
