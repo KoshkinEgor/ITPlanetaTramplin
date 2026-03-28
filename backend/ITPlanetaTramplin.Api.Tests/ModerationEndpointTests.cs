@@ -148,6 +148,7 @@ public class ModerationEndpointTests
         var decisionResponse = await client.PostAsJsonAsync($"/api/moderation/companies/{companyId}/decision", new
         {
             status = "revision",
+            reason = "Update legal address formatting",
         });
 
         Assert.Equal(HttpStatusCode.OK, decisionResponse.StatusCode);
@@ -157,6 +158,7 @@ public class ModerationEndpointTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var profile = await db.EmployerProfiles.SingleAsync(item => item.Id == companyId);
             Assert.Equal("revision", profile.VerificationStatus);
+            Assert.Equal("Update legal address formatting", profile.VerificationReason);
         }
     }
 
@@ -218,13 +220,18 @@ public class ModerationEndpointTests
         await LoginAsModeratorAsync(client, "administrator@tramplin.local", "Administrator1234");
 
         int opportunityId;
+        decimal? originalSalaryFrom;
+        string? originalDuration;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
-            opportunityId = await db.Opportunities
+            var opportunity = await db.Opportunities
                 .Where(item => item.Title.Contains("frontend", StringComparison.OrdinalIgnoreCase))
-                .Select(item => item.Id)
                 .FirstAsync();
+
+            opportunityId = opportunity.Id;
+            originalSalaryFrom = opportunity.SalaryFrom;
+            originalDuration = opportunity.Duration;
         }
 
         var detailResponse = await client.GetAsync($"/api/moderation/opportunities/{opportunityId}");
@@ -248,6 +255,9 @@ public class ModerationEndpointTests
             description = "Updated by moderator",
             opportunityType = "mentoring",
             employmentType = "remote",
+            salaryFrom = 99999m,
+            duration = "Should not change",
+            seatsCount = 99,
         });
 
         Assert.Equal(HttpStatusCode.OK, validUpdateResponse.StatusCode);
@@ -260,12 +270,15 @@ public class ModerationEndpointTests
             Assert.Equal("Updated by moderator", opportunity.Description);
             Assert.Equal("mentoring", opportunity.OpportunityType);
             Assert.Equal("remote", opportunity.EmploymentType);
+            Assert.Equal(originalSalaryFrom, opportunity.SalaryFrom);
+            Assert.Equal(originalDuration, opportunity.Duration);
             Assert.Equal("approved", opportunity.ModerationStatus);
         }
 
         var decisionResponse = await client.PostAsJsonAsync($"/api/moderation/opportunities/{opportunityId}/decision", new
         {
             status = "revision",
+            reason = "Need a clearer summary",
         });
 
         Assert.Equal(HttpStatusCode.OK, decisionResponse.StatusCode);
@@ -275,6 +288,7 @@ public class ModerationEndpointTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
             Assert.Equal("revision", opportunity.ModerationStatus);
+            Assert.Equal("Need a clearer summary", opportunity.ModerationReason);
         }
     }
 

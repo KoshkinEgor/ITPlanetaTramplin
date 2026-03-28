@@ -47,6 +47,7 @@ import {
   ModeratorTagsSystemPage,
   ModeratorUsersPage,
 } from "../pages/moderator/index.jsx";
+import { NotFoundPage } from "../pages/not-found/NotFoundPage";
 import { OpportunitiesCatalogPage, OpportunityDetailPage } from "../pages/opportunities/index.jsx";
 import { UiKitPage } from "../pages/ui-kit/UiKitPage";
 import { routes } from "./routes";
@@ -115,7 +116,8 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
 
       {uiKitEnabled ? <Route path={routes.uiKit} element={<UiKitPage />} /> : null}
 
-      <Route path="*" element={<Navigate to={routes.home} replace />} />
+      <Route path="/ui-kit/typography-temp" element={<Navigate to={routes.home} replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

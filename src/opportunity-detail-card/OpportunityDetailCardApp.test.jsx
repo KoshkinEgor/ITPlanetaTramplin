@@ -2,8 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateApplications } from "../api/candidate";
+import { getCompanyProfile } from "../api/company";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
 import { resetCandidateApplicationsStore, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
+import { useAuthSession } from "../auth/api";
 import { ApiError } from "../lib/http";
 import { OpportunityDetailCardApp } from "./OpportunityDetailCardApp";
 
@@ -17,6 +19,14 @@ vi.mock("../api/candidate", () => ({
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
 }));
 
+vi.mock("../api/company", () => ({
+  getCompanyProfile: vi.fn(),
+}));
+
+vi.mock("../auth/api", () => ({
+  useAuthSession: vi.fn(),
+}));
+
 vi.mock("../widgets/layout/PortalHeader/PortalHeader", () => ({
   PortalHeader: ({ className }) => <header className={className}>PortalHeader</header>,
 }));
@@ -25,7 +35,7 @@ const apiOpportunity = {
   id: 101,
   employerId: 404,
   title: "Junior Security Analyst",
-  companyName: "ООО Компани",
+  companyName: "ООО Компания",
   locationCity: "Москва",
   locationAddress: "Москва",
   opportunityType: "vacancy",
@@ -46,7 +56,7 @@ const appliedSummary = {
   appliedAt: "2026-03-12T12:00:00Z",
   opportunityTitle: "Junior Security Analyst",
   opportunityType: "vacancy",
-  companyName: "ООО Компани",
+  companyName: "ООО Компания",
   locationCity: "Москва",
   employmentType: "online",
   opportunityDeleted: false,
@@ -78,6 +88,8 @@ function renderDetail(path = "/opportunities/design-ui-ux") {
 describe("OpportunityDetailCardApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthSession.mockReturnValue({ status: "guest", user: null, error: null });
+    getCompanyProfile.mockResolvedValue(null);
     resetCandidateApplicationsStore();
     getOpportunity.mockResolvedValue(apiOpportunity);
     getOpportunities.mockResolvedValue([]);
@@ -139,5 +151,23 @@ describe("OpportunityDetailCardApp", () => {
       expect(getCandidateApplications).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
     });
+  });
+
+  it("shows owner-only controls and moderation reason for company users", async () => {
+    useAuthSession.mockReturnValue({ status: "authenticated", user: { role: "company" }, error: null });
+    getCompanyProfile.mockResolvedValue({ profileId: 404 });
+    getOpportunity.mockResolvedValue({
+      ...apiOpportunity,
+      moderationStatus: "revision",
+      moderationReason: "Добавьте зарплату",
+    });
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByRole("button", { name: "Редактировать" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Просмотр публичной версии" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Открыть отклики" })).toHaveAttribute("href", "/company/dashboard/responses");
+    expect(screen.getByText("Добавьте зарплату")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Отклик отправлен|Подать заявку/ })).not.toBeInTheDocument();
   });
 });

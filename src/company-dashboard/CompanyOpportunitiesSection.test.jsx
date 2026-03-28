@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCompanyOpportunities } from "../api/company";
@@ -81,6 +81,6 @@ describe("CompanyOpportunitiesSection", () => {
     });
 
     expect(await screen.findByDisplayValue("Backend internship")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Сохранить публикацию" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Сохранить как черновик" })).toBeInTheDocument();
   });
 });

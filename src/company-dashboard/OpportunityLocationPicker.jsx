@@ -130,6 +130,21 @@ function loadYandexMaps() {
   });
 }
 
+function updateMapLocation(mapInstance, location) {
+  if (!mapInstance) {
+    return;
+  }
+
+  if (typeof mapInstance.update === "function") {
+    mapInstance.update({ location });
+    return;
+  }
+
+  if (typeof mapInstance.setLocation === "function") {
+    mapInstance.setLocation(location);
+  }
+}
+
 function normalizeMapEventCoordinates(object, mapEvent) {
   const candidates = [
     mapEvent?.coordinates,
@@ -156,6 +171,11 @@ function formatCoordinateSignature(coordinates) {
 
 function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCoordinates }) {
   const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const markerConstructorRef = useRef(null);
+  const locationRef = useRef(null);
+  const markerCoordinatesRef = useRef(null);
   const onSelectCoordinatesRef = useRef(onSelectCoordinates);
   const lastSelectionRef = useRef({ signature: "", timestamp: 0 });
   const [status, setStatus] = useState(getApiKey() ? "loading" : "missing-key");
@@ -175,17 +195,71 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
     ),
     [centerLatitude, centerLongitude, resolvedMarkerCoordinates]
   );
-  const mapCenterLongitude = mapLocation.center[0];
-  const mapCenterLatitude = mapLocation.center[1];
-  const mapZoom = mapLocation.zoom;
 
   useEffect(() => {
     onSelectCoordinatesRef.current = onSelectCoordinates;
   }, [onSelectCoordinates]);
 
   useEffect(() => {
+    locationRef.current = mapLocation;
+  }, [mapLocation]);
+
+  useEffect(() => {
+    markerCoordinatesRef.current = resolvedMarkerCoordinates;
+  }, [resolvedMarkerCoordinates]);
+
+  useEffect(() => {
+    const mapInstance = mapRef.current;
+
+    if (!mapInstance) {
+      return;
+    }
+
+    updateMapLocation(mapInstance, mapLocation);
+  }, [mapLocation]);
+
+  useEffect(() => {
+    const mapInstance = mapRef.current;
+    const MarkerConstructor = markerConstructorRef.current;
+
+    if (!mapInstance || !MarkerConstructor) {
+      return;
+    }
+
+    if (!resolvedMarkerCoordinates) {
+      if (markerRef.current) {
+        mapInstance.removeChild?.(markerRef.current);
+        markerRef.current = null;
+      }
+      return;
+    }
+
+    if (markerRef.current && typeof markerRef.current.update === "function") {
+      markerRef.current.update({
+        coordinates: resolvedMarkerCoordinates,
+        source: markerSourceId,
+      });
+      return;
+    }
+
+    if (markerRef.current) {
+      mapInstance.removeChild?.(markerRef.current);
+    }
+
+    const nextMarker = new MarkerConstructor(
+      {
+        coordinates: resolvedMarkerCoordinates,
+        source: markerSourceId,
+      },
+      createMarkerElement()
+    );
+
+    mapInstance.addChild(nextMarker);
+    markerRef.current = nextMarker;
+  }, [resolvedMarkerCoordinates]);
+
+  useEffect(() => {
     let cancelled = false;
-    let mapInstance = null;
     const containerElement = containerRef.current;
 
     async function initMap() {
@@ -205,7 +279,6 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
         const ymaps3 = await loadYandexMaps();
         const {
           YMap,
-          YMapDefaultFeaturesLayer,
           YMapDefaultSchemeLayer,
           YMapFeatureDataSource,
           YMapLayer,
@@ -241,15 +314,14 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
 
         containerElement.innerHTML = "";
 
-        mapInstance = new YMap(containerElement, {
-          location: mapLocation,
-          mode: "vector",
+        const mapInstance = new YMap(containerElement, {
+          location: locationRef.current ?? mapLocation,
         });
 
-        mapInstance.addChild(new YMapDefaultSchemeLayer());
-        if (typeof YMapDefaultFeaturesLayer === "function") {
-          mapInstance.addChild(new YMapDefaultFeaturesLayer());
-        }
+        mapRef.current = mapInstance;
+        markerConstructorRef.current = YMapMarker;
+
+        mapInstance.addChild(new YMapDefaultSchemeLayer({ type: "ground" }));
         mapInstance.addChild(new YMapFeatureDataSource({ id: markerSourceId }));
         mapInstance.addChild(new YMapLayer({ source: markerSourceId, type: "markers", zIndex: 1200 }));
         mapInstance.addChild(
@@ -260,17 +332,30 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
           })
         );
 
-        if (resolvedMarkerCoordinates) {
-          mapInstance.addChild(
-            new YMapMarker(
-              {
-                coordinates: resolvedMarkerCoordinates,
-                source: markerSourceId,
-              },
-              createMarkerElement()
-            )
+        if (markerCoordinatesRef.current) {
+          const initialMarker = new YMapMarker(
+            {
+              coordinates: markerCoordinatesRef.current,
+              source: markerSourceId,
+            },
+            createMarkerElement()
           );
+
+          mapInstance.addChild(initialMarker);
+          markerRef.current = initialMarker;
         }
+
+        updateMapLocation(mapInstance, locationRef.current ?? mapLocation);
+
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            if (cancelled || mapRef.current !== mapInstance) {
+              return;
+            }
+
+            updateMapLocation(mapInstance, locationRef.current ?? mapLocation);
+          });
+        });
 
         setStatus("ready");
       } catch (error) {
@@ -298,15 +383,19 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
     return () => {
       cancelled = true;
 
-      if (mapInstance) {
-        mapInstance.destroy?.();
+      if (mapRef.current) {
+        mapRef.current.destroy?.();
       }
+
+      mapRef.current = null;
+      markerRef.current = null;
+      markerConstructorRef.current = null;
 
       if (containerElement) {
         containerElement.innerHTML = "";
       }
     };
-  }, [mapCenterLatitude, mapCenterLongitude, mapZoom, mapLocation, resolvedMarkerCoordinates]);
+  }, []);
 
   return (
     <div className="company-dashboard-location-picker__map-shell">

@@ -349,6 +349,21 @@ describe("HomeOpportunityMap", () => {
     expect(mapInstances).toHaveLength(1);
   });
 
+  it("centers the initial map on the selected city coordinates instead of averaging point namesakes", async () => {
+    render(
+      <HomeOpportunityMap
+        items={baseItems}
+        selectedCity="Москва"
+        selectedCityCoordinates={[35.99876, 57.01234]}
+        activeId={null}
+        onSelectItem={vi.fn()}
+      />
+    );
+
+    await waitFor(() => expect(mapInstances).toHaveLength(1));
+    expect(mapInstances[0].props.location.center).toEqual([35.99876, 57.01234]);
+  });
+
   it("does not recreate the map when items are reordered but geometry stays the same", async () => {
     const { rerender } = render(
       <HomeOpportunityMap items={baseItems} selectedCity="РњРѕСЃРєРІР°" activeId={null} onSelectItem={vi.fn()} />

@@ -28,6 +28,8 @@ public partial class Opportunity
 
     public string ModerationStatus { get; set; } = null!;
 
+    public string? ModerationReason { get; set; }
+
     public DateOnly PublishAt { get; set; }
 
     public DateOnly? ExpireAt { get; set; }
@@ -37,6 +39,26 @@ public partial class Opportunity
     public string? ContactsJson { get; set; }
 
     public string? MediaContentJson { get; set; }
+
+    public decimal? SalaryFrom { get; set; }
+
+    public decimal? SalaryTo { get; set; }
+
+    public bool? IsPaid { get; set; }
+
+    public decimal? StipendFrom { get; set; }
+
+    public decimal? StipendTo { get; set; }
+
+    public string? Duration { get; set; }
+
+    public DateOnly? EventStartAt { get; set; }
+
+    public DateOnly? RegistrationDeadline { get; set; }
+
+    public string? MeetingFrequency { get; set; }
+
+    public int? SeatsCount { get; set; }
 
     public NpgsqlTsVector? SearchVector { get; set; }
 

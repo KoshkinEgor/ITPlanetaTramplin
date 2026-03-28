@@ -116,6 +116,9 @@ public class CompanyEndpointTests
             Assert.Equal(companyId, item.GetProperty("employerId").GetInt32());
             Assert.Equal("approved", item.GetProperty("moderationStatus").GetString());
             Assert.Equal(JsonValueKind.Null, item.GetProperty("deletedAt").ValueKind);
+            Assert.True(item.TryGetProperty("salaryFrom", out _));
+            Assert.True(item.TryGetProperty("salaryTo", out _));
+            Assert.True(item.TryGetProperty("duration", out _));
         });
         Assert.DoesNotContain(opportunities, item => item.GetProperty("title").GetString() == "Pending public opportunity");
         Assert.DoesNotContain(opportunities, item => item.GetProperty("title").GetString() == "Deleted public opportunity");

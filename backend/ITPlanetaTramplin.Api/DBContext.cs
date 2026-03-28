@@ -452,6 +452,9 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.VerificationMethod)
                 .HasMaxLength(50)
                 .HasColumnName("verification_method");
+            entity.Property(e => e.VerificationReason)
+                .HasColumnType("text")
+                .HasColumnName("verification_reason");
         });
 
         modelBuilder.Entity<ModeratorInvitation>(entity =>
@@ -530,14 +533,22 @@ public partial class ApplicationDBContext : DbContext
                 .HasDefaultValueSql("'{}'::jsonb")
                 .HasColumnType("jsonb")
                 .HasColumnName("contacts");
+            entity.Property(e => e.Duration)
+                .HasColumnName("duration");
             entity.Property(e => e.Description)
                 .HasColumnName("description");
             entity.Property(e => e.EmployerId)
                 .HasColumnName("employer_id");
             entity.Property(e => e.ExpireAt)
                 .HasColumnName("expire_at");
+            entity.Property(e => e.EventStartAt)
+                .HasColumnName("event_start_at");
             entity.Property(e => e.EmploymentType)
                 .HasColumnName("employment_type");
+            entity.Property(e => e.IsPaid)
+                .HasColumnName("is_paid");
+            entity.Property(e => e.MeetingFrequency)
+                .HasColumnName("meeting_frequency");
             entity.Property(e => e.Latitude)
                 .HasPrecision(9, 6)
                 .HasColumnName("latitude");
@@ -550,14 +561,32 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.Longitude)
                 .HasPrecision(9, 6)
                 .HasColumnName("longitude");
+            entity.Property(e => e.ModerationReason)
+                .HasColumnName("moderation_reason");
             entity.Property(e => e.ModerationStatus)
                 .HasMaxLength(50)
                 .HasColumnName("moderation_status")
-                .HasDefaultValue(OpportunityModerationStatuses.Pending);
+                .HasDefaultValue(OpportunityModerationStatuses.Draft);
             entity.Property(e => e.MediaContentJson)
                 .HasDefaultValueSql("'[]'::jsonb")
                 .HasColumnType("jsonb")
                 .HasColumnName("media_content");
+            entity.Property(e => e.RegistrationDeadline)
+                .HasColumnName("registration_deadline");
+            entity.Property(e => e.SalaryFrom)
+                .HasPrecision(12, 2)
+                .HasColumnName("salary_from");
+            entity.Property(e => e.SalaryTo)
+                .HasPrecision(12, 2)
+                .HasColumnName("salary_to");
+            entity.Property(e => e.SeatsCount)
+                .HasColumnName("seats_count");
+            entity.Property(e => e.StipendFrom)
+                .HasPrecision(12, 2)
+                .HasColumnName("stipend_from");
+            entity.Property(e => e.StipendTo)
+                .HasPrecision(12, 2)
+                .HasColumnName("stipend_to");
             entity.Property(e => e.PublishAt)
                 .HasDefaultValueSql("CURRENT_DATE")
                 .HasColumnName("publish_at");

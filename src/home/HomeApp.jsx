@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
-import { AppLink } from "../app/AppLink";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
@@ -9,7 +8,7 @@ import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { readFavoriteCompanyIds, readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
-import { getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
+import { OPPORTUNITY_TYPE_OPTIONS, getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
@@ -17,39 +16,50 @@ import { HomeOpportunityMap } from "./HomeOpportunityMap";
 import "./home.css";
 
 const heroTags = ["Вперёд к целям", "Карьера", "Новые контакты"];
-const filterSelects = [
+const aboutWorkflowSteps = [
   {
-    key: "type",
-    label: "Тип",
-    value: "Тип",
-    options: ["Тип", "Вакансия", "Стажировка", "Мероприятие", "Менторская программа"],
+    step: "01",
+    title: "Собери свой старт",
+    description: "Выбери город, формат и сильные стороны, чтобы сразу увидеть релевантные карьерные сценарии.",
   },
   {
-    key: "format",
-    label: "Формат",
-    value: "Формат",
-    options: ["Формат", "Офис", "Гибрид", "Онлайн"],
+    step: "02",
+    title: "Сравни варианты в одном месте",
+    description: "Держи рядом вакансии, стажировки, мероприятия и менторские программы без прыжков между вкладками.",
   },
   {
-    key: "level",
-    label: "Уровень",
-    value: "Уровень",
-    options: ["Уровень", "Без опыта", "Junior", "Middle"],
-  },
-  {
-    key: "skills",
-    label: "Навыки",
-    value: "Навыки",
-    options: ["Навыки", "SOC", "SIEM", "UI/UX", "Python"],
-  },
-  {
-    key: "more",
-    label: "Больше",
-    value: "Больше",
-    options: ["Больше", "С зарплатой", "С откликом", "С контактами"],
+    step: "03",
+    title: "Выходи на следующий шаг",
+    description: "Сохраняй интересное, изучай детали и быстро переходи к отклику или контакту с компанией.",
   },
 ];
 
+const aboutValueCards = [
+  {
+    title: "Один маршрут вместо хаоса",
+    description: "Платформа собирает карьерный старт в единый экран, где карта, подборка и фильтры работают как один сценарий.",
+  },
+  {
+    title: "Фокус на реальных шагах",
+    description: "Не только вакансии: можно увидеть стажировки, события и менторские программы, чтобы выбрать свой темп входа в профессию.",
+  },
+  {
+    title: "Понятная навигация по рынку",
+    description: "Легче понять, что доступно рядом, какие форматы востребованы и где есть шанс начать без лишней бюрократии.",
+  },
+];
+
+const FILTER_ALL_VALUE = "all";
+const FILTER_ALL_LABEL = "Все";
+const QUICK_FILTERS = [
+  { key: "type", label: "Тип" },
+  { key: "format", label: "Формат" },
+  { key: "level", label: "Уровень" },
+  { key: "skills", label: "Навыки" },
+];
+const EMPLOYMENT_FILTER_ORDER = ["Офис", "Гибрид", "Удаленно", "Онлайн"];
+const LEVEL_FILTER_ORDER = ["Без опыта", "Junior", "Middle"];
+const HOME_HASH_SCROLL_OFFSET = 112;
 
 const SORT_OPTIONS = [
   { key: "popularity", label: "По популярности" },
@@ -58,8 +68,11 @@ const SORT_OPTIONS = [
   { key: "responses", label: "По откликам" },
 ];
 
-const visibleFilterSelects = filterSelects.filter((filter) => filter.key !== "more");
-const defaultFilterValues = Object.fromEntries(filterSelects.map((filter) => [filter.key, filter.value]));
+const defaultFilterValues = {
+  type: FILTER_ALL_VALUE,
+  format: FILTER_ALL_VALUE,
+  level: FILTER_ALL_VALUE,
+};
 
 const advancedSearchSections = {
   directions: ["Вакансии", "Стажировки", "Мероприятия", "Менторские программы"],
@@ -215,40 +228,6 @@ void recommendedCardsWithDetails;
 const HOME_POPULAR_VACANCIES_LIMIT = 3;
 const HOME_RECOMMENDED_LIMIT = 4;
 
-function getHomeDetailActionLabel(item) {
-  if (item?.primaryAction) {
-    return item.primaryAction;
-  }
-
-  const type = String(item?.eyebrow ?? item?.type ?? "").trim().toLowerCase();
-  return type === "мероприятие" ? "Подать заявку" : "Откликнуться";
-}
-
-function createHomeRowActions(item) {
-  return {
-    primaryAction: {
-      href: "/candidate/contacts",
-      label: item?.secondaryAction ?? "Связаться",
-      variant: "secondary",
-    },
-    detailAction: {
-      href: buildOpportunityDetailRoute(item.id),
-      label: getHomeDetailActionLabel(item),
-      variant: "secondary",
-    },
-  };
-}
-
-function createHomeBlockDetailAction(item) {
-  return {
-    href: buildOpportunityDetailRoute(item.id),
-    label: "РџРѕРґСЂРѕР±РЅРµРµ",
-    variant: "secondary",
-    width: "full",
-    className: "home-opportunity-entry__action",
-  };
-}
-
 const HOME_CONTACT_ACTION_LABEL = "\u0421\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F";
 const HOME_APPLY_ACTION_LABEL = "\u041E\u0442\u043A\u043B\u0438\u043A\u043D\u0443\u0442\u044C\u0441\u044F";
 const HOME_EVENT_ACTION_LABEL = "\u041F\u043E\u0434\u0430\u0442\u044C \u0437\u0430\u044F\u0432\u043A\u0443";
@@ -312,6 +291,12 @@ function CloseTinyIcon() {
 
 function normalizeOptionValue(value) {
   return String(value).trim().toLowerCase();
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right, "ru")
+  );
 }
 
 function translateOpportunityType(value) {
@@ -399,12 +384,148 @@ function deriveStatus(item) {
   return "Активно";
 }
 
-function hasValidCoordinates(item) {
-  return Number.isFinite(Number(item?.longitude)) && Number.isFinite(Number(item?.latitude));
+function deriveFilterLevel(item) {
+  const tags = Array.isArray(item?.tags) ? item.tags.map(normalizeOptionValue) : [];
+
+  if (tags.includes("middle")) {
+    return "Middle";
+  }
+
+  if (tags.includes("junior")) {
+    return "Junior";
+  }
+
+  if (tags.includes("без опыта") || String(item?.opportunityType ?? "").toLowerCase() === "internship") {
+    return "Без опыта";
+  }
+
+  return "";
+}
+
+function normalizeCoordinateValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function toCoordinatePair(longitude, latitude) {
+  const normalizedLongitude = normalizeCoordinateValue(longitude);
+  const normalizedLatitude = normalizeCoordinateValue(latitude);
+
+  if (normalizedLongitude == null || normalizedLatitude == null) {
+    return null;
+  }
+
+  return [normalizedLongitude, normalizedLatitude];
+}
+
+function hasCoordinatePair(coordinates) {
+  return Array.isArray(coordinates)
+    && coordinates.length === 2
+    && coordinates.every((coordinate) => normalizeCoordinateValue(coordinate) != null);
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceBetweenCoordinates(firstCoordinates, secondCoordinates) {
+  if (!hasCoordinatePair(firstCoordinates) || !hasCoordinatePair(secondCoordinates)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const [firstLongitude, firstLatitude] = firstCoordinates.map(Number);
+  const [secondLongitude, secondLatitude] = secondCoordinates.map(Number);
+  const earthRadiusKm = 6371;
+  const latitudeDelta = toRadians(secondLatitude - firstLatitude);
+  const longitudeDelta = toRadians(secondLongitude - firstLongitude);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(firstLatitude)) * Math.cos(toRadians(secondLatitude)) * Math.sin(longitudeDelta / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function orderByKnownSequence(values, orderedValues) {
+  const orderMap = new Map(orderedValues.map((value, index) => [normalizeOptionValue(value), index]));
+
+  return [...values].sort((left, right) => {
+    const leftOrder = orderMap.get(normalizeOptionValue(left));
+    const rightOrder = orderMap.get(normalizeOptionValue(right));
+
+    if (leftOrder != null && rightOrder != null && leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+
+    if (leftOrder != null) {
+      return -1;
+    }
+
+    if (rightOrder != null) {
+      return 1;
+    }
+
+    return left.localeCompare(right, "ru");
+  });
+}
+
+function createFilterTriggerLabel(label, currentLabel) {
+  return `${label} : ${currentLabel}`;
+}
+
+function createQuickFilterOptions(items) {
+  const availableTypeValues = new Set(items.map((item) => normalizeOptionValue(item.opportunityTypeValue)).filter(Boolean));
+  const typeOptions = OPPORTUNITY_TYPE_OPTIONS
+    .filter((option) => availableTypeValues.has(normalizeOptionValue(option.value)))
+    .map((option) => ({ value: option.value, label: option.label }));
+  const formatOptions = orderByKnownSequence(
+    uniqueOptions(items.map((item) => item.employmentLabel)),
+    EMPLOYMENT_FILTER_ORDER
+  ).map((value) => ({ value, label: value }));
+  const levelOptions = orderByKnownSequence(
+    uniqueOptions(items.map((item) => item.levelLabel)),
+    LEVEL_FILTER_ORDER
+  ).map((value) => ({ value, label: value }));
+
+  return {
+    type: [{ value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL }, ...typeOptions],
+    format: [{ value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL }, ...formatOptions],
+    level: [{ value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL }, ...levelOptions],
+    skills: uniqueOptions(items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))),
+  };
+}
+
+export function scrollToHashTarget(hash, { offset = HOME_HASH_SCROLL_OFFSET, behavior = "smooth" } = {}) {
+  if (typeof window === "undefined" || !hash) {
+    return false;
+  }
+
+  const normalizedHash = String(hash).replace(/^#/, "");
+
+  if (!normalizedHash) {
+    return false;
+  }
+
+  const target = document.getElementById(normalizedHash);
+
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const nextTop = target.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({
+    top: Math.max(0, nextTop),
+    behavior,
+  });
+
+  return true;
 }
 
 function getOpportunityIdentifier(item, fallbackId) {
@@ -428,29 +549,36 @@ function mergeUniqueOpportunityCards(...groups) {
 }
 
 function mapOpportunityToHomeCard(item, index) {
-  if (!item || !hasValidCoordinates(item)) {
+  if (!item) {
     return null;
   }
 
   const typeLabel = translateOpportunityType(item.opportunityType);
   const employmentLabel = translateEmploymentType(item.employmentType);
+  const coordinates = toCoordinatePair(item.longitude, item.latitude);
+  const levelLabel = deriveFilterLevel(item);
+  const tags = Array.isArray(item.tags) ? item.tags.filter(Boolean) : [];
 
   return {
     id: getOpportunityIdentifier(item, `nearby-${index}`),
     employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: typeLabel,
     type: typeLabel,
+    opportunityTypeValue: normalizeOptionValue(item.opportunityType),
+    employmentLabel,
+    levelLabel,
     status: deriveStatus(item),
     statusTone: String(item?.opportunityType ?? "").toLowerCase() === "event" ? "warning" : "neutral",
     title: item.title ?? "",
     meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
     accent: item.locationAddress ?? employmentLabel,
     note: shortenText(item.description),
-    chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    chips: tags.slice(0, 4),
+    tags,
     primaryAction: getOpportunityApplyLabel(item?.opportunityType),
     secondaryAction: "Связаться",
     city: item.locationCity ?? "",
-    coordinates: [Number(item.longitude), Number(item.latitude)],
+    coordinates,
     detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `nearby-${index}`)),
     sortMeta: createSortMeta(item, index),
   };
@@ -584,11 +712,13 @@ function SlidersIcon() {
 }
 
 function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
+  const selectedOption = options.find((option) => String(option.value) === String(value)) ?? options[0];
+
   return (
     <SortControl
       label={label}
       value={value}
-      options={options.map((option) => ({ value: option, label: option }))}
+      options={options}
       open={isOpen}
       onOpenChange={onToggle}
       onSelect={onSelect}
@@ -596,7 +726,7 @@ function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect 
       triggerClassName="home-filter-dropdown__trigger"
       menuClassName="home-filter-dropdown__menu"
       optionClassName="home-filter-dropdown__option"
-      triggerLabel={value}
+      triggerLabel={createFilterTriggerLabel(label, selectedOption?.label ?? FILTER_ALL_LABEL)}
       endIcon={<ChevronDownIcon />}
     />
   );
@@ -719,7 +849,7 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
         onClick={() => onToggle(!isOpen)}
       >
         <span className={`home-skills-filter__trigger-value ${value.length ? "is-filled" : ""}`.trim()}>
-          {value[0] ?? label}
+          {createFilterTriggerLabel(label, value[0] ?? FILTER_ALL_LABEL)}
         </span>
         {value.length > 1 ? <span className="home-skills-filter__trigger-count">+{value.length - 1}</span> : null}
         <ChevronDownIcon />
@@ -1008,9 +1138,10 @@ export function HomeApp() {
   useBodyClass("home-react-body");
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState("map");
   const [query, setQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY_NAME);
+  const [cityInputValue, setCityInputValue] = useState(() => getFallbackCityOption(DEFAULT_CITY_NAME)?.name ?? DEFAULT_CITY_NAME);
   const [selectedCityOption, setSelectedCityOption] = useState(() => getFallbackCityOption(DEFAULT_CITY_NAME));
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
@@ -1045,6 +1176,14 @@ export function HomeApp() {
     schedules: [],
     extras: ["Только активные"],
   });
+  const selectedCityCoordinates = useMemo(
+    () => toCoordinatePair(selectedCityOption?.longitude, selectedCityOption?.latitude),
+    [selectedCityOption?.latitude, selectedCityOption?.longitude]
+  );
+  const quickFilterOptions = useMemo(
+    () => createQuickFilterOptions(nearbyItemsState.items),
+    [nearbyItemsState.items]
+  );
 
   const toggleAdvancedValue = (field, item) => {
     setAdvancedSearchValues((current) => {
@@ -1163,10 +1302,6 @@ export function HomeApp() {
 
   const filteredNearbyCards = useMemo(() => {
     const normalizedQuery = normalizeOptionValue(query);
-    const normalizedSelectedCity = normalizeOptionValue(selectedCity);
-    const normalizedSelectedType = normalizeOptionValue(filterValues.type);
-    const normalizedSelectedFormat = normalizeOptionValue(filterValues.format);
-    const normalizedSelectedLevel = normalizeOptionValue(filterValues.level);
 
     return nearbyItemsState.items.filter((item) => {
       const searchContent = [
@@ -1177,25 +1312,27 @@ export function HomeApp() {
         item.eyebrow,
         item.status,
         item.city,
-        ...item.chips,
+        ...item.tags,
       ].join(" ");
 
       const normalizedSearchContent = normalizeOptionValue(searchContent);
+      const normalizedItemTags = Array.isArray(item.tags) ? item.tags.map(normalizeOptionValue) : [];
       const matchesQuery = !normalizedQuery || normalizedSearchContent.includes(normalizedQuery);
-      const matchesCity = !normalizedSelectedCity || normalizeOptionValue(item.city) === normalizedSelectedCity;
-      const matchesType = filterValues.type === defaultFilterValues.type || normalizeOptionValue(item.eyebrow).includes(normalizedSelectedType);
-      const matchesFormat = filterValues.format === defaultFilterValues.format
-        || normalizeOptionValue(item.meta).includes(normalizedSelectedFormat)
-        || item.chips.some((chip) => normalizeOptionValue(chip).includes(normalizedSelectedFormat));
-      const matchesLevel = filterValues.level === defaultFilterValues.level
-        || normalizeOptionValue(item.status).includes(normalizedSelectedLevel)
-        || item.chips.some((chip) => normalizeOptionValue(chip).includes(normalizedSelectedLevel));
+      const matchesType = filterValues.type === FILTER_ALL_VALUE
+        || normalizeOptionValue(item.opportunityTypeValue) === normalizeOptionValue(filterValues.type);
+      const matchesFormat = filterValues.format === FILTER_ALL_VALUE
+        || normalizeOptionValue(item.employmentLabel) === normalizeOptionValue(filterValues.format);
+      const matchesLevel = filterValues.level === FILTER_ALL_VALUE
+        || normalizeOptionValue(item.levelLabel) === normalizeOptionValue(filterValues.level);
       const matchesSkills = !selectedSkills.length
-        || selectedSkills.some((skill) => normalizedSearchContent.includes(normalizeOptionValue(skill)));
+        || selectedSkills.some((skill) => {
+          const normalizedSkill = normalizeOptionValue(skill);
+          return normalizedItemTags.includes(normalizedSkill) || normalizedSearchContent.includes(normalizedSkill);
+        });
 
-      return matchesQuery && matchesCity && matchesType && matchesFormat && matchesLevel && matchesSkills;
+      return matchesQuery && matchesType && matchesFormat && matchesLevel && matchesSkills;
     });
-  }, [filterValues.format, filterValues.level, filterValues.type, nearbyItemsState.items, query, selectedCity, selectedSkills]);
+  }, [filterValues.format, filterValues.level, filterValues.type, nearbyItemsState.items, query, selectedSkills]);
 
   const sortedNearbyCards = useMemo(() => {
     const directionFactor = sortDirection === "asc" ? 1 : -1;
@@ -1204,8 +1341,20 @@ export function HomeApp() {
       .map((item, index) => ({
         item,
         meta: item.sortMeta ?? createSortMeta(item, index),
+        distance: getDistanceBetweenCoordinates(selectedCityCoordinates, item.coordinates),
       }))
       .sort((left, right) => {
+        const leftDistanceIsFinite = Number.isFinite(left.distance);
+        const rightDistanceIsFinite = Number.isFinite(right.distance);
+
+        if (leftDistanceIsFinite !== rightDistanceIsFinite) {
+          return leftDistanceIsFinite ? -1 : 1;
+        }
+
+        if (leftDistanceIsFinite && rightDistanceIsFinite && Math.abs(left.distance - right.distance) > 0.05) {
+          return left.distance - right.distance;
+        }
+
         const leftValue = left.meta[sortKey] ?? 0;
         const rightValue = right.meta[sortKey] ?? 0;
 
@@ -1216,7 +1365,7 @@ export function HomeApp() {
         return (leftValue - rightValue) * directionFactor;
       })
       .map((entry) => entry.item);
-  }, [filteredNearbyCards, sortDirection, sortKey]);
+  }, [filteredNearbyCards, selectedCityCoordinates, sortDirection, sortKey]);
 
   const prioritizedNearbyCards = useMemo(() => {
     if (!selectedOpportunityId) {
@@ -1256,6 +1405,10 @@ export function HomeApp() {
       })),
     [favoriteCompanyIdSet, favoriteOpportunityIdSet, prioritizedNearbyCards]
   );
+  const mapNearbyCards = useMemo(
+    () => displayedNearbyCards.filter((item) => hasCoordinatePair(item.coordinates)),
+    [displayedNearbyCards]
+  );
 
   useEffect(() => {
     if (!selectedOpportunityId) {
@@ -1266,6 +1419,10 @@ export function HomeApp() {
       setSelectedOpportunityId(null);
     }
   }, [selectedOpportunityId, sortedNearbyCards]);
+
+  useEffect(() => {
+    setSelectedOpportunityId(null);
+  }, [selectedCityOption?.id]);
 
   useEffect(() => {
     if (!selectedOpportunityId || view !== "map") {
@@ -1340,6 +1497,20 @@ export function HomeApp() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!location.hash) {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToHashTarget(location.hash);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [location.hash, location.pathname]);
+
   return (
     <main className="home-page">
       <div className="home-page__shell ui-page-shell">
@@ -1369,7 +1540,7 @@ export function HomeApp() {
             </p>
 
             <div className="home-hero__actions">
-              <Button as="a" href="#workflow" variant="secondary" className="home-hero__secondary">
+              <Button href={routes.homeAbout} variant="secondary" className="home-hero__secondary">
                 Как это работает
               </Button>
               <Button className="home-hero__primary" loading={isHeroActionLoading} onClick={handleHeroDiscoverClick}>
@@ -1401,6 +1572,53 @@ export function HomeApp() {
           </div>
         </section>
 
+        <section className="home-about" id="about" aria-labelledby="home-about-title">
+          <Card className="home-about__lead">
+            <div className="home-about__intro">
+              <p className="ui-type-overline">О платформе</p>
+              <h2 id="home-about-title" className="ui-type-h1">
+                Спокойный карьерный лендинг для тех, кто хочет стартовать без лишнего шума.
+              </h2>
+              <p className="ui-type-body">
+                TRAMPLIN собирает вакансии, стажировки, мероприятия и менторские программы в один маршрут: увидеть, сравнить, сохранить и перейти к следующему шагу.
+              </p>
+
+              <div className="home-about__tags">
+                <Tag className="home-about__tag">Вакансии</Tag>
+                <Tag className="home-about__tag">Стажировки</Tag>
+                <Tag className="home-about__tag">Мероприятия</Tag>
+                <Tag className="home-about__tag">Менторы</Tag>
+              </div>
+
+              <div className="home-about__actions">
+                <Button href={routes.homeDiscover}>Смотреть возможности</Button>
+                <Button href={routes.opportunities.catalog} variant="secondary">Открыть каталог</Button>
+              </div>
+            </div>
+
+            <div className="home-about__aside">
+              {aboutWorkflowSteps.map((item) => (
+                <article key={item.step} className="home-about__step-compact">
+                  <span className="home-about__step-number">{item.step}</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Card>
+
+          <div className="home-about__value-grid">
+            {aboutValueCards.map((item) => (
+              <Card key={item.title} className="home-about__value-card">
+                <h3 className="ui-type-h3">{item.title}</h3>
+                <p className="ui-type-body">{item.description}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
         <section className="home-discovery" id="discover">
           <div className="home-discovery__intro">
             <p className="ui-type-body">Изучай возможности на карте, сохраняй интересное и строй карьеру через контакты и отклики.</p>
@@ -1410,14 +1628,19 @@ export function HomeApp() {
             <div className="home-discovery__title-row">
               <h2 className="ui-type-h1">Возможности рядом</h2>
               <CityAutocomplete
-                value={selectedCity}
-                onValueChange={setSelectedCity}
-                onSelectOption={setSelectedCityOption}
+                value={cityInputValue}
+                selectedOption={selectedCityOption}
+                selectedOptionId={selectedCityOption?.id}
+                onValueChange={setCityInputValue}
+                onSelectOption={(option) => {
+                  setSelectedCityOption(option);
+                  setCityInputValue(option?.name ?? "");
+                }}
                 fallbackOptions={FALLBACK_CITY_OPTIONS}
                 className="home-discovery__city-picker"
               />
               <button type="button" className="home-discovery__city">
-                {selectedCity}
+                {selectedCityOption?.name ?? cityInputValue}
                 <ChevronDownIcon />
               </button>
             </div>
@@ -1466,13 +1689,13 @@ export function HomeApp() {
           </div>
 
           <div className="home-discovery__filters" aria-label="Быстрые фильтры">
-            {visibleFilterSelects.map((filter) => (
+            {QUICK_FILTERS.map((filter) => (
               <div key={filter.key} className="home-discovery__filter-select">
                 {filter.key === "skills" ? (
                   <HomeSkillsFilter
                     label={filter.label}
                     value={selectedSkills}
-                    options={filter.options}
+                    options={quickFilterOptions.skills}
                     isOpen={openFilterKey === filter.key}
                     onToggle={(nextState) => {
                       setOpenFilterKey(nextState ? filter.key : null);
@@ -1483,7 +1706,7 @@ export function HomeApp() {
                   <HomeFilterDropdown
                     label={filter.label}
                     value={filterValues[filter.key]}
-                    options={filter.options}
+                    options={quickFilterOptions[filter.key]}
                     isOpen={openFilterKey === filter.key}
                     onToggle={(nextState) => {
                       setOpenFilterKey(nextState ? filter.key : null);
@@ -1514,13 +1737,9 @@ export function HomeApp() {
 
                 <div className="home-map-card__surface home-map-card__surface--interactive">
                   <HomeOpportunityMap
-                    items={displayedNearbyCards}
-                    selectedCity={selectedCity}
-                    selectedCityCoordinates={
-                      selectedCityOption?.longitude != null && selectedCityOption?.latitude != null
-                        ? [selectedCityOption.longitude, selectedCityOption.latitude]
-                        : null
-                    }
+                    items={mapNearbyCards}
+                    selectedCity={selectedCityOption?.name ?? cityInputValue}
+                    selectedCityCoordinates={selectedCityCoordinates}
                     activeId={selectedOpportunityId}
                     onSelectItem={setSelectedOpportunityId}
                   />
@@ -1610,7 +1829,7 @@ export function HomeApp() {
           </div>
         </section>
 
-        <section className="home-section" id="workflow">
+        <section className="home-section">
           <div className="home-section__head">
             <h2 className="ui-type-h1">Рекомендуемые возможности</h2>
           </div>
@@ -1642,7 +1861,6 @@ export function HomeApp() {
           <Card
             interactive
             className="home-news-card"
-            id="about"
             role="button"
             tabIndex={0}
             aria-haspopup="dialog"

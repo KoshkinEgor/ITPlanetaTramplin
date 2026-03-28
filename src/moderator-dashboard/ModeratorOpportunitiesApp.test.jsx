@@ -88,7 +88,10 @@ describe("ModeratorOpportunitiesApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Применить решение" }));
 
     await waitFor(() => {
-      expect(decideOpportunityModeration).toHaveBeenCalledWith(101, "approved");
+      expect(decideOpportunityModeration).toHaveBeenCalledWith(101, {
+        status: "approved",
+        reason: null,
+      });
     });
   });
 });

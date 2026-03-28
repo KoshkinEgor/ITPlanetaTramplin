@@ -33,14 +33,22 @@ describe("AppRoutes", () => {
     renderRoutes(routes.uiKit, false);
 
     expect(screen.queryByTestId("ui-kit-page")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Возможности рядом" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Страница не найдена" })).toBeInTheDocument();
   });
 
   it("redirects the removed temporary ui kit route back to the app", () => {
     renderRoutes("/ui-kit/typography-temp", true);
 
     expect(screen.queryByTestId("ui-kit-page")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Возможности рядом" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Построй карьеру мечты" })).toBeInTheDocument();
+  });
+
+  it("renders the not found page for unknown routes", () => {
+    renderRoutes("/missing/page", false);
+
+    expect(screen.getByRole("heading", { name: "Страница не найдена" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Запрошенный адрес")).toHaveTextContent("/missing/page");
+    expect(screen.getByRole("button", { name: "Скопировать запрос" })).toBeInTheDocument();
   });
 
   it("renders the demo opportunity detail route", async () => {

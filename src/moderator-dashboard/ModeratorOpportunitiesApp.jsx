@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { decideOpportunityModeration, getModerationOpportunities, getModerationOpportunity, updateModerationOpportunity } from "../api/moderation";
 import { ApiError } from "../lib/http";
 import {
@@ -16,10 +16,10 @@ import {
   Textarea,
 } from "../shared/ui";
 import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
+import { createOpportunityDraft, getOpportunityDetailPresentation, getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 import {
   createOpportunityContactDraft,
-  createOpportunityDraft,
   createOpportunityMediaDraft,
   parseOpportunityCoordinateInput,
   parseOpportunityDeadlineInput,
@@ -166,6 +166,7 @@ export function ModeratorOpportunitiesApp() {
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [decision, setDecision] = useState("approved");
+  const [decisionReason, setDecisionReason] = useState("");
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
 
@@ -234,6 +235,7 @@ export function ModeratorOpportunitiesApp() {
         setDetailState({ status: "ready", detail, error: null });
         setDraft(createOpportunityDraft(detail));
         setDecision(normalize(detail?.moderationStatus) || "approved");
+        setDecisionReason(detail?.moderationReason ?? "");
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -360,11 +362,15 @@ export function ModeratorOpportunitiesApp() {
     setDecisionState({ status: "saving", error: "" });
 
     try {
-      await decideOpportunityModeration(selectedId, decision);
+      await decideOpportunityModeration(selectedId, {
+        status: decision,
+        reason: decisionReason.trim() || null,
+      });
       const refreshed = await getModerationOpportunity(selectedId);
       setDetailState({ status: "ready", detail: refreshed, error: null });
       setDraft(createOpportunityDraft(refreshed));
       setDecision(normalize(refreshed?.moderationStatus) || decision);
+      setDecisionReason(refreshed?.moderationReason ?? decisionReason);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -494,7 +500,23 @@ export function ModeratorOpportunitiesApp() {
                 <dd>{formatDate(activeItem.expireAt)}</dd>
               </div>
             </dl>
-
+            <section className="moderator-detail-group">
+              <h4 className="ui-type-h3">������� ����</h4>
+              <div className="moderator-detail-facts">
+                <div>
+                  <dt>������:</dt>
+                  <dd>{getOpportunityCardPresentation(activeItem).accent || "�� ������"}</dd>
+                </div>
+                <div>
+                  <dt>����������:</dt>
+                  <dd>{getOpportunityCardPresentation(activeItem).note || "�� �������"}</dd>
+                </div>
+                <div>
+                  <dt>��������� ��������:</dt>
+                  <dd>{getOpportunityDetailPresentation(activeItem).summaryAccent || "�� �������"}</dd>
+                </div>
+              </div>
+            </section>
             {detailState.status === "loading" ? <Loader label="Загружаем публикацию" surface /> : null}
 
             {detailState.status === "error" ? (
@@ -649,3 +671,9 @@ export function ModeratorOpportunitiesApp() {
     </>
   );
 }
+
+
+
+
+
+

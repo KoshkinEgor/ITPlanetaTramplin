@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { AppLink } from "../../../app/AppLink";
 import { Card } from "../../../shared/ui";
 import { cn } from "../../../shared/lib/cn";
@@ -60,7 +61,7 @@ export function CabinetSidebar({
   );
 }
 
-export function CabinetContentSection({
+export const CabinetContentSection = forwardRef(function CabinetContentSection({
   eyebrow,
   title,
   description,
@@ -69,9 +70,9 @@ export function CabinetContentSection({
   className,
   bodyClassName,
   ...props
-}) {
+}, ref) {
   return (
-    <Card className={cn("cabinet-content-section", className)} {...props}>
+    <Card ref={ref} className={cn("cabinet-content-section", className)} {...props}>
       {(eyebrow || title || description || actions) ? (
         <div className="cabinet-content-section__head">
           <div className="cabinet-content-section__copy">
@@ -85,4 +86,4 @@ export function CabinetContentSection({
       <div className={cn("cabinet-content-section__body", bodyClassName)}>{children}</div>
     </Card>
   );
-}
+});

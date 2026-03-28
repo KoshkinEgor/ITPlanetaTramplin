@@ -293,6 +293,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
             VerificationData = profile.VerificationData,
             VerificationMethod = profile.VerificationMethod,
             VerificationStatus = CompanyVerificationStatuses.Normalize(profile.VerificationStatus),
+            VerificationReason = profile.VerificationReason,
         };
 
     internal static CompanyVerificationDataDTO? TryParseCompanyVerificationData(string? rawValue)
@@ -349,6 +350,16 @@ internal static class CompanyEndpointRouteBuilderExtensions
                 item.Latitude,
                 item.LocationAddress,
                 item.LocationCity,
+                item.SalaryFrom,
+                item.SalaryTo,
+                item.IsPaid,
+                item.StipendFrom,
+                item.StipendTo,
+                item.Duration,
+                item.EventStartAt,
+                item.RegistrationDeadline,
+                item.MeetingFrequency,
+                item.SeatsCount,
                 item.ExpireAt,
                 item.ContactsJson,
                 item.MediaContentJson,
@@ -358,6 +369,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
                 item.OpportunityType,
                 item.DeletedAt,
                 item.ModerationStatus,
+                item.ModerationReason,
                 ApplicationsCount = item.Applications.Count,
             })
             .ToListAsync();

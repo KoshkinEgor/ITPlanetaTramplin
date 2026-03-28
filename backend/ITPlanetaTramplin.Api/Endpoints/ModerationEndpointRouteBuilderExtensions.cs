@@ -137,10 +137,21 @@ internal static class ModerationEndpointRouteBuilderExtensions
                 item.OpportunityType,
                 item.LocationAddress,
                 item.LocationCity,
+                item.SalaryFrom,
+                item.SalaryTo,
+                item.IsPaid,
+                item.StipendFrom,
+                item.StipendTo,
+                item.Duration,
+                item.EventStartAt,
+                item.RegistrationDeadline,
+                item.MeetingFrequency,
+                item.SeatsCount,
                 item.PublishAt,
                 item.ExpireAt,
                 item.DeletedAt,
                 ModerationStatus = OpportunityModerationStatuses.Normalize(item.ModerationStatus),
+                item.ModerationReason,
                 EmployerId = item.EmployerId,
                 CompanyName = item.Employer.CompanyName,
                 EmployerEmail = item.Employer.User.Email,
@@ -179,7 +190,8 @@ internal static class ModerationEndpointRouteBuilderExtensions
             db,
             opportunity,
             request,
-            resetModerationStatus: false);
+            resetModerationStatus: false,
+            allowTypedFields: false);
 
         if (validationResult is not null)
         {
@@ -457,12 +469,16 @@ internal static class ModerationEndpointRouteBuilderExtensions
 
         var normalizedStatus = CompanyVerificationStatuses.Normalize(request.Status);
         company.VerificationStatus = normalizedStatus;
+        company.VerificationReason = normalizedStatus is CompanyVerificationStatuses.Revision or CompanyVerificationStatuses.Rejected
+            ? string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim()
+            : null;
         await db.SaveChangesAsync();
 
         return Results.Ok(new
         {
             company.Id,
             VerificationStatus = normalizedStatus,
+            company.VerificationReason,
         });
     }
 
@@ -481,12 +497,16 @@ internal static class ModerationEndpointRouteBuilderExtensions
 
         var normalizedStatus = OpportunityModerationStatuses.Normalize(request.Status);
         opportunity.ModerationStatus = normalizedStatus;
+        opportunity.ModerationReason = normalizedStatus is OpportunityModerationStatuses.Revision or OpportunityModerationStatuses.Rejected
+            ? string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim()
+            : null;
         await db.SaveChangesAsync();
 
         return Results.Ok(new
         {
             opportunity.Id,
             ModerationStatus = normalizedStatus,
+            opportunity.ModerationReason,
         });
     }
 
@@ -504,12 +524,23 @@ internal static class ModerationEndpointRouteBuilderExtensions
             opportunity.Longitude,
             opportunity.EmploymentType,
             opportunity.OpportunityType,
+            opportunity.SalaryFrom,
+            opportunity.SalaryTo,
+            opportunity.IsPaid,
+            opportunity.StipendFrom,
+            opportunity.StipendTo,
+            opportunity.Duration,
+            opportunity.EventStartAt,
+            opportunity.RegistrationDeadline,
+            opportunity.MeetingFrequency,
+            opportunity.SeatsCount,
             opportunity.PublishAt,
             opportunity.ExpireAt,
             opportunity.ContactsJson,
             opportunity.MediaContentJson,
             opportunity.DeletedAt,
             ModerationStatus = OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus),
+            opportunity.ModerationReason,
             Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
         };
 

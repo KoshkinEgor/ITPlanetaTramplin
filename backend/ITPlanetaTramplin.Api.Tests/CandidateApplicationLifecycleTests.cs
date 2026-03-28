@@ -149,6 +149,10 @@ public class CandidateApplicationLifecycleTests
             description = "Created from lifecycle test",
             opportunityType = "vacancy",
             employmentType = "online",
+            contactsJson = """{"email":"lifecycle@test.local"}""",
+            salaryFrom = 90000m,
+            salaryTo = 140000m,
+            saveMode = "submit",
         });
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);

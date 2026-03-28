@@ -1,4 +1,4 @@
-using Application.DBContext;
+﻿using Application.DBContext;
 using DTO;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
@@ -11,10 +11,15 @@ namespace ITPlanetaTramplin.Api.Endpoints;
 
 internal static class OpportunityEndpointRouteBuilderExtensions
 {
+    private const string SaveModeDraft = "draft";
+    private const string SaveModeSubmit = "submit";
+    private const string SaveModeArchive = "archive";
+
     public static RouteGroupBuilder MapOpportunityEndpoints(this RouteGroupBuilder api)
     {
         api.MapPost("/opportunities", CreateOpportunityAsync).RequireAuthorization("requireCompanyRole");
         api.MapDelete("/opportunities/{id:int}", DeleteOpportunityAsync).RequireAuthorization("requireCompanyRole");
+        api.MapPost("/opportunities/{id:int}/archive", ArchiveOpportunityAsync).RequireAuthorization("requireCompanyRole");
         api.MapPut("/opportunities/{id:int}", UpdateOpportunityByRouteAsync).RequireAuthorization("requireCompanyRole");
         api.MapPut("/opportunities", UpdateOpportunityAsync).RequireAuthorization("requireCompanyRole");
         api.MapGet("/opportunities", GetOpportunitiesAsync);
@@ -45,29 +50,20 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
 
         var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
-        if (normalizedOpportunityType is null)
+        if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
         {
             return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
         }
 
-        var opportunity = new Opportunity
+        var saveMode = ResolveSaveMode(request.SaveMode, request);
+        var opportunity = BuildOpportunityFromCreateRequest(employer.Id, request, normalizedOpportunityType, saveMode);
+        var validationResult = saveMode == SaveModeSubmit
+            ? ValidateOpportunityForSubmit(opportunity)
+            : null;
+        if (validationResult is not null)
         {
-            Title = request.Title.Trim(),
-            Description = request.Description?.Trim() ?? string.Empty,
-            LocationAddress = NormalizeOptionalText(request.LocationAddress),
-            LocationCity = NormalizeOptionalText(request.LocationCity),
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
-            ExpireAt = request.ExpireAt.HasValue
-                ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
-                : null,
-            EmployerId = employer.Id,
-            OpportunityType = normalizedOpportunityType,
-            EmploymentType = NormalizeEmploymentType(request.EmploymentType),
-            ModerationStatus = OpportunityModerationStatuses.Pending,
-            ContactsJson = NormalizeContactsJson(request.ContactsJson),
-            MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson),
-        };
+            return validationResult;
+        }
 
         opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
 
@@ -106,12 +102,60 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.NotFound("Возможность не найдена или доступ запрещен.");
         }
 
+        if (opportunity.Applications.Count > 0)
+        {
+            return Results.Conflict(new MessageResponseDTO
+            {
+                Message = "Нельзя удалить возможность, пока по ней есть отклики.",
+            });
+        }
+
         opportunity.Tags.Clear();
-        db.Applications.RemoveRange(opportunity.Applications);
         db.Recommendations.RemoveRange(opportunity.Recommendations);
         db.Opportunities.Remove(opportunity);
         await db.SaveChangesAsync();
         return Results.Ok(new { Id = opportunityId, Deleted = true });
+    }
+
+    private static async Task<IResult> ArchiveOpportunityAsync(
+        int id,
+        HttpContext context,
+        ApplicationDBContext db)
+    {
+        var userId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (userId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var employer = await db.EmployerProfiles.FirstOrDefaultAsync(item => item.UserId == userId.Value);
+        if (employer is null)
+        {
+            return Results.NotFound("Профиль работодателя не найден.");
+        }
+
+        var opportunity = await db.Opportunities.FirstOrDefaultAsync(item => item.Id == id && item.EmployerId == employer.Id);
+        if (opportunity is null)
+        {
+            return Results.NotFound("Возможность не найдена или доступ запрещен.");
+        }
+
+        if (GetEffectiveModerationStatus(opportunity) != OpportunityModerationStatuses.Approved)
+        {
+            return Results.Conflict(new MessageResponseDTO
+            {
+                Message = "Архивировать можно только опубликованную возможность.",
+            });
+        }
+
+        opportunity.ModerationStatus = OpportunityModerationStatuses.Archived;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            opportunity.Id,
+            ModerationStatus = opportunity.ModerationStatus,
+        });
     }
 
     private static async Task<IResult> UpdateOpportunityByRouteAsync(
@@ -142,6 +186,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
 
         var opportunity = await db.Opportunities
+            .Include(item => item.Applications)
             .Include(item => item.Tags)
             .FirstOrDefaultAsync(item => item.Id == request.Id && item.EmployerId == employer.Id);
         if (opportunity is null)
@@ -149,10 +194,57 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.NotFound("Возможность не найдена или доступ запрещен.");
         }
 
-        var validationResult = await ApplyOpportunityUpdateAsync(db, opportunity, request, resetModerationStatus: true);
+        var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
+        if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
+        {
+            return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
+        }
+
+        if (normalizedOpportunityType is not null &&
+            normalizedOpportunityType != opportunity.OpportunityType &&
+            opportunity.Applications.Count > 0)
+        {
+            return Results.Conflict(new MessageResponseDTO
+            {
+                Message = "Нельзя изменить тип возможности, пока по ней есть отклики.",
+            });
+        }
+
+        var saveMode = ResolveSaveMode(request.SaveMode, opportunity, request);
+        ApplyOpportunityUpdate(opportunity, request, allowTypedFields: true, normalizedOpportunityType);
+
+        var validationResult = saveMode == SaveModeSubmit
+            ? ValidateOpportunityForSubmit(opportunity)
+            : null;
         if (validationResult is not null)
         {
             return validationResult;
+        }
+
+        if (saveMode == SaveModeArchive)
+        {
+            if (GetEffectiveModerationStatus(opportunity) != OpportunityModerationStatuses.Approved)
+            {
+                return Results.Conflict(new MessageResponseDTO
+                {
+                    Message = "Архивировать можно только опубликованную возможность.",
+                });
+            }
+
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Archived;
+        }
+        else
+        {
+            opportunity.ModerationStatus = saveMode == SaveModeSubmit
+                ? OpportunityModerationStatuses.Pending
+                : OpportunityModerationStatuses.Draft;
+        }
+
+        opportunity.ModerationReason = null;
+
+        if (request.Tags is not null)
+        {
+            opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
         }
 
         await db.SaveChangesAsync();
@@ -164,7 +256,11 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var opportunities = await db.Opportunities
             .Include(item => item.Employer)
             .Include(item => item.Tags)
-            .Where(item => item.DeletedAt == null && item.ModerationStatus == OpportunityModerationStatuses.Approved)
+            .Where(item => item.DeletedAt == null)
+            .ToListAsync();
+
+        var response = opportunities
+            .Where(item => GetEffectiveModerationStatus(item) == OpportunityModerationStatuses.Approved)
             .Select(item => new
             {
                 item.Id,
@@ -176,15 +272,26 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 item.LocationAddress,
                 item.LocationCity,
                 item.ExpireAt,
+                item.PublishAt,
                 item.EmploymentType,
+                item.SalaryFrom,
+                item.SalaryTo,
+                item.IsPaid,
+                item.StipendFrom,
+                item.StipendTo,
+                item.Duration,
+                item.EventStartAt,
+                item.RegistrationDeadline,
+                item.MeetingFrequency,
+                item.SeatsCount,
                 CompanyName = item.Employer.CompanyName,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),
                 item.OpportunityType,
-                ModerationStatus = item.ModerationStatus,
+                ModerationStatus = GetEffectiveModerationStatus(item),
             })
-            .ToListAsync();
+            .ToList();
 
-        return Results.Ok(opportunities);
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> GetOpportunityByIdAsync(int id, HttpContext context, ApplicationDBContext db)
@@ -201,40 +308,19 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
         var currentRole = PublicRoles.Normalize(context.User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value);
-        var canViewHidden =
-            currentRole == PublicRoles.Moderator ||
-            (currentRole == PublicRoles.Company && currentUserId == opportunity.Employer.UserId);
+        var isOwner = currentUserId is not null && currentUserId == opportunity.Employer.UserId;
+        var canViewHidden = currentRole == PublicRoles.Moderator || isOwner;
+        var normalizedStatus = GetEffectiveModerationStatus(opportunity);
 
         if (!canViewHidden &&
-            (opportunity.DeletedAt != null || OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus) != OpportunityModerationStatuses.Approved))
+            (opportunity.DeletedAt != null || normalizedStatus != OpportunityModerationStatuses.Approved))
         {
             return Results.NotFound();
         }
 
-        return Results.Ok(new
-        {
-            opportunity.Id,
-            opportunity.Title,
-            opportunity.Description,
-            opportunity.LocationAddress,
-            opportunity.LocationCity,
-            opportunity.Latitude,
-            opportunity.Longitude,
-            opportunity.EmploymentType,
-            opportunity.OpportunityType,
-            opportunity.PublishAt,
-            opportunity.ExpireAt,
-            opportunity.ContactsJson,
-            opportunity.MediaContentJson,
-            opportunity.DeletedAt,
-            CompanyName = opportunity.Employer.CompanyName,
-            CompanyDescription = opportunity.Employer.Description,
-            CompanyLegalAddress = opportunity.Employer.LegalAddress,
-            CompanySocials = opportunity.Employer.Socials,
-            EmployerId = opportunity.EmployerId,
-            ModerationStatus = OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus),
-            Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
-        });
+        var hasApplications = await db.Applications.AnyAsync(item => item.OpportunityId == opportunity.Id);
+        var viewer = BuildViewerCapabilities(isOwner, normalizedStatus, hasApplications);
+        return Results.Ok(BuildOpportunityDetailResponse(opportunity, viewer));
     }
 
     private static async Task<IResult> CreateOpportunityApplicationByRouteAsync(
@@ -268,10 +354,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
         var opportunity = await db.Opportunities.FirstOrDefaultAsync(item =>
             item.Id == request.opportunityId &&
-            item.DeletedAt == null &&
-            item.ModerationStatus == OpportunityModerationStatuses.Approved);
+            item.DeletedAt == null);
 
-        if (applicant is null || opportunity is null)
+        if (applicant is null || opportunity is null || GetEffectiveModerationStatus(opportunity) != OpportunityModerationStatuses.Approved)
         {
             return Results.NotFound();
         }
@@ -409,43 +494,16 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         ApplicationDBContext db,
         Opportunity opportunity,
         OpportunityUpdateDTO request,
-        bool resetModerationStatus)
+        bool resetModerationStatus,
+        bool allowTypedFields = true)
     {
-        if (request.Title is not null)
+        var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
+        if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
         {
-            opportunity.Title = request.Title.Trim();
+            return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
         }
 
-        if (request.Description is not null)
-        {
-            opportunity.Description = request.Description.Trim();
-        }
-
-        if (request.OpportunityType is not null)
-        {
-            var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
-            if (normalizedOpportunityType is null)
-            {
-                return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
-            }
-
-            opportunity.OpportunityType = normalizedOpportunityType;
-        }
-
-        if (request.EmploymentType is not null)
-        {
-            opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
-        }
-
-        opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
-        opportunity.LocationCity = NormalizeOptionalText(request.LocationCity);
-        opportunity.Latitude = request.Latitude;
-        opportunity.Longitude = request.Longitude;
-        opportunity.ExpireAt = request.ExpireAt.HasValue
-            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
-            : null;
-        opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
-        opportunity.MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson);
+        ApplyOpportunityUpdate(opportunity, request, allowTypedFields, normalizedOpportunityType);
 
         if (request.Tags is not null)
         {
@@ -455,6 +513,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (resetModerationStatus)
         {
             opportunity.ModerationStatus = OpportunityModerationStatuses.Pending;
+            opportunity.ModerationReason = null;
         }
 
         return null;
@@ -468,6 +527,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
     internal static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    internal static string NormalizeRequiredText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
     internal static string? NormalizeContactsJson(string? value)
     {
@@ -509,7 +571,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
                     normalizedContacts.Add(new
                     {
-                        type = DetectLegacyContactType(property.Name, normalizedValue),
+                        type = DetectLegacyContactType(property.Name),
                         value = NormalizeLegacyContactValue(property.Name, normalizedValue),
                     });
                 }
@@ -522,6 +584,370 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return null;
         }
     }
+
+    internal static string GetEffectiveModerationStatus(Opportunity opportunity)
+    {
+        var normalizedStatus = OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus);
+        if (normalizedStatus != OpportunityModerationStatuses.Approved)
+        {
+            return normalizedStatus;
+        }
+
+        var validationClone = CloneOpportunityForValidation(opportunity);
+        return ValidateOpportunityForSubmit(validationClone) is null
+            ? normalizedStatus
+            : OpportunityModerationStatuses.Draft;
+    }
+
+    private static Opportunity BuildOpportunityFromCreateRequest(
+        int employerId,
+        OpportunityPostDTO request,
+        string? normalizedOpportunityType,
+        string saveMode)
+    {
+        var opportunity = new Opportunity
+        {
+            EmployerId = employerId,
+            Title = NormalizeRequiredText(request.Title),
+            Description = NormalizeRequiredText(request.Description),
+            OpportunityType = normalizedOpportunityType ?? OpportunityTypes.Vacancy,
+            EmploymentType = NormalizeEmploymentType(request.EmploymentType),
+            LocationAddress = NormalizeOptionalText(request.LocationAddress),
+            LocationCity = NormalizeOptionalText(request.LocationCity),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            PublishAt = DateOnly.FromDateTime(DateTime.UtcNow),
+            ExpireAt = request.ExpireAt.HasValue
+                ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
+                : null,
+            ModerationStatus = saveMode == SaveModeSubmit
+                ? OpportunityModerationStatuses.Pending
+                : OpportunityModerationStatuses.Draft,
+            ModerationReason = null,
+            ContactsJson = NormalizeContactsJson(request.ContactsJson),
+            MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson),
+        };
+
+        ApplyOpportunityTypedFields(opportunity, request);
+        return opportunity;
+    }
+
+    private static void ApplyOpportunityUpdate(
+        Opportunity opportunity,
+        OpportunityUpdateDTO request,
+        bool allowTypedFields,
+        string? normalizedOpportunityType)
+    {
+        if (request.Title is not null)
+        {
+            opportunity.Title = NormalizeRequiredText(request.Title);
+        }
+
+        if (request.Description is not null)
+        {
+            opportunity.Description = NormalizeRequiredText(request.Description);
+        }
+
+        if (normalizedOpportunityType is not null)
+        {
+            opportunity.OpportunityType = normalizedOpportunityType;
+        }
+
+        if (request.EmploymentType is not null)
+        {
+            opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
+        }
+
+        opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
+        opportunity.LocationCity = NormalizeOptionalText(request.LocationCity);
+        opportunity.Latitude = request.Latitude;
+        opportunity.Longitude = request.Longitude;
+        opportunity.ExpireAt = request.ExpireAt.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
+            : null;
+        opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
+        opportunity.MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson);
+
+        if (allowTypedFields)
+        {
+            ApplyOpportunityTypedFields(opportunity, request);
+        }
+    }
+
+    private static void ApplyOpportunityTypedFields(Opportunity opportunity, OpportunityPostDTO request)
+    {
+        opportunity.SalaryFrom = request.SalaryFrom;
+        opportunity.SalaryTo = request.SalaryTo;
+        opportunity.IsPaid = request.IsPaid;
+        opportunity.StipendFrom = request.StipendFrom;
+        opportunity.StipendTo = request.StipendTo;
+        opportunity.Duration = NormalizeOptionalText(request.Duration);
+        opportunity.EventStartAt = request.EventStartAt.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.EventStartAt.Value).UtcDateTime)
+            : null;
+        opportunity.RegistrationDeadline = request.RegistrationDeadline.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.RegistrationDeadline.Value).UtcDateTime)
+            : null;
+        opportunity.MeetingFrequency = NormalizeOptionalText(request.MeetingFrequency);
+        opportunity.SeatsCount = request.SeatsCount;
+    }
+
+    private static void ApplyOpportunityTypedFields(Opportunity opportunity, OpportunityUpdateDTO request)
+    {
+        opportunity.SalaryFrom = request.SalaryFrom;
+        opportunity.SalaryTo = request.SalaryTo;
+        opportunity.IsPaid = request.IsPaid;
+        opportunity.StipendFrom = request.StipendFrom;
+        opportunity.StipendTo = request.StipendTo;
+        opportunity.Duration = NormalizeOptionalText(request.Duration);
+        opportunity.EventStartAt = request.EventStartAt.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.EventStartAt.Value).UtcDateTime)
+            : null;
+        opportunity.RegistrationDeadline = request.RegistrationDeadline.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.RegistrationDeadline.Value).UtcDateTime)
+            : null;
+        opportunity.MeetingFrequency = NormalizeOptionalText(request.MeetingFrequency);
+        opportunity.SeatsCount = request.SeatsCount;
+    }
+
+    private static string ResolveSaveMode(string? saveMode, OpportunityPostDTO request)
+    {
+        var normalizedSaveMode = NormalizeSaveMode(saveMode);
+        if (normalizedSaveMode is not null)
+        {
+            return normalizedSaveMode;
+        }
+
+        var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
+        if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
+        {
+            return SaveModeDraft;
+        }
+
+        var validationOpportunity = BuildOpportunityFromCreateRequest(0, request, normalizedOpportunityType, SaveModeDraft);
+        return ValidateOpportunityForSubmit(validationOpportunity) is null ? SaveModeSubmit : SaveModeDraft;
+    }
+
+    private static string ResolveSaveMode(string? saveMode, Opportunity currentOpportunity, OpportunityUpdateDTO request)
+    {
+        var normalizedSaveMode = NormalizeSaveMode(saveMode);
+        if (normalizedSaveMode is not null)
+        {
+            return normalizedSaveMode;
+        }
+
+        var validationOpportunity = CloneOpportunityForValidation(currentOpportunity);
+        ApplyOpportunityUpdate(validationOpportunity, request, allowTypedFields: true, NormalizeOpportunityType(request.OpportunityType));
+        return ValidateOpportunityForSubmit(validationOpportunity) is null ? SaveModeSubmit : SaveModeDraft;
+    }
+
+    private static string? NormalizeSaveMode(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            SaveModeDraft => SaveModeDraft,
+            SaveModeSubmit => SaveModeSubmit,
+            SaveModeArchive => SaveModeArchive,
+            _ => null,
+        };
+
+    private static IResult? ValidateOpportunityForSubmit(Opportunity opportunity)
+    {
+        if (string.IsNullOrWhiteSpace(opportunity.Title))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите название возможности.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(opportunity.Description))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите описание возможности.", StatusCodes.Status400BadRequest);
+        }
+
+        if (!OpportunityTypes.IsKnown(opportunity.OpportunityType))
+        {
+            return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(opportunity.EmploymentType) ||
+            string.Equals(opportunity.EmploymentType, "unspecified", StringComparison.OrdinalIgnoreCase))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите формат занятости.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(opportunity.ContactsJson))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите хотя бы один контакт.", StatusCodes.Status400BadRequest);
+        }
+
+        if (opportunity.OpportunityType == OpportunityTypes.Vacancy)
+        {
+            if (!opportunity.SalaryFrom.HasValue || !opportunity.SalaryTo.HasValue)
+            {
+                return AuthEndpointSupport.MessageResult("Для вакансии укажите диапазон зарплаты.", StatusCodes.Status400BadRequest);
+            }
+
+            if (opportunity.SalaryFrom > opportunity.SalaryTo)
+            {
+                return AuthEndpointSupport.MessageResult("Минимальная зарплата не может быть больше максимальной.", StatusCodes.Status400BadRequest);
+            }
+        }
+
+        if (opportunity.OpportunityType == OpportunityTypes.Internship)
+        {
+            if (!opportunity.IsPaid.HasValue)
+            {
+                return AuthEndpointSupport.MessageResult("Для стажировки укажите, является ли она оплачиваемой.", StatusCodes.Status400BadRequest);
+            }
+
+            if (string.IsNullOrWhiteSpace(opportunity.Duration))
+            {
+                return AuthEndpointSupport.MessageResult("Для стажировки укажите длительность.", StatusCodes.Status400BadRequest);
+            }
+
+            if (opportunity.IsPaid == true)
+            {
+                if (!opportunity.StipendFrom.HasValue || !opportunity.StipendTo.HasValue)
+                {
+                    return AuthEndpointSupport.MessageResult("Для оплачиваемой стажировки укажите диапазон стипендии.", StatusCodes.Status400BadRequest);
+                }
+
+                if (opportunity.StipendFrom > opportunity.StipendTo)
+                {
+                    return AuthEndpointSupport.MessageResult("Минимальная стипендия не может быть больше максимальной.", StatusCodes.Status400BadRequest);
+                }
+            }
+        }
+
+        if (opportunity.OpportunityType == OpportunityTypes.Event)
+        {
+            if (!opportunity.EventStartAt.HasValue || !opportunity.RegistrationDeadline.HasValue)
+            {
+                return AuthEndpointSupport.MessageResult("Для мероприятия укажите дату события и дедлайн регистрации.", StatusCodes.Status400BadRequest);
+            }
+
+            if (opportunity.RegistrationDeadline > opportunity.EventStartAt)
+            {
+                return AuthEndpointSupport.MessageResult("Дедлайн регистрации не может быть позже даты события.", StatusCodes.Status400BadRequest);
+            }
+        }
+
+        if (opportunity.OpportunityType == OpportunityTypes.Mentoring)
+        {
+            if (string.IsNullOrWhiteSpace(opportunity.Duration))
+            {
+                return AuthEndpointSupport.MessageResult("Для менторинга укажите длительность.", StatusCodes.Status400BadRequest);
+            }
+
+            if (string.IsNullOrWhiteSpace(opportunity.MeetingFrequency))
+            {
+                return AuthEndpointSupport.MessageResult("Для менторинга укажите частоту встреч.", StatusCodes.Status400BadRequest);
+            }
+
+            if (!opportunity.SeatsCount.HasValue || opportunity.SeatsCount <= 0)
+            {
+                return AuthEndpointSupport.MessageResult("Для менторинга укажите количество мест.", StatusCodes.Status400BadRequest);
+            }
+        }
+
+        if (!IsRemoteFormat(opportunity.EmploymentType) && string.IsNullOrWhiteSpace(opportunity.LocationCity))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите город для офлайн или гибридной возможности.", StatusCodes.Status400BadRequest);
+        }
+
+        if (opportunity.OpportunityType == OpportunityTypes.Event &&
+            !IsRemoteFormat(opportunity.EmploymentType) &&
+            string.IsNullOrWhiteSpace(opportunity.LocationAddress))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите адрес для офлайн или гибридного мероприятия.", StatusCodes.Status400BadRequest);
+        }
+
+        return null;
+    }
+
+    private static bool IsRemoteFormat(string? employmentType) =>
+        !string.IsNullOrWhiteSpace(employmentType) &&
+        (employmentType.Contains("remote", StringComparison.OrdinalIgnoreCase) ||
+         employmentType.Contains("online", StringComparison.OrdinalIgnoreCase));
+
+    private static OpportunityGetDTO BuildOpportunityDetailResponse(Opportunity opportunity, OpportunityViewerCapabilitiesDTO viewer) =>
+        new()
+        {
+            Id = opportunity.Id,
+            EmployerId = opportunity.EmployerId,
+            Title = opportunity.Title,
+            Description = opportunity.Description,
+            LocationAddress = opportunity.LocationAddress,
+            LocationCity = opportunity.LocationCity,
+            Latitude = opportunity.Latitude,
+            Longitude = opportunity.Longitude,
+            PublishAt = opportunity.PublishAt,
+            ExpireAt = opportunity.ExpireAt,
+            OpportunityType = opportunity.OpportunityType,
+            EmploymentType = opportunity.EmploymentType,
+            ModerationStatus = GetEffectiveModerationStatus(opportunity),
+            ModerationReason = opportunity.ModerationReason,
+            SalaryFrom = opportunity.SalaryFrom,
+            SalaryTo = opportunity.SalaryTo,
+            IsPaid = opportunity.IsPaid,
+            StipendFrom = opportunity.StipendFrom,
+            StipendTo = opportunity.StipendTo,
+            Duration = opportunity.Duration,
+            EventStartAt = opportunity.EventStartAt,
+            RegistrationDeadline = opportunity.RegistrationDeadline,
+            MeetingFrequency = opportunity.MeetingFrequency,
+            SeatsCount = opportunity.SeatsCount,
+            ContactsJson = opportunity.ContactsJson,
+            MediaContentJson = opportunity.MediaContentJson,
+            CompanyName = opportunity.Employer.CompanyName,
+            CompanyDescription = opportunity.Employer.Description,
+            CompanyLegalAddress = opportunity.Employer.LegalAddress,
+            CompanySocials = opportunity.Employer.Socials,
+            Viewer = viewer,
+            Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
+        };
+
+    private static Opportunity CloneOpportunityForValidation(Opportunity source) =>
+        new()
+        {
+            Id = source.Id,
+            EmployerId = source.EmployerId,
+            Title = source.Title,
+            Description = source.Description,
+            LocationAddress = source.LocationAddress,
+            LocationCity = source.LocationCity,
+            Latitude = source.Latitude,
+            Longitude = source.Longitude,
+            OpportunityType = source.OpportunityType,
+            EmploymentType = source.EmploymentType,
+            ModerationStatus = source.ModerationStatus,
+            ModerationReason = source.ModerationReason,
+            PublishAt = source.PublishAt,
+            ExpireAt = source.ExpireAt,
+            ContactsJson = source.ContactsJson,
+            MediaContentJson = source.MediaContentJson,
+            SalaryFrom = source.SalaryFrom,
+            SalaryTo = source.SalaryTo,
+            IsPaid = source.IsPaid,
+            StipendFrom = source.StipendFrom,
+            StipendTo = source.StipendTo,
+            Duration = source.Duration,
+            EventStartAt = source.EventStartAt,
+            RegistrationDeadline = source.RegistrationDeadline,
+            MeetingFrequency = source.MeetingFrequency,
+            SeatsCount = source.SeatsCount,
+        };
+
+    private static OpportunityViewerCapabilitiesDTO BuildViewerCapabilities(bool isOwner, string normalizedStatus, bool hasApplications) =>
+        new()
+        {
+            IsOwner = isOwner,
+            CanEdit = isOwner,
+            CanDelete = isOwner && !hasApplications,
+            CanSaveDraft = isOwner && normalizedStatus is OpportunityModerationStatuses.Draft or OpportunityModerationStatuses.Pending or OpportunityModerationStatuses.Revision or OpportunityModerationStatuses.Rejected or OpportunityModerationStatuses.Archived or OpportunityModerationStatuses.Approved,
+            CanSubmit = isOwner && normalizedStatus is OpportunityModerationStatuses.Draft or OpportunityModerationStatuses.Revision or OpportunityModerationStatuses.Rejected or OpportunityModerationStatuses.Archived or OpportunityModerationStatuses.Approved,
+            CanArchive = isOwner && normalizedStatus == OpportunityModerationStatuses.Approved,
+            CanViewPublicVersion = isOwner,
+            CanViewResponses = isOwner,
+        };
 
     internal static async Task<List<Tag>> ResolveOpportunityTagsAsync(ApplicationDBContext db, IEnumerable<string>? requestTags)
     {
@@ -602,7 +1028,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         };
     }
 
-    private static string DetectLegacyContactType(string key, string value)
+    private static string DetectLegacyContactType(string key)
     {
         var normalizedKey = key.Trim().ToLowerInvariant();
         if (normalizedKey.Contains("mail"))

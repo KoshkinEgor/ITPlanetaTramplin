@@ -159,10 +159,6 @@
   background: rgba(255, 255, 255, 0.82);
 }
 
-.company-profile-summary__fact--socials {
-  grid-column: 1 / -1;
-}
-
 .company-profile-summary__fact-label {
   color: rgba(24, 29, 45, 0.58);
   font-size: var(--ui-font-size-body-sm);
