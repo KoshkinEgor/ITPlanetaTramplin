@@ -13,5 +13,7 @@ public partial class VApplicantStat
 
     public long? AchievementsCount { get; set; }
 
+    public long? ProjectsCount { get; set; }
+
     public long? ContactCount { get; set; }
 }
