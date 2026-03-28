@@ -43,10 +43,11 @@ function buildVerification(profile) {
   return {
     label: translateVerificationStatus(status),
     tone: status,
-    statusText: status === "approved" ? "Готов к редактированию" : "Ожидает проверки",
+    statusText: status === "approved" ? "Можно редактировать" : "Идет проверка",
     note: status === "approved"
-      ? "Компания отображается в общем каталоге и может обновлять контент секциями."
-      : "После проверки данные компании перейдут в активный режим публикации.",
+      ? "Компания уже видна в каталоге."
+      : "После проверки профиль станет публичным.",
+    actionLabel: "Редактировать",
   };
 }
 

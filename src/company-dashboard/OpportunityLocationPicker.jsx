@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeSelectedAddressLabel, reverseGeocodeAddress } from "../api/addresses";
 import { getFallbackCityOption } from "../api/cities";
+import { loadYandexMapsApi } from "../shared/lib/loadYandexMapsApi";
 import { AddressAutocomplete, Button, FormField, Input } from "../shared/ui";
 
 const mapScriptId = "yandex-maps-js-api-v3";
@@ -8,14 +9,37 @@ const markerSourceId = "company-location-picker-marker-source";
 const defaultCenter = [37.617635, 55.755814];
 const selectionDeduplicationWindowMs = 250;
 
-let yandexMapsPromise;
-
 function getApiKey() {
   return import.meta.env.VITE_YANDEX_MAPS_API_KEY;
 }
 
+function shouldSuggestLocalhostForYandexMaps(error) {
+  return (
+    error instanceof Error
+    && error.message !== "missing-api-key"
+    && typeof window !== "undefined"
+    && window.location.hostname === "127.0.0.1"
+  );
+}
+
+function getLocalhostYandexMapsMessage() {
+  if (typeof window === "undefined") {
+    return "Откройте приложение через localhost: ключ Яндекс Карт может быть привязан к localhost, а не к 127.0.0.1.";
+  }
+
+  const { protocol, port, pathname, search, hash } = window.location;
+  const nextPort = port ? `:${port}` : "";
+  return `Откройте приложение через ${protocol}//localhost${nextPort}${pathname}${search}${hash}: текущий ключ Яндекс Карт может быть привязан к localhost и отклоняться на 127.0.0.1.`;
+}
+
 function normalizeCoordinate(value) {
-  const parsed = Number(String(value ?? "").trim().replace(",", "."));
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -100,51 +124,10 @@ function createMarkerElement() {
 }
 
 function loadYandexMaps() {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    return Promise.reject(new Error("missing-api-key"));
-  }
-
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("window-is-unavailable"));
-  }
-
-  if (window.ymaps3?.ready) {
-    return window.ymaps3.ready.then(() => window.ymaps3);
-  }
-
-  if (!yandexMapsPromise) {
-    yandexMapsPromise = new Promise((resolve, reject) => {
-      const onLoad = () => {
-        window.ymaps3.ready.then(() => resolve(window.ymaps3)).catch(reject);
-      };
-
-      const onError = () => {
-        reject(new Error("Не удалось загрузить API Яндекс Карт."));
-      };
-
-      const existingScript = document.getElementById(mapScriptId);
-      if (existingScript) {
-        existingScript.addEventListener("load", onLoad, { once: true });
-        existingScript.addEventListener("error", onError, { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = mapScriptId;
-      script.async = true;
-      script.src = `https://api-maps.yandex.ru/v3/?apikey=${apiKey}&lang=ru_RU`;
-      script.addEventListener("load", onLoad, { once: true });
-      script.addEventListener("error", onError, { once: true });
-      document.head.append(script);
-    }).catch((error) => {
-      yandexMapsPromise = null;
-      throw error;
-    });
-  }
-
-  return yandexMapsPromise;
+  return loadYandexMapsApi({
+    apiKey: getApiKey(),
+    scriptId: mapScriptId,
+  });
 }
 
 function normalizeMapEventCoordinates(object, mapEvent) {
@@ -296,6 +279,10 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
         }
 
         setStatus("error");
+        if (shouldSuggestLocalhostForYandexMaps(error)) {
+          setErrorMessage(getLocalhostYandexMapsMessage());
+          return;
+        }
 
         if (error instanceof Error && error.message === "missing-api-key") {
           setErrorMessage("В .env.local не найден VITE_YANDEX_MAPS_API_KEY.");

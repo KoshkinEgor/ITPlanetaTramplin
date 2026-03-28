@@ -3,13 +3,14 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
+  const devHost = env.DEV_SERVER_HOST || "127.0.0.1";
   const devPort = Number(env.DEV_SERVER_PORT || 3000);
   const apiProxyTarget = env.DEV_API_PROXY_TARGET || "http://127.0.0.1:5234";
 
   return {
     plugins: [react()],
     server: {
-      host: "127.0.0.1",
+      host: devHost,
       port: devPort,
       strictPort: true,
       proxy: {
@@ -21,7 +22,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      host: "127.0.0.1",
+      host: devHost,
       port: devPort,
       strictPort: true,
     },

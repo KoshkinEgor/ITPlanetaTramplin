@@ -117,7 +117,7 @@ Copy-Item .env.example .env.local
 
 Обычно менять ничего не нужно, если тебя устраивают стандартные значения:
 
-- frontend: `http://127.0.0.1:3000`
+- frontend: `http://localhost:3000`
 - backend: `http://localhost:5234`
 - postgres: `localhost:5432`
 - mailpit: `http://localhost:8025`
@@ -181,7 +181,7 @@ npm run dev
 
 Frontend будет доступен по адресу:
 
-- `http://127.0.0.1:3000`
+- `http://localhost:3000`
 
 ### Демо-данные для local dev
 
@@ -258,7 +258,7 @@ npm run dev
 
 Практически это выглядит так:
 
-1. Браузер открывает frontend на `http://127.0.0.1:3000`
+1. Браузер открывает frontend на `http://localhost:3000`
 2. Frontend делает запросы на `/api/*`
 3. Vite proxy перенаправляет эти запросы в backend
 4. Backend работает с PostgreSQL
@@ -294,7 +294,7 @@ dotnet test backend/ITPlanetaTramplin.Api.sln
 
 После запуска всех сервисов можно пройти базовый сценарий:
 
-1. Открыть `http://127.0.0.1:3000`
+1. Открыть `http://localhost:3000`
 2. Зарегистрировать нового пользователя
 3. Проверить, куда настроена отправка писем:
    Mailpit: `http://localhost:8025`
