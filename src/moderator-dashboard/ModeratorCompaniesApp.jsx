@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { decideCompanyModeration, getModerationCompanies } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, DashboardPageHeader, EmptyState, Loader, ModerationDecisionSelect, Tag } from "../shared/ui";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Modal, ModerationDecisionSelect, Tag } from "../shared/ui";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 import { MODERATION_DECISION_OPTIONS } from "./moderationDecisionOptions";
 
@@ -113,7 +113,6 @@ export function ModeratorCompaniesApp() {
         const items = await getModerationCompanies(controller.signal);
         const normalizedItems = Array.isArray(items) ? items : [];
         setState({ status: "ready", items: normalizedItems, error: null });
-        setSelectedId((current) => current ?? normalizedItems[0]?.id ?? null);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -137,7 +136,7 @@ export function ModeratorCompaniesApp() {
     });
   }, [query, state.items, statusFilter]);
 
-  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
+  const activeItem = filteredItems.find((item) => item.id === selectedId) ?? null;
 
   async function handleDecisionSubmit(nextDecision) {
     if (!activeItem) {
@@ -219,7 +218,7 @@ export function ModeratorCompaniesApp() {
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Компании</Tag>
                 <h2 className="ui-type-h2">Список компаний</h2>
-                <p className="ui-type-body">Выберите компанию слева и примените решение в правой панели.</p>
+                <p className="ui-type-body">Выберите компанию из списка, чтобы открыть детальную проверку в модальном окне.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -244,70 +243,73 @@ export function ModeratorCompaniesApp() {
             )}
           </Card>
 
-          <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
-            <div className="moderator-panel__copy">
-              <h2 className="ui-type-h2">Детальная проверка</h2>
-            </div>
-
-            {activeItem ? (
-              <div className="moderator-detail-surface">
-                <div className="moderator-detail-surface__top">
-                  <Tag>Компания</Tag>
-                  <ModeratorStatusBadge label={translateCompanyStatus(activeItem.verificationStatus)} tone={activeItem.verificationStatus} />
-                </div>
-
-                <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h3">{activeItem.companyName}</h3>
-                  <p className="ui-type-body moderator-detail-surface__description">
-                    {activeItem.description || "Описание компании пока не заполнено."}
-                  </p>
-                </div>
-
-                <dl className="moderator-detail-facts moderator-detail-facts--stack">
-                  <div>
-                    <dt>Email</dt>
-                    <dd>{activeItem.email}</dd>
-                  </div>
-                  <div>
-                    <dt>ИНН</dt>
-                    <dd>{activeItem.inn || "Не указан"}</dd>
-                  </div>
-                  <div>
-                    <dt>Адрес</dt>
-                    <dd>{activeItem.legalAddress || "Не указан"}</dd>
-                  </div>
-                  <div>
-                    <dt>Метод верификации</dt>
-                    <dd>{activeItem.verificationMethod || "Не указан"}</dd>
-                  </div>
-                  <div>
-                    <dt>Данные верификации</dt>
-                    <dd>{activeItem.verificationData || "Не указаны"}</dd>
-                  </div>
-                  <div>
-                    <dt>Публикации</dt>
-                    <dd>{itemOrZero(activeItem.opportunitiesCount)}</dd>
-                  </div>
-                </dl>
-
-                <section className="moderator-detail-group">
-                  <h4 className="ui-type-h3">Решение модерации</h4>
-                  <ModerationDecisionSelect
-                    value={decision}
-                    options={MODERATION_DECISION_OPTIONS}
-                    disabled={!activeItem}
-                    busy={decisionState.status === "saving"}
-                    onConfirm={handleDecisionSubmit}
-                    getDialogProps={(option) => getCompanyDecisionDialog(option, activeItem)}
-                  />
-                </section>
-              </div>
-            ) : (
-              <EmptyState title="Компания не выбрана" description="Выберите строку в таблице, чтобы открыть детали." tone="neutral" compact />
-            )}
-          </Card>
         </section>
       ) : null}
+
+      <Modal
+        open={Boolean(activeItem)}
+        onClose={() => setSelectedId(null)}
+        title="Детальная проверка"
+        description="Проверьте данные компании и примените решение модерации."
+        size="lg"
+        closeLabel="Закрыть окно проверки компании"
+        className="moderator-company-modal"
+      >
+        {activeItem ? (
+          <div className="moderator-detail-surface moderator-detail-surface--modal">
+            <div className="moderator-detail-surface__top">
+              <Tag>Компания</Tag>
+              <ModeratorStatusBadge label={translateCompanyStatus(activeItem.verificationStatus)} tone={activeItem.verificationStatus} />
+            </div>
+
+            <div className="moderator-detail-surface__copy">
+              <h3 className="ui-type-h3">{activeItem.companyName}</h3>
+              <p className="ui-type-body moderator-detail-surface__description">
+                {activeItem.description || "Описание компании пока не заполнено."}
+              </p>
+            </div>
+
+            <dl className="moderator-detail-facts moderator-detail-facts--stack">
+              <div>
+                <dt>Email</dt>
+                <dd>{activeItem.email}</dd>
+              </div>
+              <div>
+                <dt>ИНН</dt>
+                <dd>{activeItem.inn || "Не указан"}</dd>
+              </div>
+              <div>
+                <dt>Адрес</dt>
+                <dd>{activeItem.legalAddress || "Не указан"}</dd>
+              </div>
+              <div>
+                <dt>Метод верификации</dt>
+                <dd>{activeItem.verificationMethod || "Не указан"}</dd>
+              </div>
+              <div>
+                <dt>Данные верификации</dt>
+                <dd>{activeItem.verificationData || "Не указаны"}</dd>
+              </div>
+              <div>
+                <dt>Публикации</dt>
+                <dd>{itemOrZero(activeItem.opportunitiesCount)}</dd>
+              </div>
+            </dl>
+
+            <section className="moderator-detail-group">
+              <h4 className="ui-type-h3">Решение модерации</h4>
+              <ModerationDecisionSelect
+                value={decision}
+                options={MODERATION_DECISION_OPTIONS}
+                disabled={!activeItem}
+                busy={decisionState.status === "saving"}
+                onConfirm={handleDecisionSubmit}
+                getDialogProps={(option) => getCompanyDecisionDialog(option, activeItem)}
+              />
+            </section>
+          </div>
+        ) : null}
+      </Modal>
     </>
   );
 }

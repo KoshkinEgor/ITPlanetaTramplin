@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Application.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace ITPlanetaTramplin.Api.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260328054233_AddFriendRequestsAndProjectInvites")]
+    partial class AddFriendRequestsAndProjectInvites
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -593,85 +596,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Models.ModeratorInvitation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("AcceptedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("accepted_at");
-
-                    b.Property<int?>("AcceptedUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("accepted_user_id");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("email");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<int>("InvitedByUserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("invited_by_user_id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("revoked_at");
-
-                    b.Property<string>("Surname")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("surname");
-
-                    b.Property<string>("Thirdname")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("thirdname");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("token_hash");
-
-                    b.HasKey("Id")
-                        .HasName("moderator_invitations_pkey");
-
-                    b.HasIndex(new[] { "AcceptedUserId" }, "idx_moderator_invitations_accepted_user_id");
-
-                    b.HasIndex(new[] { "Email" }, "idx_moderator_invitations_email");
-
-                    b.HasIndex(new[] { "InvitedByUserId" }, "idx_moderator_invitations_invited_by_user_id");
-
-                    b.HasIndex(new[] { "TokenHash" }, "moderator_invitations_token_hash_key")
-                        .IsUnique();
-
-                    b.ToTable("moderator_invitations", (string)null);
-                });
-
             modelBuilder.Entity("Models.Opportunity", b =>
                 {
                     b.Property<int>("Id")
@@ -1200,26 +1124,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("RecipientUser");
 
                     b.Navigation("SenderUser");
-                });
-
-            modelBuilder.Entity("Models.ModeratorInvitation", b =>
-                {
-                    b.HasOne("Models.User", "AcceptedUser")
-                        .WithMany()
-                        .HasForeignKey("AcceptedUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("moderator_invitations_accepted_user_id_fkey");
-
-                    b.HasOne("Models.User", "InvitedByUser")
-                        .WithMany()
-                        .HasForeignKey("InvitedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("moderator_invitations_invited_by_user_id_fkey");
-
-                    b.Navigation("AcceptedUser");
-
-                    b.Navigation("InvitedByUser");
                 });
 
             modelBuilder.Entity("Models.Opportunity", b =>

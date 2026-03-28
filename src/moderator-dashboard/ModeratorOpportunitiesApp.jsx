@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { decideOpportunityModeration, getModerationOpportunities } from "../api/moderation";
 import { ApiError } from "../lib/http";
-import { Alert, Card, DashboardPageHeader, EmptyState, Loader, ModerationDecisionSelect, Tag } from "../shared/ui";
+import { Alert, Card, DashboardPageHeader, EmptyState, Loader, Modal, ModerationDecisionSelect, Tag } from "../shared/ui";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 import { MODERATION_DECISION_OPTIONS } from "./moderationDecisionOptions";
 
@@ -288,7 +288,7 @@ export function ModeratorOpportunitiesApp() {
       ) : null}
 
       {state.status === "ready" ? (
-        <section className={`moderator-review-grid ${activeItem ? "moderator-review-grid--with-detail" : ""}`.trim()}>
+        <section className="moderator-review-grid">
           <Card className="moderator-panel moderator-panel--list moderator-fade-up moderator-fade-up--delay-2">
             <div className="moderator-panel__head moderator-panel__head--queue">
               <div className="moderator-panel__copy">
@@ -333,59 +333,63 @@ export function ModeratorOpportunitiesApp() {
               <EmptyState title="Публикации не найдены" description="Попробуйте изменить фильтр или поисковый запрос." tone="neutral" compact />
             )}
           </Card>
-
-          {activeItem ? (
-            <Card className="moderator-panel moderator-detail-card moderator-fade-up moderator-fade-up--delay-3">
-              <div className="moderator-panel__copy">
-                <h2 className="ui-type-h2">Детальная проверка</h2>
-              </div>
-
-              <div className="moderator-detail-surface">
-                <div className="moderator-detail-surface__top">
-                  <Tag>{translateOpportunityType(activeItem.opportunityType)}</Tag>
-                  <ModeratorStatusBadge label={translateStatus(activeItem.moderationStatus)} tone={activeItem.moderationStatus} />
-                </div>
-
-                <div className="moderator-detail-surface__copy">
-                  <h3 className="ui-type-h3">{activeItem.title}</h3>
-                  <p className="ui-type-body moderator-detail-surface__company">{activeItem.companyName}</p>
-                </div>
-
-                <dl className="moderator-detail-facts">
-                  <div>
-                    <dt>Локация:</dt>
-                    <dd>{getOpportunityLocation(activeItem)}</dd>
-                  </div>
-                  <div>
-                    <dt>Дата публикации:</dt>
-                    <dd>{formatDate(activeItem.publishAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>Дата окончания:</dt>
-                    <dd>{formatDate(activeItem.expireAt)}</dd>
-                  </div>
-                </dl>
-
-                <p className="ui-type-body moderator-detail-surface__description">
-                  {activeItem.description || "Описание публикации пока не заполнено."}
-                </p>
-
-                <section className="moderator-detail-group">
-                  <h4 className="ui-type-h3">Решение модерации</h4>
-                  <ModerationDecisionSelect
-                    value={decision}
-                    options={MODERATION_DECISION_OPTIONS}
-                    disabled={!activeItem}
-                    busy={decisionState.status === "saving"}
-                    onConfirm={handleDecisionSubmit}
-                    getDialogProps={(option) => getOpportunityDecisionDialog(option, activeItem)}
-                  />
-                </section>
-              </div>
-            </Card>
-          ) : null}
         </section>
       ) : null}
+
+      <Modal
+        open={Boolean(activeItem)}
+        onClose={() => setSelectedId(null)}
+        title="Детальная проверка"
+        description="Проверьте детали публикации и примените решение модерации."
+        size="lg"
+        closeLabel="Закрыть окно проверки"
+        className="moderator-opportunity-modal"
+      >
+        {activeItem ? (
+          <div className="moderator-detail-surface moderator-detail-surface--modal">
+            <div className="moderator-detail-surface__top">
+              <Tag>{translateOpportunityType(activeItem.opportunityType)}</Tag>
+              <ModeratorStatusBadge label={translateStatus(activeItem.moderationStatus)} tone={activeItem.moderationStatus} />
+            </div>
+
+            <div className="moderator-detail-surface__copy">
+              <h3 className="ui-type-h3">{activeItem.title}</h3>
+              <p className="ui-type-body moderator-detail-surface__company">{activeItem.companyName}</p>
+            </div>
+
+            <dl className="moderator-detail-facts">
+              <div>
+                <dt>Локация:</dt>
+                <dd>{getOpportunityLocation(activeItem)}</dd>
+              </div>
+              <div>
+                <dt>Дата публикации:</dt>
+                <dd>{formatDate(activeItem.publishAt)}</dd>
+              </div>
+              <div>
+                <dt>Дата окончания:</dt>
+                <dd>{formatDate(activeItem.expireAt)}</dd>
+              </div>
+            </dl>
+
+            <p className="ui-type-body moderator-detail-surface__description">
+              {activeItem.description || "Описание публикации пока не заполнено."}
+            </p>
+
+            <section className="moderator-detail-group">
+              <h4 className="ui-type-h3">Решение модерации</h4>
+              <ModerationDecisionSelect
+                value={decision}
+                options={MODERATION_DECISION_OPTIONS}
+                disabled={!activeItem}
+                busy={decisionState.status === "saving"}
+                onConfirm={handleDecisionSubmit}
+                getDialogProps={(option) => getOpportunityDecisionDialog(option, activeItem)}
+              />
+            </section>
+          </div>
+        ) : null}
+      </Modal>
     </>
   );
 }
