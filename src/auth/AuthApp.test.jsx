@@ -49,3 +49,12 @@ describe("candidate registration roles", () => {
     expect(screen.getByRole("radio", { name: /я ищу сотрудников/i })).toHaveAttribute("aria-checked", "false");
   });
 });
+
+describe("curator login", () => {
+  it("does not render the curator access block on the details step", () => {
+    renderAuth("login", "/auth/login?role=curator&step=details");
+
+    expect(screen.queryByText(/Доступ куратора/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/demo-curator@tramplin.local/i)).not.toBeInTheDocument();
+  });
+});
