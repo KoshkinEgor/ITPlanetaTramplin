@@ -22,6 +22,10 @@
   align-items: start;
 }
 
+.ui-settings-section__head.is-title-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .ui-settings-section__eyebrow.ui-tag-token {
   min-height: 46px;
   padding: 10px 18px;
@@ -134,22 +138,6 @@
   display: grid;
 }
 
-.ui-settings-section__actions {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 10px;
-}
-
-.ui-settings-section__action.ui-button {
-  max-width: 500px;
-  min-height: 72px;
-  border-width: 2px;
-  border-color: rgba(47, 128, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--ui-color-text-muted);
-}
-
 .ui-settings-section__expanded {
   display: grid;
   gap: 24px;
@@ -224,11 +212,4 @@
     letter-spacing: var(--ui-letter-spacing-caption);
   }
 
-  .ui-settings-section__actions {
-    padding-top: 18px;
-  }
-
-  .ui-settings-section__action.ui-button {
-    min-height: 58px;
-  }
 }
