@@ -194,7 +194,7 @@ describe("cabinet shell routes", () => {
       expect(getCandidateProgressValues(container)).toEqual(["75", "75"]);
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { expanded: false })[0]);
     fireEvent.change(screen.getByLabelText("О себе"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 

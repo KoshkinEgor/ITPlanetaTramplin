@@ -79,38 +79,22 @@ export const RESPONSE_FILTERS = [
 export const CANDIDATE_SETTINGS_SECTIONS = [
   {
     id: "settings-profile",
-    eyebrow: "Профиль",
     title: "Личные данные",
     summary: "Имя, профессия, описание, навыки и образование, которые формируют профиль кандидата.",
-    status: "Редактируется",
-    statusTone: "success",
-    actionLabel: "Редактировать",
   },
   {
     id: "settings-contacts",
-    eyebrow: "Контакты",
     title: "Контактная информация",
     summary: "Телефон, почта и публичные ссылки, которые помогают работодателю быстро выйти на связь.",
-    status: "Открыто для связи",
-    statusTone: "success",
-    actionLabel: "Редактировать",
   },
   {
     id: "settings-security",
-    eyebrow: "Безопасность",
     title: "Почта и пароль",
     summary: "Email берется из аккаунта, а смена пароля работает через отдельный защищенный сценарий.",
-    status: "Защищенный доступ",
-    statusTone: "neutral",
-    actionLabel: "Открыть",
   },
   {
     id: "settings-privacy",
-    eyebrow: "Приватность",
     title: "Настройки приватности",
     summary: "Управляйте видимостью профиля, контактами и уведомлениями внутри платформы.",
-    status: "Гибкая настройка",
-    statusTone: "success",
-    actionLabel: "Настроить",
   },
 ];

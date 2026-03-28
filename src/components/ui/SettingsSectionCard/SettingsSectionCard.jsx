@@ -1,5 +1,4 @@
 import { cn } from "../../../lib/cn";
-import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
 import { Tag } from "../Tag/Tag";
 
@@ -24,18 +23,18 @@ export function SettingsSectionCard({
   summary,
   status,
   statusTone = "neutral",
-  actionLabel = "Редактировать",
   isOpen = false,
   onToggle,
   className,
   children,
 }) {
   const contentId = id ? `${id}-content` : undefined;
+  const hasEyebrow = Boolean(eyebrow);
 
   return (
     <Card className={cn("ui-settings-section", isOpen && "is-open", className)}>
-      <div className="ui-settings-section__head">
-        {eyebrow ? <Tag className="ui-settings-section__eyebrow">{eyebrow}</Tag> : <span />}
+      <div className={cn("ui-settings-section__head", !hasEyebrow && "is-title-only")}>
+        {hasEyebrow ? <Tag className="ui-settings-section__eyebrow">{eyebrow}</Tag> : null}
         <button
           type="button"
           className="ui-settings-section__toggle"
@@ -60,20 +59,6 @@ export function SettingsSectionCard({
             </span>
           ) : null}
           {summary ? <p className="ui-settings-section__summary">{summary}</p> : null}
-        </div>
-
-        <div className="ui-settings-section__actions">
-          <Button
-            type="button"
-            variant="secondary"
-            width="full"
-            className="ui-settings-section__action"
-            onClick={onToggle}
-            aria-expanded={isOpen}
-            aria-controls={contentId}
-          >
-            {actionLabel}
-          </Button>
         </div>
       </div>
 
