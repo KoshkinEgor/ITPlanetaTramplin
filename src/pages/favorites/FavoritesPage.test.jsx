@@ -24,6 +24,7 @@ const opportunities = [
     tags: ["Security"],
     opportunityType: "mentoring",
     moderationStatus: "approved",
+    title: "Менторская программа",
   },
   {
     id: 2,
@@ -35,6 +36,7 @@ const opportunities = [
     tags: ["Frontend"],
     opportunityType: "internship",
     moderationStatus: "approved",
+    title: "Frontend internship",
   },
 ];
 
@@ -53,6 +55,14 @@ describe("FavoritesPage", () => {
     getOpportunities.mockResolvedValue(opportunities);
   });
 
+  it("shows one common empty state when favorites are empty", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Соберите избранное" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Избранные возможности" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Избранные компании" })).not.toBeInTheDocument();
+  });
+
   it("renders separate sections for favorite opportunities and companies", async () => {
     writeFavoriteOpportunityIds(["1"]);
     writeFavoriteCompanyIds(["10"]);
@@ -63,7 +73,7 @@ describe("FavoritesPage", () => {
     expect(screen.getByRole("heading", { name: "Избранные компании" })).toBeInTheDocument();
     expect(screen.getByText("Northwind")).toBeInTheDocument();
     expect(screen.getByText("Northwind").closest("a")).toHaveAttribute("href", "/companies/10");
-    expect(screen.getByText("Менторская программа")).toBeInTheDocument();
+    expect(screen.getAllByText("Менторская программа").length).toBeGreaterThan(0);
   });
 
   it("removes a company from favorites via the company section", async () => {
