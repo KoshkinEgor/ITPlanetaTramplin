@@ -1,4 +1,5 @@
 ﻿import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { UiKitApp } from "./UiKitApp";
 
@@ -176,9 +177,17 @@ const uiKitYmaps3Mock = {
   YMapMarker: MockUiKitYMapMarker,
 };
 
+function renderUiKitApp() {
+  return render(
+    <MemoryRouter>
+      <UiKitApp />
+    </MemoryRouter>
+  );
+}
+
 describe("UiKitApp", () => {
   it("renders the consolidated ui kit and cleans up the body class", () => {
-    const { unmount } = render(<UiKitApp />);
+    const { unmount } = renderUiKitApp();
 
     expect(document.body).toHaveClass("ui-kit-react-body");
     expect(screen.getByTestId("ui-kit-page")).toBeInTheDocument();
@@ -255,7 +264,7 @@ describe("UiKitApp", () => {
   });
 
   it("updates local button preview state without changing shared component APIs", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const buttonCard = screen.getByTestId("ui-kit-button-preview").closest(".ui-kit-specimen");
 
@@ -304,7 +313,7 @@ describe("UiKitApp", () => {
     };
 
     try {
-      render(<UiKitApp />);
+      renderUiKitApp();
 
       const mapPreview = screen.getByTestId("ui-kit-map-live-preview");
 
@@ -331,7 +340,7 @@ describe("UiKitApp", () => {
   });
 
   it("updates the search preview appearance and size inside the ui kit", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const searchCard = screen.getByTestId("ui-kit-search-preview").closest(".ui-kit-specimen");
 
@@ -349,7 +358,7 @@ describe("UiKitApp", () => {
   });
 
   it("supports the contrast button variant with a configurable accent color", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const buttonCard = screen.getByTestId("ui-kit-button-preview").closest(".ui-kit-specimen");
 
@@ -365,7 +374,7 @@ describe("UiKitApp", () => {
   });
 
   it("updates the action select preview state inside the ui kit", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const actionSelectPreview = screen.getByTestId("ui-kit-action-select-preview");
     const actionSelectScope = within(actionSelectPreview);
@@ -381,7 +390,7 @@ describe("UiKitApp", () => {
   });
 
   it("confirms the selected action inside the ui kit preview", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const confirmPreview = screen.getByTestId("ui-kit-confirm-action-select-preview");
     const confirmScope = within(confirmPreview);
@@ -405,7 +414,7 @@ describe("UiKitApp", () => {
   });
 
   it("updates the segmented control preview state inside the ui kit", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const segmentedPreview = screen.getByTestId("ui-kit-segmented-preview");
     const segmentedScope = within(segmentedPreview);
@@ -416,7 +425,7 @@ describe("UiKitApp", () => {
     expect(segmentedScope.getByRole("button", { name: TEXT.portfolio })).not.toHaveClass("is-active");
   });
   it("shows the full typography catalog and keeps the segmented preview at md by default", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     expect(screen.getByText(".ui-type-display")).toBeInTheDocument();
     expect(screen.getByText(".ui-type-overline")).toBeInTheDocument();
@@ -424,7 +433,7 @@ describe("UiKitApp", () => {
   });
 
   it("renders editable resume cards with distinct default, active, and compact states", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const editableSummary = screen.getByTestId("ui-kit-editable-summary");
     const editableScope = within(editableSummary);
@@ -437,7 +446,7 @@ describe("UiKitApp", () => {
   });
 
   it("shows the input variants gallery with default, left-icon, and right-icon layouts", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const variants = screen.getByTestId("ui-kit-input-variants");
     const variantsScope = within(variants);
@@ -450,7 +459,7 @@ describe("UiKitApp", () => {
   });
 
   it("slides the company portfolio carousel inside the ui kit", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const assembly = screen.getByTestId("ui-kit-company-portfolio-assembly");
     const slider = within(assembly).getByTestId("company-profile-portfolio-slider");
@@ -469,7 +478,7 @@ describe("UiKitApp", () => {
   });
 
   it("renders the company portfolio viewer mode without the add-project button", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     const assembly = screen.getByTestId("ui-kit-company-portfolio-viewer-assembly");
     const slider = within(assembly).getByTestId("company-profile-portfolio-slider-viewer");
@@ -484,7 +493,7 @@ describe("UiKitApp", () => {
   });
 
   it("updates the moderation revision reason inside the ui kit showcase", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     fireEvent.change(screen.getByLabelText(TEXT.reasonText), { target: { value: "Нужно уточнить программу мероприятия" } });
 
@@ -494,7 +503,7 @@ describe("UiKitApp", () => {
   });
 
   it("switches the complaint card preview to md size", () => {
-    render(<UiKitApp />);
+    renderUiKitApp();
 
     fireEvent.change(screen.getByLabelText(TEXT.size), { target: { value: "md" } });
 

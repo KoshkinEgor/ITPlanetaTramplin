@@ -156,6 +156,14 @@ function createProfileDraft(profile) {
   };
 }
 
+function createBasicProfileDraft(profile) {
+  return {
+    companyName: profile?.companyName ?? "",
+    legalAddress: profile?.legalAddress ?? "",
+    description: profile?.description ?? "",
+  };
+}
+
 function createCaseStudyForm() {
   return {
     description: "",
@@ -252,6 +260,7 @@ export function CompanyProfileSection() {
   const [draft, setDraft] = useState(createProfileDraft(null));
   const [socialLinks, setSocialLinks] = useState([""]);
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
+  const [isBasicProfileEditing, setIsBasicProfileEditing] = useState(false);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [caseStudyForm, setCaseStudyForm] = useState(createCaseStudyForm());
   const [caseStudyFormError, setCaseStudyFormError] = useState("");
@@ -303,6 +312,7 @@ export function CompanyProfileSection() {
 
       const links = parseSocialLinks(profile?.socials);
       setSocialLinks(links.length > 0 ? links : [""]);
+      setIsBasicProfileEditing(false);
     }
 
     load().catch((error) => {
@@ -325,6 +335,10 @@ export function CompanyProfileSection() {
   const opportunityItems = useMemo(
     () => state.opportunities.map(createCompanyOpportunityCardItem),
     [state.opportunities]
+  );
+  const visibleSocialLinks = useMemo(
+    () => socialLinks.map((link) => link.trim()).filter(Boolean),
+    [socialLinks]
   );
 
   function markDirty() {
@@ -410,6 +424,41 @@ export function CompanyProfileSection() {
     markDirty();
   }
 
+  function syncBasicProfile(profile) {
+    setState((current) => ({ ...current, profile }));
+    setDraft((current) => ({
+      ...current,
+      ...createBasicProfileDraft(profile),
+    }));
+
+    const links = parseSocialLinks(profile?.socials);
+    setSocialLinks(links.length > 0 ? links : [""]);
+  }
+
+  function syncFullProfile(profile) {
+    setState((current) => ({ ...current, profile }));
+    setDraft(createProfileDraft(profile));
+
+    const links = parseSocialLinks(profile?.socials);
+    setSocialLinks(links.length > 0 ? links : [""]);
+  }
+
+  function handleOpenBasicProfileEditor() {
+    setIsBasicProfileEditing(true);
+  }
+
+  function handleCancelBasicProfileEditor() {
+    const links = parseSocialLinks(state.profile?.socials);
+
+    setDraft((current) => ({
+      ...current,
+      ...createBasicProfileDraft(state.profile),
+    }));
+    setSocialLinks(links.length > 0 ? links : [""]);
+    setSaveState({ status: "idle", error: "" });
+    setIsBasicProfileEditing(false);
+  }
+
   function resetCaseStudyForm() {
     setCaseStudyForm(createCaseStudyForm());
     setCaseStudyFormError("");
@@ -483,8 +532,31 @@ export function CompanyProfileSection() {
     handleClosePortfolioModal();
   }
 
-  async function handleSave(event) {
-    event.preventDefault();
+  async function persistBasicProfile() {
+    setSaveState({ status: "saving", error: "" });
+
+    try {
+      const profile = await updateCompanyProfile({
+        companyName: draft.companyName.trim(),
+        legalAddress: draft.legalAddress.trim() || null,
+        description: draft.description.trim() || null,
+        socials: stringifySocialLinks(socialLinks) || null,
+      });
+
+      syncBasicProfile(profile);
+      setSaveState({ status: "success", error: "" });
+      setIsBasicProfileEditing(false);
+      return profile;
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "Не удалось сохранить данные компании.",
+      });
+      return null;
+    }
+  }
+
+  async function persistFullProfile() {
     setSaveState({ status: "saving", error: "" });
 
     try {
@@ -498,17 +570,21 @@ export function CompanyProfileSection() {
         galleryJson: serializeCompanyGallery(draft.gallery),
       });
 
-      setState((current) => ({ ...current, profile }));
-      setDraft(createProfileDraft(profile));
-      const links = parseSocialLinks(profile?.socials);
-      setSocialLinks(links.length > 0 ? links : [""]);
+      syncFullProfile(profile);
       setSaveState({ status: "success", error: "" });
+      return profile;
     } catch (error) {
       setSaveState({
         status: "error",
         error: error?.message ?? "Не удалось сохранить данные компании.",
       });
+      return null;
     }
+  }
+
+  async function handleSave(event) {
+    event.preventDefault();
+    await persistFullProfile();
   }
 
   if (state.status === "loading") {
@@ -554,10 +630,33 @@ export function CompanyProfileSection() {
           </Alert>
         ) : null}
 
+        <div className="company-dashboard-priority-block">
+          <CompanyVerificationSection
+            profile={state.profile}
+            draft={draft}
+            onProfileUpdated={(profile) => setState((current) => ({ ...current, profile }))}
+          />
+        </div>
+
         <CabinetContentSection
+          className="company-dashboard-section company-dashboard-section--basic"
           eyebrow="Страница компании"
           title="Основная информация"
           description="Настройте публичный профиль компании и добавьте ссылки, которые увидят кандидаты."
+          actions={isBasicProfileEditing ? (
+            <div className="company-dashboard-panel__actions company-dashboard-panel__actions--compact">
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancelBasicProfileEditor}>
+                Отмена
+              </Button>
+              <Button type="button" size="sm" onClick={persistBasicProfile} disabled={saveState.status === "saving"}>
+                {saveState.status === "saving" ? "Сохраняем..." : "Сохранить"}
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="secondary" size="sm" onClick={handleOpenBasicProfileEditor}>
+              Редактировать
+            </Button>
+          )}
         >
           <div className="company-dashboard-stack">
             <Card className="company-dashboard-profile-hero-card" tone="neutral">
@@ -568,12 +667,27 @@ export function CompanyProfileSection() {
               {draft.legalAddress.trim() ? (
                 <p className="company-dashboard-profile-hero-card__meta">{draft.legalAddress.trim()}</p>
               ) : null}
-              {draft.description.trim() ? (
-                <p className="company-dashboard-profile-hero-card__description">{draft.description.trim()}</p>
+              <p className="company-dashboard-profile-hero-card__description">
+                {draft.description.trim() || "Краткое описание пока не заполнено."}
+              </p>
+              <div className="company-dashboard-profile-hero-card__facts">
+                <span>ИНН: {state.profile?.inn || "не указан"}</span>
+                <span>{visibleSocialLinks.length ? `${visibleSocialLinks.length} ссылок` : "Ссылки не добавлены"}</span>
+              </div>
+              {visibleSocialLinks.length ? (
+                <div className="company-dashboard-profile-hero-card__links">
+                  {visibleSocialLinks.map((link) => (
+                    <span key={link} className="company-dashboard-profile-hero-card__link">
+                      {link.replace(/^https?:\/\//i, "").replace(/^mailto:/i, "")}
+                    </span>
+                  ))}
+                </div>
               ) : null}
             </Card>
 
-            <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+            {isBasicProfileEditing ? (
+              <>
+                <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
               <FormField label="Название компании" required>
                 <Input value={draft.companyName} onValueChange={(value) => handleDraftChange("companyName", value)} />
               </FormField>
@@ -614,19 +728,10 @@ export function CompanyProfileSection() {
               </div>
             </FormField>
 
-            <div className="company-dashboard-panel__actions">
-              <Button type="submit" disabled={saveState.status === "saving"}>
-                {saveState.status === "saving" ? "Сохраняем..." : "Сохранить профиль"}
-              </Button>
-            </div>
+              </>
+            ) : null}
           </div>
         </CabinetContentSection>
-
-        <CompanyVerificationSection
-          profile={state.profile}
-          draft={draft}
-          onProfileUpdated={(profile) => setState((current) => ({ ...current, profile }))}
-        />
 
         <CabinetContentSection
           eyebrow="Публичные блоки"

@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { buildOpportunityDetailRoute } from "../app/routes";
 import { getCompanyOpportunities } from "../api/company";
 import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
 import { ApiError } from "../lib/http";
@@ -75,8 +76,10 @@ function detectContactType(value) {
 export function CompanyOpportunitiesSection() {
   const [state, setState] = useState({ status: "loading", opportunities: [], error: null });
   const [draft, setDraft] = useState(createOpportunityDraft());
-  const [saveState, setSaveState] = useState({ status: "idle", error: "" });
+  const [editorMode, setEditorMode] = useState(null);
+  const [saveState, setSaveState] = useState({ status: "idle", error: "", message: "" });
   const [reloadKey, setReloadKey] = useState(0);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,9 +105,32 @@ export function CompanyOpportunitiesSection() {
     return () => controller.abort();
   }, [reloadKey]);
 
+  function resetSuccessState() {
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "", message: "" } : current));
+  }
+
+  function scrollEditorIntoView() {
+    setTimeout(() => {
+      editorRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  function openCreateForm() {
+    setDraft(createOpportunityDraft());
+    setEditorMode("create");
+    setSaveState({ status: "idle", error: "", message: "" });
+    scrollEditorIntoView();
+  }
+
+  function closeEditor() {
+    setDraft(createOpportunityDraft());
+    setEditorMode(null);
+    setSaveState({ status: "idle", error: "", message: "" });
+  }
+
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function updateContact(index, value) {
@@ -112,7 +138,7 @@ export function CompanyOpportunitiesSection() {
       ...current,
       contacts: current.contacts.map((item, itemIndex) => (itemIndex === index ? { ...item, value, type: detectContactType(value) } : item)),
     }));
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function addContact() {
@@ -120,7 +146,7 @@ export function CompanyOpportunitiesSection() {
       ...current,
       contacts: [...current.contacts, createOpportunityContactDraft()],
     }));
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function removeContact(index) {
@@ -132,7 +158,7 @@ export function CompanyOpportunitiesSection() {
         contacts: nextContacts.length ? nextContacts : [createOpportunityContactDraft()],
       };
     });
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function updateMedia(index, field, value) {
@@ -140,7 +166,7 @@ export function CompanyOpportunitiesSection() {
       ...current,
       media: current.media.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
     }));
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function addMedia() {
@@ -148,7 +174,7 @@ export function CompanyOpportunitiesSection() {
       ...current,
       media: [...current.media, createOpportunityMediaDraft()],
     }));
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   function removeMedia(index) {
@@ -160,11 +186,11 @@ export function CompanyOpportunitiesSection() {
         media: nextMedia.length ? nextMedia : [createOpportunityMediaDraft()],
       };
     });
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+    resetSuccessState();
   }
 
   async function startEditing(item) {
-    setSaveState({ status: "idle", error: "" });
+    setSaveState({ status: "idle", error: "", message: "" });
 
     try {
       const opportunity = await getOpportunity(item.id);
@@ -172,30 +198,28 @@ export function CompanyOpportunitiesSection() {
     } catch {
       setDraft(createOpportunityDraft(item));
     }
-  }
 
-  function resetForm() {
-    setDraft(createOpportunityDraft());
-    setSaveState({ status: "idle", error: "" });
+    setEditorMode("edit");
+    scrollEditorIntoView();
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (!draft.title.trim()) {
-      setSaveState({ status: "error", error: "Укажите название публикации." });
+      setSaveState({ status: "error", error: "Укажите название публикации.", message: "" });
       return;
     }
 
     if (!draft.description.trim()) {
-      setSaveState({ status: "error", error: "Добавьте описание публикации." });
+      setSaveState({ status: "error", error: "Добавьте описание публикации.", message: "" });
       return;
     }
 
     const contactsJson = serializeOpportunityContacts(draft.contacts);
     const mediaContentJson = serializeOpportunityMedia(draft.media);
 
-    setSaveState({ status: "saving", error: "" });
+    setSaveState({ status: "saving", error: "", message: "" });
 
     try {
       const payload = {
@@ -212,26 +236,35 @@ export function CompanyOpportunitiesSection() {
         mediaContentJson,
         tags: parseTags(draft.tags),
       };
+      const isEditing = Boolean(draft.id);
 
-      if (draft.id) {
+      if (isEditing) {
         await updateOpportunity(draft.id, payload);
       } else {
         await createOpportunity(payload);
       }
 
-      resetForm();
-      setSaveState({ status: "success", error: "" });
+      setDraft(createOpportunityDraft());
+      setEditorMode(null);
+      setSaveState({
+        status: "success",
+        error: "",
+        message: isEditing
+          ? "Публикация обновлена и при необходимости снова пройдет модерацию."
+          : "Публикация создана и отправлена на модерацию.",
+      });
       setReloadKey((current) => current + 1);
     } catch (error) {
       setSaveState({
         status: "error",
         error: error?.message ?? "Не удалось сохранить публикацию.",
+        message: "",
       });
     }
   }
 
   async function handleDelete(opportunityId) {
-    setSaveState({ status: "saving", error: "" });
+    setSaveState({ status: "saving", error: "", message: "" });
 
     try {
       await deleteOpportunity(opportunityId);
@@ -240,13 +273,15 @@ export function CompanyOpportunitiesSection() {
         opportunities: current.opportunities.filter((item) => item.id !== opportunityId),
       }));
       if (draft.id === opportunityId) {
-        resetForm();
+        setDraft(createOpportunityDraft());
+        setEditorMode(null);
       }
-      setSaveState({ status: "success", error: "" });
+      setSaveState({ status: "success", error: "", message: "Публикация удалена." });
     } catch (error) {
       setSaveState({
         status: "error",
         error: error?.message ?? "Не удалось удалить публикацию.",
+        message: "",
       });
     }
   }
@@ -278,118 +313,22 @@ export function CompanyOpportunitiesSection() {
       ) : null}
 
       {saveState.status === "success" ? (
-        <Alert tone="success" title="Изменения сохранены" showIcon>
-          Публикация обновлена. При необходимости она снова пройдет проверку перед показом кандидатам.
+        <Alert tone="success" title="Операция выполнена" showIcon>
+          {saveState.message}
         </Alert>
       ) : null}
 
       {state.status === "ready" ? (
         <div className="company-dashboard-stack">
           <CabinetContentSection
-            eyebrow="Публикации"
-            title={draft.id ? "Редактирование публикации" : "Новая публикация"}
-            description="Заполните карточку возможности: опишите предложение, укажите срок и добавьте основные параметры публикации."
-          >
-            <form className="company-dashboard-stack" onSubmit={handleSubmit} noValidate>
-              <FormField label="Название" required>
-                <Input value={draft.title} onValueChange={(value) => updateField("title", value)} />
-              </FormField>
-
-              <FormField label="Описание" required>
-                <Textarea value={draft.description} onValueChange={(value) => updateField("description", value)} rows={5} autoResize />
-              </FormField>
-
-              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-                <FormField label="Тип публикации">
-                  <Select value={draft.opportunityType} onValueChange={(value) => updateField("opportunityType", value)} options={OPPORTUNITY_TYPE_OPTIONS} />
-                </FormField>
-                <FormField label="Формат">
-                  <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
-                </FormField>
-              </div>
-
-              <FormField label="Срок или дата">
-                <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
-              </FormField>
-
-              <OpportunityLocationPicker
-                locationCity={draft.locationCity}
-                locationAddress={draft.locationAddress}
-                latitude={draft.latitude}
-                longitude={draft.longitude}
-                onFieldChange={updateField}
-              />
-
-              <FormField label="Теги через запятую">
-                <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />
-              </FormField>
-
-              <FormField label="Контакты / ссылки">
-                <div className="company-dashboard-social-links">
-                  {draft.contacts.map((item, index) => (
-                    <div className="company-dashboard-social-links__row" key={`opportunity-contact-${index}`}>
-                      <Input
-                        value={item.value}
-                        onValueChange={(value) => updateContact(index, value)}
-                        placeholder={getContactPlaceholder(item.value)}
-                      />
-                      <Button type="button" variant="ghost" onClick={() => removeContact(index)}>
-                        Удалить
-                      </Button>
-                    </div>
-                  ))}
-                  <Button type="button" variant="secondary" onClick={addContact}>
-                    Добавить
-                  </Button>
-                </div>
-              </FormField>
-
-              <FormField label="Медиа / вложения">
-                <div className="company-dashboard-social-links">
-                  {draft.media.map((item, index) => (
-                    <div className="company-dashboard-social-links__row" key={`opportunity-media-${index}`}>
-                      <Input
-                        value={item.title}
-                        onValueChange={(value) => updateMedia(index, "title", value)}
-                        placeholder="Название медиа"
-                      />
-                      <Input
-                        value={item.url}
-                        onValueChange={(value) => updateMedia(index, "url", value)}
-                        placeholder="https://..."
-                      />
-                      <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
-                        Удалить
-                      </Button>
-                    </div>
-                  ))}
-                  <Button type="button" variant="secondary" onClick={addMedia}>
-                    Добавить
-                  </Button>
-                </div>
-              </FormField>
-
-              <div className="company-dashboard-panel__actions">
-                <Button type="submit" disabled={saveState.status === "saving"}>
-                  {saveState.status === "saving"
-                    ? "Сохраняем..."
-                    : draft.id
-                      ? "Сохранить публикацию"
-                      : "Создать публикацию"}
-                </Button>
-                {draft.id ? (
-                  <Button type="button" variant="secondary" onClick={resetForm}>
-                    Новая публикация
-                  </Button>
-                ) : null}
-              </div>
-            </form>
-          </CabinetContentSection>
-
-          <CabinetContentSection
             eyebrow="Список"
             title="Публикации компании"
-            description="Здесь отображаются все активные публикации компании. Вы можете отредактировать их, обновить контакты или удалить ненужные карточки."
+            description="Управляйте карточками возможностей: создавайте новые публикации, открывайте форму редактирования с карточки и переходите к полной странице возможности."
+            actions={(
+              <Button type="button" onClick={openCreateForm} disabled={saveState.status === "saving"}>
+                Создать возможность
+              </Button>
+            )}
           >
             {state.opportunities.length ? (
               <div className="company-dashboard-stack">
@@ -422,7 +361,10 @@ export function CompanyOpportunitiesSection() {
                     </div>
 
                     <div className="company-dashboard-panel__actions">
-                      <Button type="button" variant="secondary" onClick={() => startEditing(item)}>
+                      <Button type="button" variant="secondary" href={buildOpportunityDetailRoute(item.id)}>
+                        Перейти на страницу возможности
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => startEditing(item)} disabled={saveState.status === "saving"}>
                         Редактировать
                       </Button>
                       <Button type="button" variant="ghost" onClick={() => handleDelete(item.id)} disabled={saveState.status === "saving"}>
@@ -435,12 +377,113 @@ export function CompanyOpportunitiesSection() {
             ) : (
               <EmptyState
                 title="Публикаций пока нет"
-                description="Создайте первую публикацию через форму выше, чтобы кандидаты увидели ваши предложения."
+                description="Создайте первую публикацию кнопкой сверху, чтобы кандидаты увидели ваши предложения."
                 tone="neutral"
                 compact
               />
             )}
           </CabinetContentSection>
+
+          {editorMode ? (
+            <CabinetContentSection
+              eyebrow="Редактор"
+              title={draft.id ? "Редактирование публикации" : "Новая публикация"}
+              description="Заполните карточку возможности: опишите предложение, укажите срок и добавьте основные параметры публикации."
+            >
+              <form ref={editorRef} className="company-dashboard-stack" onSubmit={handleSubmit} noValidate>
+                <FormField label="Название" required>
+                  <Input value={draft.title} onValueChange={(value) => updateField("title", value)} />
+                </FormField>
+
+                <FormField label="Описание" required>
+                  <Textarea value={draft.description} onValueChange={(value) => updateField("description", value)} rows={5} autoResize />
+                </FormField>
+
+                <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                  <FormField label="Тип публикации">
+                    <Select value={draft.opportunityType} onValueChange={(value) => updateField("opportunityType", value)} options={OPPORTUNITY_TYPE_OPTIONS} />
+                  </FormField>
+                  <FormField label="Формат">
+                    <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
+                  </FormField>
+                </div>
+
+                <FormField label="Срок или дата">
+                  <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
+                </FormField>
+
+                <OpportunityLocationPicker
+                  locationCity={draft.locationCity}
+                  locationAddress={draft.locationAddress}
+                  latitude={draft.latitude}
+                  longitude={draft.longitude}
+                  onFieldChange={updateField}
+                />
+
+                <FormField label="Теги через запятую">
+                  <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />
+                </FormField>
+
+                <FormField label="Контакты / ссылки">
+                  <div className="company-dashboard-social-links">
+                    {draft.contacts.map((item, index) => (
+                      <div className="company-dashboard-social-links__row" key={`opportunity-contact-${index}`}>
+                        <Input
+                          value={item.value}
+                          onValueChange={(value) => updateContact(index, value)}
+                          placeholder={getContactPlaceholder(item.value)}
+                        />
+                        <Button type="button" variant="ghost" onClick={() => removeContact(index)}>
+                          Удалить
+                        </Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="secondary" onClick={addContact}>
+                      Добавить
+                    </Button>
+                  </div>
+                </FormField>
+
+                <FormField label="Медиа / вложения">
+                  <div className="company-dashboard-social-links">
+                    {draft.media.map((item, index) => (
+                      <div className="company-dashboard-social-links__row" key={`opportunity-media-${index}`}>
+                        <Input
+                          value={item.title}
+                          onValueChange={(value) => updateMedia(index, "title", value)}
+                          placeholder="Название медиа"
+                        />
+                        <Input
+                          value={item.url}
+                          onValueChange={(value) => updateMedia(index, "url", value)}
+                          placeholder="https://..."
+                        />
+                        <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
+                          Удалить
+                        </Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="secondary" onClick={addMedia}>
+                      Добавить
+                    </Button>
+                  </div>
+                </FormField>
+
+                <div className="company-dashboard-panel__actions">
+                  <Button type="submit" disabled={saveState.status === "saving"}>
+                    {saveState.status === "saving"
+                      ? "Сохраняем..."
+                      : draft.id
+                        ? "Сохранить публикацию"
+                        : "Создать публикацию"}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={closeEditor} disabled={saveState.status === "saving"}>
+                    Отмена
+                  </Button>
+                </div>
+              </form>
+            </CabinetContentSection>
+          ) : null}
         </div>
       ) : null}
     </>

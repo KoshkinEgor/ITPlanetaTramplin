@@ -254,8 +254,30 @@ describe("cabinet shell routes", () => {
       role: "company",
       email: "company@example.com",
     });
+    getCompanyProfile.mockResolvedValue({
+      ...companyProfile,
+      caseStudiesJson: JSON.stringify([
+        {
+          id: "company-case-1",
+          title: "Signal Desk",
+          subtitle: "Security analytics",
+          previewUrl: "https://example.com/signal-desk.png",
+          sourceUrl: "https://example.com/signal-desk",
+        },
+        {
+          id: "company-case-2",
+          title: "Trust Layer",
+          subtitle: "Zero-trust suite",
+          previewUrl: "https://example.com/trust-layer.png",
+          sourceUrl: "https://example.com/trust-layer",
+        },
+      ]),
+    });
 
     renderRoute(routes.company.dashboard);
+
+    expect(await screen.findByTestId("company-cabinet-shell")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Редактировать" }));
 
     const slider = await screen.findByTestId("company-profile-portfolio-slider");
     const sliderScope = within(slider);

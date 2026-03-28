@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getFallbackCityOption } from "../api/cities";
 import { buildOpportunityDetailRoute } from "../app/routes";
+import { loadYandexMapsApi } from "../shared/lib/loadYandexMapsApi";
 import { OpportunityMiniCard } from "../shared/ui";
 import "./HomeOpportunityMap.css";
 
@@ -33,11 +34,29 @@ const cityCenters = {
   Новосибирск: [82.92043, 55.030204],
 };
 
-let yandexMapsPromise;
 let yandexPackagesRegistered = false;
 
 function getApiKey() {
   return import.meta.env.VITE_YANDEX_MAPS_API_KEY;
+}
+
+function shouldSuggestLocalhostForYandexMaps(error) {
+  return (
+    error instanceof Error
+    && error.message !== "missing-api-key"
+    && typeof window !== "undefined"
+    && window.location.hostname === "127.0.0.1"
+  );
+}
+
+function getLocalhostYandexMapsMessage() {
+  if (typeof window === "undefined") {
+    return "Откройте приложение через localhost: ключ Яндекс Карт может быть привязан к localhost, а не к 127.0.0.1.";
+  }
+
+  const { protocol, port, pathname, search, hash } = window.location;
+  const nextPort = port ? `:${port}` : "";
+  return `Откройте приложение через ${protocol}//localhost${nextPort}${pathname}${search}${hash}: текущий ключ Яндекс Карт может быть привязан к localhost и отклоняться на 127.0.0.1.`;
 }
 
 function clamp(value, min, max) {
@@ -109,60 +128,11 @@ function registerYandexPackages(ymaps3) {
 }
 
 function loadYandexMaps() {
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    return Promise.reject(new Error("missing-api-key"));
-  }
-
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("window-is-unavailable"));
-  }
-
-  if (window.ymaps3?.ready) {
-    return window.ymaps3.ready.then(() => {
-      registerYandexPackages(window.ymaps3);
-      return window.ymaps3;
-    });
-  }
-
-  if (!yandexMapsPromise) {
-    yandexMapsPromise = new Promise((resolve, reject) => {
-      const onLoad = () => {
-        window.ymaps3.ready
-          .then(() => {
-            registerYandexPackages(window.ymaps3);
-            resolve(window.ymaps3);
-          })
-          .catch(reject);
-      };
-
-      const onError = () => {
-        reject(new Error("Не удалось загрузить API Яндекс Карт."));
-      };
-
-      const existingScript = document.getElementById(scriptId);
-
-      if (existingScript) {
-        existingScript.addEventListener("load", onLoad, { once: true });
-        existingScript.addEventListener("error", onError, { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.async = true;
-      script.src = `https://api-maps.yandex.ru/v3/?apikey=${apiKey}&lang=ru_RU`;
-      script.addEventListener("load", onLoad, { once: true });
-      script.addEventListener("error", onError, { once: true });
-      document.head.append(script);
-    }).catch((error) => {
-      yandexMapsPromise = null;
-      throw error;
-    });
-  }
-
-  return yandexMapsPromise;
+  return loadYandexMapsApi({
+    apiKey: getApiKey(),
+    scriptId,
+    onReady: registerYandexPackages,
+  });
 }
 
 function getMarkerTone(item) {
@@ -821,6 +791,10 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
         }
 
         setStatus("error");
+        if (shouldSuggestLocalhostForYandexMaps(error)) {
+          setErrorMessage(getLocalhostYandexMapsMessage());
+          return;
+        }
 
         if (error instanceof Error && error.message === "missing-api-key") {
           setErrorMessage("В .env.local не найден VITE_YANDEX_MAPS_API_KEY.");

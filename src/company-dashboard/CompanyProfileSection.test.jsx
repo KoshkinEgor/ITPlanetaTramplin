@@ -79,6 +79,18 @@ describe("CompanyProfileSection", () => {
     vi.unstubAllGlobals();
   });
 
+  it("shows preview mode for company info until the user opens editing", async () => {
+    renderSection();
+
+    expect(await screen.findByText("Northwind")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Название компании")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Редактировать" }));
+
+    expect(await screen.findByDisplayValue("Northwind")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Moscow")).toBeInTheDocument();
+  });
+
   it("submits a multipart verification request from the company cabinet", async () => {
     submitCompanyVerificationRequest.mockResolvedValue({
       ...baseProfile,
@@ -108,10 +120,9 @@ describe("CompanyProfileSection", () => {
 
     renderSection();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Пройти полную верификацию" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Отправить документы" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Полная верификация компании" });
-
     const [contactNameInput, roleInput, phoneInput, emailInput] = within(dialog).getAllByRole("textbox");
 
     fireEvent.change(contactNameInput, { target: { value: "Irina Smirnova" } });
@@ -143,7 +154,7 @@ describe("CompanyProfileSection", () => {
   it("keeps the verification input focused while typing", async () => {
     renderSection();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Пройти полную верификацию" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Отправить документы" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Полная верификация компании" });
     const [contactNameInput] = within(dialog).getAllByRole("textbox");
@@ -167,7 +178,7 @@ describe("CompanyProfileSection", () => {
 
     renderSection();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Пройти полную верификацию" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Отправить документы" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Полная верификация компании" });
     const [contactNameInput, roleInput, phoneInput, emailInput] = within(dialog).getAllByRole("textbox");
@@ -183,7 +194,7 @@ describe("CompanyProfileSection", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Отправить модератору" }));
 
-    expect(await screen.findByText(/Перезапустите backend или обновите API/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Перезапустите backend|обновите API/i)).toBeInTheDocument();
   });
 
   it("renders read-only pending verification details and allows document download", async () => {
@@ -218,9 +229,9 @@ describe("CompanyProfileSection", () => {
     renderSection();
 
     expect(await screen.findByText("Irina Smirnova")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Пройти полную верификацию" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Отправить документы" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Скачать документ" }));
+    fireEvent.click(screen.getByRole("button", { name: "Скачать" }));
 
     await waitFor(() => {
       expect(downloadCompanyVerificationDocument).toHaveBeenCalledTimes(1);

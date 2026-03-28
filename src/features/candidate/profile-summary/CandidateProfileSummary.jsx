@@ -1,7 +1,13 @@
 import { buildCandidateSettingsRoute } from "../../../app/routes";
-import { Avatar, Button, Card, PlaceholderAction, Tag } from "../../../shared/ui";
+import { Avatar, Button, Card, Tag } from "../../../shared/ui";
 import { cn } from "../../../shared/lib/cn";
-import { getCandidateAvatarUrl, getCandidateDisplayName, getCandidateInitials, getCandidateMeta, getCandidateSkills } from "../../../candidate-portal/mappers";
+import {
+  getCandidateAvatarUrl,
+  getCandidateDisplayName,
+  getCandidateInitials,
+  getCandidateMeta,
+  getCandidateSkills,
+} from "../../../candidate-portal/mappers";
 import { CandidateProgressCard, CandidateStatTiles } from "../../../candidate-portal/shared";
 import "./CandidateProfileSummary.css";
 
@@ -18,21 +24,13 @@ export function CandidateProfileSummary({
 
   return (
     <Card className={cn("candidate-profile-summary", isFull ? "candidate-profile-summary--full" : "candidate-profile-summary--compact")}>
-      <div className="candidate-profile-summary__cover">
-        <PlaceholderAction
-          className="candidate-profile-summary__cover-action"
-          label="Загрузить шапку профиля"
-          description="После загрузки здесь появится обложка профиля."
-        />
-
+      <div className="candidate-profile-summary__body">
         <div className="candidate-profile-summary__badges">
           <Tag tone="accent">Профиль соискателя</Tag>
           <Tag tone="success">Ищу работу</Tag>
           <Tag tone="neutral">Онлайн</Tag>
         </div>
-      </div>
 
-      <div className="candidate-profile-summary__body">
         <div className="candidate-profile-summary__main">
           <div className="candidate-profile-summary__identity">
             <Avatar

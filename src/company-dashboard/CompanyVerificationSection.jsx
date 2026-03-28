@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { downloadCompanyVerificationDocument, submitCompanyVerificationRequest } from "../api/company";
-import { Alert, Button, Card, FormField, Input, Modal } from "../shared/ui";
+import { Alert, Badge, Button, Card, FormField, Input, Modal } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import {
   formatCompanyVerificationDate,
@@ -36,47 +36,77 @@ function hasUnsavedSnapshotChanges(profile, draft) {
 
 function getVerificationPrerequisiteError(profile, draft) {
   if (hasUnsavedSnapshotChanges(profile, draft)) {
-    return "Сохраните название компании и юридический адрес перед отправкой заявки на верификацию.";
+    return "Сначала сохраните название компании и юридический адрес.";
   }
 
   if (!normalizeText(profile?.companyName) || !normalizeText(profile?.inn) || !normalizeText(profile?.legalAddress)) {
-    return "Для отправки заявки заполните название компании, ИНН и юридический адрес в сохраненном профиле.";
+    return "Для проверки нужны название компании, ИНН и юридический адрес.";
   }
 
   return "";
 }
 
-function getVerificationCardContent(status) {
+function getVerificationBadgeTone(status) {
   switch (status) {
     case "approved":
-      return {
-        eyebrow: "Подтверждено",
-        title: "Компания уже прошла проверку",
-        description: "Профиль выглядит подтвержденным для кандидатов и доступен публично.",
-        actionLabel: "",
-      };
+      return "success";
     case "revision":
-      return {
-        eyebrow: "Нужна доработка",
-        title: "Обновите заявку и отправьте ее повторно",
-        description: "Модератор вернул компанию на доработку. Проверьте контактные данные и загрузите свежую выписку ЕГРЮЛ.",
-        actionLabel: "Отправить повторно",
-      };
+      return "warning";
     case "rejected":
-      return {
-        eyebrow: "Отклонено",
-        title: "Верификация отклонена",
-        description: "Можно исправить данные и отправить заявку заново, если профиль все еще актуален.",
-        actionLabel: "Подать новую заявку",
-      };
+      return "danger";
     default:
-      return {
-        eyebrow: "Проверка компании",
-        title: "Пройдите полную верификацию",
-        description: "Заявка с выпиской ЕГРЮЛ поможет получить подтвержденный статус и открыть публичный профиль компании.",
-        actionLabel: "Пройти полную верификацию",
-      };
+      return "default";
   }
+}
+
+function getVerificationCardContent(status, hasLockedRequest) {
+  if (status === "approved") {
+    return {
+      badge: "Подтверждена",
+      title: "Компания подтверждена",
+      description: "Профиль уже виден в каталоге и открыт для обновлений.",
+      actionLabel: "",
+      toneClassName: "approved",
+    };
+  }
+
+  if (status === "revision") {
+    return {
+      badge: "Нужна доработка",
+      title: "Обновите заявку",
+      description: "Проверьте контактные данные и приложите свежий документ.",
+      actionLabel: "Отправить повторно",
+      toneClassName: "revision",
+    };
+  }
+
+  if (status === "rejected") {
+    return {
+      badge: "Отклонена",
+      title: "Нужна новая заявка",
+      description: "После исправления данных можно отправить пакет заново.",
+      actionLabel: "Новая заявка",
+      toneClassName: "rejected",
+    };
+  }
+
+  if (hasLockedRequest) {
+    return {
+      badge: "На проверке",
+      title: "Заявка отправлена",
+      description: "Документы уже у модератора. Пока форма доступна только для просмотра.",
+      actionLabel: "",
+      toneClassName: "pending",
+    };
+  }
+
+  return {
+    badge: "Без проверки",
+    title: "Подтвердите компанию",
+    description: "Нужен контакт для модератора и актуальная выписка ЕГРЮЛ.",
+    actionLabel: "Отправить документы",
+    toneClassName: "pending",
+  };
 }
 
 function isAllowedVerificationFile(file) {
@@ -114,10 +144,10 @@ function triggerBrowserDownload(blob, fileName) {
 
 function getVerificationSubmitErrorMessage(error) {
   if (error?.status === 404) {
-    return "Сервер пока не поддерживает отправку заявок на верификацию. Перезапустите backend или обновите API до последней версии.";
+    return "Сервер еще не поддерживает отправку заявок. Перезапустите backend или обновите API.";
   }
 
-  return error?.message ?? "Не удалось отправить заявку на верификацию.";
+  return error?.message ?? "Не удалось отправить заявку на проверку.";
 }
 
 export function CompanyVerificationSection({ profile, draft, onProfileUpdated }) {
@@ -132,10 +162,13 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
   const verificationStatus = normalizeText(profile?.verificationStatus) || "pending";
   const verificationData = parseCompanyVerificationData(profile?.verificationData);
   const hasStructuredVerification = hasStructuredCompanyVerification(profile?.verificationData);
-  const verificationCard = getVerificationCardContent(verificationStatus);
-  const prerequisiteError = getVerificationPrerequisiteError(profile, draft);
   const isPendingVerificationLocked = verificationStatus === "pending" && hasStructuredVerification;
+  const verificationCard = getVerificationCardContent(verificationStatus, isPendingVerificationLocked);
+  const prerequisiteError = getVerificationPrerequisiteError(profile, draft);
   const canOpenVerificationModal = verificationStatus !== "approved" && !isPendingVerificationLocked;
+  const hasVerificationMeta = Boolean(
+    verificationData?.snapshot || verificationData?.contact || verificationData?.document || verificationData?.legacyText
+  );
 
   function handleOpenModal() {
     setVerificationDraft(createVerificationDraft(profile));
@@ -199,7 +232,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
       || !normalizeText(verificationDraft.contactRole)
       || !normalizeText(verificationDraft.contactPhone)
       || !normalizeText(verificationDraft.contactEmail)) {
-      setSubmitState({ status: "error", error: "Заполните контактное лицо, должность, телефон и email." });
+      setSubmitState({ status: "error", error: "Заполните контакт, должность, телефон и email." });
       return;
     }
 
@@ -225,7 +258,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
 
       const nextProfile = await submitCompanyVerificationRequest(formData);
       onProfileUpdated?.(nextProfile);
-      setSuccessMessage("Заявка отправлена модератору. Пока идет проверка, форма доступна только для просмотра.");
+      setSuccessMessage("Заявка отправлена модератору.");
       setModalOpen(false);
       setVerificationFile(null);
       setSubmitState({ status: "idle", error: "" });
@@ -247,7 +280,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
     } catch (error) {
       setDownloadState({
         status: "error",
-        error: error?.message ?? "Не удалось скачать документ верификации.",
+        error: error?.message ?? "Не удалось скачать документ проверки.",
       });
     }
   }
@@ -255,12 +288,12 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
   return (
     <>
       <CabinetContentSection
-        eyebrow="Проверка"
-        title="Верификация"
-        description="Подтвердите компанию через модератора и приложите выписку ЕГРЮЛ, чтобы профиль выглядел надежнее для кандидатов."
+        eyebrow="Верификация"
+        title="Статус компании"
+        description="Подтверждение через модератора для публичного профиля."
       >
         {successMessage ? (
-          <Alert tone="success" title="Заявка на верификацию отправлена" showIcon>
+          <Alert tone="success" title="Заявка отправлена" showIcon>
             {successMessage}
           </Alert>
         ) : null}
@@ -271,15 +304,20 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
           </Alert>
         ) : null}
 
-        <Card className="company-dashboard-verification-card">
+        <Card className={`company-dashboard-verification-card company-dashboard-verification-card--${verificationCard.toneClassName}`}>
           <div className="company-dashboard-verification-card__head">
-            <div>
-              <span className="company-dashboard-verification-card__eyebrow">{verificationCard.eyebrow}</span>
-              <h3 className="company-dashboard-editor-card__title">{verificationCard.title}</h3>
-              <p className="company-dashboard-editor-card__description">{verificationCard.description}</p>
+            <div className="company-dashboard-verification-card__summary">
+              <Badge tone={getVerificationBadgeTone(verificationStatus)} dot>
+                {verificationCard.badge}
+              </Badge>
+              <div className="company-dashboard-verification-card__copy">
+                <h3 className="company-dashboard-editor-card__title">{verificationCard.title}</h3>
+                <p className="company-dashboard-editor-card__description">{verificationCard.description}</p>
+              </div>
             </div>
+
             {canOpenVerificationModal ? (
-              <Button type="button" variant="secondary" onClick={handleOpenModal}>
+              <Button type="button" variant="secondary" size="sm" onClick={handleOpenModal}>
                 {verificationCard.actionLabel}
               </Button>
             ) : null}
@@ -287,21 +325,21 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
 
           {verificationStatus === "pending" && hasStructuredVerification ? (
             <p className="company-dashboard-verification-card__status-note">
-              Заявка уже отправлена. Пока идет проверка, редактирование формы заблокировано.
+              Редактирование формы временно заблокировано, пока модератор не завершит проверку.
             </p>
           ) : null}
 
           {prerequisiteError && canOpenVerificationModal ? (
-            <Alert tone="warning" title="Перед отправкой заявки обновите профиль" showIcon>
+            <Alert tone="warning" title="Сначала обновите профиль" showIcon>
               {prerequisiteError}
             </Alert>
           ) : null}
 
-          {verificationData?.snapshot || verificationData?.contact || verificationData?.document ? (
+          {hasVerificationMeta ? (
             <div className="company-dashboard-verification-card__meta">
-              {verificationData.snapshot ? (
+              {verificationData?.snapshot ? (
                 <div className="company-dashboard-verification-card__group">
-                  <span className="company-dashboard-verification-card__group-label">Снимок профиля</span>
+                  <span className="company-dashboard-verification-card__group-label">Профиль</span>
                   <div className="company-dashboard-verification-card__facts">
                     <div><span>Компания</span><strong>{verificationData.snapshot.companyName || "Не указана"}</strong></div>
                     <div><span>ИНН</span><strong>{verificationData.snapshot.inn || "Не указан"}</strong></div>
@@ -310,9 +348,9 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
                 </div>
               ) : null}
 
-              {verificationData.contact ? (
+              {verificationData?.contact ? (
                 <div className="company-dashboard-verification-card__group">
-                  <span className="company-dashboard-verification-card__group-label">Контакт для модератора</span>
+                  <span className="company-dashboard-verification-card__group-label">Контакт</span>
                   <div className="company-dashboard-verification-card__facts">
                     <div><span>Контактное лицо</span><strong>{verificationData.contact.name || "Не указано"}</strong></div>
                     <div><span>Должность</span><strong>{verificationData.contact.role || "Не указана"}</strong></div>
@@ -322,12 +360,12 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
                 </div>
               ) : null}
 
-              {verificationData.document ? (
+              {verificationData?.document ? (
                 <div className="company-dashboard-verification-card__group">
                   <span className="company-dashboard-verification-card__group-label">Документ</span>
                   <div className="company-dashboard-verification-card__document">
                     <div>
-                      <strong>{verificationData.document.originalName || "Файл верификации"}</strong>
+                      <strong>{verificationData.document.originalName || "Файл проверки"}</strong>
                       <p>
                         {[verificationData.document.contentType, formatCompanyVerificationFileSize(verificationData.document.sizeBytes)]
                           .filter(Boolean)
@@ -336,17 +374,23 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
                       {verificationData.submittedAt ? <p>Отправлено: {formatCompanyVerificationDate(verificationData.submittedAt)}</p> : null}
                     </div>
                     {verificationData.document.storageKey ? (
-                      <Button type="button" variant="ghost" onClick={handleDocumentDownload} disabled={downloadState.status === "loading"}>
-                        {downloadState.status === "loading" ? "Скачиваем..." : "Скачать документ"}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDocumentDownload}
+                        disabled={downloadState.status === "loading"}
+                      >
+                        {downloadState.status === "loading" ? "Скачиваем..." : "Скачать"}
                       </Button>
                     ) : null}
                   </div>
                 </div>
               ) : null}
 
-              {verificationData.legacyText ? (
+              {verificationData?.legacyText ? (
                 <div className="company-dashboard-verification-card__group">
-                  <span className="company-dashboard-verification-card__group-label">Ранее сохраненные данные</span>
+                  <span className="company-dashboard-verification-card__group-label">Архив</span>
                   <p className="ui-type-body">{verificationData.legacyText}</p>
                 </div>
               ) : null}
@@ -359,7 +403,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
         open={modalOpen}
         onClose={handleCloseModal}
         title="Полная верификация компании"
-        description="Проверьте снимок компании, заполните контактные данные и приложите актуальную выписку ЕГРЮЛ."
+        description="Проверьте данные компании, контакт для модератора и приложите актуальную выписку ЕГРЮЛ."
         size="lg"
         className="company-dashboard-verification-modal"
         closeLabel="Закрыть окно верификации компании"
@@ -378,7 +422,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
           ) : null}
 
           <Card className="company-dashboard-verification-card company-dashboard-verification-card--modal">
-            <span className="company-dashboard-verification-card__group-label">Снимок профиля для модератора</span>
+            <span className="company-dashboard-verification-card__group-label">Снимок профиля</span>
             <div className="company-dashboard-verification-card__facts">
               <div><span>Компания</span><strong>{profile?.companyName || "Не указана"}</strong></div>
               <div><span>ИНН</span><strong>{profile?.inn || "Не указан"}</strong></div>
@@ -406,11 +450,11 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
 
           <Card className="company-dashboard-verification-card company-dashboard-verification-card--modal">
             <div className="company-dashboard-verification-card__head">
-              <div>
+              <div className="company-dashboard-verification-card__copy">
                 <span className="company-dashboard-verification-card__group-label">Выписка ЕГРЮЛ</span>
-                <p className="company-dashboard-editor-card__description">Поддерживаются PDF, JPG, PNG и WEBP. Максимальный размер файла: 10 MB.</p>
+                <p className="company-dashboard-editor-card__description">PDF, JPG, PNG или WEBP. Максимальный размер файла: 10 MB.</p>
               </div>
-              <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
                 {verificationFile ? "Заменить файл" : "Загрузить файл"}
               </Button>
             </div>
@@ -433,7 +477,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
                       .join(" · ")}
                   </p>
                 </div>
-                <Button type="button" variant="ghost" onClick={() => setVerificationFile(null)}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setVerificationFile(null)}>
                   Удалить
                 </Button>
               </div>

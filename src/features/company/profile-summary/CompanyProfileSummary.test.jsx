@@ -20,8 +20,9 @@ const stats = [
 const verification = {
   label: "Подтверждена",
   tone: "approved",
-  statusText: "Готов к редактированию",
-  note: "Компания отображается в каталоге и может обновлять контент секциями.",
+  statusText: "Можно редактировать",
+  note: "Компания уже видна в каталоге.",
+  actionLabel: "Редактировать",
 };
 
 function renderSummary(props = {}) {
@@ -47,15 +48,15 @@ describe("CompanyProfileSummary", () => {
   it("shows the verification call to action for the company cabinet", () => {
     renderSummary();
 
-    expect(screen.getByText("Готов к редактированию")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Перейти к редактированию" })).toHaveAttribute("href", "/company/dashboard");
-    expect(screen.getByText("Личный кабинет компании")).toBeInTheDocument();
+    expect(screen.getByText("Можно редактировать")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Редактировать" })).toHaveAttribute("href", "/company/dashboard");
+    expect(screen.getByText("Кабинет компании")).toBeInTheDocument();
   });
 
   it("hides the edit call to action in public mode", () => {
     renderSummary({ mode: "public" });
 
-    expect(screen.getByText("Компания")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Перейти к редактированию" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Компания").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Редактировать" })).not.toBeInTheDocument();
   });
 });
