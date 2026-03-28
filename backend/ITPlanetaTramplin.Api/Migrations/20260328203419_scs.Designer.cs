@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Application.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace ITPlanetaTramplin.Api.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260328203419_scs")]
+    partial class scs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -889,10 +892,9 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     b.HasIndex("CandidateId");
 
-                    b.HasIndex(new[] { "OpportunityId" }, "idx_recommendations_opportunity_id");
+                    b.HasIndex("RecommenderId");
 
-                    b.HasIndex(new[] { "RecommenderId", "CandidateId" }, "recommendations_recommender_id_candidate_id_key")
-                        .IsUnique();
+                    b.HasIndex(new[] { "OpportunityId" }, "idx_recommendations_opportunity_id");
 
                     b.ToTable("recommendations", (string)null);
                 });
