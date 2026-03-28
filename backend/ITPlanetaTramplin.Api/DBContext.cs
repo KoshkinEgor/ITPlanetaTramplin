@@ -603,6 +603,7 @@ public partial class ApplicationDBContext : DbContext
 
             entity.ToTable("recommendations");
 
+            entity.HasIndex(e => new { e.RecommenderId, e.CandidateId }, "recommendations_recommender_id_candidate_id_key").IsUnique();
             entity.HasIndex(e => e.OpportunityId, "idx_recommendations_opportunity_id");
 
             entity.Property(e => e.Id).HasColumnName("id");

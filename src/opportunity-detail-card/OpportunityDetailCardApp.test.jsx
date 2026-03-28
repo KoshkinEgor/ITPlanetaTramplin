@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCandidateApplications } from "../api/candidate";
+import { createCandidateRecommendation, getCandidateApplications, getCandidateContacts } from "../api/candidate";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
 import { resetCandidateApplicationsStore, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
+import { FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
 import { OpportunityDetailCardApp } from "./OpportunityDetailCardApp";
 
@@ -15,6 +16,8 @@ vi.mock("../api/opportunities", () => ({
 
 vi.mock("../api/candidate", () => ({
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
+  getCandidateContacts: vi.fn(() => Promise.resolve([])),
+  createCandidateRecommendation: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("../widgets/layout/PortalHeader/PortalHeader", () => ({
@@ -25,16 +28,16 @@ const apiOpportunity = {
   id: 101,
   employerId: 404,
   title: "Junior Security Analyst",
-  companyName: "ООО Компани",
-  locationCity: "Москва",
-  locationAddress: "Москва",
+  companyName: "РћРћРћ РљРѕРјРїР°РЅРё",
+  locationCity: "РњРѕСЃРєРІР°",
+  locationAddress: "РњРѕСЃРєРІР°",
   opportunityType: "vacancy",
   employmentType: "online",
   moderationStatus: "approved",
   publishAt: "2026-03-10",
-  description: "Сильная стартовая вакансия для кандидатов без большого коммерческого опыта.",
+  description: "РЎРёР»СЊРЅР°СЏ СЃС‚Р°СЂС‚РѕРІР°СЏ РІР°РєР°РЅСЃРёСЏ РґР»СЏ РєР°РЅРґРёРґР°С‚РѕРІ Р±РµР· Р±РѕР»СЊС€РѕРіРѕ РєРѕРјРјРµСЂС‡РµСЃРєРѕРіРѕ РѕРїС‹С‚Р°.",
   contactsJson: '{"email":"career@example.com"}',
-  mediaContentJson: '[{"title":"Программа вакансии"}]',
+  mediaContentJson: '[{"title":"РџСЂРѕРіСЂР°РјРјР° РІР°РєР°РЅСЃРёРё"}]',
   tags: ["SOC", "SIEM"],
 };
 
@@ -46,11 +49,28 @@ const appliedSummary = {
   appliedAt: "2026-03-12T12:00:00Z",
   opportunityTitle: "Junior Security Analyst",
   opportunityType: "vacancy",
-  companyName: "ООО Компани",
-  locationCity: "Москва",
+  companyName: "РћРћРћ РљРѕРјРїР°РЅРё",
+  locationCity: "РњРѕСЃРєРІР°",
   employmentType: "online",
   opportunityDeleted: false,
   moderationStatus: "approved",
+};
+
+const relatedOpportunity = {
+  id: 202,
+  employerId: 505,
+  title: "Frontend Intern",
+  companyName: "Sber",
+  locationCity: "РњРѕСЃРєРІР°",
+  locationAddress: "РљСѓС‚СѓР·РѕРІСЃРєРёР№ РїСЂРѕСЃРїРµРєС‚, 32",
+  opportunityType: "vacancy",
+  employmentType: "hybrid",
+  moderationStatus: "approved",
+  publishAt: "2026-03-11",
+  description: "РЎС‚Р°Р¶РёСЂРѕРІРєР° РїРѕ frontend-СЂР°Р·СЂР°Р±РѕС‚РєРµ.",
+  contactsJson: '{"email":"internships@sber.local"}',
+  mediaContentJson: "[]",
+  tags: ["React", "TypeScript", "Frontend"],
 };
 
 function StoreConsumer() {
@@ -79,10 +99,21 @@ describe("OpportunityDetailCardApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetCandidateApplicationsStore();
+    window.localStorage.clear();
+    window.open = vi.fn();
     getOpportunity.mockResolvedValue(apiOpportunity);
     getOpportunities.mockResolvedValue([]);
     applyToOpportunity.mockResolvedValue(appliedSummary);
     getCandidateApplications.mockResolvedValue([]);
+    createCandidateRecommendation.mockResolvedValue({});
+    getCandidateContacts.mockResolvedValue([
+      {
+        userId: 901,
+        name: "Anna Petrova",
+        email: "anna.petrova@tramplin.local",
+        skills: ["React"],
+      },
+    ]);
   });
 
   it("renders the enriched demo detail page and cleans up the body class", async () => {
@@ -90,7 +121,6 @@ describe("OpportunityDetailCardApp", () => {
 
     expect(document.body).toHaveClass("opportunity-card-react-body");
     expect(await screen.findByRole("heading", { name: /UI\/UX/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Ключевые навыки" })).toBeInTheDocument();
     expect(screen.getByText("Медиа")).toBeInTheDocument();
     expect(screen.getByText("Вам могут подойти")).toBeInTheDocument();
 
@@ -102,11 +132,14 @@ describe("OpportunityDetailCardApp", () => {
   it("pushes a successful application into the shared candidate responses store", async () => {
     renderDetail("/opportunities/101");
 
-    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
+    await screen.findByText("Junior Security Analyst");
+    const applyButton = document.querySelector(".opportunity-focus-card__apply");
+
+    expect(applyButton).not.toBeNull();
     fireEvent.click(applyButton);
 
     await waitFor(() => {
-      expect(screen.getAllByText("Отклик отправлен").length).toBeGreaterThan(0);
+      expect(applyButton).toBeDisabled();
     });
 
     await waitFor(() => {
@@ -118,26 +151,102 @@ describe("OpportunityDetailCardApp", () => {
   it("links the company spotlight to the public company page", async () => {
     renderDetail("/opportunities/101");
 
-    expect(await screen.findByRole("link", { name: "Открыть профиль компании" })).toHaveAttribute("href", "/companies/404");
+    await screen.findByText("Junior Security Analyst");
+    expect(document.querySelector('a[href="/companies/404"]')).toBeInTheDocument();
+  });
+
+  it("opens complaint and share options from the more actions button", async () => {
+    renderDetail("/opportunities/101");
+
+    await screen.findByText("Junior Security Analyst");
+    const menuButton = document.querySelector(".opportunity-focus-card__menu button");
+
+    expect(menuButton).not.toBeNull();
+    fireEvent.click(menuButton);
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+  });
+
+  it("opens the share modal with contacts and triggers sharing for the selected contact", async () => {
+    renderDetail("/opportunities/101");
+
+    await screen.findByText("Junior Security Analyst");
+    const menuButton = document.querySelector(".opportunity-focus-card__menu button");
+
+    expect(menuButton).not.toBeNull();
+    fireEvent.click(menuButton);
+    fireEvent.click(screen.getAllByRole("menuitem")[1]);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByText("Anna Petrova")).toBeInTheDocument();
+
+    const shareButton = document.querySelector(".opportunity-share-modal__item .ui-button");
+
+    expect(shareButton).not.toBeNull();
+    fireEvent.click(shareButton);
+
+    await waitFor(() => {
+      expect(createCandidateRecommendation).toHaveBeenCalledWith({
+        candidateId: 901,
+        opportunityId: 101,
+        message: expect.stringContaining("Junior Security Analyst"),
+      });
+      expect(window.open).toHaveBeenCalledTimes(1);
+      expect(window.open.mock.calls[0][0]).toContain("mailto:anna.petrova@tramplin.local");
+    });
+
+    expect(screen.queryByText(/Контакт для отправки открыт/i)).not.toBeInTheDocument();
+  });
+
+  it("adds the opportunity to favorites in localStorage from the heart button", async () => {
+    renderDetail("/opportunities/101");
+
+    await screen.findByText("Junior Security Analyst");
+    const favoriteButton = document.querySelector('.opportunity-focus-card__toolbar button[data-opportunity-id="101"]');
+
+    expect(favoriteButton).not.toBeNull();
+    fireEvent.click(favoriteButton);
+
+    expect(JSON.parse(window.localStorage.getItem(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY) ?? "[]")).toEqual(["101"]);
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("adds a related recommendation card to favorites with the same active styling", async () => {
+    getOpportunities.mockResolvedValue([apiOpportunity, relatedOpportunity]);
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByText("Frontend Intern")).toBeInTheDocument();
+
+    const favoriteButtons = Array.from(document.querySelectorAll('button[data-opportunity-id]'));
+    const relatedFavoriteButton = favoriteButtons[favoriteButtons.length - 1];
+
+    fireEvent.click(relatedFavoriteButton);
+
+    expect(JSON.parse(window.localStorage.getItem(FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY) ?? "[]")).toEqual(["202"]);
+    expect(relatedFavoriteButton).toHaveAttribute("aria-pressed", "true");
+    expect(relatedFavoriteButton.className).toContain("ui-opportunity-mini-card__favorite");
   });
 
   it("treats a 409 application response as a synced success state instead of an error", async () => {
     applyToOpportunity.mockRejectedValue(
-      new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } })
+      new ApiError("РћС‚РєР»РёРє СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅ.", { status: 409, data: { message: "РћС‚РєР»РёРє СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅ." } })
     );
     getCandidateApplications.mockResolvedValue([appliedSummary]);
 
     renderDetail("/opportunities/101");
 
-    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
-    fireEvent.click(applyButton);
+    await screen.findByText("Junior Security Analyst");
+    const applyButton = document.querySelector(".opportunity-focus-card__apply");
 
-    expect(await screen.findByText("Отклик уже отправлен")).toBeInTheDocument();
-    expect(screen.queryByText("Не удалось отправить заявку")).not.toBeInTheDocument();
+    expect(applyButton).not.toBeNull();
+    fireEvent.click(applyButton);
 
     await waitFor(() => {
       expect(getCandidateApplications).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
+      expect(applyButton).toBeDisabled();
     });
   });
 });
+

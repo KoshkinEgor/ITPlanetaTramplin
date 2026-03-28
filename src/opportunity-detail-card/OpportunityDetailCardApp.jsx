@@ -1,17 +1,20 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { createCandidateRecommendation, getCandidateContacts } from "../api/candidate";
 import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
 import {
   refreshCandidateApplications,
   upsertCandidateApplication,
 } from "../candidate-portal/candidate-applications-store";
+import { mapSocialUserToCard } from "../candidate-portal/social";
+import { useFavoriteOpportunity } from "../features/favorites/useFavoriteOpportunity";
 import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
 import { getOpportunityApplyLabel, isEventOpportunity, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
-import { Alert, Avatar, Button, Card, EmptyState, IconButton, Loader, OpportunityMiniCard, Tag } from "../shared/ui";
+import { Alert, Avatar, Button, Card, EmptyState, IconButton, Loader, Modal, OpportunityMiniCard, Tag } from "../shared/ui";
 import "./opportunity-detail-card.css";
 
 const BODY_CLASS = "opportunity-card-react-body";
@@ -114,7 +117,8 @@ function translateOpportunityType(value) {
       return "Мероприятие";
     default:
       return "Возможность";
-  }*/
+  }
+*/
 }
 
 function translateEmploymentType(value) {
@@ -279,12 +283,25 @@ function getApplyButtonLabel(type, status) {
   return getOpportunityApplyLabel(type);
 }
 
+function getComplaintTitle(type) {
+  return isEventOpportunity(type) ? "Пожаловаться на событие" : "Пожаловаться на возможность";
+}
+
 function createApplyState(status = "idle", overrides = {}) {
   return {
     status,
     error: "",
     successTitle: "",
     successMessage: "",
+    ...overrides,
+  };
+}
+
+function createShareContactsState(status = "idle", overrides = {}) {
+  return {
+    status,
+    items: [],
+    error: "",
     ...overrides,
   };
 }
@@ -312,14 +329,6 @@ function buildOpportunityViewModel(item) {
   const typeLabel = translateOpportunityType(item.opportunityType);
   const employmentLabel = translateEmploymentType(item.employmentType);
   const metaLine = [item.companyName, item.locationCity, employmentLabel === "Не указан" ? "" : employmentLabel.toLowerCase()].filter(Boolean).join(" • ");
-  const infoFacts = [
-    { label: "Тип", value: typeLabel },
-    { label: "Формат", value: employmentLabel },
-    { label: "Город", value: item.locationCity || "Не указан" },
-    { label: "Адрес", value: item.locationAddress || "Не указан" },
-    { label: "Опубликовано", value: formatDate(item.publishAt) || "Не указано" },
-    { label: "Срок", value: getExpiresLabel(item.expireAt) },
-  ];
   const descriptionParagraphs = splitDescription(item.description);
   const intro = descriptionParagraphs.length
     ? descriptionParagraphs
@@ -330,7 +339,6 @@ function buildOpportunityViewModel(item) {
     typeLabel,
     metaLine,
     summary: item.description || "Описание возможности пока не заполнено.",
-    infoFacts,
     intro,
     skills: uniqueItems(item.tags).slice(0, 12),
     published: getPublishedLabel(typeLabel, item.publishAt, item.locationCity),
@@ -356,6 +364,7 @@ function mapRelatedOpportunity(item) {
   const isEvent = isEventOpportunity(item?.opportunityType);
 
   return {
+    id: item?.id,
     type: viewModel.typeLabel,
     status: isEvent ? "Ожидание" : "Активно",
     statusTone: isEvent ? "neutral" : "success",
@@ -372,6 +381,11 @@ function OpportunityDetailLayout({
   related,
   applyState,
   onApply,
+  menuOpen = false,
+  menuRef = null,
+  onMenuToggle,
+  onShare,
+  onComplaint,
   buildDetailHref = (entry) => buildOpportunityDetailRoute(entry.id),
   catalogHref = "/opportunities",
   animated = true,
@@ -380,6 +394,7 @@ function OpportunityDetailLayout({
   const viewModel = useMemo(() => buildOpportunityViewModel(item), [item]);
   const relatedItems = (Array.isArray(related) ? related : []).slice(0, 2);
   const applyLabel = getApplyButtonLabel(item.opportunityType, applyState.status);
+  const { opportunityId: favoriteOpportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(item?.id);
 
   return (
     <div className={cn("opportunity-card-page__grid", embedded && "opportunity-card-page__grid--embedded")}>
@@ -388,8 +403,43 @@ function OpportunityDetailLayout({
           <div className="opportunity-focus-card__eyebrow">
             <Tag>{viewModel.typeLabel}</Tag>
             <div className="opportunity-focus-card__toolbar">
-              <IconButton type="button" label="Сохранить возможность" size="xl" className="opportunity-focus-card__toolbar-button"><HeartIcon /></IconButton>
-              <IconButton type="button" label="Еще действия" size="xl" className="opportunity-focus-card__toolbar-button"><MoreIcon /></IconButton>
+              <IconButton
+                type="button"
+                  label={isFavorite ? "Убрать возможность из избранного" : "Сохранить возможность"}
+                size="xl"
+                className="opportunity-focus-card__toolbar-button ui-opportunity-mini-card__favorite"
+                aria-pressed={isFavorite}
+                active={isFavorite}
+                data-opportunity-id={favoriteOpportunityId ?? undefined}
+                onClick={() => {
+                  toggleFavorite();
+                }}
+              >
+                <HeartIcon />
+              </IconButton>
+              <div ref={menuRef} className={cn("opportunity-focus-card__menu", menuOpen && "is-open")}>
+                <IconButton
+                  type="button"
+                  label="Ещё действия"
+                  size="xl"
+                  className="opportunity-focus-card__toolbar-button"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  onClick={onMenuToggle}
+                >
+                  <MoreIcon />
+                </IconButton>
+                {menuOpen ? (
+                  <div className="opportunity-focus-card__menu-popover" role="menu" aria-label="Действия с карточкой">
+                    <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onComplaint}>
+                      Пожаловаться
+                    </button>
+                    <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onShare}>
+                      Поделиться
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -397,15 +447,6 @@ function OpportunityDetailLayout({
             <h1 className="ui-type-h2">{item.title}</h1>
             <p className="ui-type-body">{viewModel.metaLine}</p>
           </div>
-
-          <dl className="opportunity-focus-card__facts">
-            {viewModel.infoFacts.map((fact) => (
-              <div key={fact.label} className="opportunity-focus-card__fact">
-                <dt>{fact.label}:</dt>
-                <dd>{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
 
           <p className="ui-type-body opportunity-focus-card__summary">{viewModel.summary}</p>
 
@@ -418,7 +459,6 @@ function OpportunityDetailLayout({
           ) : null}
 
           <div className="opportunity-focus-card__footer">
-            <div className="opportunity-focus-card__watchers">{viewModel.expires}</div>
             <div className="opportunity-focus-card__actions">
               <Button type="button" className="opportunity-focus-card__apply" onClick={onApply} disabled={applyState.status === "saving" || applyState.status === "success"}>
                 {applyLabel}
@@ -430,33 +470,8 @@ function OpportunityDetailLayout({
         {applyState.status === "error" ? <Alert tone="error" title="Не удалось отправить заявку" showIcon>{applyState.error}</Alert> : null}
         {applyState.status === "success" ? <Alert tone="success" title={applyState.successTitle} showIcon>{applyState.successMessage}</Alert> : null}
 
-        <Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
-          <div className="opportunity-media-panel__header">
-            <h2 className="ui-type-h4">Медиа</h2>
-            <p className="ui-type-caption">Материалы, которые компания приложила к карточке возможности.</p>
-          </div>
-          {viewModel.mediaItems.length ? (
-            <div className="opportunity-story-card__intro">
-              {viewModel.mediaItems.map((entry, index) => (
-                entry.url ? (
-                  <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">
-                    {entry.title}
-                  </AppLink>
-                ) : (
-                  <p key={`${entry.title}-${index}`} className="ui-type-body">{entry.title}</p>
-                )
-              ))}
-            </div>
-          ) : (
-            <p className="ui-type-body">Компания пока не добавила медиа-материалы к этой карточке.</p>
-          )}
-        </Card>
 
         <Card className={cn("opportunity-story-card", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-2")}>
-          <div className="opportunity-story-card__intro">
-            {viewModel.intro.map((paragraph, index) => <p key={`${paragraph}-${index}`} className="ui-type-body">{paragraph}</p>)}
-          </div>
-
           <section className="opportunity-story-section">
             <div className="opportunity-story-section__header"><h2 className="ui-type-h3">О публикации</h2></div>
             <ul className="opportunity-story-list">
@@ -485,18 +500,29 @@ function OpportunityDetailLayout({
             </section>
           ) : null}
 
-          {viewModel.skills.length ? (
-            <section className="opportunity-story-section">
-              <div className="opportunity-story-section__header"><h2 className="ui-type-h2">Ключевые навыки</h2></div>
-              <div className="opportunity-skill-cloud">{viewModel.skills.map((tag) => <Tag key={tag} tone="accent">{tag}</Tag>)}</div>
-            </section>
-          ) : null}
-
           <p className="ui-type-caption">{viewModel.published}</p>
-          <div className="opportunity-story-card__bottom-actions">
-            <Button type="button" className="opportunity-story-card__bottom-primary" onClick={onApply} disabled={applyState.status === "saving" || applyState.status === "success"}>{applyLabel}</Button>
-            <Button type="button" variant="secondary" className="opportunity-story-card__bottom-secondary">{viewModel.complaint}</Button>
+        </Card>
+
+                <Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
+          <div className="opportunity-media-panel__header">
+            <h2 className="ui-type-h4">Медиа</h2>
+            <p className="ui-type-caption">Материалы, которые компания приложила к карточке возможности.</p>
           </div>
+          {viewModel.mediaItems.length ? (
+            <div className="opportunity-story-card__intro">
+              {viewModel.mediaItems.map((entry, index) => (
+                entry.url ? (
+                  <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">
+                    {entry.title}
+                  </AppLink>
+                ) : (
+                  <p key={`${entry.title}-${index}`} className="ui-type-body">{entry.title}</p>
+                )
+              ))}
+            </div>
+          ) : (
+            <p className="ui-type-body">Компания пока не добавила медиа-материалы к этой карточке.</p>
+          )}
         </Card>
       </div>
 
@@ -514,36 +540,6 @@ function OpportunityDetailLayout({
               )}
               <p className="ui-type-body">{viewModel.company.description || "Описание компании пока не заполнено."}</p>
             </div>
-          </div>
-
-          {viewModel.company.legalAddress ? <p className="ui-type-body">{viewModel.company.legalAddress}</p> : null}
-
-          {viewModel.socialLinks.length ? (
-            <div className="opportunity-story-card__intro">
-              {viewModel.socialLinks.map((entry) => (
-                <AppLink key={entry.id} href={entry.url} className="opportunity-card-page__more-link">
-                  {entry.label}
-                </AppLink>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="company-spotlight__footer">
-            {viewModel.publicCompanyHref ? (
-              <Button href={viewModel.publicCompanyHref} variant="secondary" className="company-spotlight__recommend">
-                Открыть профиль компании
-              </Button>
-            ) : null}
-            {viewModel.companyAction ? (
-              <Button href={viewModel.companyAction.url} variant="secondary" className="company-spotlight__recommend">
-                Открыть сайт компании
-              </Button>
-            ) : (
-              <Button type="button" variant="secondary" className="company-spotlight__recommend" disabled>
-                Ссылки компании не указаны
-              </Button>
-            )}
-            <IconButton href={viewModel.contactAction.href} label={viewModel.contactAction.label} variant="outline" size="xl" className="company-spotlight__message"><MailIcon /></IconButton>
           </div>
         </Card>
 
@@ -593,11 +589,34 @@ export function OpportunityDetailCardApp() {
   const opportunityId = params.id;
   const [state, setState] = useState({ status: "loading", item: null, related: [], error: null, source: "api" });
   const [applyState, setApplyState] = useState(createApplyState());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareContactsState, setShareContactsState] = useState(createShareContactsState());
+  const [shareBusyKey, setShareBusyKey] = useState("");
+  const menuRef = useRef(null);
 
   useEffect(() => {
     document.body.classList.add(BODY_CLASS);
     return () => document.body.classList.remove(BODY_CLASS);
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -631,6 +650,10 @@ export function OpportunityDetailCardApp() {
     }
 
     setApplyState(createApplyState());
+    setMenuOpen(false);
+    setShareModalOpen(false);
+    setShareContactsState(createShareContactsState());
+    setShareBusyKey("");
     load();
     return () => controller.abort();
   }, [opportunityId]);
@@ -658,14 +681,158 @@ export function OpportunityDetailCardApp() {
     }
   }
 
+  async function openShareModal() {
+    setShareModalOpen(true);
+    setShareBusyKey("");
+
+    if (shareContactsState.status === "ready" || shareContactsState.status === "loading") {
+      return;
+    }
+
+    setShareContactsState(createShareContactsState("loading"));
+
+    try {
+      const contacts = await getCandidateContacts();
+      const items = (Array.isArray(contacts) ? contacts : [])
+        .map(mapSocialUserToCard)
+        .filter((item) => item?.id && item?.name);
+
+      setShareContactsState(createShareContactsState("ready", { items }));
+    } catch (error) {
+      setShareContactsState(createShareContactsState("error", {
+        error: error?.message ?? "Не удалось загрузить список контактов.",
+      }));
+    }
+  }
+
+  async function handleShareWithContact(contact) {
+    const currentUrl =
+      typeof window !== "undefined"
+        ? window.location.href
+        : buildOpportunityDetailRoute(opportunityId);
+    const shareTitle = String(state.item?.title || "Возможность").trim();
+    const shareText = `Смотри, нашёл интересную возможность: ${shareTitle}\n${currentUrl}`;
+    const contactKey = String(contact?.id ?? contact?.email ?? contact?.name ?? "contact");
+    const candidateId = Number(contact?.userId);
+
+    setShareBusyKey(contactKey);
+
+    try {
+      if (!Number.isFinite(candidateId) || !state.item?.id) {
+        throw new Error("Не удалось определить получателя рекомендации.");
+      }
+
+      await createCandidateRecommendation({
+        candidateId,
+        opportunityId: Number(state.item.id),
+        message: shareText,
+      });
+
+      if (contact?.email) {
+        const subject = encodeURIComponent(`Поделиться возможностью: ${shareTitle}`);
+        const body = encodeURIComponent(shareText);
+
+        if (typeof window !== "undefined" && typeof window.open === "function") {
+          window.open(`mailto:${contact.email}?subject=${subject}&body=${body}`, "_self");
+        }
+
+        setShareModalOpen(false);
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        setShareModalOpen(false);
+        return;
+      }
+
+      setShareModalOpen(false);
+    } finally {
+      setShareBusyKey("");
+    }
+  }
+  function handleComplaint() {}
+
   return (
     <main className="opportunity-card-page" data-testid="opportunity-detail-page">
       <div className="opportunity-card-page__shell ui-page-shell">
         <PortalHeader navItems={NAV_ITEMS} currentKey="opportunities" actionHref="/candidate/profile" actionLabel="Профиль" className="opportunity-card-header opportunity-card-fade-up" />
         {state.status === "loading" ? <Loader label="Загружаем карточку возможности" surface /> : null}
         {state.status === "error" ? <Alert tone="error" title="Не удалось загрузить карточку" showIcon>{state.error?.message ?? "Попробуйте открыть возможность позже."}</Alert> : null}
-        {state.status === "ready" && state.item ? <OpportunityDetailLayout item={state.item} related={state.related} applyState={applyState} onApply={handleApply} /> : null}
+        {state.status === "ready" && state.item ? (
+          <OpportunityDetailLayout
+            item={state.item}
+            related={state.related}
+            applyState={applyState}
+            onApply={handleApply}
+            menuOpen={menuOpen}
+            menuRef={menuRef}
+            onMenuToggle={() => setMenuOpen((current) => !current)}
+            onShare={async () => {
+              setMenuOpen(false);
+              await openShareModal();
+            }}
+            onComplaint={() => {
+              setMenuOpen(false);
+              handleComplaint();
+            }}
+          />
+        ) : null}
+        <Modal
+          open={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setShareBusyKey("");
+          }}
+          title="Поделиться возможностью"
+          description="Выберите контакт, которому хотите отправить карточку публикации."
+          size="md"
+          className="opportunity-share-modal"
+        >
+          {shareContactsState.status === "loading" ? <Loader label="Загружаем контакты" /> : null}
+          {shareContactsState.status === "error" ? (
+            <Alert tone="error" title="Не удалось загрузить контакты" showIcon>
+              {shareContactsState.error}
+            </Alert>
+          ) : null}
+          {shareContactsState.status === "ready" && !shareContactsState.items.length ? (
+            <EmptyState
+              eyebrow="Пока пусто"
+              title="Список контактов пока пуст"
+              description="Добавьте контакты в кабинете кандидата, и они появятся здесь для быстрого шаринга."
+              tone="neutral"
+              compact
+            />
+          ) : null}
+          {shareContactsState.status === "ready" && shareContactsState.items.length ? (
+            <div className="opportunity-share-modal__list">
+              {shareContactsState.items.map((contact) => (
+                <div key={contact.id} className="opportunity-share-modal__item">
+                  <div className="opportunity-share-modal__identity">
+                    <Avatar initials={String(contact.name || "").slice(0, 2).toUpperCase() || "К"} shape="rounded" className="opportunity-share-modal__avatar" />
+                    <div className="opportunity-share-modal__copy">
+                      <strong>{contact.name}</strong>
+                      <span>{contact.email || "Контакт без email"}</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    loading={shareBusyKey === String(contact.id)}
+                    disabled={Boolean(shareBusyKey) && shareBusyKey !== String(contact.id)}
+                    onClick={() => {
+                      handleShareWithContact(contact);
+                    }}
+                  >
+                    Поделиться
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Modal>
       </div>
     </main>
   );
 }
+
