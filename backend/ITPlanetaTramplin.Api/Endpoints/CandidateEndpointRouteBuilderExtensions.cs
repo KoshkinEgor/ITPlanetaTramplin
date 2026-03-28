@@ -480,6 +480,15 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.NotFound();
         }
 
+        var recommendationExists = await db.Recommendations.AnyAsync(item =>
+            item.RecommenderId == recommender.Id &&
+            item.CandidateId == candidate.Id);
+
+        if (recommendationExists)
+        {
+            return Results.Conflict(new { message = "Recommendation already exists for this candidate." });
+        }
+
         db.Recommendations.Add(new Recommendation
         {
             Recommender = recommender,

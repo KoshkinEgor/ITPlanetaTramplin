@@ -195,3 +195,10 @@ export function getCandidatePublicProfile(userId, signal) {
 export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }
+
+export function createCandidateRecommendation(body) {
+  return apiRequest("/candidate/me/recommendations", {
+    method: "POST",
+    body,
+  });
+}

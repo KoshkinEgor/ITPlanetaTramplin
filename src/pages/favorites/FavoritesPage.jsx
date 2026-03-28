@@ -8,9 +8,9 @@ import {
   setFavoriteCompany,
   subscribeToFavorites,
 } from "../../features/favorites/storage";
-import { PortalHeader } from "../../widgets/layout";
 import { translateOpportunityType } from "../../shared/lib/opportunityTypes";
 import { Alert, Button, Card, CompanyVacancyTile, DashboardPageHeader, EmptyState, Loader, SectionHeader, Tag } from "../../shared/ui";
+import { PortalHeader } from "../../widgets/layout";
 import "./favorites-page.css";
 
 const headerNav = PUBLIC_HEADER_NAV_ITEMS;
@@ -200,6 +200,10 @@ export function FavoritesPage() {
     [favoriteCompanyIds, state.items]
   );
 
+  const hasFavoriteOpportunities = favoriteOpportunities.length > 0;
+  const hasFavoriteCompanies = favoriteCompanies.length > 0;
+  const isEmptyFavorites = !hasFavoriteOpportunities && !hasFavoriteCompanies;
+
   return (
     <main className="favorites-page">
       <div className="favorites-page__shell ui-page-shell">
@@ -232,17 +236,27 @@ export function FavoritesPage() {
 
           {state.status === "ready" ? (
             <>
-              <section className="favorites-page__section">
-                <div className="favorites-page__section-head">
-                  <SectionHeader
-                    size="md"
-                    title="Избранные возможности"
-                    description="Карточки, которые вы сохранили напрямую."
-                  />
-                  <Tag tone="accent">{formatCount(favoriteOpportunities.length, ["карточка", "карточки", "карточек"])}</Tag>
-                </div>
+              {isEmptyFavorites ? (
+                <EmptyState
+                  className="favorites-page__empty-state"
+                  eyebrow="Пока пусто"
+                  title="Соберите избранное"
+                  description="Нажимайте на сердечко в карточках возможностей и компаний, чтобы быстро вернуться к ним позже."
+                  actions={<Button href={routes.opportunities.catalog}>Перейти в каталог</Button>}
+                />
+              ) : null}
 
-                {favoriteOpportunities.length ? (
+              {hasFavoriteOpportunities ? (
+                <section className="favorites-page__section">
+                  <div className="favorites-page__section-head">
+                    <SectionHeader
+                      size="md"
+                      title="Избранные возможности"
+                      description="Карточки, которые вы сохранили напрямую."
+                    />
+                    <Tag tone="accent">{formatCount(favoriteOpportunities.length, ["карточка", "карточки", "карточек"])}</Tag>
+                  </div>
+
                   <div className="favorites-page__grid">
                     {favoriteOpportunities.map((item) => (
                       <OpportunityRowCard
@@ -261,28 +275,20 @@ export function FavoritesPage() {
                       />
                     ))}
                   </div>
-                ) : (
-                  <EmptyState
-                    className="favorites-page__empty-state"
-                    eyebrow="Пока пусто"
-                    title="Сохраните первую возможность"
-                    description="Нажимайте на сердечко в карточках вакансий, стажировок, мероприятий и менторских программ."
-                    actions={<Button href={routes.opportunities.catalog}>Перейти в каталог</Button>}
-                  />
-                )}
-              </section>
+                </section>
+              ) : null}
 
-              <section className="favorites-page__section">
-                <div className="favorites-page__section-head">
-                  <SectionHeader
-                    size="md"
-                    title="Избранные компании"
-                    description="Здесь собраны работодатели, за чьими публикациями вы хотите следить."
-                  />
-                  <Tag tone="accent">{formatCount(favoriteCompanies.length, ["компания", "компании", "компаний"])}</Tag>
-                </div>
+              {hasFavoriteCompanies ? (
+                <section className="favorites-page__section">
+                  <div className="favorites-page__section-head">
+                    <SectionHeader
+                      size="md"
+                      title="Избранные компании"
+                      description="Здесь собраны работодатели, за чьими публикациями вы хотите следить."
+                    />
+                    <Tag tone="accent">{formatCount(favoriteCompanies.length, ["компания", "компании", "компаний"])}</Tag>
+                  </div>
 
-                {favoriteCompanies.length ? (
                   <div className="favorites-page__company-grid">
                     {favoriteCompanies.map((company) => (
                       <Card key={company.id} className="favorites-page__company-card">
@@ -310,16 +316,8 @@ export function FavoritesPage() {
                       </Card>
                     ))}
                   </div>
-                ) : (
-                  <EmptyState
-                    className="favorites-page__empty-state"
-                    eyebrow="Пока пусто"
-                    title="Сохраните первую компанию"
-                    description="Добавляйте работодателей в избранное из каталога компаний. Их публикации будут подсвечиваться и на карте."
-                    actions={<Button href={routes.opportunities.catalog}>Открыть каталог</Button>}
-                  />
-                )}
-              </section>
+                </section>
+              ) : null}
             </>
           ) : null}
         </section>

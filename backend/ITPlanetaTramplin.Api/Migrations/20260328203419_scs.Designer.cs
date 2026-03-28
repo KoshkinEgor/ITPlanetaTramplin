@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Application.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace ITPlanetaTramplin.Api.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260328203419_scs")]
+    partial class scs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -547,10 +550,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("verification_method");
 
-                    b.Property<string>("VerificationReason")
-                        .HasColumnType("text")
-                        .HasColumnName("verification_reason");
-
                     b.Property<string>("VerificationStatus")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -726,10 +725,6 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<string>("Duration")
-                        .HasColumnType("text")
-                        .HasColumnName("duration");
-
                     b.Property<int>("EmployerId")
                         .HasColumnType("integer")
                         .HasColumnName("employer_id");
@@ -739,17 +734,9 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("employment_type");
 
-                    b.Property<DateOnly?>("EventStartAt")
-                        .HasColumnType("date")
-                        .HasColumnName("event_start_at");
-
                     b.Property<DateOnly?>("ExpireAt")
                         .HasColumnType("date")
                         .HasColumnName("expire_at");
-
-                    b.Property<bool?>("IsPaid")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_paid");
 
                     b.Property<decimal?>("Latitude")
                         .HasPrecision(9, 6)
@@ -777,20 +764,12 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnName("media_content")
                         .HasDefaultValueSql("'[]'::jsonb");
 
-                    b.Property<string>("MeetingFrequency")
-                        .HasColumnType("text")
-                        .HasColumnName("meeting_frequency");
-
-                    b.Property<string>("ModerationReason")
-                        .HasColumnType("text")
-                        .HasColumnName("moderation_reason");
-
                     b.Property<string>("ModerationStatus")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
-                        .HasDefaultValue("draft")
+                        .HasDefaultValue("pending")
                         .HasColumnName("moderation_status");
 
                     b.Property<string>("OpportunityType")
@@ -804,37 +783,9 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasColumnName("publish_at")
                         .HasDefaultValueSql("CURRENT_DATE");
 
-                    b.Property<DateOnly?>("RegistrationDeadline")
-                        .HasColumnType("date")
-                        .HasColumnName("registration_deadline");
-
-                    b.Property<decimal?>("SalaryFrom")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
-                        .HasColumnName("salary_from");
-
-                    b.Property<decimal?>("SalaryTo")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
-                        .HasColumnName("salary_to");
-
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .HasColumnType("tsvector")
                         .HasColumnName("search_vector");
-
-                    b.Property<int?>("SeatsCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("seats_count");
-
-                    b.Property<decimal?>("StipendFrom")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
-                        .HasColumnName("stipend_from");
-
-                    b.Property<decimal?>("StipendTo")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
-                        .HasColumnName("stipend_to");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -941,10 +892,9 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     b.HasIndex("CandidateId");
 
-                    b.HasIndex(new[] { "OpportunityId" }, "idx_recommendations_opportunity_id");
+                    b.HasIndex("RecommenderId");
 
-                    b.HasIndex(new[] { "RecommenderId", "CandidateId" }, "recommendations_recommender_id_candidate_id_key")
-                        .IsUnique();
+                    b.HasIndex(new[] { "OpportunityId" }, "idx_recommendations_opportunity_id");
 
                     b.ToTable("recommendations", (string)null);
                 });
