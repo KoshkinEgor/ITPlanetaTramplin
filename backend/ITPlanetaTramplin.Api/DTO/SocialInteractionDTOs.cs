@@ -85,6 +85,8 @@ public class SocialUserSummaryDTO
 
     public string Name { get; set; } = string.Empty;
 
+    public string? City { get; set; }
+
     public List<string>? Skills { get; set; }
 
     public RelationshipSummaryDTO Relationship { get; set; } = new();

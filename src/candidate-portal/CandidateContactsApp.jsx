@@ -8,6 +8,7 @@ import {
   declineCandidateProjectInvite,
   deleteCandidateContact,
   deleteCandidateFriend,
+  getCandidateDirectory,
   getCandidateContacts,
   getCandidateFriendRequests,
   getCandidateFriends,
@@ -21,12 +22,52 @@ import {
   normalizeRelationship,
 } from "./social";
 import { formatLongDate } from "./mappers";
-import { Alert, Avatar, Button, Card, EmptyState, Loader, SegmentedControl, Tabs, Tag } from "../shared/ui";
+import { Alert, Avatar, Button, Card, EmptyState, Loader, SearchInput, SegmentedControl, Select, Tabs, Tag } from "../shared/ui";
 import { CandidateSectionHeader } from "./shared";
 
 function normalizeTab(value) {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return ["contacts", "friends", "incoming", "project-invites"].includes(normalized) ? normalized : "contacts";
+  return ["contacts", "search", "friends", "incoming", "project-invites"].includes(normalized) ? normalized : "contacts";
+}
+
+function normalizeSearchValue(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function normalizeOptionalText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function extractUserCity(user) {
+  return [
+    user?.city,
+    user?.locationCity,
+    user?.location,
+    user?.address?.city,
+    user?.profile?.city,
+  ].map(normalizeOptionalText).find(Boolean) ?? "";
+}
+
+function getBadgePriority(badge) {
+  const tone = badge?.tone ?? "";
+
+  if (tone === "warning") {
+    return 4;
+  }
+
+  if (tone === "soft" || tone === "success") {
+    return 3;
+  }
+
+  if (tone === "accent") {
+    return 2;
+  }
+
+  if (tone === "neutral") {
+    return 1;
+  }
+
+  return 0;
 }
 
 function isMissingSocialEndpoint(error) {
@@ -54,8 +95,9 @@ async function loadOptionalSocialCollection(loader) {
 }
 
 async function loadSocialHubCollections(signal) {
-  const [contacts, friendsResult, friendRequestsResult, projectInvitesResult] = await Promise.all([
+  const [contacts, directory, friendsResult, friendRequestsResult, projectInvitesResult] = await Promise.all([
     getCandidateContacts(signal),
+    getCandidateDirectory(signal),
     loadOptionalSocialCollection(() => getCandidateFriends(signal)),
     loadOptionalSocialCollection(() => getCandidateFriendRequests(signal)),
     loadOptionalSocialCollection(() => getCandidateProjectInvites(signal)),
@@ -63,6 +105,7 @@ async function loadSocialHubCollections(signal) {
 
   return {
     contacts: Array.isArray(contacts) ? contacts : [],
+    directory: Array.isArray(directory) ? directory : [],
     friends: friendsResult.items,
     friendRequests: friendRequestsResult.items,
     projectInvites: projectInvitesResult.items,
@@ -70,7 +113,7 @@ async function loadSocialHubCollections(signal) {
   };
 }
 
-function SocialHubCard({ title, subtitle, meta, tags = [], badge, href, actions = [] }) {
+function SocialHubCard({ title, subtitle, meta, tags = [], badge, href, actions = [], className = "" }) {
   const initials = String(title ?? "")
     .split(/\s+/)
     .filter(Boolean)
@@ -79,7 +122,7 @@ function SocialHubCard({ title, subtitle, meta, tags = [], badge, href, actions 
     .join("") || "К";
 
   return (
-    <Card className="candidate-social-card">
+    <Card className={`candidate-social-card ${className}`.trim()}>
       <div className="candidate-social-card__head">
         <div className="candidate-social-card__identity">
           <Avatar initials={initials} shape="rounded" className="candidate-social-card__avatar" />
@@ -130,10 +173,15 @@ export function CandidateContactsApp() {
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const [inviteFilter, setInviteFilter] = useState("pending");
+  const [searchDraftQuery, setSearchDraftQuery] = useState("");
+  const [searchAppliedQuery, setSearchAppliedQuery] = useState("");
+  const [searchCity, setSearchCity] = useState("all");
+  const [searchSkill, setSearchSkill] = useState("all");
   const [busyKey, setBusyKey] = useState("");
   const [state, setState] = useState({
     status: "loading",
     contacts: [],
+    directory: [],
     friends: [],
     friendRequests: [],
     projectInvites: [],
@@ -153,6 +201,7 @@ export function CandidateContactsApp() {
         setState({
           status: "ready",
           contacts: collections.contacts,
+          directory: collections.directory,
           friends: collections.friends,
           friendRequests: collections.friendRequests,
           projectInvites: collections.projectInvites,
@@ -164,6 +213,7 @@ export function CandidateContactsApp() {
           setState({
             status: "error",
             contacts: [],
+            directory: [],
             friends: [],
             friendRequests: [],
             projectInvites: [],
@@ -187,6 +237,7 @@ export function CandidateContactsApp() {
       setState({
         status: "ready",
         contacts: collections.contacts,
+        directory: collections.directory,
         friends: collections.friends,
         friendRequests: collections.friendRequests,
         projectInvites: collections.projectInvites,
@@ -196,6 +247,7 @@ export function CandidateContactsApp() {
     } catch (error) {
       setState((current) => ({
         ...current,
+        directory: current.directory,
         status: "error",
         error,
       }));
@@ -208,6 +260,10 @@ export function CandidateContactsApp() {
       nextParams.set("tab", nextTab);
       return nextParams;
     }, { replace: true });
+  }
+
+  function applySearch() {
+    setSearchAppliedQuery(searchDraftQuery.trim());
   }
 
   async function runCardAction(actionKey, callback) {
@@ -251,6 +307,59 @@ export function CandidateContactsApp() {
     return invites;
   }, [inviteFilter, state.projectInvites]);
 
+  const searchDirectory = useMemo(
+    () => (Array.isArray(state.directory) ? state.directory : []).map((user) => {
+      const card = mapSocialUserToCard(user);
+
+      return {
+        ...card,
+        badge: getBadgePriority(card.badge) ? card.badge : { label: "Профиль", tone: "neutral" },
+        city: extractUserCity(user),
+      };
+    }),
+    [state.directory]
+  );
+
+  const searchSkillOptions = useMemo(() => {
+    const skills = Array.from(new Set(searchDirectory.flatMap((entry) => entry.skills)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+
+    return [
+      { value: "all", label: "Все навыки" },
+      ...skills.map((skill) => ({ value: skill, label: skill })),
+    ];
+  }, [searchDirectory]);
+
+  const searchCityOptions = useMemo(() => {
+    const cities = Array.from(new Set(searchDirectory.map((entry) => entry.city).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+
+    return [
+      { value: "all", label: "Все города" },
+      ...cities.map((city) => ({ value: city, label: city })),
+    ];
+  }, [searchDirectory]);
+
+  const searchResults = useMemo(() => {
+    const normalizedQuery = normalizeSearchValue(searchAppliedQuery);
+
+    return searchDirectory.filter((entry) => {
+      const matchesCity = searchCity === "all" || entry.city === searchCity;
+      const matchesSkill = searchSkill === "all" || entry.skills.includes(searchSkill);
+      const haystack = normalizeSearchValue([
+        entry.name,
+        entry.email,
+        entry.city,
+        entry.skills.join(" "),
+      ].join(" "));
+      const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+
+      return matchesCity && matchesSkill && matchesQuery;
+    });
+  }, [searchAppliedQuery, searchCity, searchDirectory, searchSkill]);
+
+  const showRecommendedProfiles = searchAppliedQuery === "" && searchCity === "all" && searchSkill === "all";
+
   const contactsContent = contactCards.length ? (
     <div className="candidate-page-grid candidate-page-grid--two">
       {contactCards.map((card) => (
@@ -283,6 +392,94 @@ export function CandidateContactsApp() {
     </Card>
   );
 
+  const searchContent = (
+    <div className="candidate-page-stack">
+      <Card className="candidate-social-search">
+        <div className="candidate-social-search__head">
+          <div className="candidate-social-search__copy">
+            <strong>Поиск</strong>
+            <p>Глобальный поиск по профилям пользователей системы с фильтрами по городу и навыкам.</p>
+          </div>
+          <Tag tone="accent">{searchResults.length} найдено</Tag>
+        </div>
+
+        <form
+          className="candidate-social-search__form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applySearch();
+          }}
+        >
+          <div className="candidate-social-search__query-row">
+            <SearchInput
+              value={searchDraftQuery}
+              onValueChange={setSearchDraftQuery}
+              placeholder="Поиск по имени, email или навыкам"
+              clearLabel="Очистить поиск"
+              aria-label="Поиск контактов"
+              className="candidate-social-search__field candidate-social-search__field--search"
+            />
+            <Button type="submit" className="candidate-social-search__submit">
+              Найти
+            </Button>
+          </div>
+
+          <div className="candidate-social-search__filters">
+            <Select
+              value={searchCity}
+              onValueChange={setSearchCity}
+              options={searchCityOptions}
+              aria-label="Фильтр по городам"
+              className="candidate-social-search__field"
+            />
+
+            <Select
+              value={searchSkill}
+              onValueChange={setSearchSkill}
+              options={searchSkillOptions}
+              aria-label="Фильтр по навыкам"
+              className="candidate-social-search__field"
+            />
+          </div>
+        </form>
+      </Card>
+
+      {searchResults.length ? (
+        <div className="candidate-page-stack">
+          {showRecommendedProfiles ? (
+            <p className="candidate-social-search__recommendations-label">Рекомендованные:</p>
+          ) : null}
+
+          <div className="candidate-page-grid candidate-social-search-results">
+            {searchResults.map((card) => (
+              <SocialHubCard
+                key={`search-${card.id}`}
+                title={card.name}
+                subtitle={card.email || "Публичный профиль"}
+                meta={[
+                  card.city ? `Город: ${card.city}` : "",
+                ].filter(Boolean).join(" • ")}
+                tags={card.skills}
+                badge={card.badge}
+                href={card.href}
+                className="candidate-social-card--compact"
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <Card>
+          <EmptyState
+            eyebrow="Ничего не найдено"
+            title="Попробуйте изменить запрос или фильтры"
+            description="Поиск запускается кнопкой «Найти», а фильтры помогают сузить результат по городу и навыкам."
+            tone="neutral"
+          />
+        </Card>
+      )}
+    </div>
+  );
+
   const friendsContent = friendCards.length ? (
     <div className="candidate-page-grid candidate-page-grid--two">
       {friendCards.map((card) => (
@@ -290,13 +487,13 @@ export function CandidateContactsApp() {
           key={card.id}
           title={card.name}
           subtitle={card.email || "Подтверждённый друг"}
-          meta="Пользователь подтвердил дружбу и теперь находится в отдельном friend-листе."
+          meta="Пользователь подтвердил дружбу и теперь находится в отдельном списке друзей."
           tags={card.skills}
           badge={card.badge}
           href={card.href}
           actions={card.userId ? [{
             key: "remove-friend",
-            label: "РЈРґР°Р»РёС‚СЊ РёР· РґСЂСѓР·РµР№",
+            label: "Удалить из друзей",
             variant: "ghost",
             loading: busyKey === `delete-friend-${card.userId}`,
             onClick: () => runCardAction(`delete-friend-${card.userId}`, () => deleteCandidateFriend(card.userId)),
@@ -353,7 +550,7 @@ export function CandidateContactsApp() {
       <EmptyState
         eyebrow="Тихо"
         title="Новых заявок в друзья нет"
-        description="Все входящие действия будут появляться здесь и в колокольчике header."
+        description="Все входящие действия будут появляться здесь и в колокольчике в шапке."
         tone="neutral"
       />
     </Card>
@@ -392,7 +589,7 @@ export function CandidateContactsApp() {
                 key={invite.id}
                 title={card.name}
                 subtitle={card.email || "Приглашение в проект"}
-                meta={metaParts.join(" · ")}
+                meta={metaParts.join(" • ")}
                 tags={card.skills}
                 badge={{
                   label: isIncoming ? "Входящий инвайт" : isPending ? "Исходящий инвайт" : "Инвайт",
@@ -439,6 +636,7 @@ export function CandidateContactsApp() {
   );
 
   const tabs = [
+    { value: "search", label: "Поиск", content: searchContent },
     { value: "contacts", label: "Контакты", badge: contactCards.length, content: contactsContent },
     { value: "friends", label: "Друзья", badge: friendCards.length, content: friendsContent },
     { value: "incoming", label: "Входящие", badge: incomingRequests.length, content: incomingContent },
@@ -449,12 +647,12 @@ export function CandidateContactsApp() {
     <section className="candidate-page-section candidate-social-hub" data-testid="candidate-contacts-app">
       <CandidateSectionHeader
         title="Контакты и связи"
-        description="Управляйте сохранёнными контактами, друзьями и входящими действиями из одного места."
+        description="Управляйте сохранёнными контактами, друзьями, поиском и входящими действиями из одного места."
       />
 
       {state.status === "ready" && state.degraded ? (
         <Alert tone="warning" title="Часть social-возможностей пока недоступна" showIcon>
-          Текущий backend не отдает друзей, заявки и приглашения в проекты. Показываем только сохранённые контакты.
+          Текущий backend не отдаёт друзей, заявки и приглашения в проекты. Поиск по профилям работает отдельно от этих разделов.
         </Alert>
       ) : null}
 

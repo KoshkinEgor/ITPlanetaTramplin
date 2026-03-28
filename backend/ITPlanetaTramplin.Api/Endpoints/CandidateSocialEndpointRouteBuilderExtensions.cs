@@ -105,6 +105,32 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         return Results.Ok(friends);
     }
 
+    private static async Task<IResult> GetCandidateGlobalDirectoryAsync(HttpContext context, ApplicationDBContext db)
+    {
+        var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var users = await db.Users
+            .AsNoTracking()
+            .Include(item => item.ApplicantProfile)
+            .Where(item => item.Id != currentUserId.Value && item.ApplicantProfile != null)
+            .OrderBy(item => item.ApplicantProfile!.Name)
+            .ThenBy(item => item.ApplicantProfile!.Surname)
+            .ThenBy(item => item.Email)
+            .ToListAsync();
+
+        var result = new List<SocialUserSummaryDTO>(users.Count);
+        foreach (var user in users)
+        {
+            result.Add(await GetSocialUserSummaryAsync(db, currentUserId.Value, user.Id));
+        }
+
+        return Results.Ok(result);
+    }
+
     private static async Task<IResult> GetCurrentCandidateFriendRequestsAsync(HttpContext context, ApplicationDBContext db)
     {
         var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
@@ -517,9 +543,17 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             UserId = user.Id,
             Email = user.Email,
             Name = AuthEndpointSupport.BuildDisplayName(user, PublicRoles.Candidate) ?? user.Email,
+            City = ExtractCandidateCity(user.ApplicantProfile?.Links),
             Skills = user.ApplicantProfile?.Skills,
             Relationship = await BuildRelationshipSummaryAsync(db, currentUserId, targetUserId),
         };
+    }
+
+    private static string? ExtractCandidateCity(string? rawLinks)
+    {
+        var links = ParseJsonObject(rawLinks);
+        var onboarding = GetObjectNode(links, "onboarding");
+        return onboarding?["city"]?.GetValue<string?>();
     }
 
     private static async Task<RelationshipSummaryDTO> BuildRelationshipSummaryAsync(ApplicationDBContext db, int currentUserId, int targetUserId)
