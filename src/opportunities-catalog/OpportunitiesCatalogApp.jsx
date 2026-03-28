@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute } from "../app/routes";
+import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
+import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
   Alert,
@@ -14,6 +17,7 @@ import {
   PillButton,
   SearchInput,
   SectionHeader,
+  SegmentedControl,
   Tag,
 } from "../shared/ui";
 import "../ui-kit/ui-kit.css";
@@ -29,6 +33,33 @@ const TYPE_FILTERS = [
   { value: "internship", label: "Стажировки" },
   { value: "event", label: "Мероприятия" },
 ];
+
+const VIEW_ITEMS = [
+  { value: "list", label: "Список" },
+  { value: "map", label: "Карта" },
+];
+
+const MAP_LEGEND_ITEMS = [
+  { tone: "blue", label: "Вакансия" },
+  { tone: "green", label: "Стажировка" },
+  { tone: "orange", label: "Мероприятие" },
+];
+
+const MAP_DISPLAY_ITEMS = [
+  { value: "all", label: "\u0412\u0441\u0435" },
+  { value: "favorites", label: "\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435" },
+  { value: "non-favorites", label: "\u041d\u0435 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435" },
+];
+
+function FilterIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 6h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 10h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 14h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function normalize(value) {
   return String(value ?? "").trim().toLowerCase();
@@ -132,6 +163,45 @@ function createRowCardItem(item) {
   };
 }
 
+function hasValidCoordinates(item) {
+  return Number.isFinite(Number(item?.longitude)) && Number.isFinite(Number(item?.latitude));
+}
+
+function createMapCardItem(item) {
+  const typeLabel = translateOpportunityType(item.opportunityType);
+  const employmentLabel = translateEmploymentType(item.employmentType);
+
+  return {
+    id: String(item.id),
+    eyebrow: typeLabel,
+    type: typeLabel,
+    title: item.title,
+    meta: createOpportunityMeta(item),
+    accent: item.locationAddress || employmentLabel,
+    note: shortenText(item.description, 56),
+    chips: Array.isArray(item.tags) ? item.tags.slice(0, 3) : [],
+    coordinates: [Number(item.longitude), Number(item.latitude)],
+    detailHref: buildOpportunityDetailRoute(item.id),
+    isFavorite: Boolean(item.isFavorite),
+  };
+}
+
+function getMapResultsDescription(filteredCount, mapPointsCount) {
+  if (!filteredCount) {
+    return "По текущим фильтрам нет подходящих возможностей.";
+  }
+
+  if (!mapPointsCount) {
+    return `Найдено ${formatCount(filteredCount, ["возможность", "возможности", "возможностей"])}, но ни у одной нет координат для карты.`;
+  }
+
+  if (filteredCount === mapPointsCount) {
+    return `На карте ${formatCount(mapPointsCount, ["возможность", "возможности", "возможностей"])}.`;
+  }
+
+  return `На карте ${formatCount(mapPointsCount, ["возможность", "возможности", "возможностей"])} из ${formatCount(filteredCount, ["возможность", "возможности", "возможностей"])}. Остальные скрыты без координат.`;
+}
+
 function scoreOpportunity(item, candidateSkills, activeType, city) {
   const haystack = [
     item.title,
@@ -217,6 +287,7 @@ function buildCompanyGroups(items) {
 }
 
 export function OpportunitiesCatalogApp() {
+  const filtersAnchorRef = useRef(null);
   const [state, setState] = useState({
     status: "loading",
     items: [],
@@ -226,23 +297,32 @@ export function OpportunitiesCatalogApp() {
   const [filters, setFilters] = useState({
     query: "",
     activeType: "all",
-    city: "",
+    city: DEFAULT_CITY_NAME,
     specialization: "",
     employmentTypes: [],
     incomeFrom: "",
     payoutPeriod: "",
     education: [],
   });
+  const [view, setView] = useState("list");
+  const [favoritesDisplay, setFavoritesDisplay] = useState("all");
+  const [filtersDropdownOpen, setFiltersDropdownOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
+  const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(3);
   const [expandedCompanies, setExpandedCompanies] = useState(false);
   const [companyCity, setCompanyCity] = useState("");
 
   useEffect(() => {
     document.body.classList.add(BODY_CLASS);
+
     return () => {
       document.body.classList.remove(BODY_CLASS);
     };
   }, []);
+
+  useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -285,6 +365,7 @@ export function OpportunitiesCatalogApp() {
     }
 
     load();
+
     return () => controller.abort();
   }, []);
 
@@ -293,9 +374,18 @@ export function OpportunitiesCatalogApp() {
     setExpandedCompanies(false);
   }, [filters.query, filters.activeType, filters.city, filters.specialization, filters.employmentTypes]);
 
+  useEffect(() => {
+    if (view === "map") {
+      setFiltersDropdownOpen(false);
+      return;
+    }
+
+    setFiltersDrawerOpen(false);
+  }, [view]);
+
   const filterOptions = useMemo(
     () => ({
-      cities: uniqueOptions(state.items.map((item) => item.locationCity)).map((value) => ({ value, label: value })),
+      cities: FALLBACK_CITY_OPTIONS,
       specializations: uniqueOptions(state.items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
       employmentTypes: uniqueOptions(state.items.map((item) => translateEmploymentType(item.employmentType)))
         .filter(Boolean)
@@ -345,8 +435,37 @@ export function OpportunitiesCatalogApp() {
   const personalizedItems = scoredRecommendations.filter((entry) => entry.matchedSkillsCount > 0);
   const hasPersonalization = candidateSkills.length > 0;
   const visibleResults = filteredItems.slice(0, visibleCount);
-
   const companyGroups = useMemo(() => buildCompanyGroups(recommendationSource), [recommendationSource]);
+  const favoriteOpportunityIdSet = useMemo(
+    () => new Set(favoriteOpportunityIds.map((id) => String(id))),
+    [favoriteOpportunityIds]
+  );
+  const mapFilteredItems = useMemo(
+    () =>
+      filteredItems
+        .map((item) => ({
+          ...item,
+          isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
+        }))
+        .filter((item) => {
+          if (favoritesDisplay === "favorites") {
+            return item.isFavorite;
+          }
+
+          if (favoritesDisplay === "non-favorites") {
+            return !item.isFavorite;
+          }
+
+          return true;
+        }),
+    [favoriteOpportunityIdSet, favoritesDisplay, filteredItems]
+  );
+  const mapItems = useMemo(() => mapFilteredItems.filter(hasValidCoordinates).map(createMapCardItem), [mapFilteredItems]);
+  const mapResultsDescription = useMemo(
+    () => getMapResultsDescription(mapFilteredItems.length, mapItems.length),
+    [mapFilteredItems.length, mapItems.length]
+  );
+  const selectedCityOption = useMemo(() => getFallbackCityOption(filters.city), [filters.city]);
 
   const preferredCompanyCity = useMemo(() => {
     if (filters.city && companyGroups.some((entry) => entry.city === filters.city)) {
@@ -359,6 +478,12 @@ export function OpportunitiesCatalogApp() {
   useEffect(() => {
     setCompanyCity(preferredCompanyCity);
   }, [preferredCompanyCity]);
+
+  useEffect(() => {
+    if (selectedMapItemId && !mapItems.some((item) => String(item.id) === String(selectedMapItemId))) {
+      setSelectedMapItemId(null);
+    }
+  }, [mapItems, selectedMapItemId]);
 
   const activeCompanyGroup = companyGroups.find((entry) => entry.city === companyCity) ?? companyGroups[0] ?? null;
   const visibleCompanies = expandedCompanies ? activeCompanyGroup?.companies ?? [] : (activeCompanyGroup?.companies ?? []).slice(0, 6);
@@ -405,7 +530,7 @@ export function OpportunitiesCatalogApp() {
     setFilters((current) => {
       switch (section) {
         case "city":
-          return { ...current, city: "" };
+          return { ...current, city: DEFAULT_CITY_NAME };
         case "income":
           return { ...current, incomeFrom: "", payoutPeriod: "" };
         case "specialization":
@@ -424,14 +549,45 @@ export function OpportunitiesCatalogApp() {
     setFilters({
       query: "",
       activeType: "all",
-      city: "",
+      city: DEFAULT_CITY_NAME,
       specialization: "",
       employmentTypes: [],
       incomeFrom: "",
       payoutPeriod: "",
       education: [],
     });
+    setFavoritesDisplay("all");
   };
+
+  const handleResetMapDisplay = () => {
+    setFavoritesDisplay("all");
+  };
+
+  const handleViewChange = (nextView) => {
+    setView(nextView);
+
+    if (nextView === "map") {
+      setFiltersDropdownOpen(false);
+      return;
+    }
+
+    setFiltersDrawerOpen(false);
+  };
+
+  const renderTypeFilters = (className) => (
+    <div className={className}>
+      {TYPE_FILTERS.map((filter) => (
+        <PillButton
+          key={filter.value}
+          size="lg"
+          active={filter.value === filters.activeType}
+          onClick={() => handleFilterChange("activeType", filter.value)}
+        >
+          {filter.label}
+        </PillButton>
+      ))}
+    </div>
+  );
 
   return (
     <main className="opportunities-browser">
@@ -473,15 +629,6 @@ export function OpportunitiesCatalogApp() {
         {state.status === "ready" ? (
           <>
             <section className="opportunities-browser__layout" id="catalog-results">
-              <OpportunityFilterSidebar
-                values={filters}
-                options={filterOptions}
-                disabledSections={{ income: true, payout: true, education: true }}
-                onChange={handleFilterChange}
-                onResetSection={handleResetSection}
-                onResetAll={handleResetAll}
-              />
-
               <div className="opportunities-browser__main">
                 <div className="opportunities-browser__section-head">
                   <Tag tone="accent">Возможности</Tag>
@@ -492,78 +639,208 @@ export function OpportunitiesCatalogApp() {
                   />
                 </div>
 
-                <SearchInput
-                  value={filters.query}
-                  onValueChange={(value) => handleFilterChange("query", value)}
-                  placeholder="Поиск по названию, действию или дате"
-                  clearLabel="Очистить поиск"
-                  appearance="elevated"
-                  size="lg"
-                  width="full"
-                  className="opportunities-browser__search"
-                />
+                {view === "list" ? (
+                  <>
+                    <div className="opportunities-browser__controls">
+                      <div className="opportunities-browser__controls-main">
+                        <SegmentedControl
+                          items={VIEW_ITEMS}
+                          value={view}
+                          onChange={handleViewChange}
+                          stretch
+                          ariaLabel="Режим каталога возможностей"
+                          className="opportunities-browser__view-switch"
+                        />
 
-                <div className="opportunities-browser__toolbar">
-                  <div className="opportunities-browser__type-filters">
-                    {TYPE_FILTERS.map((filter) => (
-                      <PillButton
-                        key={filter.value}
+                        <div ref={filtersAnchorRef} className="opportunities-browser__filters-anchor">
+                          <Button
+                            variant="secondary"
+                            size="lg"
+                            iconStart={<FilterIcon />}
+                            className="opportunities-browser__filter-button"
+                            onClick={() => setFiltersDropdownOpen((current) => !current)}
+                          >
+                            {"Фильтры"}
+                          </Button>
+
+                          <OpportunityFilterSidebar
+                            mode="dropdown"
+                            open={filtersDropdownOpen}
+                            onOpenChange={setFiltersDropdownOpen}
+                            boundaryRef={filtersAnchorRef}
+                            values={filters}
+                            options={filterOptions}
+                            disabledSections={{ income: true, payout: true, education: true }}
+                            onChange={handleFilterChange}
+                            onResetSection={handleResetSection}
+                            onResetAll={handleResetAll}
+                          />
+                        </div>
+                      </div>
+
+                      <SearchInput
+                        value={filters.query}
+                        onValueChange={(value) => handleFilterChange("query", value)}
+                        placeholder="Поиск по названию, действию или дате"
+                        clearLabel="Очистить поиск"
+                        appearance="elevated"
                         size="lg"
-                        active={filter.value === filters.activeType}
-                        onClick={() => handleFilterChange("activeType", filter.value)}
-                      >
-                        {filter.label}
-                      </PillButton>
-                    ))}
-                  </div>
-
-                  <div className="opportunities-browser__sort">
-                    <button type="button" disabled className="opportunities-browser__sort-button">
-                      По возрастанию зарплат
-                    </button>
-                    <p>Сортировка появится после подключения зарплатных данных.</p>
-                  </div>
-                </div>
-
-                <p className="opportunities-browser__results-caption">
-                  Найдено {formatCount(filteredItems.length, ["возможность", "возможности", "возможностей"])}
-                </p>
-
-                {filteredItems.length ? (
-                  <div className="opportunities-browser__results">
-                    {visibleResults.map((item) => (
-                      <OpportunityRowCard
-                        key={item.id}
-                        item={createRowCardItem(item)}
-                        primaryAction={{
-                          href: buildOpportunityDetailRoute(item.id),
-                          label: "Связаться",
-                          variant: "secondary",
-                        }}
-                        detailAction={{
-                          href: buildOpportunityDetailRoute(item.id),
-                          label: item.opportunityType === "event" ? "Подать заявку" : "Откликнуться",
-                          variant: "secondary",
-                        }}
+                        width="full"
+                        className="opportunities-browser__search"
                       />
-                    ))}
-                  </div>
-                ) : (
-                  <Card>
-                    <EmptyState
-                      eyebrow="Ничего не найдено"
-                      title="Нет возможностей по текущим фильтрам"
-                      description="Измените запрос, город или специализацию. Неподдержанные фильтры пока показаны только как структура."
-                      tone="neutral"
-                    />
-                  </Card>
-                )}
 
-                {filteredItems.length > visibleCount ? (
-                  <Button variant="secondary" size="lg" width="full" className="opportunities-browser__more-button" onClick={() => setVisibleCount((current) => current + 3)}>
-                    Больше возможностей
-                  </Button>
-                ) : null}
+                      <div className="opportunities-browser__toolbar">
+                        {renderTypeFilters("opportunities-browser__type-filters")}
+
+                        <div className="opportunities-browser__sort">
+                          <button type="button" disabled className="opportunities-browser__sort-button">
+                            {"По возрастанию зарплат"}
+                          </button>
+                          <p>{"Сортировка появится после подключения зарплатных данных."}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="opportunities-browser__results-caption">
+                      {"Найдено"} {formatCount(filteredItems.length, ["возможность", "возможности", "возможностей"])}
+                    </p>
+
+                    {filteredItems.length ? (
+                      <div className="opportunities-browser__results">
+                        {visibleResults.map((item) => (
+                          <OpportunityRowCard
+                            key={item.id}
+                            item={createRowCardItem(item)}
+                            primaryAction={{
+                              href: buildOpportunityDetailRoute(item.id),
+                              label: "Связаться",
+                              variant: "secondary",
+                            }}
+                            detailAction={{
+                              href: buildOpportunityDetailRoute(item.id),
+                              label: item.opportunityType === "event" ? "Подать заявку" : "Откликнуться",
+                              variant: "secondary",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Card>
+                        <EmptyState
+                          eyebrow="Ничего не найдено"
+                          title="Нет возможностей по текущим фильтрам"
+                          description="Измените запрос, город или специализацию. Неподдержанные фильтры пока показаны только как структура."
+                          tone="neutral"
+                        />
+                      </Card>
+                    )}
+
+                    {filteredItems.length > visibleCount ? (
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        width="full"
+                        className="opportunities-browser__more-button"
+                        onClick={() => setVisibleCount((current) => current + 3)}
+                      >
+                        {"Больше возможностей"}
+                      </Button>
+                    ) : null}
+                  </>
+                ) : (
+                  <section className="opportunities-browser__map-panel" aria-label="Карта возможностей">
+                    <div className="opportunities-browser__map-shell">
+                      <div className="opportunities-browser__map-header">
+                        <div className="opportunities-browser__map-copy">
+                          <Tag tone="accent">{"Карта возможностей"}</Tag>
+                          <SectionHeader
+                            size="md"
+                            title="Большая карта каталога"
+                            description={mapResultsDescription}
+                          />
+                        </div>
+
+                        <div className="opportunities-browser__map-actions">
+                          <Button
+                            variant="secondary"
+                            size="lg"
+                            iconStart={<FilterIcon />}
+                            className="opportunities-browser__map-filter-button"
+                            onClick={() => setFiltersDrawerOpen(true)}
+                          >
+                            {"Фильтры карты"}
+                          </Button>
+
+                          <SegmentedControl
+                            items={VIEW_ITEMS}
+                            value={view}
+                            onChange={handleViewChange}
+                            stretch
+                            ariaLabel="Режим карты возможностей"
+                            className="opportunities-browser__map-view-switch"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="opportunities-browser__map-toolbar">
+                        <SearchInput
+                          value={filters.query}
+                          onValueChange={(value) => handleFilterChange("query", value)}
+                          placeholder="Поиск по названию, действию или дате"
+                          clearLabel="Очистить поиск"
+                          appearance="elevated"
+                          size="lg"
+                          width="full"
+                          className="opportunities-browser__map-search"
+                        />
+
+                        <div className="opportunities-browser__map-meta">
+                          {renderTypeFilters("opportunities-browser__type-filters opportunities-browser__type-filters--map")}
+
+                          <div className="opportunities-browser__map-legend" aria-label="Легенда карты">
+                            {MAP_LEGEND_ITEMS.map((item) => (
+                              <span key={item.tone} className="opportunities-browser__map-legend-chip">
+                                <span className={`opportunities-browser__map-dot opportunities-browser__map-dot--${item.tone}`} aria-hidden="true" />
+                                {item.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="opportunities-browser__map-surface">
+                        <HomeOpportunityMap
+                          items={mapItems}
+                          selectedCity={filters.city}
+                          selectedCityCoordinates={
+                            selectedCityOption?.longitude != null && selectedCityOption?.latitude != null
+                              ? [selectedCityOption.longitude, selectedCityOption.latitude]
+                              : null
+                          }
+                          activeId={selectedMapItemId}
+                          onSelectItem={setSelectedMapItemId}
+                        />
+                      </div>
+                    </div>
+
+                    <OpportunityFilterSidebar
+                      mode="drawer"
+                      open={filtersDrawerOpen}
+                      onOpenChange={setFiltersDrawerOpen}
+                      drawerBackdrop={false}
+                      values={filters}
+                      options={filterOptions}
+                      displayOptions={MAP_DISPLAY_ITEMS}
+                      displayValue={favoritesDisplay}
+                      disabledSections={{ income: true, payout: true, education: true }}
+                      onDisplayChange={setFavoritesDisplay}
+                      onChange={handleFilterChange}
+                      onResetDisplay={handleResetMapDisplay}
+                      onResetSection={handleResetSection}
+                      onResetAll={handleResetAll}
+                    />
+                  </section>
+                )}
               </div>
             </section>
 

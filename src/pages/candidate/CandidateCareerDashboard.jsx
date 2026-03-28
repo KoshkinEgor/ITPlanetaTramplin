@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { buildOpportunityDetailRoute, routes } from "../../app/routes";
-import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-portal/mappers";
+import { buildCandidatePublicProfileRoute, buildOpportunityDetailRoute, routes } from "../../app/routes";
+import { getCandidateDisplayName, getCandidateSkills, translateEmploymentType } from "../../candidate-portal/mappers";
 import { OpportunityBlockSlider } from "../../components/opportunities";
 import {
   Alert,
@@ -65,6 +65,8 @@ const FALLBACK_OPPORTUNITIES = [
   { id: "product-design-internship", type: "Стажировка", status: "Активно", statusTone: "success", title: "Дизайнер цифровых продуктов", company: "White Tiger Soft", accent: "Длительность: 6 недель", chips: ["Студенты", "Junior"], href: routes.opportunities.catalog },
 ];
 
+void FALLBACK_OPPORTUNITIES;
+
 const MENTOR_FILTERS = [
   { value: "career-plan", label: "Построить карьерный план" },
   { value: "resume", label: "Создать полное резюме" },
@@ -78,12 +80,6 @@ const MENTORS = [
   { id: "julia-dmitrieva", name: "Юлия Дмитриева", role: "Карьерный консультант", summary: "Помогает настроить карьерный фокус, резюме и уверенно пройти интервью.", focus: ["career-plan", "interview", "strategy"], tone: "accent" },
   { id: "veronica-alekseeva", name: "Вероника Алексеева", role: "Senior Product Designer в Яндекс", summary: "5 лет в UX/UI-дизайне, IT-рекрутинге и продуктовых командах.", focus: ["resume", "interview", "career-plan"], tone: "success" },
   { id: "andrey-fadeev", name: "Андрей Фадеев", role: "Тимлид аналитики", summary: "Помогает собрать стратегию роста, усилить портфолио и не выгореть на длинной дистанции.", focus: ["strategy", "career-plan", "burnout"], tone: "neutral" },
-];
-
-const PEER_FALLBACKS = [
-  { id: "peer-morova", name: "Александра Морева", sharedSkills: ["Web-design", "UX", "Figma"] },
-  { id: "peer-sokolova", name: "Анастасия Соколова", sharedSkills: ["Figma", "UX", "Research"] },
-  { id: "peer-ilina", name: "Мария Ильина", sharedSkills: ["Figma", "UX"] },
 ];
 
 function normalizeKey(value) {
@@ -146,6 +142,7 @@ function mapOpportunityCard(item) {
   }
 
   const opportunityId = item.id ?? item.opportunityId ?? null;
+  const employmentLabel = translateEmploymentType(item.employmentType);
 
   return {
     id: opportunityId ?? `${item.title ?? "career"}-${item.companyName ?? "item"}`,
@@ -154,11 +151,15 @@ function mapOpportunityCard(item) {
     statusTone: "success",
     title: item.title ?? item.opportunityTitle ?? "Карьерная возможность",
     company: item.companyName || "Компания",
-    accent: item.duration ?? (item.locationCity ? `Локация: ${item.locationCity}` : item.employmentType ?? "Длительность уточняется"),
     chips: safeArray(item.tags).filter(Boolean).slice(0, 2),
+    ...{
+      company: [item.companyName, item.locationCity].filter(Boolean).join(" - ") || item.companyName || "Company",
+      accent: item.duration ?? employmentLabel ?? (item.locationCity ? `Location: ${item.locationCity}` : item.employmentType || ""),
+    },
     href: opportunityId ? buildOpportunityDetailRoute(opportunityId) : routes.opportunities.catalog,
   };
 }
+
 
 function getOpportunityCards(recommendations, opportunities) {
   const primary = safeArray(recommendations).map(mapOpportunityCard).filter(Boolean);
@@ -166,7 +167,7 @@ function getOpportunityCards(recommendations, opportunities) {
   const merged = [];
   const seenIds = new Set();
 
-  [primary, secondary, FALLBACK_OPPORTUNITIES].forEach((group) => {
+  [primary, secondary].forEach((group) => {
     group.forEach((item) => {
       const itemId = item?.id ?? item?.title;
 
@@ -228,7 +229,7 @@ function buildInitials(name) {
 
 function getSharedContacts(profile, contacts) {
   const skillSet = new Set(getCandidateSkills(profile).map(normalizeKey));
-  const dynamic = safeArray(contacts).map((contact) => {
+  return safeArray(contacts).map((contact) => {
     const sharedSkills = safeArray(contact?.skills).filter((skill) => skillSet.has(normalizeKey(skill))).slice(0, 3);
     const fallbackSkills = safeArray(contact?.skills).slice(0, 3);
     const name = contact?.name || contact?.email || "Контакт";
@@ -238,17 +239,14 @@ function getSharedContacts(profile, contacts) {
       name,
       initials: buildInitials(name),
       sharedSkills: sharedSkills.length ? sharedSkills : (fallbackSkills.length ? fallbackSkills : ["Совпадение по интересам"]),
-      href: routes.candidate.contacts,
+      href: buildCandidatePublicProfileRoute({
+        userId: contact?.contactProfileId ?? contact?.userId ?? contact?.id ?? null,
+        name,
+        email: contact?.email || "",
+        skills: sharedSkills.length ? sharedSkills : fallbackSkills,
+      }),
     };
-  }).filter((contact) => contact.id);
-
-  return (dynamic.length
-    ? dynamic
-    : PEER_FALLBACKS.map((contact) => ({
-        ...contact,
-        initials: buildInitials(contact.name),
-        href: routes.candidate.contacts,
-      }))).slice(0, 3);
+  }).filter((contact) => contact.id).slice(0, 3);
 }
 
 function countByStatus(items, status) {
@@ -315,7 +313,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
 
       {dashboardState.degraded ? (
         <Alert tone="warning" title="Часть данных временно недоступна" showIcon>
-          Страница открыта, но некоторые персональные рекомендации собраны из fallback-подборок.
+          Страница открыта, но некоторые персональные данные не загрузились. Часть блоков может быть неполной.
         </Alert>
       ) : null}
 
@@ -346,22 +344,28 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           size="md"
           actions={<a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">Все возможности →</a>}
         />
-        <OpportunityBlockSlider
-          ariaLabel={OPPORTUNITY_SLIDER_ARIA_LABEL}
-          items={opportunities}
-          variant="leading-featured"
-          className="candidate-career-dashboard__opportunities-slider"
-          itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
-          featuredWidth="var(--candidate-career-dashboard-opportunity-featured-width)"
-          gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
-          cardPropsBuilder={(item) => ({
-            detailAction: {
-              href: item.href ?? routes.opportunities.catalog,
-              label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
-              variant: "secondary",
-            },
-          })}
-        />
+        {opportunities.length ? (
+          <OpportunityBlockSlider
+            ariaLabel={OPPORTUNITY_SLIDER_ARIA_LABEL}
+            items={opportunities}
+            variant="leading-featured"
+            className="candidate-career-dashboard__opportunities-slider"
+            itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
+            featuredWidth="var(--candidate-career-dashboard-opportunity-featured-width)"
+            gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
+            cardPropsBuilder={(item) => ({
+              detailAction: {
+                href: item.href ?? routes.opportunities.catalog,
+                label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
+                variant: "secondary",
+              },
+            })}
+          />
+        ) : (
+          <Alert tone="info" title="Пока нет доступных карточек" showIcon>
+            После публикации новых вакансий и возможностей они появятся здесь.
+          </Alert>
+        )}
       </section>
 
       <section className="candidate-career-dashboard__section">
@@ -391,11 +395,17 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           size="md"
           actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Найти единомышленников →</a>}
         />
-        <div className="candidate-career-dashboard__peer-grid">
-          {sharedContacts.map((contact) => (
-            <CareerPeerCard key={contact.id} {...contact} />
-          ))}
-        </div>
+        {sharedContacts.length ? (
+          <div className="candidate-career-dashboard__peer-grid">
+            {sharedContacts.map((contact) => (
+              <CareerPeerCard key={contact.id} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" />
+            ))}
+          </div>
+        ) : (
+          <Alert tone="info" title="Пока нет реальных рекомендаций" showIcon>
+            Когда в сети появятся контакты с общими интересами, они появятся здесь.
+          </Alert>
+        )}
       </section>
     </div>
   );

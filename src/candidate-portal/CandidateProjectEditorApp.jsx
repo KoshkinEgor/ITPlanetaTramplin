@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createCandidateProject } from "../api/candidate";
 import { Alert, Button, Card, FormField, Input, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
@@ -69,6 +69,30 @@ function readFileAsDataUrl(file) {
 
     reader.readAsDataURL(file);
   });
+}
+
+function normalizeString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function createProjectDraftFromSearchParams(searchParams) {
+  const initialDraft = createInitialProjectDraft();
+  const participantName = normalizeString(searchParams.get("participantName"));
+  const participantRole = normalizeString(searchParams.get("participantRole"));
+
+  if (!participantName) {
+    return initialDraft;
+  }
+
+  return {
+    ...initialDraft,
+    participants: [
+      createProjectParticipantDraft({
+        name: participantName,
+        role: participantRole,
+      }),
+    ],
+  };
 }
 
 function ProjectEditorPreview({ draft }) {
@@ -235,8 +259,9 @@ function ProjectParticipantsEditor({ participants, error, onAdd, onChange, onRem
 
 export function CandidateProjectEditorApp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const coverInputRef = useRef(null);
-  const [draft, setDraft] = useState(createInitialProjectDraft);
+  const [draft, setDraft] = useState(() => createProjectDraftFromSearchParams(searchParams));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

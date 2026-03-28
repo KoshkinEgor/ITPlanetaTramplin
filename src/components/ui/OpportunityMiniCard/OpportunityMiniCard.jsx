@@ -87,7 +87,9 @@ export function OpportunityMiniCard({
   const { opportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(extractOpportunityId(item), favoritePressed);
   const action = resolveDetailAction(detailAction, item);
   const hasValue = data.valuePrefix || data.accent || data.valueSuffix;
-  const isCompact = variant === "compact";
+  const isCompact = variant === "compact" || variant === "map-compact";
+  const isMapCompact = variant === "map-compact";
+  const chips = isMapCompact ? data.chips.slice(0, 2) : data.chips;
   const handleFavoriteClick = () => {
     const nextState = toggleFavorite();
     onFavoriteClick?.(opportunityId, nextState);
@@ -95,7 +97,12 @@ export function OpportunityMiniCard({
 
   return (
     <Card
-      className={cn("ui-opportunity-mini-card", isCompact && "ui-opportunity-mini-card--compact", className)}
+      className={cn(
+        "ui-opportunity-mini-card",
+        isCompact && "ui-opportunity-mini-card--compact",
+        isMapCompact && "ui-opportunity-mini-card--map-compact",
+        className
+      )}
       data-opportunity-id={opportunityId ?? undefined}
       {...props}
     >
@@ -118,7 +125,7 @@ export function OpportunityMiniCard({
           <IconButton
             type="button"
             variant="surface"
-            size={isCompact ? "xl" : "2xl"}
+            size={isMapCompact ? "lg" : isCompact ? "xl" : "2xl"}
             className="ui-opportunity-mini-card__favorite ui-opportunity-mini-card__favorite--dismiss"
             label={dismissAction.label}
             onClick={dismissAction.onClick}
@@ -129,7 +136,7 @@ export function OpportunityMiniCard({
           <IconButton
             type="button"
             variant="surface"
-            size={isCompact ? "xl" : "2xl"}
+            size={isMapCompact ? "lg" : isCompact ? "xl" : "2xl"}
             className="ui-opportunity-mini-card__favorite"
             label={favoriteLabel}
             aria-pressed={isFavorite}
@@ -162,9 +169,9 @@ export function OpportunityMiniCard({
         ) : null}
       </div>
 
-      {data.chips.length ? (
+      {chips.length ? (
         <div className="ui-opportunity-mini-card__chips">
-          {data.chips.map((chip, index) => (
+          {chips.map((chip, index) => (
             <Tag key={`${chip}-${index}`} className="ui-opportunity-mini-card__chip">
               {chip}
             </Tag>
@@ -176,7 +183,7 @@ export function OpportunityMiniCard({
         href={action.href}
         onClick={action.onClick}
         variant={action.variant}
-        size={isCompact ? "md" : "lg"}
+        size={isMapCompact ? "sm" : isCompact ? "md" : "lg"}
         width={action.width}
         className="ui-opportunity-mini-card__action"
       >

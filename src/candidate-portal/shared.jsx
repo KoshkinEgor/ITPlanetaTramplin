@@ -282,9 +282,11 @@ function CandidateActionCircle({ label, icon, tone = "accent", href }) {
 }
 
 export function CandidateContactCard({ contact, variant = "grid", className }) {
+  const profileHref = contact?.href || "/candidate/contacts";
+
   if (variant === "compact") {
     return (
-      <AppLink href="/candidate/contacts" className={cn("candidate-contact-card", "candidate-contact-card--compact", className)}>
+      <AppLink href={profileHref} className={cn("candidate-contact-card", "candidate-contact-card--compact", className)}>
         <Avatar initials={contact.initials} shape="rounded" className="candidate-contact-card__avatar" />
         <div className="candidate-contact-card__copy">
           <strong>{contact.name}</strong>
@@ -297,13 +299,13 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
 
   return (
     <Card className={cn("candidate-contact-card", "candidate-contact-card--grid", className)}>
-      <div className="candidate-contact-card__head">
+      <AppLink href={profileHref} className="candidate-contact-card__head">
         <Avatar initials={contact.initials} shape="rounded" className="candidate-contact-card__avatar" />
         <div className="candidate-contact-card__copy">
           <strong>{contact.name}</strong>
           <span>{contact.summary}</span>
         </div>
-      </div>
+      </AppLink>
 
       <div className="candidate-contact-card__tags">
         {contact.tags.map((tag) => (
@@ -314,10 +316,10 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
       </div>
 
       <div className="candidate-contact-card__actions">
-        <Button as="a" href="/candidate/contacts" variant="secondary" className="candidate-contact-card__button">
+        <Button as="a" href={profileHref} variant="secondary" className="candidate-contact-card__button">
           ������� �������
         </Button>
-        <CandidateActionCircle label="�������� ��������" icon={<MailIcon />} href="/candidate/contacts" />
+        <CandidateActionCircle label="�������� ��������" icon={<MailIcon />} href={profileHref} />
       </div>
     </Card>
   );

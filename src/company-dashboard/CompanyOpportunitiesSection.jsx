@@ -7,9 +7,12 @@ import { CabinetContentSection } from "../widgets/layout";
 import {
   createOpportunityContactDraft,
   createOpportunityDraft,
+  createOpportunityMediaDraft,
   parseOpportunityDeadlineInput,
+  parseOpportunityCoordinateInput,
   parseTags,
   serializeOpportunityContacts,
+  serializeOpportunityMedia,
   translateModerationStatus,
   translateOpportunityType,
 } from "./utils";
@@ -19,6 +22,13 @@ const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "vacancy", label: "Вакансия" },
   { value: "internship", label: "Стажировка" },
   { value: "event", label: "Мероприятие" },
+];
+
+const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: "office", label: "Офис" },
+  { value: "hybrid", label: "Гибрид" },
+  { value: "remote", label: "Удаленно" },
+  { value: "online", label: "Онлайн" },
 ];
 
 function formatDeadlineLabel(value) {
@@ -129,6 +139,34 @@ export function CompanyOpportunitiesSection() {
     setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
   }
 
+  function updateMedia(index, field, value) {
+    setDraft((current) => ({
+      ...current,
+      media: current.media.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
+    }));
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  function addMedia() {
+    setDraft((current) => ({
+      ...current,
+      media: [...current.media, createOpportunityMediaDraft()],
+    }));
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  function removeMedia(index) {
+    setDraft((current) => {
+      const nextMedia = current.media.filter((_, itemIndex) => itemIndex !== index);
+
+      return {
+        ...current,
+        media: nextMedia.length ? nextMedia : [createOpportunityMediaDraft()],
+      };
+    });
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
   async function startEditing(item) {
     setSaveState({ status: "idle", error: "" });
 
@@ -159,6 +197,7 @@ export function CompanyOpportunitiesSection() {
     }
 
     const contactsJson = serializeOpportunityContacts(draft.contacts);
+    const mediaContentJson = serializeOpportunityMedia(draft.media);
 
     setSaveState({ status: "saving", error: "" });
 
@@ -169,8 +208,12 @@ export function CompanyOpportunitiesSection() {
         locationCity: draft.locationCity.trim() || null,
         locationAddress: draft.locationAddress.trim() || null,
         opportunityType: draft.opportunityType,
+        employmentType: draft.employmentType,
+        latitude: parseOpportunityCoordinateInput(draft.latitude),
+        longitude: parseOpportunityCoordinateInput(draft.longitude),
         expireAt: parseOpportunityDeadlineInput(draft.expireAt),
         contactsJson,
+        mediaContentJson,
         tags: parseTags(draft.tags),
       };
 
@@ -264,8 +307,17 @@ export function CompanyOpportunitiesSection() {
                 <FormField label="Тип публикации">
                   <Select value={draft.opportunityType} onValueChange={(value) => updateField("opportunityType", value)} options={OPPORTUNITY_TYPE_OPTIONS} />
                 </FormField>
+                <FormField label="Формат">
+                  <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
+                </FormField>
+              </div>
+
+              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                 <FormField label="Срок или дата">
                   <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
+                </FormField>
+                <FormField label="Широта">
+                  <Input value={draft.latitude} onValueChange={(value) => updateField("latitude", value)} placeholder="56.123456" />
                 </FormField>
               </div>
 
@@ -273,6 +325,12 @@ export function CompanyOpportunitiesSection() {
                 <FormField label="Город">
                   <Input value={draft.locationCity} onValueChange={(value) => updateField("locationCity", value)} />
                 </FormField>
+                <FormField label="Долгота">
+                  <Input value={draft.longitude} onValueChange={(value) => updateField("longitude", value)} placeholder="47.654321" />
+                </FormField>
+              </div>
+
+              <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                 <FormField label="Адрес">
                   <Input value={draft.locationAddress} onValueChange={(value) => updateField("locationAddress", value)} />
                 </FormField>
@@ -297,6 +355,31 @@ export function CompanyOpportunitiesSection() {
                     </div>
                   ))}
                   <Button type="button" variant="secondary" onClick={addContact}>
+                    Добавить
+                  </Button>
+                </div>
+              </FormField>
+
+              <FormField label="Медиа / вложения">
+                <div className="company-dashboard-social-links">
+                  {draft.media.map((item, index) => (
+                    <div className="company-dashboard-social-links__row" key={`opportunity-media-${index}`}>
+                      <Input
+                        value={item.title}
+                        onValueChange={(value) => updateMedia(index, "title", value)}
+                        placeholder="Название медиа"
+                      />
+                      <Input
+                        value={item.url}
+                        onValueChange={(value) => updateMedia(index, "url", value)}
+                        placeholder="https://..."
+                      />
+                      <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
+                        Удалить
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="secondary" onClick={addMedia}>
                     Добавить
                   </Button>
                 </div>

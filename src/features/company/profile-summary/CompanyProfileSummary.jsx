@@ -1,3 +1,5 @@
+import { routes } from "../../../app/routes";
+import { AppLink } from "../../../app/AppLink";
 import { Card, PlaceholderAction } from "../../../shared/ui";
 import "./CompanyProfileSummary.css";
 
@@ -54,6 +56,19 @@ function getPresenceBadge(status) {
       return { label: "Ограничен", tone: "danger" };
     default:
       return { label: "На проверке", tone: "neutral" };
+  }
+}
+
+function getVerificationPanelTone(status) {
+  switch (status) {
+    case "approved":
+      return "success";
+    case "revision":
+      return "warning";
+    case "rejected":
+      return "danger";
+    default:
+      return "status";
   }
 }
 
@@ -204,6 +219,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
   const description = getDescription(profile);
   const verificationTone = verification?.tone || "pending";
   const presenceBadge = getPresenceBadge(verificationTone);
+  const verificationPanelTone = getVerificationPanelTone(verificationTone);
   const socialLinks = parseSocialLinks(profile?.socials);
 
   return (
@@ -280,6 +296,19 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
               </article>
             </div>
           </div>
+
+          {verification ? (
+            <aside className="company-profile-summary__aside">
+              <div className={`company-profile-summary__panel company-profile-summary__panel--${verificationPanelTone}`.trim()}>
+                <span className="company-profile-summary__panel-label">{verification.label || "Статус профиля"}</span>
+                <strong className="company-profile-summary__panel-value">{verification.statusText || presenceBadge.label}</strong>
+                {verification.note ? <p>{verification.note}</p> : null}
+                <AppLink className="company-profile-summary__panel-link" href={routes.company.dashboard}>
+                  Перейти к редактированию
+                </AppLink>
+              </div>
+            </aside>
+          ) : null}
         </div>
 
         {stats.length ? (

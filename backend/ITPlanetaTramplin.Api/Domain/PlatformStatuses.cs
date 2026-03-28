@@ -66,3 +66,45 @@ internal static class OpportunityApplicationStatuses
     public static bool IsKnown(string? value) =>
         value?.Trim().ToLowerInvariant() is Submitted or Reviewing or Invited or Accepted or Rejected or Withdrawn;
 }
+
+internal static class FriendRequestStatuses
+{
+    public const string Pending = "pending";
+    public const string Accepted = "accepted";
+    public const string Declined = "declined";
+    public const string Canceled = "canceled";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Pending => Pending,
+            Accepted => Accepted,
+            Declined => Declined,
+            Canceled => Canceled,
+            _ => Pending,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Pending or Accepted or Declined or Canceled;
+}
+
+internal static class ProjectInviteStatuses
+{
+    public const string Pending = "pending";
+    public const string Accepted = "accepted";
+    public const string Declined = "declined";
+    public const string Canceled = "canceled";
+
+    public static string Normalize(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            Pending => Pending,
+            Accepted => Accepted,
+            Declined => Declined,
+            Canceled => Canceled,
+            _ => Pending,
+        };
+
+    public static bool IsKnown(string? value) =>
+        value?.Trim().ToLowerInvariant() is Pending or Accepted or Declined or Canceled;
+}

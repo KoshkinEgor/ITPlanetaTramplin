@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { AppLink } from "../app/AppLink";
+import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCurrentAuthUser } from "../auth/api";
+import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
+import { readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
-import { Button, Card, Checkbox, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
+import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
@@ -46,7 +49,6 @@ const filterSelects = [
   },
 ];
 
-const CITY_OPTIONS = ["Москва", "Чебоксары", "Казань", "Санкт-Петербург", "Нижний Новгород", "Екатеринбург", "Новосибирск"];
 
 const SORT_OPTIONS = [
   { key: "popularity", label: "По популярности" },
@@ -204,6 +206,13 @@ const recommendedCardsWithDetails = recommendedCards.map((item, index) => ({
   ...item,
   id: index === 0 ? "junior-security-analyst" : index === 1 ? "design-ui-ux" : "it-planeta-event",
 }));
+
+void nearbyCardsCatalog;
+void popularCardsWithDetails;
+void recommendedCardsWithDetails;
+
+const HOME_POPULAR_VACANCIES_LIMIT = 3;
+const HOME_RECOMMENDED_LIMIT = 4;
 
 function getHomeDetailActionLabel(item) {
   if (item?.primaryAction) {
@@ -391,6 +400,30 @@ function hasValidCoordinates(item) {
   return Number.isFinite(Number(item?.longitude)) && Number.isFinite(Number(item?.latitude));
 }
 
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function getOpportunityIdentifier(item, fallbackId) {
+  const rawIdentifier = item?.id ?? item?.opportunityId ?? fallbackId;
+  return rawIdentifier == null ? "" : String(rawIdentifier);
+}
+
+function mergeUniqueOpportunityCards(...groups) {
+  const seenIds = new Set();
+
+  return groups.flat().filter((item) => {
+    const itemId = getOpportunityIdentifier(item, item?.title);
+
+    if (!itemId || seenIds.has(itemId)) {
+      return false;
+    }
+
+    seenIds.add(itemId);
+    return true;
+  });
+}
+
 function mapOpportunityToHomeCard(item, index) {
   if (!item || !hasValidCoordinates(item)) {
     return null;
@@ -400,7 +433,7 @@ function mapOpportunityToHomeCard(item, index) {
   const employmentLabel = translateEmploymentType(item.employmentType);
 
   return {
-    id: String(item.id),
+    id: getOpportunityIdentifier(item, `nearby-${index}`),
     eyebrow: typeLabel,
     type: typeLabel,
     status: deriveStatus(item),
@@ -414,7 +447,7 @@ function mapOpportunityToHomeCard(item, index) {
     secondaryAction: "Связаться",
     city: item.locationCity ?? "",
     coordinates: [Number(item.longitude), Number(item.latitude)],
-    detailHref: buildOpportunityDetailRoute(String(item.id)),
+    detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `nearby-${index}`)),
     sortMeta: createSortMeta(item, index),
   };
 }
@@ -431,7 +464,7 @@ function mapOpportunityToPopularVacancyCard(item, index) {
   const employmentLabel = translateEmploymentType(item.employmentType);
 
   return {
-    id: String(item.id ?? `vacancy-${index}`),
+    id: getOpportunityIdentifier(item, `vacancy-${index}`),
     eyebrow: "Вакансия",
     type: "Вакансия",
     status: deriveStatus(item),
@@ -441,7 +474,7 @@ function mapOpportunityToPopularVacancyCard(item, index) {
     accent: item.locationAddress ?? "",
     note: shortenText(item.description),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
-    detailHref: buildOpportunityDetailRoute(String(item.id ?? `vacancy-${index}`)),
+    detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `vacancy-${index}`)),
   };
 }
 
@@ -454,17 +487,17 @@ function mapOpportunityToRecommendedCard(item, index) {
   const employmentLabel = translateEmploymentType(item.employmentType);
 
   return {
-    id: String(item.id ?? `recommended-${index}`),
+    id: getOpportunityIdentifier(item, `recommended-${index}`),
     eyebrow: typeLabel,
     type: typeLabel,
     status: deriveStatus(item),
     statusTone: normalizeOptionValue(item?.opportunityType) === "event" ? "warning" : "neutral",
     title: item.title ?? "",
     meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
-    accent: item.locationAddress ?? "",
+    accent: item.duration ?? item.locationAddress ?? employmentLabel,
     note: shortenText(item.description),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
-    detailHref: buildOpportunityDetailRoute(String(item.id ?? `recommended-${index}`)),
+    detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `recommended-${index}`)),
   };
 }
 
@@ -761,135 +794,6 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
   );
 }
 
-function HomeCityCombobox({ value, options, onSelect }) {
-  const rootRef = useRef(null);
-  const inputRef = useRef(null);
-  const [query, setQuery] = useState(value);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    setQuery(value);
-  }, [value]);
-
-  const normalizedQuery = normalizeOptionValue(query);
-  const normalizedValue = normalizeOptionValue(value);
-  const shouldFilter = normalizedQuery.length > 0 && normalizedQuery !== normalizedValue;
-  const filteredOptions = options.filter((option) => !shouldFilter || normalizeOptionValue(option).includes(normalizedQuery));
-
-  const commitSelection = (nextValue) => {
-    onSelect(nextValue);
-    setQuery(nextValue);
-    setIsOpen(false);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-    setQuery(value);
-  };
-
-  return (
-    <div
-      ref={rootRef}
-      className={`home-discovery__city-picker ${isOpen ? "is-open" : ""}`.trim()}
-      onBlurCapture={() => {
-        window.requestAnimationFrame(() => {
-          if (!rootRef.current?.contains(document.activeElement)) {
-            handleClose();
-          }
-        });
-      }}
-    >
-      <div className="home-discovery__city-control">
-        <input
-          ref={inputRef}
-          type="text"
-          className="home-discovery__city-input"
-          value={query}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={isOpen}
-          aria-controls="home-city-select-listbox"
-          aria-label="Выбор города"
-          placeholder="Выберите город"
-          onFocus={() => setIsOpen(true)}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setIsOpen(true);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              inputRef.current?.blur();
-              handleClose();
-              return;
-            }
-
-            if (event.key === "Enter") {
-              event.preventDefault();
-
-              const exactMatch = options.find((option) => normalizeOptionValue(option) === normalizeOptionValue(query));
-              const nextValue = exactMatch ?? filteredOptions[0];
-
-              if (nextValue) {
-                commitSelection(nextValue);
-              } else {
-                handleClose();
-              }
-            }
-          }}
-        />
-
-        <button
-          type="button"
-          className="home-discovery__city-toggle"
-          aria-label={isOpen ? "Скрыть список городов" : "Показать список городов"}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          onMouseDown={(event) => {
-            event.preventDefault();
-          }}
-          onClick={() => {
-            if (isOpen) {
-              handleClose();
-            } else {
-              setIsOpen(true);
-              inputRef.current?.focus();
-            }
-          }}
-        >
-          <ChevronDownIcon />
-        </button>
-      </div>
-
-      {isOpen ? (
-        <div className="home-discovery__city-menu" id="home-city-select-listbox" role="listbox" aria-label="Список городов">
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="option"
-                aria-selected={option === value}
-                className={`home-discovery__city-option ${option === value ? "is-selected" : ""}`.trim()}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                onClick={() => {
-                  commitSelection(option);
-                }}
-              >
-                {option}
-              </button>
-            ))
-          ) : (
-            <div className="home-discovery__city-empty">Ничего не найдено</div>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function HomeSortControl({ options, value, direction, onSelect, onToggleDirection }) {
   return (
     <SortControl
@@ -1101,7 +1005,8 @@ export function HomeApp() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [query, setQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState(CITY_OPTIONS[0]);
+  const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY_NAME);
+  const [selectedCityOption, setSelectedCityOption] = useState(() => getFallbackCityOption(DEFAULT_CITY_NAME));
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
@@ -1116,11 +1021,12 @@ export function HomeApp() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
+  const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
   const [nearbyItemsState, setNearbyItemsState] = useState({
     status: "loading",
-    items: nearbyCardsCatalog,
-    popularVacancyItems: popularCardsWithDetails,
-    recommendedItems: recommendedCardsWithDetails,
+    items: [],
+    popularVacancyItems: [],
+    recommendedItems: [],
     error: null,
   });
   const newsletterInputRef = useRef(null);
@@ -1183,32 +1089,47 @@ export function HomeApp() {
     setNewsletterSubmitted(true);
   };
 
+  useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
+
   useEffect(() => {
     const controller = new AbortController();
 
     async function loadNearbyItems() {
       try {
-        const items = await getOpportunities(controller.signal);
+        const [opportunitiesResult, recommendationsResult] = await Promise.allSettled([
+          getOpportunities(controller.signal),
+          getCandidateRecommendations(controller.signal),
+        ]);
 
         if (controller.signal.aborted) {
           return;
         }
 
-        const mappedItems = (Array.isArray(items) ? items : [])
+        if (opportunitiesResult.status !== "fulfilled") {
+          throw opportunitiesResult.reason;
+        }
+
+        const opportunityItems = safeArray(opportunitiesResult.value);
+        const recommendationItems = recommendationsResult.status === "fulfilled"
+          ? safeArray(recommendationsResult.value)
+          : [];
+
+        const mappedItems = opportunityItems
           .map(mapOpportunityToHomeCard)
           .filter(Boolean);
-        const mappedPopularVacancyItems = (Array.isArray(items) ? items : [])
+        const mappedPopularVacancyItems = opportunityItems
           .map(mapOpportunityToPopularVacancyCard)
           .filter(Boolean);
-        const mappedRecommendedItems = (Array.isArray(items) ? items : [])
-          .map(mapOpportunityToRecommendedCard)
-          .filter(Boolean);
+        const mappedRecommendedItems = mergeUniqueOpportunityCards(
+          recommendationItems.map(mapOpportunityToRecommendedCard).filter(Boolean),
+          opportunityItems.map(mapOpportunityToRecommendedCard).filter(Boolean)
+        );
 
         setNearbyItemsState({
           status: "ready",
           items: mappedItems,
-          popularVacancyItems: mappedPopularVacancyItems,
-          recommendedItems: mappedRecommendedItems,
+          popularVacancyItems: mappedPopularVacancyItems.slice(0, HOME_POPULAR_VACANCIES_LIMIT),
+          recommendedItems: mappedRecommendedItems.slice(0, HOME_RECOMMENDED_LIMIT),
           error: null,
         });
       } catch (error) {
@@ -1218,9 +1139,9 @@ export function HomeApp() {
 
         setNearbyItemsState({
           status: "error",
-          items: nearbyCardsCatalog,
-          popularVacancyItems: popularCardsWithDetails,
-          recommendedItems: recommendedCardsWithDetails,
+          items: [],
+          popularVacancyItems: [],
+          recommendedItems: [],
           error,
         });
       }
@@ -1307,6 +1228,20 @@ export function HomeApp() {
       ...sortedNearbyCards.slice(selectedIndex + 1),
     ];
   }, [selectedOpportunityId, sortedNearbyCards]);
+
+  const favoriteOpportunityIdSet = useMemo(
+    () => new Set(favoriteOpportunityIds.map((id) => String(id))),
+    [favoriteOpportunityIds]
+  );
+
+  const displayedNearbyCards = useMemo(
+    () =>
+      prioritizedNearbyCards.map((item) => ({
+        ...item,
+        isFavorite: favoriteOpportunityIdSet.has(String(item.id)),
+      })),
+    [favoriteOpportunityIdSet, prioritizedNearbyCards]
+  );
 
   useEffect(() => {
     if (!selectedOpportunityId) {
@@ -1460,7 +1395,13 @@ export function HomeApp() {
           <div className="home-discovery__header">
             <div className="home-discovery__title-row">
               <h2 className="ui-type-h1">Возможности рядом</h2>
-              <HomeCityCombobox value={selectedCity} options={CITY_OPTIONS} onSelect={setSelectedCity} />
+              <CityAutocomplete
+                value={selectedCity}
+                onValueChange={setSelectedCity}
+                onSelectOption={setSelectedCityOption}
+                fallbackOptions={FALLBACK_CITY_OPTIONS}
+                className="home-discovery__city-picker"
+              />
               <button type="button" className="home-discovery__city">
                 {selectedCity}
                 <ChevronDownIcon />
@@ -1558,8 +1499,13 @@ export function HomeApp() {
 
                 <div className="home-map-card__surface home-map-card__surface--interactive">
                   <HomeOpportunityMap
-                    items={prioritizedNearbyCards}
+                    items={displayedNearbyCards}
                     selectedCity={selectedCity}
+                    selectedCityCoordinates={
+                      selectedCityOption?.longitude != null && selectedCityOption?.latitude != null
+                        ? [selectedCityOption.longitude, selectedCityOption.latitude]
+                        : null
+                    }
                     activeId={selectedOpportunityId}
                     onSelectItem={setSelectedOpportunityId}
                   />
@@ -1576,8 +1522,8 @@ export function HomeApp() {
               />
             ) : (
               <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
-                {prioritizedNearbyCards.length ? (
-                  prioritizedNearbyCards.map((item) => (
+                {displayedNearbyCards.length ? (
+                  displayedNearbyCards.map((item) => (
                     view === "map" ? (
                       <OpportunityMiniCard
                         key={item.id ?? item.title}
@@ -1629,16 +1575,23 @@ export function HomeApp() {
             <h2 className="ui-type-h1">Популярные вакансии</h2>
           </div>
           <div className="home-section__rail" aria-label="РџРѕРїСѓР»СЏСЂРЅС‹Рµ РІР°РєР°РЅСЃРёРё">
-            {nearbyItemsState.popularVacancyItems.map((item, index) => (
-              <OpportunityBlockCard
-                key={`${item.title}-${item.status}-${index}`}
-                item={item}
-                surface="plain"
-                size="md"
-                className="home-opportunity-entry"
-                detailAction={createSafeHomeBlockDetailAction(item)}
-              />
-            ))}
+            {nearbyItemsState.popularVacancyItems.length ? (
+              nearbyItemsState.popularVacancyItems.map((item, index) => (
+                <OpportunityBlockCard
+                  key={`${item.title}-${item.status}-${index}`}
+                  item={item}
+                  surface="plain"
+                  size="md"
+                  className="home-opportunity-entry"
+                  detailAction={createSafeHomeBlockDetailAction(item)}
+                />
+              ))
+            ) : (
+              <Card className="home-results-empty">
+                <strong>Пока нет опубликованных вакансий</strong>
+                <p>После публикации одобренные вакансии из базы появятся здесь автоматически.</p>
+              </Card>
+            )}
           </div>
         </section>
 
@@ -1647,16 +1600,23 @@ export function HomeApp() {
             <h2 className="ui-type-h1">Рекомендуемые возможности</h2>
           </div>
           <div className="home-section__rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
-            {nearbyItemsState.recommendedItems.map((item, index) => (
-              <OpportunityBlockCard
-                key={`${item.title}-${index}`}
-                item={item}
-                surface="plain"
-                size="md"
-                className="home-opportunity-entry"
-                detailAction={createSafeHomeBlockDetailAction(item)}
-              />
-            ))}
+            {nearbyItemsState.recommendedItems.length ? (
+              nearbyItemsState.recommendedItems.map((item, index) => (
+                <OpportunityBlockCard
+                  key={`${item.title}-${index}`}
+                  item={item}
+                  surface="plain"
+                  size="md"
+                  className="home-opportunity-entry"
+                  detailAction={createSafeHomeBlockDetailAction(item)}
+                />
+              ))
+            ) : (
+              <Card className="home-results-empty">
+                <strong>Пока нет рекомендаций</strong>
+                <p>Когда в базе появятся подходящие возможности, они отобразятся в этом блоке.</p>
+              </Card>
+            )}
           </div>
         </section>
 

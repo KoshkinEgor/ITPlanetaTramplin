@@ -91,6 +91,13 @@ export function createOpportunityContactDraft(item = null) {
   };
 }
 
+export function createOpportunityMediaDraft(item = null) {
+  return {
+    title: item?.title ?? item?.label ?? "",
+    url: item?.url ?? item?.href ?? item?.value ?? "",
+  };
+}
+
 function normalizeLegacyContactEntries(record) {
   return Object.entries(record ?? {}).map(([key, value]) => {
     const normalizedValue = typeof value === "string" ? value.trim() : "";
@@ -168,6 +175,53 @@ export function serializeOpportunityContacts(value) {
   return JSON.stringify(normalized);
 }
 
+export function normalizeOpportunityMedia(value) {
+  if (!value) {
+    return [createOpportunityMediaDraft()];
+  }
+
+  let parsedValue = value;
+
+  if (typeof value === "string") {
+    try {
+      parsedValue = JSON.parse(value);
+    } catch {
+      return [createOpportunityMediaDraft()];
+    }
+  }
+
+  const items = Array.isArray(parsedValue) ? parsedValue : [];
+  const normalized = items
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const title = String(item.title ?? item.label ?? "").trim();
+      const url = String(item.url ?? item.href ?? item.value ?? "").trim();
+
+      if (!title && !url) {
+        return null;
+      }
+
+      return { title, url };
+    })
+    .filter(Boolean);
+
+  return normalized.length ? normalized : [createOpportunityMediaDraft()];
+}
+
+export function serializeOpportunityMedia(value) {
+  const normalized = normalizeOpportunityMedia(value)
+    .map((item) => ({
+      title: String(item.title ?? "").trim(),
+      url: String(item.url ?? "").trim(),
+    }))
+    .filter((item) => item.title || item.url);
+
+  return JSON.stringify(normalized);
+}
+
 export function formatOpportunityDeadlineInput(value) {
   if (!value) {
     return "";
@@ -195,6 +249,26 @@ export function parseOpportunityDeadlineInput(value) {
   return Math.floor(Date.UTC(year, month - 1, day) / 1000);
 }
 
+function formatCoordinateInput(value) {
+  if (typeof value !== "number" && typeof value !== "string") {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+  return normalized;
+}
+
+export function parseOpportunityCoordinateInput(value) {
+  const normalized = String(value ?? "").trim().replace(",", ".");
+
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function createOpportunityDraft(item = null) {
   return {
     id: item?.id ?? null,
@@ -203,8 +277,12 @@ export function createOpportunityDraft(item = null) {
     locationCity: item?.locationCity ?? "",
     locationAddress: item?.locationAddress ?? "",
     opportunityType: item?.opportunityType ?? "vacancy",
+    employmentType: item?.employmentType ?? "hybrid",
+    latitude: formatCoordinateInput(item?.latitude),
+    longitude: formatCoordinateInput(item?.longitude),
     expireAt: formatOpportunityDeadlineInput(item?.expireAt ?? null),
     contacts: normalizeOpportunityContacts(item?.contactsJson ?? null),
+    media: normalizeOpportunityMedia(item?.mediaContentJson ?? null),
     tags: Array.isArray(item?.tags) ? item.tags.join(", ") : "",
   };
 }

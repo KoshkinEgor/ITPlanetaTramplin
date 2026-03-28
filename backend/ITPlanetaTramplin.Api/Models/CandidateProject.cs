@@ -58,4 +58,6 @@ public partial class CandidateProject
     public DateTime? UpdatedAt { get; set; }
 
     public virtual ApplicantProfile Applicant { get; set; } = null!;
+
+    public virtual ICollection<CandidateProjectInvite> Invites { get; set; } = new List<CandidateProjectInvite>();
 }

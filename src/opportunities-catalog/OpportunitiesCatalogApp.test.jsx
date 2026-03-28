@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
+import { writeFavoriteOpportunityIds } from "../features/favorites/storage";
 import { OpportunitiesCatalogApp } from "./OpportunitiesCatalogApp";
 
 vi.mock("../api/opportunities", () => ({
@@ -13,16 +14,41 @@ vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(),
 }));
 
+vi.mock("../home/HomeOpportunityMap", () => ({
+  HomeOpportunityMap: ({ items, selectedCity, activeId, onSelectItem }) => (
+    <div data-testid="catalog-map" data-city={selectedCity} data-active-id={activeId ?? ""}>
+      <p>MAP_POINTS:{items.length}</p>
+      {items.length ? (
+        items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            data-favorite={item.isFavorite ? "true" : "false"}
+            onClick={() => onSelectItem?.(item.id)}
+          >
+            {item.title}
+          </button>
+        ))
+      ) : (
+        <p>Нет точек по текущим фильтрам</p>
+      )}
+    </div>
+  ),
+}));
+
 const opportunities = [
   {
     id: 1,
     title: "Junior Security Analyst",
     companyName: "IGrids",
     locationCity: "Москва",
+    locationAddress: "Ленинградский проспект, 39",
     description: "SOC monitoring, SIEM triage, and first-line incident review for junior specialists.",
     tags: ["Security", "Junior", "SOC"],
     opportunityType: "vacancy",
     employmentType: "remote",
+    longitude: 37.617635,
+    latitude: 55.755814,
     moderationStatus: "approved",
   },
   {
@@ -30,10 +56,13 @@ const opportunities = [
     title: "IT-Планета",
     companyName: "IT-Планета",
     locationCity: "Москва",
+    locationAddress: "Онлайн",
     description: "Open event for students and junior teams.",
     tags: ["Студенты", "Мероприятие"],
     opportunityType: "event",
     employmentType: "online",
+    longitude: 37.541584,
+    latitude: 55.804065,
     moderationStatus: "approved",
   },
   {
@@ -41,10 +70,13 @@ const opportunities = [
     title: "Mobile UI/UX",
     companyName: "White Tiger Soft",
     locationCity: "Москва",
+    locationAddress: "Лесная, 12",
     description: "Paid internship for mobile product design.",
     tags: ["UI / UX", "Дизайн"],
     opportunityType: "internship",
     employmentType: "hybrid",
+    longitude: 37.658581,
+    latitude: 55.762994,
     moderationStatus: "approved",
   },
   {
@@ -52,10 +84,13 @@ const opportunities = [
     title: "Frontend Intern",
     companyName: "IGrids",
     locationCity: "Чебоксары",
+    locationAddress: "Московский проспект, 17",
     description: "React internship with real feature ownership.",
     tags: ["Frontend", "React"],
     opportunityType: "internship",
     employmentType: "remote",
+    longitude: 47.251942,
+    latitude: 56.1439,
     moderationStatus: "approved",
   },
   {
@@ -63,10 +98,39 @@ const opportunities = [
     title: "QA Engineer",
     companyName: "Case Systems",
     locationCity: "Чебоксары",
+    locationAddress: "Президентский бульвар, 1",
     description: "Manual QA vacancy for product teams.",
     tags: ["QA", "Junior"],
     opportunityType: "vacancy",
     employmentType: "office",
+    moderationStatus: "approved",
+  },
+  {
+    id: 6,
+    title: "Junior Security Analyst",
+    companyName: "Shield Ops",
+    locationCity: "Чебоксары",
+    locationAddress: "Ярославская, 29",
+    description: "SOC monitoring and SIEM triage for junior analysts in the local team.",
+    tags: ["Security", "Junior", "SOC"],
+    opportunityType: "vacancy",
+    employmentType: "remote",
+    longitude: 47.2442,
+    latitude: 56.1322,
+    moderationStatus: "approved",
+  },
+  {
+    id: 7,
+    title: "Product Designer",
+    companyName: "Case Systems",
+    locationCity: "Чебоксары",
+    locationAddress: "Калинина, 7",
+    description: "Design systems and product discovery for regional B2B tools.",
+    tags: ["Design", "Product"],
+    opportunityType: "internship",
+    employmentType: "hybrid",
+    longitude: 47.2674,
+    latitude: 56.1337,
     moderationStatus: "approved",
   },
 ];
@@ -82,6 +146,7 @@ function renderApp() {
 describe("OpportunitiesCatalogApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it("shows the loading state and cleans up the body class on unmount", () => {
@@ -115,7 +180,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     expect(await screen.findByRole("heading", { name: "Каталог возможностей для старта карьеры" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Мы проанализировали ваши навыки/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/В каталоге сейчас/)).toBeInTheDocument();
+    expect(screen.getByText(/В каталоге сейчас/i)).toBeInTheDocument();
   });
 
   it("shows the personalized hero when candidate skills are available", async () => {
@@ -150,7 +215,7 @@ describe("OpportunitiesCatalogApp", () => {
     expect(slider.querySelector(".ui-kit-opportunity-slider__card")).not.toBeNull();
   });
 
-  it("applies real filters and keeps unsupported controls disabled", async () => {
+  it("opens filters as a dropdown, applies real filters, and keeps unsupported controls disabled", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
@@ -160,6 +225,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
     fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры" }));
     fireEvent.click(screen.getByLabelText("Удаленно"));
 
     expect(results).not.toBeNull();
@@ -180,30 +246,143 @@ describe("OpportunitiesCatalogApp", () => {
     const results = container.querySelector(".opportunities-browser__results");
 
     expect(results).not.toBeNull();
-    expect(within(results).getByText("Mobile UI/UX")).toBeInTheDocument();
-    expect(within(results).queryByText("Frontend Intern")).not.toBeInTheDocument();
+    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
+    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+    expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(within(results).queryByText("Product Designer")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Больше возможностей" }));
 
-    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
-    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+    expect(within(results).getByText("Product Designer")).toBeInTheDocument();
   });
 
-  it("aggregates companies by city and lets the user switch the city in the section", async () => {
+  it("switches to an inline map and preserves the current filters for mapped items", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
     renderApp();
 
-    const companiesHeading = await screen.findByRole("heading", { name: "Вакансии в Москва" });
-    const companiesCard = companiesHeading.closest(".ui-card");
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
+    fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
+    expect(mapPanel).not.toBeNull();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+    expect(screen.getByText("MAP_POINTS:1")).toBeInTheDocument();
+  });
+
+  it("filters map items by favorites-only display without affecting the catalog list", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+    writeFavoriteOpportunityIds(["4"]);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const map = screen.getByTestId("catalog-map");
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
+    expect(screen.getByText("MAP_POINTS:3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
+    fireEvent.click(screen.getByRole("button", { name: "Только избранное" }));
+
+    expect(screen.getByText("MAP_POINTS:1")).toBeInTheDocument();
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Не избранное" }));
+
+    expect(screen.getByText("MAP_POINTS:2")).toBeInTheDocument();
+    expect(within(map).queryByRole("button", { name: "Frontend Intern" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
+
+    const results = document.querySelector(".opportunities-browser__results");
+    expect(results).not.toBeNull();
+    expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
+    expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
+  });
+
+  it("keeps the map interactive while the drawer is open and closes it with Escape", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    const { container } = renderApp();
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
+
+    expect(screen.getByText("Регион")).toBeInTheDocument();
+    expect(container.querySelector(".opportunity-filter-sidebar__drawer-backdrop")).toBeNull();
+
+    fireEvent.click(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Frontend Intern" }));
+
+    expect(screen.getByTestId("catalog-map")).toHaveAttribute("data-active-id", "4");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByText("Регион")).not.toBeInTheDocument();
+  });
+
+  it("updates favorite markers on the open map after favorites storage changes", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const map = screen.getByTestId("catalog-map");
+    expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "false");
+
+    writeFavoriteOpportunityIds(["4"]);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute(
+        "data-favorite",
+        "true"
+      );
+    });
+  });
+
+  it("shows the map empty state when filtered opportunities do not have coordinates", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "QA Engineer" } });
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+
+    const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
+    expect(mapPanel).not.toBeNull();
+    expect(screen.getByText("MAP_POINTS:0")).toBeInTheDocument();
+    expect(within(mapPanel).getByText("Нет точек по текущим фильтрам")).toBeInTheDocument();
+  });
+
+  it("aggregates companies for the default city section", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    const caseSystems = await screen.findByText("Case Systems");
+    const companiesCard = caseSystems.closest(".ui-card");
 
     expect(companiesCard).not.toBeNull();
-    expect(within(companiesCard).getByText("IT-Планета")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Чебоксары" }));
-
     expect(screen.getByRole("heading", { name: "Вакансии в Чебоксары" })).toBeInTheDocument();
     expect(within(companiesCard).getByText("Case Systems")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
   });
 });

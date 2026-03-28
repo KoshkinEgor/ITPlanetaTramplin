@@ -27,7 +27,7 @@ internal static class DevelopmentDataSeeder
             "Anna",
             "Petrova",
             null,
-            "Frontend engineer focused on component libraries, accessibility, and product iteration speed.",
+            "Frontend-разработчик с фокусом на библиотеки компонентов, доступность и быстрые продуктовые итерации.",
             ["React", "TypeScript", "Accessibility", "Figma"],
             """{"portfolio":"https://anna.tramplin.local","github":"https://github.com/anna-petrova","telegram":"https://t.me/annapetrova"}"""),
         new(
@@ -36,7 +36,7 @@ internal static class DevelopmentDataSeeder
             "Ivan",
             "Smirnov",
             "Olegovich",
-            "Product analyst who works with SQL, Python, dashboards, and experiment design for digital products.",
+            "Продуктовый аналитик, который работает с SQL, Python, дашбордами и дизайном экспериментов для цифровых продуктов.",
             ["SQL", "Python", "A/B testing", "Analytics"],
             """{"portfolio":"https://ivan.tramplin.local","github":"https://github.com/ivan-smirnov","telegram":"https://t.me/ivansmirnov"}"""),
         new(
@@ -45,7 +45,7 @@ internal static class DevelopmentDataSeeder
             "Polina",
             "Sokolova",
             null,
-            "Product designer with strong research practice, prototyping skills, and a focus on internship programs.",
+            "Продуктовый дизайнер с сильной исследовательской базой, навыками прототипирования и интересом к стажировочным программам.",
             ["Figma", "UX research", "Prototyping", "Design systems"],
             """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova"}"""),
     ];
@@ -57,15 +57,15 @@ internal static class DevelopmentDataSeeder
             DemoCompanyPassword,
             "Sber",
             "7707083893",
-            "Moscow, Vavilova 19",
-            "Large fintech and ecosystem company with teams in frontend, analytics, and digital product operations.",
+            "Москва, улица Вавилова, 19",
+            "Крупная финтех- и экосистемная компания с командами во frontend, аналитике и цифровых продуктах.",
             """[{"type":"website","url":"https://www.sberbank.com"},{"type":"telegram","url":"https://t.me/sberbank"}]""",
             [
                 new(
-                    "Junior Frontend Developer",
-                    "Build candidate-facing interfaces in React, improve the shared UI layer, and ship product experiments together with mentors.",
-                    "Moscow",
-                    "Kutuzovsky prospekt 32",
+                    "Младший frontend-разработчик",
+                    "Развивайте интерфейсы для кандидатов на React, улучшайте общий UI-слой и выпускайте продуктовые эксперименты вместе с наставниками.",
+                    "Москва",
+                    "Кутузовский проспект, 32",
                     55.7404364m,
                     37.5320564m,
                     "vacancy",
@@ -73,10 +73,10 @@ internal static class DevelopmentDataSeeder
                     """{"email":"demo-company@tramplin.local","telegram":"@sber_it"}""",
                     ["React", "TypeScript", "Frontend", "Design systems"]),
                 new(
-                    "Product Analytics Internship",
-                    "Prepare dashboards, validate product hypotheses, and support the weekly experiment review with analysts and PMs.",
-                    "Moscow",
-                    "Vavilova 19",
+                    "Стажировка по продуктовой аналитике",
+                    "Готовьте дашборды, проверяйте продуктовые гипотезы и поддерживайте еженедельные разборы экспериментов с аналитиками и продакт-менеджерами.",
+                    "Москва",
+                    "улица Вавилова, 19",
                     55.6999417m,
                     37.5802003m,
                     "internship",
@@ -84,8 +84,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"demo-company@tramplin.local","telegram":"@sber_analytics"}""",
                     ["Analytics", "SQL", "Dashboards", "A/B testing"]),
                 new(
-                    "Sber Start: Frontend Internship in Cheboksary",
-                    "Assist the product team with React features, accessibility fixes, and shared UI tasks under mentor guidance.",
+                    "Sber Start: frontend-стажировка в Чебоксарах",
+                    "Помогайте продуктовой команде с React-фичами, исправлениями по доступности и задачами в общем UI-слое под руководством наставника.",
                     "Чебоксары",
                     "Президентский бульвар 27",
                     56.1336571m,
@@ -95,8 +95,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"demo-company@tramplin.local","telegram":"@sber_it"}""",
                     ["React", "TypeScript", "Frontend", "Accessibility"]),
                 new(
-                    "Sber Career Weekend Cheboksary",
-                    "Open career event with CV reviews, product demos, and mini-interviews for students and junior specialists.",
+                    "Карьерный уикенд Сбера в Чебоксарах",
+                    "Открытое карьерное мероприятие с разбором резюме, демо продуктов и мини-собеседованиями для студентов и junior-специалистов.",
                     "Чебоксары",
                     "улица Карла Маркса 52",
                     56.1338255m,
@@ -111,15 +111,15 @@ internal static class DevelopmentDataSeeder
             "VkTeam1234",
             "VK",
             "7743001840",
-            "Saint Petersburg, Khersonskaya 12-14",
-            "Digital products for communication, content, and creator tools with active internship and meetup programs.",
+            "Санкт-Петербург, Херсонская улица, 12-14",
+            "Цифровые продукты для коммуникаций, контента и creator tools с активными стажировками и карьерными событиями.",
             """[{"type":"website","url":"https://vk.company"},{"type":"telegram","url":"https://t.me/vkteam"}]""",
             [
                 new(
-                    "Product Design Internship",
-                    "Work with product designers on research synthesis, rapid prototypes, and design QA for social and creator tools.",
-                    "Saint Petersburg",
-                    "Khersonskaya 12-14",
+                    "Стажировка по продуктовому дизайну",
+                    "Работайте с продуктовой командой над синтезом исследований, быстрыми прототипами и дизайн-QA для социальных и creator-инструментов.",
+                    "Санкт-Петербург",
+                    "Херсонская улица, 12-14",
                     59.9287716m,
                     30.3810912m,
                     "internship",
@@ -127,10 +127,10 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
                     ["Figma", "UX research", "Prototyping", "Product design"]),
                 new(
-                    "Frontend Meetup Career Sprint",
-                    "A live event with portfolio reviews, short interviews, and team sessions for students entering frontend roles.",
-                    "Moscow",
-                    "Leningradsky prospekt 39",
+                    "Карьерный frontend-митап VK",
+                    "Очное мероприятие с разбором портфолио, короткими интервью и сессиями с командами для студентов, входящих во frontend.",
+                    "Москва",
+                    "Ленинградский проспект, 39",
                     55.7954980m,
                     37.5370241m,
                     "event",
@@ -138,8 +138,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
                     ["Frontend", "Career event", "Networking", "Community"]),
                 new(
-                    "VK Mini Apps Frontend Internship",
-                    "Build interface experiments for mini apps, work with design tokens, and join weekly code review sessions.",
+                    "Стажировка VK Mini Apps Frontend",
+                    "Делайте интерфейсные эксперименты для mini apps, работайте с дизайн-токенами и подключайтесь к еженедельным code review.",
                     "Чебоксары",
                     "проспект Ленина 2",
                     56.1308549m,
@@ -149,8 +149,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
                     ["Frontend", "React", "Mini Apps", "Design systems"]),
                 new(
-                    "VK Community Content QA Specialist",
-                    "Review user scenarios, validate publishing flows, and document bugs across content and creator tools.",
+                    "Специалист по QA контентных сценариев VK",
+                    "Проверяйте пользовательские сценарии, валидируйте потоки публикации и документируйте баги в контентных и creator-инструментах.",
                     "Чебоксары",
                     "Московский проспект 17",
                     56.1450902m,
@@ -160,8 +160,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
                     ["QA", "Content", "Testing", "Community"]),
                 new(
-                    "VK Portfolio Review Day in Cheboksary",
-                    "A one-day event with portfolio reviews, design critiques, and recruiter Q&A for students and junior creatives.",
+                    "День разбора портфолио VK в Чебоксарах",
+                    "Однодневное событие с разбором портфолио, дизайн-критикой и Q&A с рекрутерами для студентов и junior-специалистов.",
                     "Чебоксары",
                     "проспект Максима Горького 10",
                     56.1497550m,
@@ -176,15 +176,15 @@ internal static class DevelopmentDataSeeder
             "Yandex1234",
             "Yandex",
             "7736207543",
-            "Moscow, Lev Tolstoy 16",
-            "Product company with strong engineering and design system culture across multiple digital services.",
+            "Москва, улица Льва Толстого, 16",
+            "Продуктовая компания с сильной инженерной культурой и развитой design systems-практикой в нескольких цифровых сервисах.",
             """[{"type":"website","url":"https://yandex.ru/jobs"},{"type":"telegram","url":"https://t.me/yandex"}]""",
             [
                 new(
-                    "Design Systems Engineer",
-                    "Own token delivery, component API consistency, and the bridge between design kits and production-ready React code.",
-                    "Moscow",
-                    "Lev Tolstoy 16",
+                    "Инженер дизайн-систем",
+                    "Отвечайте за поставку токенов, консистентность API компонентов и связку между дизайн-китом и production-ready React-кодом.",
+                    "Москва",
+                    "улица Льва Толстого, 16",
                     55.7343105m,
                     37.5881791m,
                     "vacancy",
@@ -192,10 +192,10 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-yandex@tramplin.local","telegram":"@yandex_jobs"}""",
                     ["Design systems", "React", "Accessibility", "Tokens"]),
                 new(
-                    "ML Product Analyst Internship",
-                    "Support a product squad with metrics trees, dashboard automation, and experiment readouts for ML-powered features.",
-                    "Moscow",
-                    "Timura Frunze 11",
+                    "Стажировка ML-продуктового аналитика",
+                    "Поддерживайте продуктовую команду через деревья метрик, автоматизацию дашбордов и разбор результатов экспериментов для ML-функций.",
+                    "Москва",
+                    "улица Тимура Фрунзе, 11",
                     55.7361712m,
                     37.5854545m,
                     "internship",
@@ -203,8 +203,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-yandex@tramplin.local","telegram":"@yandex_jobs"}""",
                     ["Analytics", "Python", "SQL", "Machine learning"]),
                 new(
-                    "Yandex Maps Content Analyst",
-                    "Prepare datasets, audit map content changes, and work with Python notebooks to improve local service quality.",
+                    "Аналитик контента Яндекс Карт",
+                    "Готовьте датасеты, проверяйте изменения в картографическом контенте и работайте с Python-ноутбуками для улучшения локальных сервисов.",
                     "Чебоксары",
                     "улица Университетская 38",
                     56.1327573m,
@@ -214,8 +214,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-yandex@tramplin.local","telegram":"@yandex_jobs"}""",
                     ["Analytics", "Python", "Maps", "SQL"]),
                 new(
-                    "Yandex Search Quality Internship",
-                    "Join the evaluation team to analyze search quality, label edge cases, and automate routine checks with Python.",
+                    "Стажировка по качеству поиска Яндекса",
+                    "Присоединяйтесь к команде оценки качества, анализируйте поисковую выдачу, размечайте сложные кейсы и автоматизируйте рутинные проверки на Python.",
                     "Чебоксары",
                     "проспект Тракторостроителей 1/34",
                     56.0986932m,
@@ -225,8 +225,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-yandex@tramplin.local","telegram":"@yandex_jobs"}""",
                     ["Python", "Analytics", "Search", "Machine learning"]),
                 new(
-                    "Yandex Product Meetup Cheboksary",
-                    "Regional meetup with talks on ML products, growth paths for juniors, and live mentoring from Yandex teams.",
+                    "Продуктовый митап Яндекса в Чебоксарах",
+                    "Региональный митап с докладами о ML-продуктах, карьерных траекториях для junior-специалистов и живым менторством от команд Яндекса.",
                     "Чебоксары",
                     "Президентский бульвар 20",
                     56.1354095m,
@@ -241,15 +241,15 @@ internal static class DevelopmentDataSeeder
             "Rostelecom1234",
             "Rostelecom",
             "7707049388",
-            "Moscow, Goncharnaya 30",
-            "Telecom and platform company with B2B products, enterprise QA, and internal education programs.",
+            "Москва, Гончарная улица, 30",
+            "Телеком- и платформенная компания с B2B-продуктами, enterprise-QA и внутренними образовательными программами.",
             """[{"type":"website","url":"https://www.company.rt.ru"},{"type":"telegram","url":"https://t.me/rostelecom"}]""",
             [
                 new(
-                    "B2B Platform QA Engineer",
-                    "Test enterprise user journeys, automate smoke scenarios, and coordinate regression plans with the product team.",
-                    "Moscow",
-                    "Goncharnaya 30",
+                    "QA-инженер B2B-платформы",
+                    "Тестируйте enterprise-сценарии пользователей, автоматизируйте smoke-проверки и координируйте регрессионные планы с продуктовой командой.",
+                    "Москва",
+                    "Гончарная улица, 30",
                     55.7424808m,
                     37.6474311m,
                     "vacancy",
@@ -257,10 +257,10 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-rostelecom@tramplin.local","telegram":"@rtcareer"}""",
                     ["QA", "B2B", "Testing", "Automation"]),
                 new(
-                    "Network Automation Bootcamp",
-                    "A short practice program on automation basics, observability, and infrastructure scripting for students.",
-                    "Innopolis",
-                    "Universitetskaya 1",
+                    "Буткемп по автоматизации сетей",
+                    "Короткая практическая программа по основам автоматизации, observability и инфраструктурного скриптинга для студентов.",
+                    "Иннополис",
+                    "Университетская улица, 1",
                     55.7537907m,
                     48.7432258m,
                     "event",
@@ -268,8 +268,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-rostelecom@tramplin.local","telegram":"@rtcareer"}""",
                     ["DevOps", "Networking", "Automation", "Career event"]),
                 new(
-                    "Rostelecom Network Automation Lab Cheboksary",
-                    "Practice program for students interested in network scripting, monitoring, and infrastructure reliability basics.",
+                    "Лаборатория сетевой автоматизации Ростелекома в Чебоксарах",
+                    "Практическая программа для студентов, которым интересны сетевой скриптинг, мониторинг и основы надежности инфраструктуры.",
                     "Чебоксары",
                     "улица Гагарина 25",
                     56.1210202m,
@@ -279,8 +279,8 @@ internal static class DevelopmentDataSeeder
                     """{"email":"company-rostelecom@tramplin.local","telegram":"@rtcareer"}""",
                     ["DevOps", "Networking", "Automation", "Students"]),
                 new(
-                    "Junior B2B Support Engineer Cheboksary",
-                    "Support enterprise clients, troubleshoot digital service incidents, and collaborate with QA and operations teams.",
+                    "Младший инженер поддержки B2B в Чебоксарах",
+                    "Поддерживайте корпоративных клиентов, разбирайте инциденты цифровых сервисов и работайте вместе с QA- и operations-командами.",
                     "Чебоксары",
                     "Марпосадское шоссе 14",
                     56.1268259m,
@@ -294,12 +294,12 @@ internal static class DevelopmentDataSeeder
 
     private static readonly SeedApplication[] SeedApplications =
     [
-        new("anna.petrova@tramplin.local", "Junior Frontend Developer", OpportunityApplicationStatuses.Reviewing, "Portfolio looks strong. Preparing a technical interview."),
-        new("anna.petrova@tramplin.local", "Design Systems Engineer", OpportunityApplicationStatuses.Submitted, null),
-        new("ivan.smirnov@tramplin.local", "Product Analytics Internship", OpportunityApplicationStatuses.Invited, "Invite sent for the analytics case interview."),
-        new("ivan.smirnov@tramplin.local", "ML Product Analyst Internship", OpportunityApplicationStatuses.Reviewing, "Please prepare examples of SQL dashboards."),
-        new("polina.sokolova@tramplin.local", "Product Design Internship", OpportunityApplicationStatuses.Reviewing, "Need one more case study focused on research synthesis."),
-        new("polina.sokolova@tramplin.local", "Frontend Meetup Career Sprint", OpportunityApplicationStatuses.Accepted, "Registration confirmed. See you at the event."),
+        new("anna.petrova@tramplin.local", "Младший frontend-разработчик", OpportunityApplicationStatuses.Reviewing, "Портфолио выглядит сильно. Готовим техническое интервью."),
+        new("anna.petrova@tramplin.local", "Инженер дизайн-систем", OpportunityApplicationStatuses.Submitted, null),
+        new("ivan.smirnov@tramplin.local", "Стажировка по продуктовой аналитике", OpportunityApplicationStatuses.Invited, "Отправили приглашение на кейс-интервью по аналитике."),
+        new("ivan.smirnov@tramplin.local", "Стажировка ML-продуктового аналитика", OpportunityApplicationStatuses.Reviewing, "Подготовьте, пожалуйста, примеры SQL-дашбордов."),
+        new("polina.sokolova@tramplin.local", "Стажировка по продуктовому дизайну", OpportunityApplicationStatuses.Reviewing, "Нужен еще один кейс с фокусом на синтез исследований."),
+        new("polina.sokolova@tramplin.local", "Карьерный frontend-митап VK", OpportunityApplicationStatuses.Accepted, "Регистрация подтверждена. Увидимся на мероприятии."),
     ];
 
     private static readonly SeedContact[] SeedContacts =
@@ -314,13 +314,13 @@ internal static class DevelopmentDataSeeder
         new(
             "anna.petrova@tramplin.local",
             "polina.sokolova@tramplin.local",
-            "Product Design Internship",
-            "Polina is strong in research synthesis and fast prototyping, and she works well with engineers."),
+            "Стажировка по продуктовому дизайну",
+            "Полина сильна в синтезе исследований и быстром прототипировании, а еще отлично работает с инженерами."),
         new(
             "polina.sokolova@tramplin.local",
             "anna.petrova@tramplin.local",
-            "Design Systems Engineer",
-            "Anna already thinks in components and tokens, and she can turn design specs into stable frontend patterns."),
+            "Инженер дизайн-систем",
+            "Анна уже мыслит компонентами и токенами и умеет превращать дизайн-спеки в устойчивые frontend-паттерны."),
     ];
 
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
@@ -526,17 +526,27 @@ internal static class DevelopmentDataSeeder
                 throw new InvalidOperationException($"Company profile for INN {seedCompany.Inn} was not created.");
             }
 
+            var existingCompanyOpportunities = await db.Opportunities
+                .Include(item => item.Applications)
+                .Include(item => item.Recommendations)
+                .Include(item => item.Tags)
+                .Where(item => item.EmployerId == companyUser.EmployerProfile.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var existingOpportunity in existingCompanyOpportunities)
+            {
+                existingOpportunity.Tags.Clear();
+            }
+
+            db.Applications.RemoveRange(existingCompanyOpportunities.SelectMany(item => item.Applications));
+            db.Recommendations.RemoveRange(existingCompanyOpportunities.SelectMany(item => item.Recommendations));
+            db.Opportunities.RemoveRange(existingCompanyOpportunities);
+            await db.SaveChangesAsync(cancellationToken);
+
             foreach (var seedOpportunity in seedCompany.Opportunities)
             {
-                var opportunity = await db.Opportunities
-                    .Include(item => item.Tags)
-                    .FirstOrDefaultAsync(item => item.Title == seedOpportunity.Title, cancellationToken);
-
-                if (opportunity is null)
-                {
-                    opportunity = new Opportunity();
-                    db.Opportunities.Add(opportunity);
-                }
+                var opportunity = new Opportunity();
+                db.Opportunities.Add(opportunity);
 
                 opportunity.EmployerId = companyUser.EmployerProfile.Id;
                 opportunity.Title = seedOpportunity.Title;

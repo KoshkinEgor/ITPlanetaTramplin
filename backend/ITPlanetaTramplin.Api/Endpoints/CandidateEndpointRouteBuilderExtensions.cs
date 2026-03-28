@@ -26,12 +26,25 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         api.MapGet("/candidate/me/contacts", GetCurrentCandidateContactsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/contacts", CreateCandidateContactAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/candidate/me/contacts/{contactId:int}", DeleteCandidateContactAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/friends", GetCurrentCandidateFriendsAsync).RequireAuthorization("requireCandidateRole");
+        api.MapDelete("/candidate/me/friends/{userId:int}", DeleteCurrentCandidateFriendAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/friends/requests", GetCurrentCandidateFriendRequestsAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/friends/requests", CreateFriendRequestAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/friends/requests/{requestId:int}/accept", AcceptFriendRequestAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/friends/requests/{requestId:int}/decline", DeclineFriendRequestAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/friends/requests/{requestId:int}/cancel", CancelFriendRequestAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/project-invites", GetCurrentCandidateProjectInvitesAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/project-invites", CreateCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/project-invites/{inviteId:int}/accept", AcceptCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/project-invites/{inviteId:int}/decline", DeclineCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/project-invites/{inviteId:int}/cancel", CancelCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/recommendations", GetCurrentCandidateRecommendationsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/recommendations", CreateCandidateRecommendationAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/projects", GetCurrentCandidateProjectsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/projects", CreateCandidateProjectAsync).RequireAuthorization("requireCandidateRole");
         api.MapPut("/candidate/me/projects/{projectId:int}", UpdateCandidateProjectByRouteAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/candidate/me/projects/{projectId:int}", DeleteCandidateProjectAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/public/{userId:int}", GetCandidatePublicProfileAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/applications", GetCurrentCandidateApplicationsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/applications/{applicationId:int}/withdraw", WithdrawCurrentCandidateApplicationAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/applications/{applicationId:int}/confirm", ConfirmCurrentCandidateApplicationAsync).RequireAuthorization("requireCandidateRole");
@@ -628,24 +641,38 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             })
             .ToListAsync();
 
-    private static async Task<List<object>> GetCandidateContactsAsync(ApplicationDBContext db, int userId) =>
-        await db.Contacts
+    private static async Task<List<object>> GetCandidateContactsAsync(ApplicationDBContext db, int userId)
+    {
+        var contacts = await db.Contacts
+            .AsNoTracking()
             .Include(item => item.ContactProfile)
             .ThenInclude(item => item.ApplicantProfile)
             .Where(item => item.UserId == userId)
-            .Select(item => (object)new
+            .OrderByDescending(item => item.CreatedAt)
+            .ToListAsync();
+
+        var result = new List<object>(contacts.Count);
+        foreach (var item in contacts)
+        {
+            var applicantProfile = item.ContactProfile.ApplicantProfile;
+            var displayName = applicantProfile is not null
+                ? string.Join(" ", new[] { applicantProfile.Name, applicantProfile.Surname, applicantProfile.Thirdname }
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value!.Trim()))
+                : string.Empty;
+
+            result.Add(new
             {
                 item.ContactProfileId,
+                UserId = item.ContactProfileId,
                 item.CreatedAt,
                 Email = item.ContactProfile.Email,
-                Name = item.ContactProfile.ApplicantProfile != null
-                    ? ((item.ContactProfile.ApplicantProfile.Name ?? string.Empty) + " "
-                        + (item.ContactProfile.ApplicantProfile.Surname ?? string.Empty) + " "
-                        + (item.ContactProfile.ApplicantProfile.Thirdname ?? string.Empty)).Trim()
-                    : item.ContactProfile.Email,
-                Skills = item.ContactProfile.ApplicantProfile != null
-                    ? item.ContactProfile.ApplicantProfile.Skills
-                    : null,
-            })
-            .ToListAsync();
+                Name = string.IsNullOrWhiteSpace(displayName) ? item.ContactProfile.Email : displayName,
+                Skills = applicantProfile?.Skills,
+                Relationship = await BuildRelationshipSummaryAsync(db, userId, item.ContactProfileId),
+            });
+        }
+
+        return result;
+    }
 }

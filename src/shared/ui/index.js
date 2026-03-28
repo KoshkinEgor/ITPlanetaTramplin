@@ -24,6 +24,7 @@ export { SectionHeader } from "../../components/ui/SectionHeader/SectionHeader";
 export { Loader } from "../../components/ui/Loader/Loader";
 export { Avatar } from "../../components/ui/Avatar/Avatar";
 export { SearchInput } from "../../components/ui/SearchInput/SearchInput";
+export { CityAutocomplete } from "../../components/ui/CityAutocomplete/CityAutocomplete";
 export { TagSelector } from "../../components/ui/TagSelector/TagSelector";
 export { SegmentedControl } from "../../components/ui/SegmentedControl/SegmentedControl";
 export { SettingsSectionCard } from "../../components/ui/SettingsSectionCard/SettingsSectionCard";

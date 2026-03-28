@@ -1,0 +1,105 @@
+.candidate-social-hub,
+.candidate-social-hub__stack {
+  display: grid;
+  gap: 24px;
+}
+
+.candidate-social-hub__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.candidate-social-hub__tabs.ui-tabs {
+  gap: 20px;
+}
+
+.candidate-social-hub__panel {
+  padding: 0;
+}
+
+.candidate-social-hub__invite-filter.ui-segmented {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.candidate-social-hub__invite-filter-item {
+  min-width: 136px;
+}
+
+.candidate-social-card.ui-card {
+  gap: 18px;
+  padding: 22px;
+  border-radius: 28px;
+}
+
+.candidate-social-card__head,
+.candidate-social-card__identity,
+.candidate-social-card__copy,
+.candidate-social-card__actions {
+  display: flex;
+}
+
+.candidate-social-card__identity {
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.candidate-social-card__avatar {
+  flex: 0 0 auto;
+}
+
+.candidate-social-card__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.candidate-social-card__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.candidate-social-card__title,
+.candidate-social-card__meta,
+.candidate-social-card__summary {
+  margin: 0;
+}
+
+.candidate-social-card__meta {
+  color: var(--ui-color-text-muted);
+}
+
+.candidate-social-card__summary {
+  color: var(--ui-color-text);
+}
+
+.candidate-social-card__tags,
+.candidate-social-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .candidate-social-card.ui-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .candidate-social-card__identity {
+    gap: 14px;
+  }
+
+  .candidate-social-hub__invite-filter.ui-segmented {
+    width: 100%;
+  }
+
+  .candidate-social-hub__invite-filter-item {
+    min-width: 0;
+  }
+}

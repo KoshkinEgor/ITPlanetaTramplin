@@ -1,11 +1,12 @@
+import { AppLink } from "../../../app/AppLink";
+import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
+import { normalizeOpportunityId } from "../../../features/favorites/storage";
 import { Avatar } from "../Avatar/Avatar";
 import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
 import { IconButton } from "../IconButton/IconButton";
 import { StatusBadge } from "../StatusBadge/StatusBadge";
 import { Tag } from "../Tag/Tag";
-import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
-import { normalizeOpportunityId } from "../../../features/favorites/storage";
 
 function HeartIcon() {
   return (
@@ -88,7 +89,7 @@ export function CareerStatsPanel({
 
 export function CareerSkillsPanel({
   title,
-  description = "У тебя уже есть отличный базовый набор. Развивай смежные навыки, чтобы увереннее перейти на следующий уровень.",
+  description = "У тебя уже есть хороший базовый набор. Развивай смежные навыки, чтобы увереннее перейти на следующий уровень.",
   primarySkills = [],
   suggestedSkills = [],
   href = "#",
@@ -302,26 +303,29 @@ export function CareerPeerCard({
   name,
   initials,
   sharedSkills = [],
+  profileHref = "",
   href = "#",
   actionLabel = "Добавить в контакты",
   className,
+  userId: _userId,
   ...props
 }) {
   const skillsLabel = sharedSkills.length
     ? `${sharedSkills.length} общих навыка: ${sharedSkills.join(", ")}`
     : "Общие навыки пока не найдены";
+  const resolvedProfileHref = profileHref || href;
 
   return (
     <Card className={["ui-career-peer-card", className].filter(Boolean).join(" ")} {...props}>
-      <div className="ui-career-peer-card__main">
+      <AppLink href={resolvedProfileHref} className="ui-career-peer-card__main">
         <Avatar initials={initials || getInitials(name)} name={name} tone="warning" shape="rounded" className="ui-career-peer-card__avatar" />
         <div className="ui-career-peer-card__copy">
           {name ? <h3 className="ui-career-peer-card__name">{name}</h3> : null}
           <p className="ui-career-peer-card__skills">{skillsLabel}</p>
         </div>
-      </div>
+      </AppLink>
 
-      <IconButton href={href} label={actionLabel} size="lg" className="ui-career-peer-card__action">
+      <IconButton href={href || resolvedProfileHref} label={actionLabel} size="lg" className="ui-career-peer-card__action">
         <PlusIcon />
       </IconButton>
     </Card>

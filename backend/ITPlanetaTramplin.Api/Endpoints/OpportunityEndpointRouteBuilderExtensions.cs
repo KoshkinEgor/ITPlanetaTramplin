@@ -46,10 +46,10 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         var opportunity = new Opportunity
         {
-            Title = request.Title,
-            Description = request.Description ?? string.Empty,
-            LocationAddress = request.LocationAddress,
-            LocationCity = request.LocationCity,
+            Title = request.Title.Trim(),
+            Description = request.Description?.Trim() ?? string.Empty,
+            LocationAddress = NormalizeOptionalText(request.LocationAddress),
+            LocationCity = NormalizeOptionalText(request.LocationCity),
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             ExpireAt = request.ExpireAt.HasValue
@@ -60,6 +60,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             EmploymentType = NormalizeEmploymentType(request.EmploymentType),
             ModerationStatus = OpportunityModerationStatuses.Pending,
             ContactsJson = NormalizeContactsJson(request.ContactsJson),
+            MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson),
         };
 
         opportunity.Tags = await ResolveOpportunityTagsAsync(db, request.Tags);
@@ -144,12 +145,12 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         if (request.Title is not null)
         {
-            opportunity.Title = request.Title;
+            opportunity.Title = request.Title.Trim();
         }
 
         if (request.Description is not null)
         {
-            opportunity.Description = request.Description;
+            opportunity.Description = request.Description.Trim();
         }
 
         if (request.OpportunityType is not null)
@@ -162,40 +163,21 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
         }
 
-        if (request.LocationAddress is not null)
-        {
-            opportunity.LocationAddress = request.LocationAddress;
-        }
+        opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
 
-        if (request.LocationCity is not null)
-        {
-            opportunity.LocationCity = request.LocationCity;
-        }
+        opportunity.LocationCity = NormalizeOptionalText(request.LocationCity);
 
-        if (request.Latitude.HasValue)
-        {
-            opportunity.Latitude = request.Latitude.Value;
-        }
+        opportunity.Latitude = request.Latitude;
 
-        if (request.Longitude.HasValue)
-        {
-            opportunity.Longitude = request.Longitude.Value;
-        }
+        opportunity.Longitude = request.Longitude;
 
-        if (request.ExpireAt.HasValue)
-        {
-            opportunity.ExpireAt = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime);
-        }
+        opportunity.ExpireAt = request.ExpireAt.HasValue
+            ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(request.ExpireAt.Value).UtcDateTime)
+            : null;
 
-        if (request.ContactsJson is not null)
-        {
-            opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
-        }
+        opportunity.ContactsJson = NormalizeContactsJson(request.ContactsJson);
 
-        if (request.MediaContentJson is not null)
-        {
-            opportunity.MediaContentJson = request.MediaContentJson;
-        }
+        opportunity.MediaContentJson = NormalizeMediaContentJson(request.MediaContentJson);
 
         if (request.Tags is not null)
         {
@@ -276,6 +258,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             opportunity.MediaContentJson,
             opportunity.DeletedAt,
             CompanyName = opportunity.Employer.CompanyName,
+            CompanyDescription = opportunity.Employer.Description,
+            CompanyLegalAddress = opportunity.Employer.LegalAddress,
+            CompanySocials = opportunity.Employer.Socials,
             EmployerId = opportunity.EmployerId,
             ModerationStatus = OpportunityModerationStatuses.Normalize(opportunity.ModerationStatus),
             Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
@@ -453,6 +438,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
     private static string NormalizeEmploymentType(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unspecified" : value.Trim();
 
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static string? NormalizeContactsJson(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -608,6 +596,25 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (normalizedKey.Contains("telegram") && !value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
             return $"https://t.me/{value.TrimStart('@')}";
+        }
+
+        return value;
+    }
+
+    private static string? NormalizeMediaContentJson(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            JsonDocument.Parse(value);
+        }
+        catch (JsonException exception)
+        {
+            throw new BadHttpRequestException("Поле mediaContentJson должно содержать валидный JSON.", exception);
         }
 
         return value;

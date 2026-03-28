@@ -7,10 +7,12 @@ import { getOpportunities } from "../api/opportunities";
 import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
-import { mapContactToPeerCard } from "./mappers";
+import { mapContactToPeerCard, translateEmploymentType, translateOpportunityType } from "./mappers";
 import { CandidateSectionHeader } from "./shared";
 
 function mapOpportunityCard(item) {
+  const employmentLabel = translateEmploymentType(item.employmentType);
+
   return {
     id: item.id,
     type: item.opportunityType || "Возможность",
@@ -18,10 +20,15 @@ function mapOpportunityCard(item) {
     statusTone: item.moderationStatus === "approved" ? "success" : "warning",
     title: item.title,
     company: [item.companyName, item.locationCity].filter(Boolean).join(" · "),
-    accent: item.employmentType || "",
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    ...{
+      type: translateOpportunityType(item.opportunityType),
+      company: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" - "),
+      accent: employmentLabel,
+    },
   };
 }
+
 
 function formatActivityDate(value) {
   if (!value) {
@@ -157,10 +164,7 @@ export function CandidateOverviewApp({ profile = null }) {
   const topOpportunities = useMemo(() => state.opportunities.slice(0, 3).map(mapOpportunityCard), [state.opportunities]);
   const topContacts = useMemo(
     () => state.contacts
-      .map((contact) => ({
-        ...mapContactToPeerCard(contact, candidateSkills),
-        href: routes.candidate.contacts,
-      }))
+      .map((contact) => mapContactToPeerCard(contact, candidateSkills))
       .filter((contact) => contact.id)
       .slice(0, 2),
     [candidateSkills, state.contacts]
@@ -250,7 +254,7 @@ export function CandidateOverviewApp({ profile = null }) {
               {topContacts.length ? (
                 <div className="candidate-overview-spotlight__stack">
                   {topContacts.map((contact) => (
-                    <CareerPeerCard key={contact.id} {...contact} className="candidate-overview-contact-card" />
+                    <CareerPeerCard key={contact.id} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" className="candidate-overview-contact-card" />
                   ))}
                 </div>
               ) : (

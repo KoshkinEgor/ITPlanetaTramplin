@@ -40,6 +40,14 @@ public partial class User
 
     public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
 
+    public virtual ICollection<FriendRequest> IncomingFriendRequests { get; set; } = new List<FriendRequest>();
+
+    public virtual ICollection<FriendRequest> OutgoingFriendRequests { get; set; } = new List<FriendRequest>();
+
+    public virtual ICollection<CandidateProjectInvite> IncomingProjectInvites { get; set; } = new List<CandidateProjectInvite>();
+
+    public virtual ICollection<CandidateProjectInvite> OutgoingProjectInvites { get; set; } = new List<CandidateProjectInvite>();
+
     public virtual ApplicantProfile? ApplicantProfile { get; set; }
 
     public virtual CuratorProfile? CuratorProfile { get; set; }

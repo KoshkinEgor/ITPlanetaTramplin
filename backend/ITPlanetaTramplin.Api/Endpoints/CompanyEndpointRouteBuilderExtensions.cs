@@ -154,6 +154,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
                 item.LocationCity,
                 item.ExpireAt,
                 item.ContactsJson,
+                item.MediaContentJson,
                 item.EmploymentType,
                 CompanyName = item.Employer.CompanyName,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),

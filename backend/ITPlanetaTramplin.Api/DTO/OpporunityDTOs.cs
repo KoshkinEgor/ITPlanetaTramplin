@@ -22,6 +22,8 @@ namespace DTO
 
         public string? ContactsJson { get; set; }
 
+        public string? MediaContentJson { get; set; }
+
         public List<string>? Tags { get; set; }
     }
 
