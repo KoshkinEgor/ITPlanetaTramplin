@@ -1727,7 +1727,7 @@ export function HomeApp() {
             <div className="home-about__intro">
               <p className="ui-type-overline">О платформе</p>
               <h2 id="home-about-title" className="ui-type-h1">
-                Платформа для тех, кто хочет стартовать без лишнего шума.
+                Платформа для тех, кто хочет начать карьеру без лишнего шума.
               </h2>
               <p className="ui-type-body">
                 TRAMPLIN собирает вакансии, стажировки, мероприятия и менторские программы в один маршрут: увидеть, сравнить, сохранить и перейти к следующему шагу.
