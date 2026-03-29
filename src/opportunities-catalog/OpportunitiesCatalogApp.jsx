@@ -164,11 +164,12 @@ function createOpportunityMeta(item) {
 }
 
 function createRowCardItem(item) {
+  const presentation = getOpportunityCardPresentation(item);
+
   return {
     id: item.id,
-    ...getOpportunityCardPresentation(item),
+    ...presentation,
     meta: createOpportunityMeta(item),
-    note: shortenText(item.description, 88),
   };
 }
 
@@ -183,12 +184,9 @@ function createMapCardItem(item) {
     id: String(item.id),
     employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: presentation.type,
-    type: presentation.type,
+    ...presentation,
     title: item.title,
     meta: createOpportunityMeta(item),
-    accent: presentation.accent || item.locationAddress || translateEmploymentType(item.employmentType),
-    note: shortenText(item.description, 56),
-    chips: presentation.chips,
     coordinates: [Number(item.longitude), Number(item.latitude)],
     detailHref: buildOpportunityDetailRoute(item.id),
     isFavoriteOpportunity: Boolean(item.isFavoriteOpportunity ?? item.isFavorite),
@@ -247,15 +245,10 @@ function createRecommendationCard(item, scoreData) {
 
   return {
     id: item.id,
-    type: cardPresentation.type,
+    ...cardPresentation,
     status: hasSkillMatch ? `�������� �� ${scoreData.score}%` : "",
     statusTone: hasSkillMatch ? "success" : "neutral",
-    title: item.title,
-    company: createOpportunityMeta(item),
-    accentPrefix: item.opportunityType === "event" ? "" : "������",
-    accent: cardPresentation.accent,
-    note: cardPresentation.note || (item.opportunityType === "event" ? "" : shortenText(item.description, 42)),
-    chips: cardPresentation.chips,
+    meta: createOpportunityMeta(item),
   };
 }
 

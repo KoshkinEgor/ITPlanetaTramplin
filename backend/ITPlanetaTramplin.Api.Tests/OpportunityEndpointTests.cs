@@ -347,15 +347,22 @@ public class OpportunityEndpointTests
         var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
         Assert.NotNull(registrationPayload);
 
-        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
         {
-            role = "candidate",
-            login = registrationPayload!.Email,
-            password = "Password1",
+            email = registrationPayload!.Email,
+            role = registrationPayload.Role,
+            code = registrationPayload.DebugCode,
         });
 
-        Assert.Equal(HttpStatusCode.Forbidden, loginResponse.StatusCode);
-        return;
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var user = await db.Users.SingleAsync(item => item.Email == registrationPayload.Email);
+            user.IsVerified = false;
+            await db.SaveChangesAsync();
+        }
 
         var applyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
         Assert.Equal(HttpStatusCode.Forbidden, applyResponse.StatusCode);
@@ -364,6 +371,7 @@ public class OpportunityEndpointTests
         Assert.NotNull(applyError);
         Assert.Contains("Подтвердите аккаунт", applyError!.Message);
     }
+
     [Fact]
     public async Task CreateAndUpdateOpportunity_PersistsCoordinatesFromRequest()
     {

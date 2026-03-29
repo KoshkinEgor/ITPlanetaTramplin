@@ -5,6 +5,9 @@
 .ui-career-peer-card.ui-card {
   min-width: 0;
   min-height: 100%;
+  --ui-career-opportunity-tone-accent: var(--ui-color-accent);
+  --ui-career-opportunity-tone-border: rgba(47, 128, 255, 0.18);
+  --ui-career-opportunity-tone-soft: rgba(47, 128, 255, 0.08);
   border-color: rgba(114, 128, 162, 0.14);
   box-shadow: 0 24px 60px rgba(43, 62, 103, 0.08);
   backdrop-filter: blur(18px);
@@ -95,6 +98,10 @@
 .ui-career-panel__title,
 .ui-career-salary-panel__title {
   max-width: 20ch;
+}
+
+.ui-career-opportunity-card__accent {
+  color: var(--ui-career-opportunity-tone-accent);
 }
 
 .ui-career-stats-panel .ui-career-panel__title,
@@ -253,6 +260,10 @@
 
 .ui-career-opportunity-card {
   gap: 18px;
+  border-color: var(--ui-career-opportunity-tone-border);
+  background:
+    radial-gradient(circle at top right, var(--ui-career-opportunity-tone-soft), transparent 34%),
+    rgba(255, 255, 255, 0.84);
 }
 
 .ui-career-mentor-card.ui-card {
@@ -263,8 +274,32 @@
 
 .ui-career-opportunity-card--featured {
   background:
-    radial-gradient(circle at top right, rgba(47, 128, 255, 0.08), transparent 34%),
+    radial-gradient(circle at top right, var(--ui-career-opportunity-tone-soft), transparent 34%),
     rgba(255, 255, 255, 0.84);
+}
+
+.ui-career-opportunity-card[data-opportunity-type-tone="blue"].ui-card {
+  --ui-career-opportunity-tone-accent: #2f80ff;
+  --ui-career-opportunity-tone-border: rgba(47, 128, 255, 0.18);
+  --ui-career-opportunity-tone-soft: rgba(47, 128, 255, 0.08);
+}
+
+.ui-career-opportunity-card[data-opportunity-type-tone="green"].ui-card {
+  --ui-career-opportunity-tone-accent: #2ea85d;
+  --ui-career-opportunity-tone-border: rgba(46, 168, 93, 0.2);
+  --ui-career-opportunity-tone-soft: rgba(46, 168, 93, 0.08);
+}
+
+.ui-career-opportunity-card[data-opportunity-type-tone="orange"].ui-card {
+  --ui-career-opportunity-tone-accent: #d68110;
+  --ui-career-opportunity-tone-border: rgba(214, 129, 16, 0.22);
+  --ui-career-opportunity-tone-soft: rgba(236, 154, 26, 0.1);
+}
+
+.ui-career-opportunity-card[data-opportunity-type-tone="teal"].ui-card {
+  --ui-career-opportunity-tone-accent: #158f8a;
+  --ui-career-opportunity-tone-border: rgba(21, 143, 138, 0.22);
+  --ui-career-opportunity-tone-soft: rgba(21, 143, 138, 0.09);
 }
 
 .ui-career-opportunity-card__top,
@@ -283,6 +318,12 @@
   gap: 8px;
 }
 
+.ui-career-opportunity-card__type.ui-tag-token {
+  border-color: var(--ui-career-opportunity-tone-border);
+  background: var(--ui-career-opportunity-tone-soft);
+  color: var(--ui-career-opportunity-tone-accent);
+}
+
 .ui-career-opportunity-card__save.ui-icon-button,
 .ui-career-peer-card__action.ui-icon-button {
   flex-shrink: 0;
@@ -299,6 +340,24 @@
 
 .ui-career-opportunity-card__chips {
   margin-top: auto;
+}
+
+.ui-career-opportunity-card__fact-label,
+.ui-career-opportunity-card__fact-item {
+  color: var(--ui-color-text-muted);
+}
+
+.ui-career-opportunity-card__fact-label {
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  letter-spacing: var(--ui-letter-spacing-caption);
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.ui-career-opportunity-card__fact-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
 }
 
 .ui-career-opportunity-card__action.ui-button,

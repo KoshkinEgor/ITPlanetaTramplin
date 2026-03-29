@@ -1,6 +1,7 @@
 import { AppLink } from "../../../app/AppLink";
 import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
 import { normalizeOpportunityId } from "../../../features/favorites/storage";
+import { normalizeOpportunityCardItem } from "../../../shared/lib/opportunityPresentation";
 import { Avatar } from "../Avatar/Avatar";
 import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
@@ -204,11 +205,18 @@ export function CareerCourseCard({
 
 export function CareerOpportunityCard({
   opportunityId,
+  typeKey,
+  typeTone,
   type,
   status,
   statusTone = "neutral",
   title,
   company,
+  primaryFactLabel,
+  primaryFactValue,
+  secondaryFact,
+  tertiaryFact,
+  compactFact,
   accent,
   chips = [],
   href = "#",
@@ -221,6 +229,22 @@ export function CareerOpportunityCard({
   ...props
 }) {
   const { opportunityId: resolvedOpportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(normalizeOpportunityId(opportunityId), favoritePressed);
+  const data = normalizeOpportunityCardItem({
+    typeKey,
+    typeTone,
+    type,
+    status,
+    statusTone,
+    title,
+    company,
+    primaryFactLabel,
+    primaryFactValue,
+    secondaryFact,
+    tertiaryFact,
+    compactFact,
+    accent,
+    chips,
+  });
   const handleFavoriteClick = () => {
     const nextState = toggleFavorite();
     onFavoriteClick?.(resolvedOpportunityId, nextState);
@@ -230,12 +254,14 @@ export function CareerOpportunityCard({
     <Card
       className={["ui-career-opportunity-card", featured && "ui-career-opportunity-card--featured", className].filter(Boolean).join(" ")}
       data-opportunity-id={resolvedOpportunityId ?? undefined}
+      data-opportunity-type-tone={data.typeTone ?? undefined}
+      data-opportunity-type-key={data.typeKey ?? undefined}
       {...props}
     >
       <div className="ui-career-opportunity-card__top">
         <div className="ui-career-opportunity-card__badges">
-          {type ? <Tag variant="surface">{type}</Tag> : null}
-          {status ? <StatusBadge tone={statusTone}>{status}</StatusBadge> : null}
+          {data.type ? <Tag variant="surface" className="ui-career-opportunity-card__type">{data.type}</Tag> : null}
+          {data.status ? <StatusBadge tone={data.statusTone}>{data.status}</StatusBadge> : null}
         </div>
 
         <IconButton
@@ -254,14 +280,24 @@ export function CareerOpportunityCard({
       </div>
 
       <div className="ui-career-opportunity-card__copy">
-        {title ? <h3 className="ui-career-opportunity-card__title">{title}</h3> : null}
-        {company ? <p className="ui-career-opportunity-card__company">{company}</p> : null}
-        {accent ? <strong className="ui-career-opportunity-card__accent">{accent}</strong> : null}
+        {data.title ? <h3 className="ui-career-opportunity-card__title">{data.title}</h3> : null}
+        {data.meta ? <p className="ui-career-opportunity-card__company">{data.meta}</p> : null}
+        {data.primaryFactLabel ? <span className="ui-career-opportunity-card__fact-label">{data.primaryFactLabel}</span> : null}
+        {data.primaryFactValue ? <strong className="ui-career-opportunity-card__accent">{data.primaryFactValue}</strong> : null}
+        {data.summaryFacts.length ? (
+          <div className="ui-career-opportunity-card__fact-list">
+            {data.summaryFacts.map((fact, index) => (
+              <span key={`${fact}-${index}`} className="ui-career-opportunity-card__fact-item">
+                {fact}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
-      {chips.length ? (
+      {data.chips.length ? (
         <div className="ui-career-opportunity-card__chips">
-          {chips.map((chip) => (
+          {data.chips.map((chip) => (
             <Tag key={chip} variant="surface" size="sm">
               {chip}
             </Tag>

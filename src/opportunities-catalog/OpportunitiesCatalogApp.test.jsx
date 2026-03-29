@@ -54,6 +54,8 @@ const opportunities = [
     tags: ["Security", "Junior", "SOC"],
     opportunityType: "vacancy",
     employmentType: "remote",
+    salaryFrom: 120000,
+    salaryTo: 180000,
     longitude: 37.617635,
     latitude: 55.755814,
     moderationStatus: "approved",
@@ -63,12 +65,14 @@ const opportunities = [
     employerId: 202,
     title: "IT-Планета",
     companyName: "IT-Планета",
-    locationCity: "Москва",
+    locationCity: "Чебоксары",
     locationAddress: "Онлайн",
     description: "Open event for students and junior teams.",
     tags: ["Студенты", "Мероприятие"],
     opportunityType: "event",
     employmentType: "online",
+    eventStartAt: "2026-04-18T18:30:00Z",
+    registrationDeadline: "2026-04-10T21:00:00Z",
     longitude: 37.541584,
     latitude: 55.804065,
     moderationStatus: "approved",
@@ -84,6 +88,8 @@ const opportunities = [
     tags: ["UI / UX", "Дизайн"],
     opportunityType: "internship",
     employmentType: "hybrid",
+    isPaid: false,
+    duration: "10 недель",
     longitude: 37.658581,
     latitude: 55.762994,
     moderationStatus: "approved",
@@ -228,6 +234,23 @@ describe("OpportunitiesCatalogApp", () => {
     expect(slider.querySelector(".ui-kit-opportunity-slider__card")).not.toBeNull();
   });
 
+  it("renders event-specific semantic facts in list cards", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(document.querySelector(".opportunities-browser__results")).not.toBeNull();
+    });
+    const results = document.querySelector(".opportunities-browser__results");
+    expect(results).not.toBeNull();
+    expect(within(results).getAllByText("IT-Планета").length).toBeGreaterThan(0);
+    expect(within(results).getByText("Дата и время")).toBeInTheDocument();
+    expect(within(results).getByText(/Регистрация до/)).toBeInTheDocument();
+    expect(within(results).getByText("Онлайн • Чебоксары")).toBeInTheDocument();
+  });
+
   it("opens filters as a dropdown, applies real filters, and keeps unsupported controls disabled", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
@@ -259,9 +282,10 @@ describe("OpportunitiesCatalogApp", () => {
     const results = container.querySelector(".opportunities-browser__results");
 
     expect(results).not.toBeNull();
+    expect(within(results).getByText("IT-Планета")).toBeInTheDocument();
     expect(within(results).getByText("Frontend Intern")).toBeInTheDocument();
     expect(within(results).getByText("QA Engineer")).toBeInTheDocument();
-    expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(within(results).queryByText("Junior Security Analyst")).not.toBeInTheDocument();
     expect(within(results).queryByText("Product Designer")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Больше возможностей" }));
@@ -321,7 +345,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     const map = screen.getByTestId("catalog-map");
     expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
-    expect(screen.getByText("MAP_POINTS:3")).toBeInTheDocument();
+    expect(screen.getByText("MAP_POINTS:4")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
     fireEvent.click(screen.getByRole("button", { name: "Только избранное" }));
@@ -331,7 +355,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Не избранное" }));
 
-    expect(screen.getByText("MAP_POINTS:2")).toBeInTheDocument();
+    expect(screen.getByText("MAP_POINTS:3")).toBeInTheDocument();
     expect(within(map).queryByRole("button", { name: "Frontend Intern" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Список" }));

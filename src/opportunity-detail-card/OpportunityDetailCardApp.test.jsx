@@ -59,6 +59,8 @@ const apiOpportunity = {
   contactsJson: '{"email":"career@example.com"}',
   mediaContentJson: '[{"title":"Программа вакансии"}]',
   tags: ["SOC", "SIEM"],
+  salaryFrom: 120000,
+  salaryTo: 180000,
 };
 
 const appliedSummary = {
@@ -83,7 +85,7 @@ const relatedOpportunity = {
   companyName: "Sber",
   locationCity: "Москва",
   locationAddress: "Кутузовский проспект, 32",
-  opportunityType: "vacancy",
+  opportunityType: "internship",
   employmentType: "hybrid",
   moderationStatus: "approved",
   publishAt: "2026-03-11",
@@ -91,6 +93,8 @@ const relatedOpportunity = {
   contactsJson: '{"email":"internships@sber.local"}',
   mediaContentJson: "[]",
   tags: ["React", "TypeScript", "Frontend"],
+  isPaid: false,
+  duration: "8 недель",
 };
 
 function StoreConsumer() {
@@ -230,6 +234,8 @@ describe("OpportunityDetailCardApp", () => {
     renderDetail("/opportunities/101");
 
     expect(await screen.findByRole("link", { name: "Открыть профиль компании" })).toHaveAttribute("href", "/companies/404");
+    expect(screen.getByText(/120/)).toBeInTheDocument();
+    expect(screen.getByText("Формат: Онлайн")).toBeInTheDocument();
   });
 
   it("opens complaint and share options from the more actions button", async () => {
@@ -292,6 +298,8 @@ describe("OpportunityDetailCardApp", () => {
     renderDetail("/opportunities/101");
 
     expect(await screen.findByText("Frontend Intern")).toBeInTheDocument();
+    expect(screen.getByText("Без оплаты")).toBeInTheDocument();
+    expect(screen.getByText("Длительность: 8 недель")).toBeInTheDocument();
 
     const favoriteButtons = Array.from(document.querySelectorAll("button[data-opportunity-id]"));
     const relatedFavoriteButton = favoriteButtons[favoriteButtons.length - 1];

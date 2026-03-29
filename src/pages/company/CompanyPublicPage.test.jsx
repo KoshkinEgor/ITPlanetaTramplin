@@ -41,6 +41,8 @@ const companyOpportunities = [
     opportunityType: "internship",
     description: "Работа с комьюнити и контентом.",
     tags: ["Community", "Content"],
+    isPaid: false,
+    duration: "3 месяца",
   },
 ];
 
@@ -61,7 +63,7 @@ describe("CompanyPublicPage", () => {
     getPublicCompanyOpportunities.mockResolvedValue(companyOpportunities);
   });
 
-  it("renders public company sections in viewer mode", async () => {
+  it("renders public company sections in viewer mode with typed opportunity facts", async () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Northwind" })).toBeInTheDocument();
@@ -69,6 +71,9 @@ describe("CompanyPublicPage", () => {
     expect(screen.getByText("Case title")).toBeInTheDocument();
     expect(screen.getByText("Team photo")).toBeInTheDocument();
     expect(screen.getByText("DevRel internship")).toBeInTheDocument();
+    expect(screen.getByText("Оплата")).toBeInTheDocument();
+    expect(screen.getByText("Без оплаты")).toBeInTheDocument();
+    expect(screen.getByText("Длительность: 3 месяца")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Перейти к редактированию" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Добавить проект" })).not.toBeInTheDocument();
   });

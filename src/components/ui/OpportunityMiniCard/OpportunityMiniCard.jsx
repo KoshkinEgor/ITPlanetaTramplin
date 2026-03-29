@@ -2,6 +2,7 @@ import { buildOpportunityDetailRoute } from "../../../app/routes";
 import { extractOpportunityId } from "../../../features/favorites/storage";
 import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
 import { cn } from "../../../lib/cn";
+import { normalizeOpportunityCardItem } from "../../../shared/lib/opportunityPresentation";
 import { Button } from "../Button/Button";
 import { Card } from "../Card/Card";
 import { IconButton } from "../IconButton/IconButton";
@@ -32,33 +33,20 @@ function CloseIcon() {
   );
 }
 
-function getCompactValueSuffix(item) {
-  if (item.valueSuffix) {
-    return String(item.valueSuffix).trim();
+function getVisibleFacts(data, { compact = false } = {}) {
+  if (compact) {
+    return [data.compactFact || data.secondaryFact || data.tertiaryFact].filter(Boolean);
   }
 
-  const note = String(item.note ?? "").trim();
-
-  if (!note || note.length > 24) {
-    return "";
-  }
-
-  return note;
+  return data.summaryFacts;
 }
 
 function normalizeOpportunity(item) {
-  const chips = Array.isArray(item?.chips) ? item.chips.filter(Boolean).slice(0, 3) : [];
+  const data = normalizeOpportunityCardItem(item);
 
   return {
-    type: item?.type ?? item?.eyebrow ?? "",
-    status: item?.status ?? "",
-    statusTone: item?.statusTone ?? item?.tone ?? "neutral",
-    title: item?.title ?? "",
-    meta: item?.company ?? item?.meta ?? "",
-    valuePrefix: item?.valuePrefix ?? item?.accentPrefix ?? "",
-    accent: item?.accent ?? "",
-    valueSuffix: getCompactValueSuffix(item ?? {}),
-    chips,
+    ...data,
+    chips: data.chips.slice(0, 3),
   };
 }
 
@@ -86,10 +74,11 @@ export function OpportunityMiniCard({
   const data = normalizeOpportunity(item);
   const { opportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(extractOpportunityId(item), favoritePressed);
   const action = resolveDetailAction(detailAction, item);
-  const hasValue = data.valuePrefix || data.accent || data.valueSuffix;
   const isCompact = variant === "compact" || variant === "map-compact";
   const isMapCompact = variant === "map-compact";
   const chips = isMapCompact ? data.chips.slice(0, 2) : data.chips;
+  const facts = getVisibleFacts(data, { compact: isCompact });
+  const hasPrimaryFact = data.primaryFactLabel || data.primaryFactValue;
   const handleFavoriteClick = () => {
     const nextState = toggleFavorite();
     onFavoriteClick?.(opportunityId, nextState);
@@ -104,6 +93,8 @@ export function OpportunityMiniCard({
         className
       )}
       data-opportunity-id={opportunityId ?? undefined}
+      data-opportunity-type-tone={data.typeTone ?? undefined}
+      data-opportunity-type-key={data.typeKey ?? undefined}
       {...props}
     >
       <div className="ui-opportunity-mini-card__top">
@@ -156,16 +147,26 @@ export function OpportunityMiniCard({
           <p className="ui-opportunity-mini-card__meta">{data.meta}</p>
         ) : null}
 
-        {hasValue ? (
-          <p className="ui-opportunity-mini-card__value">
-            {data.valuePrefix ? (
-              <span className="ui-opportunity-mini-card__value-prefix">{data.valuePrefix}</span>
+        {hasPrimaryFact ? (
+          <div className="ui-opportunity-mini-card__fact-block">
+            {data.primaryFactLabel ? (
+              <p className="ui-opportunity-mini-card__fact-label">{data.primaryFactLabel}</p>
             ) : null}
-            {data.accent ? <strong className="ui-opportunity-mini-card__accent">{data.accent}</strong> : null}
-            {data.valueSuffix ? (
-              <span className="ui-opportunity-mini-card__value-suffix">{data.valueSuffix}</span>
+            {data.primaryFactValue ? (
+              <p className="ui-opportunity-mini-card__value">
+                <strong className="ui-opportunity-mini-card__accent">{data.primaryFactValue}</strong>
+              </p>
             ) : null}
-          </p>
+            {facts.length ? (
+              <div className="ui-opportunity-mini-card__facts">
+                {facts.map((fact, index) => (
+                  <span key={`${fact}-${index}`} className="ui-opportunity-mini-card__fact-item">
+                    {fact}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

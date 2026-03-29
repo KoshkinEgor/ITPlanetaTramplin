@@ -2,6 +2,7 @@ import { Button, Card, IconButton, StatusBadge, Tag } from "../ui";
 import { cn } from "../../lib/cn";
 import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
 import { extractOpportunityId } from "../../features/favorites/storage";
+import { normalizeOpportunityCardItem } from "../../shared/lib/opportunityPresentation";
 import "./OpportunityCard.css";
 
 const CHIP_PLACEMENT_BY_VARIANT = {
@@ -24,16 +25,7 @@ function HeartIcon() {
 }
 
 function normalizeOpportunity(item) {
-  return {
-    type: item?.type ?? item?.eyebrow ?? "",
-    title: item?.title ?? "",
-    meta: item?.company ?? item?.meta ?? "",
-    accent: item?.accent ?? "",
-    note: item?.note ?? "",
-    status: item?.status ?? "",
-    statusTone: item?.statusTone ?? item?.tone ?? "neutral",
-    chips: Array.isArray(item?.chips) ? item.chips.filter(Boolean) : [],
-  };
+  return normalizeOpportunityCardItem(item);
 }
 
 function resolveAction(action) {
@@ -64,6 +56,49 @@ function splitTags(chips, placement) {
   }
 
   return { topTags: [], bottomTags: chips };
+}
+
+function renderSummary(data, variant) {
+  const hasPrimaryFact = data.primaryFactLabel || data.primaryFactValue;
+  const facts = data.summaryFacts;
+
+  if (!hasPrimaryFact) {
+    return null;
+  }
+
+  if (variant === "row") {
+    return (
+      <div className="ui-opportunity-card__summary">
+        {data.primaryFactLabel ? <span className="ui-opportunity-card__fact-label">{data.primaryFactLabel}</span> : null}
+        {data.primaryFactValue ? <strong className="ui-opportunity-card__accent">{data.primaryFactValue}</strong> : null}
+        {facts.length ? (
+          <div className="ui-opportunity-card__fact-list">
+            {facts.map((fact, index) => (
+              <span key={`${fact}-${index}`} className="ui-opportunity-card__fact-item">
+                {fact}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="ui-opportunity-card__details">
+      {data.primaryFactLabel ? <span className="ui-opportunity-card__fact-label">{data.primaryFactLabel}</span> : null}
+      {data.primaryFactValue ? <strong className="ui-opportunity-card__accent">{data.primaryFactValue}</strong> : null}
+      {facts.length ? (
+        <div className="ui-opportunity-card__fact-list">
+          {facts.map((fact, index) => (
+            <span key={`${fact}-${index}`} className="ui-opportunity-card__fact-item">
+              {fact}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function OpportunityCardBase({
@@ -153,19 +188,7 @@ function OpportunityCardBase({
     )
   ) : null;
 
-  const details = variant === "row"
-    ? (data.accent || data.note ? (
-        <div className="ui-opportunity-card__value">
-          {data.accent ? <strong className="ui-opportunity-card__accent">{data.accent}</strong> : null}
-          {data.note ? <span className="ui-opportunity-card__inline-note">{data.note}</span> : null}
-        </div>
-      ) : null)
-    : (data.accent || data.note ? (
-        <div className="ui-opportunity-card__details">
-          {data.accent ? <strong className="ui-opportunity-card__accent">{data.accent}</strong> : null}
-          {data.note ? <p className="ui-opportunity-card__note">{data.note}</p> : null}
-        </div>
-      ) : null);
+  const details = renderSummary(data, variant);
 
   const body = (
     <div className="ui-opportunity-card__body">
@@ -215,6 +238,8 @@ function OpportunityCardBase({
         className
       )}
       data-opportunity-id={opportunityId ?? undefined}
+      data-opportunity-type-tone={data.typeTone ?? undefined}
+      data-opportunity-type-key={data.typeKey ?? undefined}
       {...props}
     >
       {variant === "row" ? (

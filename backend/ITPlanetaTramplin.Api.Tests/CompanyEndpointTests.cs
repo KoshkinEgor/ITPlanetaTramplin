@@ -259,6 +259,129 @@ public class CompanyEndpointTests
     }
 
     [Fact]
+    public async Task CompanyVerificationApproval_UnlocksOpportunityCreationAndPublicProfile()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/company", new
+        {
+            email = "hello@sever.local",
+            password = "Password1",
+            companyName = "Sever Co",
+            inn = "5408114123",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+        var registrationPayload = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(registrationPayload);
+
+        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
+        {
+            email = registrationPayload!.Email,
+            role = registrationPayload.Role,
+            code = registrationPayload.DebugCode,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        int companyId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            companyId = await db.EmployerProfiles
+                .Where(item => item.Inn == "5408114123")
+                .Select(item => item.Id)
+                .SingleAsync();
+        }
+
+        var publicBeforeApprovalResponse = await client.GetAsync($"/api/companies/{companyId}");
+        Assert.Equal(HttpStatusCode.NotFound, publicBeforeApprovalResponse.StatusCode);
+
+        var createBeforeApprovalResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Unverified company opportunity",
+            description = "Should stay blocked until verification is approved.",
+            opportunityType = "vacancy",
+            employmentType = "remote",
+            contactsJson = """{"email":"jobs@sever.local"}""",
+            salaryFrom = 80000m,
+            salaryTo = 120000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, createBeforeApprovalResponse.StatusCode);
+        var blockedPayload = await createBeforeApprovalResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(blockedPayload);
+        Assert.Contains("верификац", blockedPayload!.Message, StringComparison.OrdinalIgnoreCase);
+
+        using (var formData = new MultipartFormDataContent())
+        {
+            formData.Add(new StringContent("Ирина Смирнова", Encoding.UTF8), "contactName");
+            formData.Add(new StringContent("HR Lead", Encoding.UTF8), "contactRole");
+            formData.Add(new StringContent("+7 999 000-00-00", Encoding.UTF8), "contactPhone");
+            formData.Add(new StringContent("hr@sever.local", Encoding.UTF8), "contactEmail");
+
+            var documentContent = new ByteArrayContent("%PDF-1.4 sever".Select(static item => (byte)item).ToArray());
+            documentContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+            formData.Add(documentContent, "document", "sever-egrul.pdf");
+
+            var submitVerificationResponse = await client.PostAsync("/api/company/me/verification-request", formData);
+            Assert.Equal(HttpStatusCode.OK, submitVerificationResponse.StatusCode);
+        }
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsModeratorAsync(client);
+
+        var moderationCompaniesResponse = await client.GetAsync("/api/moderation/companies");
+        Assert.Equal(HttpStatusCode.OK, moderationCompaniesResponse.StatusCode);
+
+        using (var moderationCompaniesPayload = JsonDocument.Parse(await moderationCompaniesResponse.Content.ReadAsStringAsync()))
+        {
+            var company = moderationCompaniesPayload.RootElement.EnumerateArray()
+                .Single(item => item.GetProperty("inn").GetString() == "5408114123");
+
+            Assert.Equal("pending", company.GetProperty("verificationStatus").GetString());
+        }
+
+        var approveResponse = await client.PostAsJsonAsync($"/api/moderation/companies/{companyId}/decision", new
+        {
+            status = "approved",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, approveResponse.StatusCode);
+
+        var publicAfterApprovalResponse = await client.GetAsync($"/api/companies/{companyId}");
+        Assert.Equal(HttpStatusCode.OK, publicAfterApprovalResponse.StatusCode);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyByInnAsync(client, "5408114123", "Password1");
+
+        var createAfterApprovalResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Verified company opportunity",
+            description = "Now the company can publish opportunities.",
+            opportunityType = "vacancy",
+            employmentType = "remote",
+            contactsJson = """{"email":"jobs@sever.local"}""",
+            salaryFrom = 90000m,
+            salaryTo = 140000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createAfterApprovalResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Verified company opportunity");
+            Assert.Equal(companyId, opportunity.EmployerId);
+            Assert.Equal(OpportunityModerationStatuses.Pending, opportunity.ModerationStatus);
+        }
+    }
+
+    [Fact]
     public async Task SubmitCompanyVerificationRequest_ReturnsBadRequestForMissingDocument()
     {
         await using var factory = new TestApplicationFactory();
@@ -292,6 +415,30 @@ public class CompanyEndpointTests
             role = "company",
             login = "7707083893",
             password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+    }
+
+    private static async Task LoginAsCompanyByInnAsync(HttpClient client, string inn, string password)
+    {
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = inn,
+            password,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+    }
+
+    private static async Task LoginAsModeratorAsync(HttpClient client)
+    {
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "moderator",
+            login = "administrator@tramplin.local",
+            password = "Administrator1234",
         });
 
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);

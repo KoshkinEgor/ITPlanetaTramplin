@@ -8,7 +8,13 @@ import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { readFavoriteCompanyIds, readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
-import { OPPORTUNITY_TYPE_OPTIONS, getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
+import {
+  OPPORTUNITY_TYPE_OPTIONS,
+  getOpportunityApplyLabel,
+  normalizeOpportunityType,
+  translateOpportunityType as translateSharedOpportunityType,
+} from "../shared/lib/opportunityTypes";
+import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
@@ -234,6 +240,12 @@ const HOME_EVENT_ACTION_LABEL = "\u041F\u043E\u0434\u0430\u0442\u044C \u0437\u04
 const HOME_DETAIL_ACTION_LABEL = "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435";
 
 function getSafeHomeDetailActionLabel(item) {
+  const typeKey = normalizeOpportunityType(item?.typeKey ?? item?.opportunityType);
+
+  if (typeKey) {
+    return typeKey === "event" ? HOME_EVENT_ACTION_LABEL : HOME_APPLY_ACTION_LABEL;
+  }
+
   const type = String(item?.eyebrow ?? item?.type ?? "").trim().toLowerCase();
   return type === "\u043C\u0435\u0440\u043E\u043F\u0440\u0438\u044F\u0442\u0438\u0435" ? HOME_EVENT_ACTION_LABEL : HOME_APPLY_ACTION_LABEL;
 }
@@ -246,7 +258,7 @@ function createSafeHomeRowActions(item) {
       variant: "secondary",
     },
     detailAction: {
-      href: buildOpportunityDetailRoute(item.id),
+      href: item?.detailHref ?? buildOpportunityDetailRoute(item.id),
       label: getSafeHomeDetailActionLabel(item),
       variant: "secondary",
     },
@@ -255,7 +267,7 @@ function createSafeHomeRowActions(item) {
 
 function createSafeHomeBlockDetailAction(item) {
   return {
-    href: buildOpportunityDetailRoute(item.id),
+    href: item?.detailHref ?? buildOpportunityDetailRoute(item.id),
     label: HOME_DETAIL_ACTION_LABEL,
     variant: "secondary",
     width: "full",
@@ -548,34 +560,65 @@ function mergeUniqueOpportunityCards(...groups) {
   });
 }
 
+function createHomeOpportunityCardBase(item, fallbackId, { status, statusTone, chipsLimit = 4 } = {}) {
+  const identifier = getOpportunityIdentifier(item, fallbackId);
+  const presentation = getOpportunityCardPresentation(item);
+  const typeLabel = presentation.type || translateOpportunityType(item?.opportunityType);
+  const employmentLabel = presentation.employmentLabel || translateEmploymentType(item?.employmentType);
+  const tags = Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [];
+
+  return {
+    id: identifier,
+    employerId: item?.employerId != null ? String(item.employerId) : "",
+    opportunityType: item?.opportunityType ?? presentation.typeKey,
+    opportunityTypeValue: normalizeOptionValue(item?.opportunityType ?? presentation.typeKey),
+    typeKey: presentation.typeKey,
+    typeTone: presentation.typeTone,
+    eyebrow: typeLabel,
+    type: typeLabel,
+    employmentLabel,
+    levelLabel: deriveFilterLevel(item),
+    status,
+    statusTone,
+    title: presentation.title,
+    meta: presentation.meta,
+    primaryFactLabel: presentation.primaryFactLabel,
+    primaryFactValue: presentation.primaryFactValue,
+    secondaryFact: presentation.secondaryFact,
+    tertiaryFact: presentation.tertiaryFact,
+    compactFact: presentation.compactFact,
+    summaryFacts: presentation.summaryFacts,
+    accent: presentation.accent,
+    note: presentation.note,
+    chips: tags.slice(0, chipsLimit),
+    tags,
+    detailHref: buildOpportunityDetailRoute(identifier),
+  };
+}
+
 function mapOpportunityToHomeCard(item, index) {
   if (!item) {
     return null;
   }
 
-  const typeLabel = translateOpportunityType(item.opportunityType);
-  const employmentLabel = translateEmploymentType(item.employmentType);
   const coordinates = toCoordinatePair(item.longitude, item.latitude);
-  const levelLabel = deriveFilterLevel(item);
-  const tags = Array.isArray(item.tags) ? item.tags.filter(Boolean) : [];
+  const typeKey = normalizeOpportunityType(item?.opportunityType);
+  const baseCard = createHomeOpportunityCardBase(item, `nearby-${index}`, {
+    status: deriveStatus(item),
+    statusTone: typeKey === "event" ? "warning" : "neutral",
+  });
+  const employmentLabel = baseCard.employmentLabel;
+  const tags = baseCard.tags;
 
   return {
-    id: getOpportunityIdentifier(item, `nearby-${index}`),
-    employerId: item?.employerId != null ? String(item.employerId) : "",
-    eyebrow: typeLabel,
-    type: typeLabel,
-    opportunityTypeValue: normalizeOptionValue(item.opportunityType),
-    employmentLabel,
-    levelLabel,
-    status: deriveStatus(item),
-    statusTone: String(item?.opportunityType ?? "").toLowerCase() === "event" ? "warning" : "neutral",
-    title: item.title ?? "",
+    ...baseCard,
     meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" · "),
     accent: item.locationAddress ?? employmentLabel,
     note: shortenText(item.description),
     chips: tags.slice(0, 4),
     tags,
-    primaryAction: getOpportunityApplyLabel(item?.opportunityType),
+    ...baseCard,
+    primaryAction: getOpportunityApplyLabel(typeKey),
     secondaryAction: "Связаться",
     city: item.locationCity ?? "",
     coordinates,
@@ -593,10 +636,14 @@ function mapOpportunityToPopularVacancyCard(item, index) {
     return null;
   }
 
-  const employmentLabel = translateEmploymentType(item.employmentType);
+  const baseCard = createHomeOpportunityCardBase(item, `vacancy-${index}`, {
+    status: deriveStatus(item),
+    statusTone: "neutral",
+  });
+  const employmentLabel = baseCard.employmentLabel;
 
   return {
-    id: getOpportunityIdentifier(item, `vacancy-${index}`),
+    ...baseCard,
     eyebrow: "Вакансия",
     type: "Вакансия",
     status: deriveStatus(item),
@@ -606,6 +653,7 @@ function mapOpportunityToPopularVacancyCard(item, index) {
     accent: item.locationAddress ?? "",
     note: shortenText(item.description),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    ...baseCard,
     detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `vacancy-${index}`)),
   };
 }
@@ -615,11 +663,15 @@ function mapOpportunityToRecommendedCard(item, index) {
     return null;
   }
 
-  const typeLabel = translateOpportunityType(item.opportunityType);
-  const employmentLabel = translateEmploymentType(item.employmentType);
+  const baseCard = createHomeOpportunityCardBase(item, `recommended-${index}`, {
+    status: deriveStatus(item),
+    statusTone: normalizeOpportunityType(item?.opportunityType) === "event" ? "warning" : "neutral",
+  });
+  const typeLabel = baseCard.type;
+  const employmentLabel = baseCard.employmentLabel;
 
   return {
-    id: getOpportunityIdentifier(item, `recommended-${index}`),
+    ...baseCard,
     employerId: item?.employerId != null ? String(item.employerId) : "",
     eyebrow: typeLabel,
     type: typeLabel,
@@ -630,6 +682,7 @@ function mapOpportunityToRecommendedCard(item, index) {
     accent: item.duration ?? item.locationAddress ?? employmentLabel,
     note: shortenText(item.description),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
+    ...baseCard,
     detailHref: buildOpportunityDetailRoute(getOpportunityIdentifier(item, `recommended-${index}`)),
   };
 }
@@ -1307,8 +1360,14 @@ export function HomeApp() {
       const searchContent = [
         item.title,
         item.meta,
+        item.primaryFactLabel,
+        item.primaryFactValue,
+        item.secondaryFact,
+        item.tertiaryFact,
+        item.compactFact,
         item.accent,
         item.note,
+        item.type,
         item.eyebrow,
         item.status,
         item.city,

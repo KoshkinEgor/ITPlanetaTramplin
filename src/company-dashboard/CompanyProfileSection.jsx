@@ -7,7 +7,7 @@ import {
 import { buildOpportunityDetailRoute, routes } from "../app/routes";
 import { OpportunityBlockRail } from "../components/opportunities";
 import { ApiError } from "../lib/http";
-import { translateOpportunityType } from "../shared/lib/opportunityTypes";
+import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import {
   Alert,
   Button,
@@ -114,17 +114,15 @@ function createOpportunityAccent(item, employmentLabel) {
 }
 
 function createCompanyOpportunityCardItem(item) {
-  const employmentLabel = translateEmploymentType(item?.employmentType);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
     id: item.id,
-    type: translateOpportunityType(item?.opportunityType),
+    ...presentation,
     status: "Активно",
     statusTone: "success",
     title: item?.title ?? "",
-    meta: [item?.companyName, item?.locationCity, employmentLabel].filter(Boolean).join(" • "),
-    accent: createOpportunityAccent(item, employmentLabel),
-    note: shortenText(item?.description),
+    note: presentation.note || shortenText(item?.description),
     chips: Array.isArray(item?.tags) ? item.tags.slice(0, 4) : [],
     detailHref: buildOpportunityDetailRoute(item.id),
   };

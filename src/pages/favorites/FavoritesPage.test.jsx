@@ -25,6 +25,9 @@ const opportunities = [
     opportunityType: "mentoring",
     moderationStatus: "approved",
     title: "Менторская программа",
+    duration: "2 месяца",
+    meetingFrequency: "1 раз в неделю",
+    seatsCount: 6,
   },
   {
     id: 2,
@@ -37,6 +40,9 @@ const opportunities = [
     opportunityType: "internship",
     moderationStatus: "approved",
     title: "Frontend internship",
+    isPaid: false,
+    duration: "8 недель",
+    employmentType: "hybrid",
   },
 ];
 
@@ -63,7 +69,7 @@ describe("FavoritesPage", () => {
     expect(screen.queryByRole("heading", { name: "Избранные компании" })).not.toBeInTheDocument();
   });
 
-  it("renders separate sections for favorite opportunities and companies", async () => {
+  it("renders separate sections for favorite opportunities and companies with typed facts", async () => {
     writeFavoriteOpportunityIds(["1"]);
     writeFavoriteCompanyIds(["10"]);
 
@@ -74,6 +80,9 @@ describe("FavoritesPage", () => {
     expect(screen.getByText("Northwind")).toBeInTheDocument();
     expect(screen.getByText("Northwind").closest("a")).toHaveAttribute("href", "/companies/10");
     expect(screen.getAllByText("Менторская программа").length).toBeGreaterThan(0);
+    expect(screen.getByText("Длительность")).toBeInTheDocument();
+    expect(screen.getByText("2 месяца")).toBeInTheDocument();
+    expect(screen.getByText("Встречи: 1 раз в неделю")).toBeInTheDocument();
   });
 
   it("removes a company from favorites via the company section", async () => {
