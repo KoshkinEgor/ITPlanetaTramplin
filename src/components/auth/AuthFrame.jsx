@@ -33,9 +33,9 @@ export function AuthSurface({ as = "article", aside = false, className, children
 
 export function AuthBrand() {
   return (
-    <div className="auth-brand" aria-label="TRAMPLIN">
+    <div className="auth-brand" aria-label="рамплин">
       <span className="auth-brand__mark" aria-hidden="true" />
-      <span className="auth-brand__label">TRAMPLIN</span>
+      <span className="auth-brand__label">рамплин</span>
     </div>
   );
 }

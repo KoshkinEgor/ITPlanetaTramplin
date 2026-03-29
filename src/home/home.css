@@ -74,26 +74,27 @@ body.home-react-body {
 .home-header__brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   min-width: 0;
   flex: 0 0 auto;
   color: #1e2641;
-  font-size: var(--ui-font-size-body);
-  font-weight: 800;
-  line-height: var(--ui-line-height-body);
-  letter-spacing: var(--ui-letter-spacing-body);
 }
 
 .home-header__brand-text {
   white-space: nowrap;
+  font-family: var(--ui-font-family-base);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.06em;
 }
 
 .home-header__mark {
-  width: 28px;
+  width: 23px;
   height: 20px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #cbff25 0%, #dfff5a 100%);
-  box-shadow: 0 10px 20px rgba(201, 255, 31, 0.26);
+  flex-shrink: 0;
+  border-radius: 0;
+  background: center / contain no-repeat url("./logo.png");
+  box-shadow: none;
 }
 
 .home-header__nav {
@@ -248,110 +249,7 @@ body.home-react-body {
   isolation: isolate;
 }
 
-.home-hero__shape {
-  position: absolute;
-  display: block;
-  border-radius: 999px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.home-hero__shape--blue {
-  top: -8px;
-  left: -42px;
-  width: 512px;
-  height: 322px;
-  border-radius: 44% 56% 58% 42% / 48% 34% 66% 52%;
-  background: linear-gradient(145deg, #4a90ff 0%, #327df2 55%, #2569d9 100%);
-  box-shadow: 0 28px 60px rgba(50, 125, 242, 0.18);
-  transform: rotate(-10deg);
-}
-
-.home-hero__shape--lime {
-  left: 52px;
-  top: 286px;
-  width: 200px;
-  height: 92px;
-  background: #cbff25;
-  transform: rotate(-36deg);
-}
-
-.home-hero__shape--bar-top {
-  top: 76px;
-  right: -72px;
-  width: 220px;
-  height: 68px;
-  background: #327df2;
-}
-
-.home-hero__shape--bar-bottom {
-  right: -44px;
-  bottom: 86px;
-  width: 186px;
-  height: 64px;
-  background: #327df2;
-}
-
-.home-hero__shape--triangle {
-  right: -6px;
-  bottom: -18px;
-  width: 244px;
-  height: 136px;
-  border-radius: 58% 42% 52% 48% / 44% 56% 44% 56%;
-  background: linear-gradient(155deg, #3b83f7 0%, #2f80ff 58%, #2a6fe6 100%);
-  transform: rotate(-26deg);
-}
-
-.home-hero__photo-card.ui-card {
-  position: absolute;
-  inset: 38px 78px 40px 126px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 18px;
-  border: none;
-  border-radius: 26px;
-  background: #d8c6b9;
-  box-shadow: 0 26px 40px rgba(78, 91, 122, 0.18);
-  transform: rotate(-4deg);
-  z-index: 1;
-}
-
-.home-hero__photo-placeholder {
-  height: 100%;
-  min-height: 270px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed rgba(255, 255, 255, 0.72);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08));
-  color: rgba(255, 255, 255, 0.95);
-  font-size: var(--ui-font-size-body);
-  font-weight: 700;
-  text-align: center;
-}
-
-.home-hero__photo-tags {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-}
-
-.home-hero__photo-tag {
-  min-height: 38px;
-  padding-inline: 16px;
-  border-color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.92);
-  color: #1f2740;
-}
-
-.home-hero__photo-tag.ui-tag-token--accent {
-  border-color: transparent;
-  background: #2f80ff;
-  color: #ffffff;
+.home-hero__photo {
 }
 
 .home-about {
@@ -2232,24 +2130,6 @@ body.home-react-body {
     padding: 24px;
   }
 
-  .home-hero__shape--blue {
-    left: -28px;
-    top: 10px;
-    width: 430px;
-    height: 276px;
-  }
-
-  .home-hero__shape--triangle {
-    right: -10px;
-    bottom: -10px;
-    width: 208px;
-    height: 118px;
-  }
-
-  .home-hero__photo-card.ui-card {
-    inset: 34px 28px 30px 52px;
-  }
-
   .home-discovery__toolbar {
     align-items: stretch;
   }
@@ -2317,11 +2197,6 @@ body.home-react-body {
     margin-left: 4px;
   }
 
-  .home-hero__photo-card.ui-card {
-    inset: 22px 12px 22px 28px;
-    padding: 12px;
-  }
-
   .home-about__actions {
     flex-direction: column;
     align-items: stretch;
@@ -2329,28 +2204,6 @@ body.home-react-body {
 
   .home-about__actions .ui-button {
     width: 100%;
-  }
-
-  .home-hero__shape--blue {
-    left: -22px;
-    top: 18px;
-    width: 342px;
-    height: 230px;
-  }
-
-  .home-hero__shape--triangle {
-    right: -18px;
-    bottom: -4px;
-    width: 176px;
-    height: 104px;
-  }
-
-  .home-hero__photo-placeholder {
-    min-height: 220px;
-  }
-
-  .home-hero__photo-tags {
-    gap: 8px;
   }
 
   .home-map-card__legend {

@@ -21,9 +21,9 @@ import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, Opp
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
+import homeHeroImage from "./homeimg 1.png";
 import "./home.css";
 
-const heroTags = ["Вперёд к целям", "Карьера", "Новые контакты"];
 const aboutWorkflowSteps = [
   {
     step: "01",
@@ -1005,7 +1005,7 @@ function HomeSortControl({ options, value, direction, onSelect, onToggleDirectio
       <header className="home-header">
         <div className="home-header__brand">
           <span className="home-header__mark" aria-hidden="true" />
-          <span className="home-header__brand-text">TRAMPLIN</span>
+          <span className="home-header__brand-text">рамплин</span>
         </div>
 
         <nav className="home-header__nav" aria-label="Основная навигация">
@@ -1666,6 +1666,7 @@ export function HomeApp() {
       <div className="home-page__shell ui-page-shell">
         <PortalHeader
           navItems={PUBLIC_HEADER_NAV_ITEMS}
+          brandLabel="рамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
           shellClassName="home-page__header-shell"
@@ -1700,25 +1701,7 @@ export function HomeApp() {
           </div>
 
           <div className="home-hero__visual" aria-label="Иллюстрация главной страницы">
-            <span className="home-hero__shape home-hero__shape--blue" aria-hidden="true" />
-            <span className="home-hero__shape home-hero__shape--lime" aria-hidden="true" />
-            <span className="home-hero__shape home-hero__shape--bar-top" aria-hidden="true" />
-            <span className="home-hero__shape home-hero__shape--bar-bottom" aria-hidden="true" />
-            <span className="home-hero__shape home-hero__shape--triangle" aria-hidden="true" />
-
-            <Card className="home-hero__photo-card">
-              <div className="home-hero__photo-placeholder">
-                <span>Место под изображение</span>
-              </div>
-
-              <div className="home-hero__photo-tags">
-                {heroTags.map((tag, index) => (
-                  <Tag key={tag} tone={index === 0 ? "accent" : "default"} className="home-hero__photo-tag">
-                    {tag}
-                  </Tag>
-                ))}
-              </div>
-            </Card>
+            <img className="home-hero__photo" src={homeHeroImage} alt="Иллюстрация главной страницы" />
           </div>
         </section>
 

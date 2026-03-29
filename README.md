@@ -1,132 +1,192 @@
 # ITPlaneta Tramplin
 
-Учебный и продуктовый проект с единым SPA-фронтендом и backend API для платформы карьерных возможностей.  
-Локально проект запускается как связка `React + Vite`, `ASP.NET Core + EF Core`, `PostgreSQL` и `Mailpit`.  
-Для разработки Docker используется только как инфраструктурный слой: база данных и почтовая песочница.
+Учебный и продуктовый проект платформы карьерных возможностей с единым SPA-фронтендом и backend API.
 
-## Стек
+Локальная разработка построена как связка:
 
-- Frontend: `Vite + React`
-- Backend: `ASP.NET Core + EF Core`
+- `React 18 + Vite 5`
+- `ASP.NET Core 9 + EF Core 9`
+- `PostgreSQL 16`
+- `Mailpit` для локальной проверки писем
+- `Docker Desktop + Docker Compose` только для инфраструктуры
+
+## Стек проекта
+
+- Frontend: `React`, `Vite`, `react-router-dom`
+- Backend: `ASP.NET Core`, `Entity Framework Core`, `Npgsql`
 - Database: `PostgreSQL`
-- Local infra: `Docker Desktop + Docker Compose`
-- Local email testing: `Mailpit`
+- Local infra: `Docker Compose`, `Mailpit`
+- Карты и геокодинг: `Yandex Maps JS API v3`, `Yandex Geocoder`
+- Дополнительные интеграции: `Dadata` для отдельных backend-сценариев
 
-## Что делает Docker в этом проекте
+## Что нужно установить
 
-Docker не "встраивается" в React или .NET-код. Он поднимает только локальные сервисы, от которых зависит приложение:
-
-- `db` - контейнер с PostgreSQL
-- `mailpit` - локальный SMTP и веб-интерфейс для просмотра писем
-
-Во время локальной разработки:
-
-- frontend запускается напрямую в Windows через `npm run dev`
-- backend запускается напрямую в Windows через `dotnet run`
-- Docker нужен только для `PostgreSQL` и `Mailpit`
-
-Схема локального запуска:
-
-```text
-Windows
-├─ Docker Desktop
-│  ├─ db (PostgreSQL)
-│  └─ mailpit
-├─ ASP.NET Core backend
-└─ Vite frontend
-```
-
-## Требования
-
-- `Windows 10/11`
-- `Node.js 18+`
+- `Node.js 20 LTS` рекомендуется, минимум `18+`
 - `npm`
 - `.NET SDK 9`
-- `WSL 2`
 - `Docker Desktop`
+- `PowerShell`
 
-## Установка Docker Desktop на Windows
+## Локальный запуск
 
-### 1. Установить или включить WSL 2
-
-Открой `PowerShell` от имени администратора и выполни:
-
-```powershell
-wsl --install
-wsl --update
-wsl --set-default-version 2
-wsl --version
-```
-
-Если система попросит перезагрузку, перезагрузи компьютер.
-
-Официальная документация:
-
-- WSL install: https://learn.microsoft.com/en-us/windows/wsl/install
-
-### 2. Установить Docker Desktop
-
-1. Скачай Docker Desktop по официальной инструкции:
-   https://docs.docker.com/desktop/setup/install/windows-install/
-2. Запусти установщик.
-3. На этапе конфигурации оставь включенным `Use WSL 2 instead of Hyper-V`.
-4. Дождись окончания установки.
-5. Запусти `Docker Desktop`.
-6. Прими лицензионные условия при первом старте.
-
-Дополнительно про работу Docker Desktop с WSL:
-
-- Docker Desktop + WSL 2: https://docs.docker.com/desktop/features/wsl/
-
-### 3. Проверить установку Docker
-
-После запуска Docker Desktop выполни:
-
-```powershell
-docker --version
-docker compose version
-docker run hello-world
-```
-
-Если эти команды работают, Docker готов к использованию в проекте.
-
-## Установка проекта
-
-### 1. Склонировать репозиторий и установить frontend-зависимости
+### 1. Установить зависимости
 
 ```powershell
 npm install
-```
-
-### 2. Восстановить backend-зависимости
-
-```powershell
 dotnet restore backend/ITPlanetaTramplin.Api.sln
 ```
 
-### 3. Настроить переменные окружения при необходимости
+### 2. Подготовить локальный env для фронтенда
 
-По умолчанию локальный сценарий должен работать без дополнительных изменений.  
-Если нужно изменить порты или адрес backend proxy, создай `.env.local` на основе `.env.example`.
-
-Базовый пример:
+`.env.local` нужен в первую очередь для фронтенда и ключа Яндекса. Файл не коммитится.
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-Обычно менять ничего не нужно, если тебя устраивают стандартные значения:
+Минимум, что имеет смысл проверить в `.env.local`:
 
-- frontend: `http://localhost:3000`
-- backend: `http://localhost:5234`
-- postgres: `localhost:5432`
-- mailpit: `http://localhost:8025`
+```dotenv
+DEV_SERVER_PORT=3000
+DEV_SERVER_HOST=127.0.0.1
+DEV_API_PROXY_TARGET=http://127.0.0.1:5234
+VITE_API_BASE_URL=/api
+VITE_YANDEX_MAPS_API_KEY=
+```
 
-### 4. Настроить внешний SMTP при необходимости
+Если `VITE_YANDEX_MAPS_API_KEY` пустой, приложение запустится, но карты и адресные подсказки Яндекса работать не будут.
 
-По умолчанию в локальной разработке backend использует `Mailpit` из `backend/ITPlanetaTramplin.Api/appsettings.Development.json`.
+### 3. Поднять локальную инфраструктуру
 
-Если нужно отправлять письма в реальный почтовый ящик, удобнее не менять `appsettings.Development.json`, а сохранить SMTP-настройки в `user-secrets`:
+```powershell
+npm run db:up
+```
+
+Поднимаются:
+
+- PostgreSQL: `localhost:5432`
+- Mailpit UI: `http://localhost:8025`
+- Mailpit SMTP: `localhost:1025`
+
+### 4. Запустить backend
+
+```powershell
+dotnet run --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
+```
+
+По умолчанию `Development`-конфиг backend уже настроен на локальный PostgreSQL из `docker-compose.yml`.
+
+Backend будет доступен по адресам:
+
+- `http://localhost:5234`
+- `https://localhost:7274`
+
+### 5. Запустить frontend
+
+```powershell
+npm run dev
+```
+
+Frontend будет доступен по адресу:
+
+- `http://localhost:3000`
+
+## Что где работает
+
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:5234`
+- PostgreSQL: `localhost:5432`
+- Mailpit: `http://localhost:8025`
+
+## Демо-аккаунты
+
+Ниже только сидовые локальные записи из `DevelopmentDataSeeder`. Личные аккаунты в README не перечисляются.
+
+Важно: для компаний логин в форме входа это `ИНН`, а не email.
+
+### Модераторы
+
+- `demo-curator@tramplin.local` / `Curator1234`
+- `olga.curator@tramplin.local` / `Moderator1234`
+- `administrator@tramplin.local` / `Administrator1234`
+
+### Компании
+
+- `7707083893` / `Demo1234` (`Sber`)
+- `7743001840` / `VkTeam1234` (`VK`)
+- `7736207543` / `Yandex1234` (`Yandex`)
+- `7707049388` / `Rostelecom1234` (`Rostelecom`)
+
+### Кандидаты
+
+- `anna.petrova@tramplin.local` / `Candidate1234`
+- `ivan.smirnov@tramplin.local` / `Analyst1234`
+- `polina.sokolova@tramplin.local` / `Designer1234`
+
+Сид idempotent: при повторном запуске backend недостающие демо-записи будут восстановлены, а пароли для сидовых аккаунтов синхронизированы.
+
+## Как устроен локальный поток
+
+1. Браузер открывает `http://localhost:3000`.
+2. Frontend отправляет запросы на `/api/*`.
+3. Vite proxy перенаправляет их в backend на `http://127.0.0.1:5234`.
+4. Backend работает с PostgreSQL.
+5. Письма в локальной разработке уходят в Mailpit, если не настроен внешний SMTP.
+
+## Yandex API
+
+### Что использует ключ
+
+Один и тот же `VITE_YANDEX_MAPS_API_KEY` используется для двух сценариев:
+
+- frontend загружает `Yandex Maps JS API v3`
+- backend в `Development` автоматически подхватывает тот же ключ для:
+  - `/api/location/address-suggestions`
+  - `/api/location/reverse-geocode`
+
+То есть локально разработчику достаточно настроить один ключ, а не два разных.
+
+### Как настроить локально
+
+1. Создать или получить dev-ключ для Яндекс Карт.
+2. Записать его в `.env.local`:
+
+```dotenv
+VITE_YANDEX_MAPS_API_KEY=your-shared-dev-key
+```
+
+3. Перезапустить frontend.
+4. Если backend уже запущен, тоже перезапустить backend.
+
+### Как передавать ключ другому разработчику
+
+Лучший практический вариант для этого проекта:
+
+1. Использовать отдельный `shared dev key`, а не личный production-ключ.
+2. Ограничить его по реферерам и доменам:
+   `http://localhost:3000`, `http://127.0.0.1:3000` и, при необходимости, staging-домен.
+3. Передавать ключ вне репозитория:
+   через менеджер паролей, защищенный чат, vault или CI/CD secrets.
+4. Не коммитить реальное значение ни в `README`, ни в `.env.example`, ни в git.
+
+Важно: ключ для JS API карт все равно попадает в браузерный клиент. Его нельзя считать приватным секретом в полном смысле. Поэтому для передачи между разработчиками нужен именно отдельный dev/stage-ключ с лимитами и ограничениями, а не основной рабочий ключ.
+
+### Что произойдет, если ключ не задан
+
+- приложение в целом запустится
+- карта на главной и в формах публикаций не загрузится
+- backend-эндпоинты геокодинга вернут `503`
+- остальная функциональность проекта продолжит работать
+
+### Production / Docker
+
+Для docker production-конфига используется та же переменная `VITE_YANDEX_MAPS_API_KEY`: она пробрасывается и во frontend build, и в backend geocoder. Это позволяет держать одну точку настройки и не заводить два отдельных значения без необходимости.
+
+## SMTP Яндекса
+
+По умолчанию в локальной разработке backend использует `Mailpit`, поэтому внешний SMTP не обязателен.
+
+Если нужен реальный SMTP Яндекса, удобнее хранить настройки в `dotnet user-secrets`, а не в репозитории:
 
 ```powershell
 dotnet user-secrets set "Smtp:Host" "smtp.yandex.ru" --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
@@ -138,249 +198,69 @@ dotnet user-secrets set "Smtp:FromEmail" "your-mail@yandex.ru" --project backend
 dotnet user-secrets set "Smtp:FromName" "Tramplin" --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
 ```
 
-Важно:
+Для текущей реализации:
 
-- после изменения `dotnet user-secrets` нужно перезапустить backend
-- для Яндекса в текущей реализации работает `Port=587` и `EnableSsl=true`
-- порт `465` для `System.Net.Mail.SmtpClient` в этом проекте не подошёл
-- для входа в SMTP нужен пароль приложения, а не обычный пароль от почты
-
-## Локальный запуск проекта
-
-### Шаг 1. Поднять базу данных и Mailpit
-
-```powershell
-npm run db:up
-```
-
-Эта команда запускает:
-
-- PostgreSQL на `localhost:5432`
-- Mailpit на `http://localhost:8025`
-
-### Шаг 2. Запустить backend
-
-В отдельном окне `PowerShell`:
-
-```powershell
-dotnet run --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
-```
-
-Ожидаемые локальные адреса backend:
-
-- `http://localhost:5234`
-- `https://localhost:7274`
-
-### Шаг 3. Запустить frontend
-
-В еще одном окне `PowerShell`:
-
-```powershell
-npm run dev
-```
-
-Frontend будет доступен по адресу:
-
-- `http://localhost:3000`
-
-### Демо-данные для local dev
-
-`DevelopmentDataSeeder` при запуске backend в окружении `Development` создаёт демо-компании, кандидатов, кураторов и набор возможностей.
-
-Для компаний логин в форме входа это ИНН, а не email.
-
-Кураторы:
-
-- `demo-curator@tramplin.local` / `Curator1234` - `Demo Curator`
-- `olga.curator@tramplin.local` / `Moderator1234` - `Olga Morozova`
-
-Компании:
-
-- `7707083893` / `Demo1234` - `Sber`
-- `7743001840` / `VkTeam1234` - `VK`
-- `7736207543` / `Yandex1234` - `Yandex`
-- `7707049388` / `Rostelecom1234` - `Rostelecom`
-
-Кандидаты:
-
-- `anna.petrova@tramplin.local` / `Candidate1234` - `Anna Petrova`
-- `ivan.smirnov@tramplin.local` / `Analyst1234` - `Ivan Smirnov`
-- `polina.sokolova@tramplin.local` / `Designer1234` - `Polina Sokolova`
-
-Сидер идемпотентный: при повторном запуске backend он добавляет недостающие demo-записи и обновляет пароли для этих аккаунтов.
-
-### Перезапустить backend и frontend
-
-Если backend или frontend уже запущены и нужно применить изменения в конфиге или окружении, перезапуск выполняется вручную в тех же окнах `PowerShell`.
-
-Перезапуск backend:
-
-1. Перейти в окно терминала, где запущен backend
-2. Остановить процесс сочетанием `Ctrl+C`
-3. Запустить снова:
-
-```powershell
-dotnet run --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
-```
-
-Перезапуск frontend:
-
-1. Перейти в окно терминала, где запущен frontend
-2. Остановить процесс сочетанием `Ctrl+C`
-3. Запустить снова:
-
-```powershell
-npm run dev
-```
-
-Когда нужен именно перезапуск backend:
-
-- после изменений в `backend/ITPlanetaTramplin.Api/appsettings*.json`
-- после изменений в `dotnet user-secrets`
-- после изменений в `launchSettings.json`
-- после изменений в server-side коде, если приложение не перезапустилось автоматически
-
-Когда нужен именно перезапуск frontend:
-
-- после изменений в `.env.local`
-- после изменений в `vite.config.js`
-- после установки новых npm-зависимостей
-
-Если менялись только React-компоненты, стили или клиентский код, обычно достаточно hot reload в браузере. Если hot reload не сработал, просто перезапустите frontend командой выше.
-
-## Как сервисы соединяются между собой
-
-- Vite проксирует запросы `/api` на адрес из `DEV_API_PROXY_TARGET`
-- По умолчанию `DEV_API_PROXY_TARGET` указывает на `http://127.0.0.1:5234`
-- Backend подключается к PostgreSQL через `ConnectionStrings:DefaultConnection`
-- По умолчанию в локальной разработке письма подтверждения email и сброса пароля уходят в `Mailpit`
-- Если настроен внешний SMTP через `dotnet user-secrets`, письма будут уходить во внешний почтовый сервис
-
-Практически это выглядит так:
-
-1. Браузер открывает frontend на `http://localhost:3000`
-2. Frontend делает запросы на `/api/*`
-3. Vite proxy перенаправляет эти запросы в backend
-4. Backend работает с PostgreSQL
-5. Почтовые сообщения попадают либо в Mailpit, либо во внешний SMTP, если он настроен отдельно
+- использовать `smtp.yandex.ru`
+- использовать `Port=587`
+- использовать `EnableSsl=true`
+- использовать пароль приложения, а не обычный пароль от почты
 
 ## Полезные команды
-
-### Frontend
 
 ```powershell
 npm run dev
 npm run build
-npm test
 npm run lint
-```
-
-### Инфраструктура
-
-```powershell
+npm test
 npm run db:up
 npm run db:down
 npm run db:reset
-```
-
-### Backend
-
-```powershell
 dotnet run --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj
 dotnet test backend/ITPlanetaTramplin.Api.sln
 ```
 
 ## Быстрая smoke-проверка
 
-После запуска всех сервисов можно пройти базовый сценарий:
-
-1. Открыть `http://localhost:3000`
-2. Зарегистрировать нового пользователя
-3. Проверить, куда настроена отправка писем:
-   Mailpit: `http://localhost:8025`
-   внешний SMTP: реальный почтовый ящик получателя
-4. Найти письмо подтверждения email
-5. Подтвердить email
-6. Войти в систему
-7. Открыть каталог возможностей
-8. Перейти в кабинет кандидата, компании или модератора в зависимости от роли
+1. Открыть `http://localhost:3000`.
+2. Войти под одним из сидовых аккаунтов.
+3. Проверить, что каталог возможностей открывается.
+4. Проверить переход в кабинет кандидата, компании или модератора.
+5. Если тестируешь письма, открыть `http://localhost:8025`.
+6. Если тестируешь карты, проверить загрузку карты на главной и в форме локации публикации.
 
 ## Troubleshooting
-
-### `docker` not recognized
-
-Причина:
-
-- Docker Desktop не установлен
-- Docker Desktop не запущен
-- терминал был открыт до установки Docker и не увидел обновленный `PATH`
-
-Что делать:
-
-1. Установить Docker Desktop
-2. Запустить Docker Desktop
-3. Закрыть и заново открыть PowerShell
-4. Снова проверить:
-
-```powershell
-docker --version
-docker compose version
-```
-
-### Порт `5432` уже занят
-
-Измени `POSTGRES_PORT` в `.env.local`, например:
-
-```dotenv
-POSTGRES_PORT=5433
-```
-
-После этого перезапусти:
-
-```powershell
-npm run db:down
-npm run db:up
-```
-
-### Порт `3000` уже занят
-
-Измени `DEV_SERVER_PORT` в `.env.local`, например:
-
-```dotenv
-DEV_SERVER_PORT=3001
-```
 
 ### Backend не подключается к базе
 
 Проверь:
 
-1. Запущен ли Docker Desktop
-2. Выполнилась ли команда `npm run db:up`
-3. Доступен ли PostgreSQL на нужном порту
-4. Совпадает ли строка подключения backend с реальным портом базы
+- запущен ли `npm run db:up`
+- свободен ли порт `5432`
+- не изменены ли локальные параметры PostgreSQL относительно значений из `docker-compose.yml`
 
-### Не приходят письма подтверждения или сброса пароля
+Если нужен другой порт или пароль, переопредели строку подключения через `ConnectionStrings__DefaultConnection` или `API_CONNECTION_STRING` перед запуском backend.
+
+### Не грузятся Яндекс.Карты на localhost
 
 Проверь:
 
-1. Запущен ли backend
-2. Если используется `Mailpit`, открывается ли `http://localhost:8025`
-3. Если используется внешний SMTP, были ли применены `dotnet user-secrets`
-4. Если используется внешний SMTP, перезапущен ли backend после изменения секретов
-5. Для Яндекса используется ли `smtp.yandex.ru`, `Port=587`, `EnableSsl=true`
-6. Используется ли пароль приложения, а не обычный пароль почты
+- задан ли `VITE_YANDEX_MAPS_API_KEY`
+- разрешен ли `localhost` в ограничениях ключа
+- перезапущен ли frontend после изменения `.env.local`
 
-## Примечание для Linux
+### Не работают адресные подсказки
 
-На Linux можно использовать обычный `Docker Engine` и `docker compose` вместо Docker Desktop.  
-Сами команды приложения остаются теми же:
+Проверь:
 
-- `dotnet run --project backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj`
-- `npm run dev`
+- задан ли `VITE_YANDEX_MAPS_API_KEY`
+- перезапущен ли backend после изменения ключа
+- отвечает ли backend по `http://localhost:5234`
 
-## Текущее состояние
+### Не приходят письма
 
-- Локальный сценарий разработки поддерживается и задокументирован
-- Сборка frontend и backend проходит
-- Автотесты frontend и backend проходят
-- Production deploy через `VPS + Docker + Caddy` еще не считается финализированным, поэтому в этот README намеренно не включен
+Проверь:
+
+- работает ли backend
+- открыт ли `http://localhost:8025`, если используется Mailpit
+- применены ли `dotnet user-secrets`, если используется внешний SMTP
+- перезапущен ли backend после изменения SMTP-настроек

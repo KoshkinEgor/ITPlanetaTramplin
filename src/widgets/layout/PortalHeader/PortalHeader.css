@@ -44,7 +44,6 @@
 .portal-header__brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   min-width: 0;
   flex: 0 0 auto;
   color: #1e2641;
@@ -57,14 +56,20 @@
 
 .portal-header__brand-text {
   white-space: nowrap;
+  font-family: var(--ui-font-family-base);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.06em;
 }
 
 .portal-header__brand-mark {
-  width: 28px;
+  width: 23px;
   height: 20px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #cbff25 0%, #dfff5a 100%);
-  box-shadow: 0 10px 20px rgba(201, 255, 31, 0.26);
+  flex-shrink: 0;
+  border-radius: 0;
+  background: center / contain no-repeat url("../../../home/logo.png");
+  box-shadow: none;
 }
 
 .portal-header__nav {
