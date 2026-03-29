@@ -1,7 +1,7 @@
 import { routes } from "../../app/routes";
 import { getCandidateEducation, getCandidateProfile } from "../../api/candidate";
 import { getCurrentAuthUser } from "../../auth/api";
-import { isCandidateOnboardingComplete } from "../../candidate-portal/onboarding";
+import { getCandidateOnboardingState } from "../../candidate-portal/onboarding";
 
 function isUnauthorized(error) {
   return error?.status === 401;
@@ -18,13 +18,14 @@ export async function loadCandidateCareerContext(signal) {
           getCandidateEducation(signal),
         ]);
         const educationItems = Array.isArray(education) ? education : [];
+        const onboardingState = getCandidateOnboardingState(profile, educationItems);
 
         return {
           kind: "candidate",
           authUser,
           profile,
           education: educationItems,
-          onboardingComplete: isCandidateOnboardingComplete(profile, educationItems),
+          ...onboardingState,
         };
       }
       case "company":

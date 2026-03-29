@@ -83,6 +83,11 @@ body.candidate-portal-react-body {
   background: rgba(244, 248, 255, 0.8);
 }
 
+.candidate-progress-card--warning {
+  border-color: rgba(218, 133, 65, 0.22);
+  background: rgba(255, 247, 236, 0.95);
+}
+
 .candidate-progress-card__head {
   display: grid;
   gap: 8px;
@@ -101,6 +106,10 @@ body.candidate-portal-react-body {
   font-size: var(--ui-font-size-body);
   line-height: var(--ui-line-height-body);
   letter-spacing: var(--ui-letter-spacing-body);
+}
+
+.candidate-progress-card--warning .candidate-progress-card__head strong {
+  color: #c46a1c;
 }
 
 .candidate-progress-card__value {
@@ -130,6 +139,14 @@ body.candidate-portal-react-body {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #d7ff44 0%, #2f80ff 100%);
+}
+
+.candidate-progress-card--warning .candidate-progress-card__bar {
+  background: rgba(196, 106, 28, 0.14);
+}
+
+.candidate-progress-card--warning .candidate-progress-card__bar span {
+  background: linear-gradient(90deg, #ffcf66 0%, #ff8f3f 100%);
 }
 
 .candidate-progress-card p {

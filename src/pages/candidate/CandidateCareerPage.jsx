@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { buildAuthLoginRoute, PUBLIC_HEADER_NAV_ITEMS, routes } from "../../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildAuthLoginRoute, routes } from "../../app/routes";
 import {
   createCandidateEducation,
   deleteCandidateEducation,
@@ -12,6 +12,7 @@ import {
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
+import { searchYandexCityOptions } from "../../api/cities";
 import { getOpportunities } from "../../api/opportunities";
 import {
   createCandidateEducationDraft,
@@ -20,14 +21,20 @@ import {
   getCandidateEducationDraftErrors,
 } from "../../candidate-portal/education";
 import {
+  CandidateExperienceListEditor,
+  CandidateProfessionSelector,
+  CandidateProfileGateModal,
+} from "../../candidate-portal/onboarding-widgets";
+import {
   buildCandidateOnboardingLinks,
   CANDIDATE_CITIZENSHIP_OPTIONS,
-  CANDIDATE_CITY_OPTIONS,
   CANDIDATE_GENDER_OPTIONS,
   CANDIDATE_ONBOARDING_STEPS,
-  CANDIDATE_PROFESSION_OPTIONS,
   CANDIDATE_SKILL_OPTIONS,
   createCandidateOnboardingDraft,
+  createCandidateExperienceDraft,
+  createExperienceDraftListAfterRemove,
+  getCandidateMandatoryCompletion,
   getCandidateOnboardingProgress,
   getCandidateOnboardingStepError,
 } from "../../candidate-portal/onboarding";
@@ -36,11 +43,12 @@ import {
   Alert,
   Button,
   Card,
-  Checkbox,
+  CityAutocomplete,
   EducationListEditor,
   FormField,
   Input,
   Loader,
+  Modal,
   SearchInput,
   Select,
   Tag,
@@ -70,6 +78,11 @@ function CloseIcon() {
   );
 }
 
+function getFirstIncompleteStepIndex(draft) {
+  const nextIndex = CANDIDATE_ONBOARDING_STEPS.findIndex((step) => getCandidateOnboardingStepError(step.key, draft));
+  return nextIndex >= 0 ? nextIndex : CANDIDATE_ONBOARDING_STEPS.length - 1;
+}
+
 function StepProgress({ activeIndex }) {
   return (
     <div className="candidate-career-progress" aria-label="Прогресс заполнения профиля">
@@ -84,46 +97,20 @@ function StepProgress({ activeIndex }) {
   );
 }
 
-function ProfessionStep({ draft, professionQuery, onProfessionQueryChange, onProfessionSelect }) {
-  const filteredOptions = useMemo(() => {
-    const normalizedQuery = normalizeSearchValue(professionQuery);
-    return CANDIDATE_PROFESSION_OPTIONS.filter((option) => !normalizedQuery || normalizeSearchValue(option).includes(normalizedQuery));
-  }, [professionQuery]);
-
+function ProfessionStep({ draft, onProfessionChange, onAdditionalProfessionsChange }) {
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Выберите или укажите профессию</h2>
-        <p>Это поможет открыть карьерный раздел в правильном контексте и собрать релевантные рекомендации.</p>
+        <h2>Выберите профессию</h2>
+        <p>Основная профессия используется для карьерных рекомендаций. Дополнительные направления помогут точнее подобрать возможности.</p>
       </div>
 
-      <SearchInput
-        value={professionQuery}
-        onValueChange={onProfessionQueryChange}
-        placeholder="Поиск профессии"
-        width="full"
-        className="candidate-career-search"
-        clearLabel="Очистить поиск профессии"
+      <CandidateProfessionSelector
+        profession={draft.profession}
+        additionalProfessions={draft.additionalProfessions}
+        onProfessionChange={onProfessionChange}
+        onAdditionalProfessionsChange={onAdditionalProfessionsChange}
       />
-
-      <div className="candidate-career-option-list" role="radiogroup" aria-label="Профессия">
-        {filteredOptions.map((option) => {
-          const checked = draft.profession === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              className={`candidate-career-option ${checked ? "is-selected" : ""}`.trim()}
-              onClick={() => onProfessionSelect(option)}
-            >
-              <span className="candidate-career-option__bullet" aria-hidden="true" />
-              <span>{option}</span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -133,7 +120,7 @@ function BasicsStep({ draft, onFieldChange }) {
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
         <h2>Заполните основную информацию</h2>
-        <p>Эти данные сохраняются в профиль и формируют стартовую карточку кандидата для карьерного раздела.</p>
+        <p>Эти данные сохраняются в профиль и помогают сервису подобрать релевантные рекомендации и отклики.</p>
       </div>
 
       <div className="candidate-career-grid candidate-career-grid--two">
@@ -164,11 +151,14 @@ function BasicsStep({ draft, onFieldChange }) {
 
       <div className="candidate-career-grid candidate-career-grid--two">
         <FormField label="Город" required>
-          <Select
+          <CityAutocomplete
             value={draft.city}
             onValueChange={(value) => onFieldChange("city", value)}
-            placeholder="Выберите город"
-            options={CANDIDATE_CITY_OPTIONS.map((value) => ({ value, label: value }))}
+            searchOptions={searchYandexCityOptions}
+            placeholder="Выбранный город"
+            searchPlaceholder="Начните вводить город"
+            loadingLabel="Ищем города через Яндекс…"
+            errorLabel="Подсказки Яндекса временно недоступны. Можно ввести город вручную."
           />
         </FormField>
         <FormField label="Гражданство" required>
@@ -188,8 +178,8 @@ function EducationStep({ draft, educationErrors, onEducationFieldChange, onEduca
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Какие учебные заведения включить в резюме</h2>
-        <p>Добавьте одно или несколько мест обучения. Они сразу попадут в профиль и повлияют на рекомендации.</p>
+        <h2>Образование</h2>
+        <p>Добавьте одно или несколько мест обучения. Они сразу попадут в профиль кандидата.</p>
       </div>
 
       <EducationListEditor
@@ -212,8 +202,8 @@ function SkillsStep({ draft, skillQuery, onSkillQueryChange, onAddSkill, onRemov
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Какими навыками владеете</h2>
-        <p>Добавьте ключевые навыки. Они используются для карьерных подборок и персональных рекомендаций.</p>
+        <h2>Ключевые навыки</h2>
+        <p>Навыки используются в рекомендациях, фильтрах и при сопоставлении с возможностями.</p>
       </div>
 
       <SearchInput
@@ -231,7 +221,7 @@ function SkillsStep({ draft, skillQuery, onSkillQueryChange, onAddSkill, onRemov
             <span>{skill}</span>
             <CloseIcon />
           </button>
-        )) : <p className="candidate-career-empty">Пока не выбрано ни одного навыка.</p>}
+        )) : <p className="candidate-career-empty">Пока не выбран ни один навык.</p>}
       </div>
 
       <div className="candidate-career-recommendations">
@@ -248,37 +238,22 @@ function SkillsStep({ draft, skillQuery, onSkillQueryChange, onAddSkill, onRemov
   );
 }
 
-function ExperienceStep({ draft, onExperienceFieldChange }) {
+function ExperienceStep({ draft, onNoExperienceChange, onExperienceChange, onExperienceAdd, onExperienceRemove }) {
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Ваш опыт работы</h2>
-        <p>Если опыта нет, отметьте это. Если есть, добавьте хотя бы одну запись, чтобы рекомендации были точнее.</p>
+        <h2>Опыт работы</h2>
+        <p>Можно добавить несколько мест работы подряд или отметить, что опыта пока нет.</p>
       </div>
 
-      <Checkbox checked={draft.experience.noExperience} onChange={(event) => onExperienceFieldChange("noExperience", event.target.checked)} className="candidate-career-checkbox">
-        <>
-          <span className="ui-check__label">Нет опыта работы</span>
-          <span className="ui-check__hint">Под этот сценарий мы подберем стажировки, джуниор-позиции и карьерные события.</span>
-        </>
-      </Checkbox>
-
-      {!draft.experience.noExperience ? (
-        <>
-          <FormField label="Компания" required>
-            <Input value={draft.experience.company} onValueChange={(value) => onExperienceFieldChange("company", value)} placeholder="IT-Планета" />
-          </FormField>
-          <FormField label="Должность или профессия" required>
-            <Input value={draft.experience.role} onValueChange={(value) => onExperienceFieldChange("role", value)} placeholder="UX/UI дизайнер" />
-          </FormField>
-          <FormField label="Обязанности и достижения" required>
-            <Textarea value={draft.experience.summary} onValueChange={(value) => onExperienceFieldChange("summary", value)} rows={4} autoResize placeholder="Кратко опишите, что делали и за что отвечали." />
-          </FormField>
-          <FormField label="Срок работы" required>
-            <Input value={draft.experience.period} onValueChange={(value) => onExperienceFieldChange("period", value)} placeholder="Июнь 2024 — Январь 2025" />
-          </FormField>
-        </>
-      ) : null}
+      <CandidateExperienceListEditor
+        experiences={draft.experiences}
+        noExperience={draft.noExperience}
+        onNoExperienceChange={onNoExperienceChange}
+        onExperienceChange={onExperienceChange}
+        onExperienceAdd={onExperienceAdd}
+        onExperienceRemove={onExperienceRemove}
+      />
     </div>
   );
 }
@@ -287,15 +262,53 @@ function GoalStep({ draft, onFieldChange }) {
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
-        <h2>Ваша цель</h2>
-        <p>Последний шаг. Сформулируйте, зачем вы приходите на платформу и чего хотите достичь в ближайшее время.</p>
+        <h2>Карьерная цель</h2>
+        <p>Расскажите, чего хотите достичь в ближайшее время: стажировка, первая работа, смена направления или рост роли.</p>
       </div>
 
       <FormField label="Цель" required>
-        <Textarea value={draft.goal} onValueChange={(value) => onFieldChange("goal", value)} rows={5} autoResize placeholder="Например: пройти стажировку на позицию UX/UI дизайнера и собрать сильное портфолио." />
+        <Textarea
+          value={draft.goal}
+          onValueChange={(value) => onFieldChange("goal", value)}
+          rows={5}
+          autoResize
+          placeholder="Например: пройти стажировку на позицию frontend-разработчика и собрать сильное портфолио."
+        />
       </FormField>
     </div>
   );
+}
+
+async function syncCandidateEducation(profileEducation, draftEducations) {
+  const activeEducationItems = getActiveCandidateEducationDrafts(draftEducations);
+  const currentEducationItems = safeArray(profileEducation);
+  const activeEducationIds = new Set(activeEducationItems.map((item) => item.id).filter(Boolean));
+
+  for (const item of activeEducationItems) {
+    const payload = {
+      institutionName: item.institutionName.trim(),
+      faculty: item.faculty.trim() || null,
+      specialization: item.specialization.trim() || null,
+      graduationYear: item.graduationYear ? Number(item.graduationYear) : null,
+      startYear: null,
+      isCompleted: Boolean(item.graduationYear),
+      description: null,
+    };
+
+    if (item.id) {
+      await updateCandidateEducation(item.id, payload);
+    } else {
+      await createCandidateEducation(payload);
+    }
+  }
+
+  for (const item of currentEducationItems) {
+    if (item?.id && !activeEducationIds.has(item.id)) {
+      await deleteCandidateEducation(item.id);
+    }
+  }
+
+  return safeArray(await getCandidateEducation());
 }
 
 export function CandidateCareerPage() {
@@ -311,10 +324,13 @@ export function CandidateCareerPage() {
   });
   const [draft, setDraft] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [professionQuery, setProfessionQuery] = useState("");
   const [skillQuery, setSkillQuery] = useState("");
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [gateModalOpen, setGateModalOpen] = useState(false);
+  const [redirectTo, setRedirectTo] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -322,10 +338,17 @@ export function CandidateCareerPage() {
 
     loadCandidateCareerContext(controller.signal)
       .then((data) => {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
+
         setContextState({ status: "ready", data, error: null });
-        if (data.kind === "candidate" && !data.onboardingComplete) {
-          setDraft(createCandidateOnboardingDraft({ profile: data.profile, education: data.education }));
+
+        if (data.kind === "candidate") {
+          const onboardingDraft = createCandidateOnboardingDraft({ profile: data.profile, education: data.education });
+          setDraft(onboardingDraft);
+          setActiveStepIndex(getFirstIncompleteStepIndex(onboardingDraft));
+          setWizardOpen(!data.onboardingComplete && !data.skippedAt);
         }
       })
       .catch((error) => {
@@ -356,7 +379,9 @@ export function CandidateCareerPage() {
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
     ]).then((results) => {
-      if (!active || controller.signal.aborted) return;
+      if (!active || controller.signal.aborted) {
+        return;
+      }
 
       const [applicationsResult, contactsResult, recommendationsResult, opportunitiesResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
@@ -373,7 +398,9 @@ export function CandidateCareerPage() {
           : null,
       });
     }).catch((error) => {
-      if (!active || controller.signal.aborted) return;
+      if (!active || controller.signal.aborted) {
+        return;
+      }
 
       setDashboardState({
         status: "error",
@@ -393,9 +420,26 @@ export function CandidateCareerPage() {
   }, [contextState]);
 
   const activeStep = CANDIDATE_ONBOARDING_STEPS[activeStepIndex];
-  const stepError = useMemo(() => (draft && activeStep ? getCandidateOnboardingStepError(activeStep.key, draft) : ""), [activeStep, draft]);
-  const educationValidation = useMemo(() => getCandidateEducationDraftErrors(draft?.educations, { requireAtLeastOne: true }), [draft]);
-  const onboardingProgress = useMemo(() => (draft ? getCandidateOnboardingProgress(draft) : 0), [draft]);
+  const stepError = useMemo(
+    () => (draft && activeStep ? getCandidateOnboardingStepError(activeStep.key, draft) : ""),
+    [activeStep, draft]
+  );
+  const educationValidation = useMemo(
+    () => getCandidateEducationDraftErrors(draft?.educations, { requireAtLeastOne: true }),
+    [draft]
+  );
+  const mandatoryCompletion = useMemo(
+    () => (draft ? getCandidateMandatoryCompletion(draft) : 0),
+    [draft]
+  );
+  const onboardingProgress = useMemo(
+    () => (draft ? getCandidateOnboardingProgress(draft) : 0),
+    [draft]
+  );
+
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   if (contextState.status === "loading") {
     return (
@@ -430,128 +474,122 @@ export function CandidateCareerPage() {
     return <Navigate to={candidateLoginHref} replace />;
   }
 
-  const showDashboard = contextState.data?.kind === "candidate" && contextState.data.onboardingComplete;
-
-  if (!showDashboard && !draft) {
-    return (
-      <main className="candidate-career-page candidate-career-page--loading">
-        <div className="candidate-career-page__shell ui-page-shell">
-          <Loader label="Загружаем анкету кандидата" surface />
-        </div>
-      </main>
-    );
+  if (contextState.data?.kind !== "candidate" || !draft) {
+    return null;
   }
 
-  const updateField = (field, value) => {
+  const showDashboard = contextState.data.onboardingComplete;
+  const showWizard = !showDashboard && wizardOpen;
+  const showBlockedState = !showDashboard && !wizardOpen && Boolean(contextState.data.skippedAt);
+
+  function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
     setMessage(null);
-  };
+  }
 
-  const updateEducationField = (draftKey, field, value) => {
+  function updateEducationField(draftKey, field, value) {
     setDraft((current) => ({
       ...current,
       educations: current.educations.map((item) => (item.draftKey === draftKey ? { ...item, [field]: value } : item)),
     }));
     setMessage(null);
-  };
+  }
 
-  const addEducationItem = () => {
+  function addEducationItem() {
     setDraft((current) => ({ ...current, educations: [...current.educations, createCandidateEducationDraft()] }));
     setMessage(null);
-  };
+  }
 
-  const removeEducationItem = (draftKey) => {
+  function removeEducationItem(draftKey) {
     setDraft((current) => ({ ...current, educations: createEducationDraftListAfterRemove(current.educations, draftKey) }));
     setMessage(null);
-  };
+  }
 
-  const updateExperienceField = (field, value) => {
+  function updateExperienceValue(draftKey, field, value) {
     setDraft((current) => ({
       ...current,
-      experience: { ...current.experience, [field]: field === "noExperience" ? Boolean(value) : value },
+      experiences: current.experiences.map((item) => {
+        if (item.draftKey !== draftKey) {
+          return item;
+        }
+
+        if (field === "isCurrent") {
+          return {
+            ...item,
+            isCurrent: Boolean(value),
+            endMonth: value ? "" : item.endMonth,
+          };
+        }
+
+        return { ...item, [field]: value };
+      }),
     }));
     setMessage(null);
-  };
+  }
 
-  const addSkill = (skill) => {
+  function addExperienceItem() {
+    setDraft((current) => ({
+      ...current,
+      experiences: [...current.experiences, createCandidateExperienceDraft()],
+    }));
+    setMessage(null);
+  }
+
+  function removeExperienceItem(draftKey) {
+    setDraft((current) => ({
+      ...current,
+      experiences: createExperienceDraftListAfterRemove(current.experiences, draftKey),
+    }));
+    setMessage(null);
+  }
+
+  function addSkill(skill) {
     setDraft((current) => ({ ...current, skills: current.skills.includes(skill) ? current.skills : [...current.skills, skill] }));
     setMessage(null);
-  };
+  }
 
-  const removeSkill = (skill) => {
+  function removeSkill(skill) {
     setDraft((current) => ({ ...current, skills: current.skills.filter((item) => item !== skill) }));
     setMessage(null);
-  };
+  }
 
-  async function persistActiveStep() {
-    if (!draft || !activeStep || contextState.data?.kind !== "candidate") {
-      return;
-    }
+  async function persistDraft({ markSkipped = false } = {}) {
+    const links = buildCandidateOnboardingLinks(contextState.data.profile, draft, { markSkipped });
+    const refreshedEducation = await syncCandidateEducation(contextState.data.education, draft.educations);
+    const profile = await updateCandidateProfile({
+      name: draft.name,
+      surname: draft.surname,
+      thirdname: draft.thirdname || null,
+      skills: draft.skills,
+      links,
+    });
+    const refreshedProfile = await getCandidateProfile();
+    const nextProfile = refreshedProfile ?? profile;
+    const nextDraft = createCandidateOnboardingDraft({ profile: nextProfile, education: refreshedEducation });
+    const nextCompletion = getCandidateMandatoryCompletion(nextDraft);
 
-    const links = buildCandidateOnboardingLinks(contextState.data.profile, draft);
+    setDraft(nextDraft);
+    setContextState((current) => ({
+      ...current,
+      data: {
+        ...current.data,
+        profile: nextProfile,
+        education: refreshedEducation,
+        mandatoryCompletion: nextCompletion,
+        onboardingComplete: nextCompletion === 100,
+        skippedAt: nextDraft.skippedAt,
+        completedAt: nextDraft.completedAt,
+        showWarningState: nextCompletion < 20,
+      },
+    }));
 
-    if (activeStep.key === "basics") {
-      const profile = await updateCandidateProfile({ name: draft.name, surname: draft.surname, thirdname: draft.thirdname || null, links });
-      setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
-      return;
-    }
-
-    if (activeStep.key === "skills") {
-      const profile = await updateCandidateProfile({ skills: draft.skills, links });
-      setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
-      return;
-    }
-
-    if (activeStep.key === "education") {
-      const activeEducationItems = getActiveCandidateEducationDrafts(draft.educations);
-      const currentEducationItems = safeArray(contextState.data.education);
-      const currentEducationIds = new Set(activeEducationItems.map((item) => item.id).filter(Boolean));
-
-      for (const item of activeEducationItems) {
-        const payload = {
-          institutionName: item.institutionName.trim(),
-          faculty: item.faculty.trim() || null,
-          specialization: item.specialization.trim() || null,
-          graduationYear: item.graduationYear ? Number(item.graduationYear) : null,
-          startYear: null,
-          isCompleted: Boolean(item.graduationYear),
-          description: null,
-        };
-
-        if (item.id) {
-          await updateCandidateEducation(item.id, payload);
-        } else {
-          await createCandidateEducation(payload);
-        }
-      }
-
-      for (const item of currentEducationItems) {
-        if (item?.id && !currentEducationIds.has(item.id) && !activeEducationItems.some((draftItem) => draftItem.id === item.id)) {
-          await deleteCandidateEducation(item.id);
-        }
-      }
-
-      const profile = await updateCandidateProfile({ links });
-      const refreshedEducation = safeArray(await getCandidateEducation());
-      const refreshedProfile = await getCandidateProfile();
-
-      setDraft((current) => ({
-        ...current,
-        educations: createCandidateOnboardingDraft({ profile: refreshedProfile ?? profile, education: refreshedEducation }).educations,
-      }));
-      setContextState((current) => ({
-        ...current,
-        data: { ...current.data, profile: refreshedProfile ?? profile, education: refreshedEducation },
-      }));
-      return;
-    }
-
-    const profile = await updateCandidateProfile({ links });
-    setContextState((current) => ({ ...current, data: { ...current.data, profile } }));
+    return { profile: nextProfile, education: refreshedEducation, draft: nextDraft, completion: nextCompletion };
   }
 
   async function handleContinue() {
-    if (!draft || !activeStep) return;
+    if (!draft || !activeStep) {
+      return;
+    }
 
     if (stepError) {
       setMessage({ tone: "error", title: "Шаг не заполнен", text: stepError });
@@ -562,24 +600,46 @@ export function CandidateCareerPage() {
     setMessage(null);
 
     try {
-      await persistActiveStep();
+      const result = await persistDraft();
 
-      if (activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
-        setContextState((current) => ({ ...current, data: { ...current.data, onboardingComplete: true } }));
-        setDraft(null);
-        setProfessionQuery("");
-        setSkillQuery("");
+      if (result.completion === 100 && activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
+        setWizardOpen(false);
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
-      const nextProgress = draft ? getCandidateOnboardingProgress(draft) : 0;
+      if (activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
+        setMessage({ tone: "success", title: "Профиль сохранён", text: "Обязательный минимум заполнен, карьерный раздел открыт." });
+        setWizardOpen(false);
+        return;
+      }
+
       setActiveStepIndex((current) => current + 1);
-      setProfessionQuery("");
       setSkillQuery("");
-      setMessage({ tone: "success", title: "Шаг сохранен", text: `Заполненность профиля: ${nextProgress}%. Продолжаем.` });
+      setMessage({
+        tone: "success",
+        title: "Шаг сохранён",
+        text: `Обязательная заполненность профиля: ${result.completion}%. Продолжаем.`,
+      });
     } catch (error) {
-      setMessage({ tone: "error", title: "Не удалось сохранить шаг", text: error?.message ?? "Попробуйте еще раз." });
+      setMessage({ tone: "error", title: "Не удалось сохранить шаг", text: error?.message ?? "Попробуйте ещё раз." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSkipNow() {
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      await persistDraft({ markSkipped: true });
+      setWizardOpen(false);
+      setSkipModalOpen(false);
+      setRedirectTo(routes.candidate.profile);
+    } catch (error) {
+      setMessage({ tone: "error", title: "Не удалось сохранить черновик", text: error?.message ?? "Попробуйте ещё раз." });
+      setSkipModalOpen(false);
     } finally {
       setSaving(false);
     }
@@ -601,13 +661,46 @@ export function CandidateCareerPage() {
             ) : (
               <CandidateCareerDashboard profile={contextState.data.profile} dashboardState={dashboardState} />
             )
-          ) : (
+          ) : null}
+
+          {showBlockedState ? (
+            <Card className="candidate-career-wizard" data-testid="candidate-career-gated">
+              <div className="candidate-career-wizard__head">
+                <div>
+                  <Tag className="candidate-career-wizard__badge">Карьера ограничена</Tag>
+                  <h2>Заполните обязательные поля профиля, чтобы открыть карьерные рекомендации и отклики</h2>
+                  <p>Вы можете пользоваться личным кабинетом дальше, но раздел «Карьера» и отклики на возможности останутся недоступны, пока профиль не заполнен.</p>
+                </div>
+
+                <Card className="candidate-career-wizard__status">
+                  <span>Заполненность</span>
+                  <strong>{mandatoryCompletion}%</strong>
+                  <p>Обязательный минимум профиля</p>
+                </Card>
+              </div>
+
+              <Alert tone="warning" title="Неполный профиль" showIcon>
+                Продолжите заполнение сейчас или вернитесь позже через личный кабинет.
+              </Alert>
+
+              <div className="candidate-career-wizard__actions">
+                <Button type="button" variant="secondary" href={routes.candidate.profile}>
+                  Перейти в кабинет
+                </Button>
+                <Button type="button" onClick={() => setWizardOpen(true)}>
+                  Вернуться к заполнению
+                </Button>
+              </div>
+            </Card>
+          ) : null}
+
+          {showWizard ? (
             <div className="candidate-career-wizard" data-testid="candidate-career-wizard">
               <div className="candidate-career-wizard__head">
                 <div>
                   <Tag className="candidate-career-wizard__badge">Профиль соискателя</Tag>
-                  <h2>Сначала заполним профиль, потом откроем карьерный раздел</h2>
-                  <p>Доступ к карьере появляется только после базового onboarding. Так рекомендации и подборки не строятся на пустом профиле.</p>
+                  <h2>Заполните обязательный минимум профиля</h2>
+                  <p>После этого откроются карьерные рекомендации, а также возможность откликаться на стажировки, вакансии и другие возможности.</p>
                 </div>
 
                 <Card className="candidate-career-wizard__status">
@@ -619,17 +712,63 @@ export function CandidateCareerPage() {
 
               {message ? <Alert tone={message.tone} title={message.title} showIcon>{message.text}</Alert> : null}
 
-              {activeStep.key === "profession" ? <ProfessionStep draft={draft} professionQuery={professionQuery} onProfessionQueryChange={setProfessionQuery} onProfessionSelect={(value) => updateField("profession", value)} /> : null}
+              {activeStep.key === "profession" ? (
+                <ProfessionStep
+                  draft={draft}
+                  onProfessionChange={(value) => updateField("profession", value)}
+                  onAdditionalProfessionsChange={(value) => updateField("additionalProfessions", value)}
+                />
+              ) : null}
               {activeStep.key === "basics" ? <BasicsStep draft={draft} onFieldChange={updateField} /> : null}
-              {activeStep.key === "education" ? <EducationStep draft={draft} educationErrors={educationValidation.itemErrors} onEducationFieldChange={updateEducationField} onEducationAdd={addEducationItem} onEducationRemove={removeEducationItem} /> : null}
-              {activeStep.key === "skills" ? <SkillsStep draft={draft} skillQuery={skillQuery} onSkillQueryChange={setSkillQuery} onAddSkill={addSkill} onRemoveSkill={removeSkill} /> : null}
-              {activeStep.key === "experience" ? <ExperienceStep draft={draft} onExperienceFieldChange={updateExperienceField} /> : null}
+              {activeStep.key === "education" ? (
+                <EducationStep
+                  draft={draft}
+                  educationErrors={educationValidation.itemErrors}
+                  onEducationFieldChange={updateEducationField}
+                  onEducationAdd={addEducationItem}
+                  onEducationRemove={removeEducationItem}
+                />
+              ) : null}
+              {activeStep.key === "skills" ? (
+                <SkillsStep
+                  draft={draft}
+                  skillQuery={skillQuery}
+                  onSkillQueryChange={setSkillQuery}
+                  onAddSkill={addSkill}
+                  onRemoveSkill={removeSkill}
+                />
+              ) : null}
+              {activeStep.key === "experience" ? (
+                <ExperienceStep
+                  draft={draft}
+                  onNoExperienceChange={(value) => updateField("noExperience", value)}
+                  onExperienceChange={updateExperienceValue}
+                  onExperienceAdd={addExperienceItem}
+                  onExperienceRemove={removeExperienceItem}
+                />
+              ) : null}
               {activeStep.key === "goal" ? <GoalStep draft={draft} onFieldChange={updateField} /> : null}
 
               <div className="candidate-career-wizard__footer">
                 <StepProgress activeIndex={activeStepIndex} />
                 <div className="candidate-career-wizard__actions">
-                  <Button type="button" variant="secondary" disabled={activeStepIndex === 0 || saving} onClick={() => { setActiveStepIndex((current) => Math.max(current - 1, 0)); setMessage(null); }}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={saving}
+                    onClick={() => setSkipModalOpen(true)}
+                  >
+                    Пропустить сейчас
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={activeStepIndex === 0 || saving}
+                    onClick={() => {
+                      setActiveStepIndex((current) => Math.max(current - 1, 0));
+                      setMessage(null);
+                    }}
+                  >
                     Назад
                   </Button>
                   <Button type="button" disabled={saving} onClick={handleContinue}>
@@ -638,9 +777,38 @@ export function CandidateCareerPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </section>
       </div>
+
+      <Modal
+        open={skipModalOpen}
+        onClose={() => setSkipModalOpen(false)}
+        title="Пропустить заполнение профиля?"
+        description="Профиль сохранится как черновик. Личный кабинет останется доступен, но карьера и отклики будут ограничены до заполнения обязательных полей."
+        tone="warning"
+        showIcon
+        actions={(
+          <>
+            <Button type="button" variant="secondary" onClick={() => setSkipModalOpen(false)}>
+              Вернуться
+            </Button>
+            <Button type="button" onClick={handleSkipNow} disabled={saving}>
+              {saving ? "Сохраняем..." : "Пропустить сейчас"}
+            </Button>
+          </>
+        )}
+      />
+
+      <CandidateProfileGateModal
+        open={gateModalOpen}
+        completion={mandatoryCompletion}
+        onClose={() => setGateModalOpen(false)}
+        onContinue={() => {
+          setGateModalOpen(false);
+          setWizardOpen(true);
+        }}
+      />
     </main>
   );
 }

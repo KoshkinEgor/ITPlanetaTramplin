@@ -232,18 +232,26 @@ export function CandidateProfileHero({
   );
 }
 
-export function CandidateProgressCard({ title = "Заполненность профиля", value = 0, note, className }) {
+export function CandidateProgressCard({
+  title = "Заполненность профиля",
+  value = 0,
+  note,
+  tone = "default",
+  className,
+}) {
+  const normalizedValue = Math.min(Math.max(Number(value) || 0, 0), 100);
+
   return (
-    <div className={cn("candidate-progress-card", className)}>
+    <div className={cn("candidate-progress-card", tone === "warning" && "candidate-progress-card--warning", className)}>
       <div className="candidate-progress-card__head">
         <span>{title}</span>
         <strong className="candidate-progress-card__value">
-          <span>{value}</span>
+          <span>{normalizedValue}</span>
           <span className="candidate-progress-card__value-mark">%</span>
         </strong>
       </div>
       <div className="candidate-progress-card__bar" aria-hidden="true">
-        <span style={{ width: `${value}%` }} />
+        <span style={{ width: `${normalizedValue}%` }} />
       </div>
       {note ? <p>{note}</p> : null}
     </div>

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
-import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
-import { createCandidateRecommendation, getCandidateContacts } from "../api/candidate";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
+import { createCandidateRecommendation, getCandidateContacts, getCandidateEducation, getCandidateProfile } from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
 import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
 import { useAuthSession } from "../auth/api";
 import { refreshCandidateApplications, upsertCandidateApplication } from "../candidate-portal/candidate-applications-store";
+import { getCandidateOnboardingState } from "../candidate-portal/onboarding";
+import { CandidateProfileGateModal } from "../candidate-portal/onboarding-widgets";
 import { mapSocialUserToCard } from "../candidate-portal/social";
 import { useFavoriteOpportunity } from "../features/favorites/useFavoriteOpportunity";
 import { ApiError } from "../lib/http";
@@ -141,12 +143,15 @@ function DetailLayout({
 export function OpportunityDetailPreview() { const preview = demoOpportunity("design-ui-ux"); if (!preview) return null; return <DetailLayout item={preview} related={demoRelated(preview.id)} applyState={applyState()} onApply={() => {}} buildDetailHref={(entry) => `#${entry.id}`} catalogHref="#catalog" animated={false} embedded />; }
 
 export function OpportunityDetailCardApp() {
+  const navigate = useNavigate();
   const params = useParams();
   const [searchParams] = useSearchParams();
   const opportunityId = params.id;
   const authSession = useAuthSession();
   const [state, setState] = useState({ status: "loading", item: null, related: [], error: null, source: "api" });
   const [apply, setApply] = useState(applyState());
+  const [candidateApplyAccess, setCandidateApplyAccess] = useState({ status: "idle", onboardingComplete: false, mandatoryCompletion: 0 });
+  const [profileGateOpen, setProfileGateOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState(null);
   const [ownerState, setOwnerState] = useState({ isEditing: false, draft: null, saveState: { status: "idle", error: "", message: "" } });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -191,6 +196,8 @@ export function OpportunityDetailCardApp() {
       }
     }
     setApply(applyState());
+    setCandidateApplyAccess({ status: "idle", onboardingComplete: false, mandatoryCompletion: 0 });
+    setProfileGateOpen(false);
     setMenuOpen(false);
     setShareModalOpen(false);
     setShareContactsState(createShareContactsState());
@@ -232,7 +239,45 @@ export function OpportunityDetailCardApp() {
     }
   }, [item, isOwner, previewMode, ownerState.isEditing]);
 
+  async function ensureCandidateApplyAccess({ force = false } = {}) {
+    if (!force && candidateApplyAccess.status === "ready") {
+      return candidateApplyAccess;
+    }
+
+    setCandidateApplyAccess((current) => ({
+      ...current,
+      status: "loading",
+    }));
+
+    const [profile, education] = await Promise.all([
+      getCandidateProfile(),
+      getCandidateEducation(),
+    ]);
+    const onboardingState = getCandidateOnboardingState(profile, Array.isArray(education) ? education : []);
+    const nextState = {
+      status: "ready",
+      onboardingComplete: onboardingState.onboardingComplete,
+      mandatoryCompletion: onboardingState.mandatoryCompletion,
+    };
+
+    setCandidateApplyAccess(nextState);
+    return nextState;
+  }
+
   async function handleApply() {
+    if (authSession.status === "authenticated" && authSession.user?.role === "candidate") {
+      try {
+        const access = await ensureCandidateApplyAccess();
+
+        if (!access.onboardingComplete) {
+          setProfileGateOpen(true);
+          return;
+        }
+      } catch {
+        // If the pre-check fails, rely on the backend guard below.
+      }
+    }
+
     setApply(applyState("saving"));
     if (state.source === "demo") {
       setApply(applyState("success", successCopy(state.item?.opportunityType)));
@@ -248,6 +293,23 @@ export function OpportunityDetailCardApp() {
         setApply(applyState("success", successCopy(state.item?.opportunityType, "existing")));
         return;
       }
+
+      if (error instanceof ApiError && error.status === 403 && authSession.status === "authenticated" && authSession.user?.role === "candidate") {
+        try {
+          const access = await ensureCandidateApplyAccess({ force: true });
+          setCandidateApplyAccess(access);
+        } catch {
+          setCandidateApplyAccess((current) => ({
+            ...current,
+            status: "idle",
+          }));
+        }
+
+        setProfileGateOpen(true);
+        setApply(applyState());
+        return;
+      }
+
       setApply(applyState("error", { error: error?.message ?? "Не удалось отправить отклик." }));
     }
   }
@@ -325,5 +387,5 @@ ${currentUrl}`;
 
   const ownerPanel = item && isOwner && !previewMode ? (ownerState.isEditing ? <OwnerEditor draft={ownerState.draft} onChange={(field, value) => { if (field === "contacts") return changeDraftContacts(value); if (field === "media") return changeDraftMedia(value); changeDraft(field, value); }} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => { if (typeof window !== "undefined") { window.location.href = buildOpportunityPreviewRoute(item.id); } }}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="Изменения сохранены" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card>) : null;
 
-  return <main className="opportunity-card-page" data-testid="opportunity-detail-page"><div className="opportunity-card-page__shell ui-page-shell"><PortalHeader navItems={NAV_ITEMS} currentKey="opportunities" actionHref="/candidate/profile" actionLabel={"Профиль"} className="opportunity-card-header opportunity-card-fade-up" />{state.status === "loading" ? <Loader label={"Загружаем карточку возможности"} surface /> : null}{state.status === "error" ? <Alert tone="error" title={"Не удалось загрузить карточку"} showIcon>{state.error?.message ?? "Попробуйте открыть возможность позже."}</Alert> : null}{state.status === "ready" && state.item ? <DetailLayout item={state.item} related={state.related} applyState={apply} onApply={handleApply} hidePublicActions={isOwner && !previewMode} ownerPanel={ownerPanel} menuOpen={menuOpen} menuRef={menuRef} onMenuToggle={() => setMenuOpen((current) => !current)} onShare={async () => { setMenuOpen(false); await openShareModal(); }} onComplaint={() => { setMenuOpen(false); handleComplaint(); }} buildDetailHref={(entry) => buildOpportunityDetailRoute(entry.id)} catalogHref="/opportunities" /> : null}<Modal open={shareModalOpen} onClose={() => { setShareModalOpen(false); setShareBusyKey(""); }} title={"Поделиться возможностью"} description={"Выберите контакт, кому хотите отправить карточку публикации."} size="md" className="opportunity-share-modal">{shareContactsState.status === "loading" ? <Loader label={"Загружаем контакты"} /> : null}{shareContactsState.status === "error" ? <Alert tone="error" title={"Не удалось загрузить контакты"} showIcon>{shareContactsState.error}</Alert> : null}{shareContactsState.status === "ready" && !shareContactsState.items.length ? <EmptyState eyebrow={"Пока пусто"} title={"Список контактов пока пуст"} description={"Добавьте контакты в кабинете кандидата, и они появятся здесь для быстрого шаринга."} tone="neutral" compact /> : null}{shareContactsState.status === "ready" && shareContactsState.items.length ? <div className="opportunity-share-modal__list">{shareContactsState.items.map((contact) => <div key={contact.id} className="opportunity-share-modal__item"><div className="opportunity-share-modal__identity"><Avatar initials={String(contact.name || "").slice(0, 2).toUpperCase() || "?"} shape="rounded" className="opportunity-share-modal__avatar" /><div className="opportunity-share-modal__copy"><strong>{contact.name}</strong><span>{contact.email || "Контакт без email"}</span></div></div><Button type="button" variant="secondary" loading={shareBusyKey === String(contact.id)} disabled={Boolean(shareBusyKey) && shareBusyKey !== String(contact.id)} onClick={() => { handleShareWithContact(contact); }}>{"Поделиться"}</Button></div>)}</div> : null}</Modal></div></main>;
+  return <main className="opportunity-card-page" data-testid="opportunity-detail-page"><div className="opportunity-card-page__shell ui-page-shell"><PortalHeader navItems={NAV_ITEMS} currentKey="opportunities" actionHref="/candidate/profile" actionLabel={"Профиль"} className="opportunity-card-header opportunity-card-fade-up" />{state.status === "loading" ? <Loader label={"Загружаем карточку возможности"} surface /> : null}{state.status === "error" ? <Alert tone="error" title={"Не удалось загрузить карточку"} showIcon>{state.error?.message ?? "Попробуйте открыть возможность позже."}</Alert> : null}{state.status === "ready" && state.item ? <DetailLayout item={state.item} related={state.related} applyState={apply} onApply={handleApply} hidePublicActions={isOwner && !previewMode} ownerPanel={ownerPanel} menuOpen={menuOpen} menuRef={menuRef} onMenuToggle={() => setMenuOpen((current) => !current)} onShare={async () => { setMenuOpen(false); await openShareModal(); }} onComplaint={() => { setMenuOpen(false); handleComplaint(); }} buildDetailHref={(entry) => buildOpportunityDetailRoute(entry.id)} catalogHref="/opportunities" /> : null}<CandidateProfileGateModal open={profileGateOpen} completion={candidateApplyAccess.mandatoryCompletion} onClose={() => setProfileGateOpen(false)} onContinue={() => { setProfileGateOpen(false); navigate(routes.candidate.career); }} /><Modal open={shareModalOpen} onClose={() => { setShareModalOpen(false); setShareBusyKey(""); }} title={"Поделиться возможностью"} description={"Выберите контакт, кому хотите отправить карточку публикации."} size="md" className="opportunity-share-modal">{shareContactsState.status === "loading" ? <Loader label={"Загружаем контакты"} /> : null}{shareContactsState.status === "error" ? <Alert tone="error" title={"Не удалось загрузить контакты"} showIcon>{shareContactsState.error}</Alert> : null}{shareContactsState.status === "ready" && !shareContactsState.items.length ? <EmptyState eyebrow={"Пока пусто"} title={"Список контактов пока пуст"} description={"Добавьте контакты в кабинете кандидата, и они появятся здесь для быстрого шаринга."} tone="neutral" compact /> : null}{shareContactsState.status === "ready" && shareContactsState.items.length ? <div className="opportunity-share-modal__list">{shareContactsState.items.map((contact) => <div key={contact.id} className="opportunity-share-modal__item"><div className="opportunity-share-modal__identity"><Avatar initials={String(contact.name || "").slice(0, 2).toUpperCase() || "?"} shape="rounded" className="opportunity-share-modal__avatar" /><div className="opportunity-share-modal__copy"><strong>{contact.name}</strong><span>{contact.email || "Контакт без email"}</span></div></div><Button type="button" variant="secondary" loading={shareBusyKey === String(contact.id)} disabled={Boolean(shareBusyKey) && shareBusyKey !== String(contact.id)} onClick={() => { handleShareWithContact(contact); }}>{"Поделиться"}</Button></div>)}</div> : null}</Modal></div></main>;
 }

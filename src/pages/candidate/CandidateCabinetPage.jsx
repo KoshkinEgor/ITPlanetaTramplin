@@ -12,6 +12,7 @@ import { SessionLogoutButton } from "../../auth/SessionLogoutButton";
 import { CANDIDATE_SIDEBAR_ITEMS } from "../../candidate-portal/config";
 import { useCandidateApplications } from "../../candidate-portal/candidate-applications-store";
 import { getProfileCompletion } from "../../candidate-portal/mappers";
+import { PROFILE_COMPLETION_WARNING_THRESHOLD } from "../../candidate-portal/onboarding";
 import { CandidateProgressCard } from "../../candidate-portal/shared";
 import { CandidateProfileSummary } from "../../features/candidate";
 import { useBodyClass } from "../../shared/lib/useBodyClass";
@@ -144,6 +145,7 @@ export function CandidateCabinetPage() {
     () => getProfileCompletion(state.profile, state.education, state.achievements, state.projects),
     [state.achievements, state.education, state.profile, state.projects]
   );
+  const isWarningState = completion < PROFILE_COMPLETION_WARNING_THRESHOLD;
 
   const stats = useMemo(
     () => buildStats(state.education, state.achievements, state.projects, applicationsState.applications, state.contacts),
@@ -179,8 +181,12 @@ export function CandidateCabinetPage() {
           footerSummary={(
             <div className="cabinet-sidebar__footer-stack">
               <CandidateProgressCard
+                title={isWarningState ? "Обязательный минимум профиля" : undefined}
                 value={completion}
-                note="Чем полнее профиль, тем точнее рекомендации и отклики работодателей."
+                tone={isWarningState ? "warning" : "default"}
+                note={isWarningState
+                  ? "Карьера и отклики станут доступны после заполнения обязательных полей профиля."
+                  : "Чем полнее профиль, тем точнее рекомендации и отклики работодателей."}
               />
               <SessionLogoutButton />
             </div>

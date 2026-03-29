@@ -1,7 +1,13 @@
 ﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createCandidateRecommendation, getCandidateApplications, getCandidateContacts } from "../api/candidate";
+import {
+  createCandidateRecommendation,
+  getCandidateApplications,
+  getCandidateContacts,
+  getCandidateEducation,
+  getCandidateProfile,
+} from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
 import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
 import { useAuthSession } from "../auth/api";
@@ -21,6 +27,8 @@ vi.mock("../api/opportunities", () => ({
 vi.mock("../api/candidate", () => ({
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
   getCandidateContacts: vi.fn(() => Promise.resolve([])),
+  getCandidateEducation: vi.fn(() => Promise.resolve([])),
+  getCandidateProfile: vi.fn(() => Promise.resolve({})),
   createCandidateRecommendation: vi.fn(() => Promise.resolve({})),
 }));
 
@@ -130,6 +138,33 @@ describe("OpportunityDetailCardApp", () => {
         skills: ["React"],
       },
     ]);
+    getCandidateProfile.mockResolvedValue({
+      id: 1,
+      name: "Анна",
+      surname: "Иванова",
+      skills: ["React"],
+      links: {
+        onboarding: {
+          profession: "Frontend-разработчик",
+          gender: "female",
+          birthDate: "2004-04-12",
+          phone: "+7 999 000 00 00",
+          city: "Москва",
+          citizenship: "Россия",
+          noExperience: true,
+          goal: "Найти стажировку",
+        },
+      },
+    });
+    getCandidateEducation.mockResolvedValue([
+      {
+        id: 1,
+        institutionName: "МГУ",
+        faculty: "ВМК",
+        specialization: "Прикладная математика",
+        graduationYear: 2027,
+      },
+    ]);
   });
 
   it("renders the enriched demo detail page and cleans up the body class", async () => {
@@ -160,6 +195,35 @@ describe("OpportunityDetailCardApp", () => {
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
       expect(screen.getByTestId("applications-title").textContent).toBe("Junior Security Analyst");
     });
+  });
+
+  it("blocks candidate application when the mandatory profile is incomplete", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    getCandidateProfile.mockResolvedValue({
+      id: 1,
+      name: "Анна",
+      surname: "Иванова",
+      skills: [],
+      links: {
+        onboarding: {
+          profession: "Frontend-разработчик",
+          city: "Москва",
+        },
+      },
+    });
+    getCandidateEducation.mockResolvedValue([]);
+
+    renderDetail("/opportunities/101");
+
+    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
+    fireEvent.click(applyButton);
+
+    expect(await screen.findByText("Профиль ещё не заполнен")).toBeInTheDocument();
+    expect(applyToOpportunity).not.toHaveBeenCalled();
   });
 
   it("links the company spotlight to the public company page", async () => {

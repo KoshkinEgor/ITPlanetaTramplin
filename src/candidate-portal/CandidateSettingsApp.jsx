@@ -9,17 +9,20 @@ import {
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../api/candidate";
+import { searchYandexCityOptions } from "../api/cities";
 import {
   createCandidateEducationDraft,
   createEducationDraftListAfterRemove,
   getActiveCandidateEducationDrafts,
   getCandidateEducationDraftErrors,
 } from "./education";
+import { CandidateExperienceListEditor, CandidateProfessionSelector } from "./onboarding-widgets";
 import { ApiError } from "../lib/http";
 import {
   Alert,
   Button,
   Card,
+  CityAutocomplete,
   EducationListEditor,
   EmptyState,
   FormField,
@@ -28,26 +31,52 @@ import {
   Select,
   SettingsSectionCard,
   Switch,
-  Tag,
   TagSelector,
   Textarea,
 } from "../shared/ui";
-import { CANDIDATE_SETTINGS_SECTIONS, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
+import { CandidateSectionHeader } from "./shared";
+import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
 import {
   buildCandidateOnboardingLinks,
   CANDIDATE_CITIZENSHIP_OPTIONS,
-  CANDIDATE_CITY_OPTIONS,
   CANDIDATE_GENDER_OPTIONS,
   createCandidateOnboardingDraft,
+  createCandidateExperienceDraft,
+  createExperienceDraftListAfterRemove,
   getCandidateProfileLinks,
 } from "./onboarding";
 import { getCandidateAvatarUrl } from "./mappers";
-import { CandidateSectionHeader } from "./shared";
 
-const CITY_OPTIONS = CANDIDATE_CITY_OPTIONS.map((value) => ({ value, label: value }));
 const CITIZENSHIP_OPTIONS = CANDIDATE_CITIZENSHIP_OPTIONS.map((value) => ({ value, label: value }));
 const PROFILE_AVATAR_MAX_SIZE_BYTES = 3 * 1024 * 1024;
 const PROFILE_AVATAR_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+
+const SETTINGS_SECTIONS = [
+  {
+    id: "settings-profile",
+    eyebrow: "Профиль",
+    title: "Основные данные",
+    summary: "Личная информация, профессии, город, навыки, образование и опыт работы.",
+  },
+  {
+    id: "settings-contacts",
+    eyebrow: "Контакты",
+    title: "Контактные данные",
+    summary: "Телефон и публичные ссылки, по которым с вами могут связаться.",
+  },
+  {
+    id: "settings-security",
+    eyebrow: "Безопасность",
+    title: "Почта и пароль",
+    summary: "Просмотр привязанных данных аккаунта и быстрый переход к смене пароля.",
+  },
+  {
+    id: "settings-privacy",
+    eyebrow: "Приватность",
+    title: "Настройки видимости",
+    summary: "Кто видит профиль, контакты и получает уведомления внутри платформы.",
+  },
+];
 
 const VISIBILITY_OPTIONS = [
   { value: "everyone", label: "Все пользователи" },
@@ -164,9 +193,7 @@ function createDraft(profile, education = []) {
 
 function getOpenSection(searchParams) {
   const section = searchParams.get("section");
-  return CANDIDATE_SETTINGS_SECTIONS.some((item) => item.id === section)
-    ? section
-    : "";
+  return SETTINGS_SECTIONS.some((item) => item.id === section) ? section : SETTINGS_SECTIONS[0].id;
 }
 
 function getProfileInitials(draft) {
@@ -176,10 +203,6 @@ function getProfileInitials(draft) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("") || "ПК";
-}
-
-function hasEducationData(draft) {
-  return getActiveCandidateEducationDrafts(draft.educations).length > 0;
 }
 
 function buildEducationPayload(item) {
@@ -251,9 +274,9 @@ function SectionSaveAlert({ saveState, successTitle, successText }) {
   return null;
 }
 
-function CandidateSettingsSaveButton({ disabled, label = "Сохранить", centered = false }) {
+function CandidateSettingsSaveButton({ disabled, label = "Сохранить" }) {
   return (
-    <div className={`candidate-settings-detail__save${centered ? " is-centered" : ""}`}>
+    <div className="candidate-settings-detail__save">
       <Button type="submit" disabled={disabled}>
         {label}
       </Button>
@@ -274,14 +297,17 @@ function CandidateProfileSettingsForm({
   onEducationChange,
   onEducationAdd,
   onEducationRemove,
+  onExperienceChange,
+  onExperienceAdd,
+  onExperienceRemove,
   onSave,
 }) {
   return (
     <form className="candidate-settings-detail" onSubmit={onSave} noValidate>
       <SectionSaveAlert
         saveState={saveState}
-        successTitle="Личные данные обновлены"
-        successText="Профиль, образование и навыки сохранены и сразу используются в кабинете."
+        successTitle="Профиль обновлён"
+        successText="Личные данные, образование, навыки и опыт работы сохранены."
       />
 
       <section className="candidate-settings-detail__section">
@@ -319,9 +345,6 @@ function CandidateProfileSettingsForm({
               Поддерживаются PNG, JPG, WEBP, GIF и SVG. Максимальный размер: {formatFileSize(PROFILE_AVATAR_MAX_SIZE_BYTES)}.
             </p>
             {avatarError ? <p className="candidate-settings-photo__error" role="alert">{avatarError}</p> : null}
-            <button type="button" className="candidate-settings-photo__edit candidate-settings-photo__edit--legacy" hidden aria-hidden="true" tabIndex={-1}>
-              Загрузка аватара появится позже
-            </button>
           </div>
 
           <div className="candidate-settings-detail__grid">
@@ -331,16 +354,11 @@ function CandidateProfileSettingsForm({
             <FormField label="Отчество">
               <Input value={draft.thirdname} onValueChange={(value) => onChange("thirdname", value)} placeholder="Сергеевна" />
             </FormField>
-            <FormField label="Профессия">
-              <Input value={draft.profession} onValueChange={(value) => onChange("profession", value)} placeholder="Дизайнер интерфейсов" />
-            </FormField>
             <FormField label="Пол">
-              <Select
-                value={draft.gender}
-                onValueChange={(value) => onChange("gender", value)}
-                placeholder="Выберите пол"
-                options={CANDIDATE_GENDER_OPTIONS}
-              />
+              <Select value={draft.gender} onValueChange={(value) => onChange("gender", value)} placeholder="Выберите пол" options={CANDIDATE_GENDER_OPTIONS} />
+            </FormField>
+            <FormField label="Телефон">
+              <Input value={draft.phone} onValueChange={(value) => onChange("phone", value)} placeholder="+7 999 000 00 00" />
             </FormField>
           </div>
 
@@ -352,42 +370,38 @@ function CandidateProfileSettingsForm({
               <Input type="date" value={draft.birthDate} onValueChange={(value) => onChange("birthDate", value)} />
             </FormField>
             <FormField label="Город">
-              <Select
+              <CityAutocomplete
                 value={draft.city}
                 onValueChange={(value) => onChange("city", value)}
-                placeholder="Выберите город"
-                options={CITY_OPTIONS}
+                searchOptions={searchYandexCityOptions}
+                placeholder="Выбранный город"
+                searchPlaceholder="Начните вводить город"
+                loadingLabel="Ищем города через Яндекс…"
+                errorLabel="Подсказки Яндекса временно недоступны. Можно ввести город вручную."
               />
             </FormField>
             <FormField label="Гражданство">
-              <Select
-                value={draft.citizenship}
-                onValueChange={(value) => onChange("citizenship", value)}
-                placeholder="Выберите гражданство"
-                options={CITIZENSHIP_OPTIONS}
-              />
+              <Select value={draft.citizenship} onValueChange={(value) => onChange("citizenship", value)} placeholder="Выберите гражданство" options={CITIZENSHIP_OPTIONS} />
             </FormField>
           </div>
         </div>
 
+        <CandidateProfessionSelector
+          profession={draft.profession}
+          additionalProfessions={draft.additionalProfessions}
+          onProfessionChange={(value) => onChange("profession", value)}
+          onAdditionalProfessionsChange={(value) => onChange("additionalProfessions", value)}
+          title="Профессии"
+          description="Выберите одну основную профессию и при необходимости добавьте несколько смежных направлений."
+          className="candidate-settings-detail__selector"
+        />
+
         <FormField label="О себе">
-          <Textarea
-            value={draft.description}
-            onValueChange={(value) => onChange("description", value)}
-            autoResize
-            rows={5}
-            placeholder="Расскажите о себе, о сильных сторонах и о том, что хотите делать дальше."
-          />
+          <Textarea value={draft.description} onValueChange={(value) => onChange("description", value)} autoResize rows={5} placeholder="Кратко расскажите о себе, сильных сторонах и направлении развития." />
         </FormField>
 
         <FormField label="Карьерная цель">
-          <Textarea
-            value={draft.goal}
-            onValueChange={(value) => onChange("goal", value)}
-            autoResize
-            rows={3}
-            placeholder="Например: пройти стажировку на позицию UX/UI дизайнера."
-          />
+          <Textarea value={draft.goal} onValueChange={(value) => onChange("goal", value)} autoResize rows={3} placeholder="Например: найти первую стажировку в продуктовой команде и собрать сильное портфолио." />
         </FormField>
       </section>
 
@@ -408,20 +422,14 @@ function CandidateProfileSettingsForm({
 
       <section className="candidate-settings-detail__section">
         <h4 className="candidate-settings-detail__section-title">Образование</h4>
-
-        <EducationListEditor
-          items={draft.educations}
-          errorsByKey={errors.educationItems ?? {}}
-          onItemChange={onEducationChange}
-          onAddItem={onEducationAdd}
-          onRemoveItem={onEducationRemove}
-        />
+        <EducationListEditor items={draft.educations} errorsByKey={errors.educationItems ?? {}} onItemChange={onEducationChange} onAddItem={onEducationAdd} onRemoveItem={onEducationRemove} />
       </section>
 
-      <CandidateSettingsSaveButton
-        disabled={saveState.status === "saving" || isPreparingAvatar}
-        label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"}
-      />
+      <section className="candidate-settings-detail__section">
+        <CandidateExperienceListEditor experiences={draft.experiences} noExperience={draft.noExperience} onNoExperienceChange={(value) => onChange("noExperience", value)} onExperienceChange={onExperienceChange} onExperienceAdd={onExperienceAdd} onExperienceRemove={onExperienceRemove} />
+      </section>
+
+      <CandidateSettingsSaveButton disabled={saveState.status === "saving" || isPreparingAvatar} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
     </form>
   );
 }
@@ -429,11 +437,7 @@ function CandidateProfileSettingsForm({
 function CandidateContactsSettingsForm({ draft, saveState, onChange, onSocialChange, onSave }) {
   return (
     <form className="candidate-settings-detail" onSubmit={onSave} noValidate>
-      <SectionSaveAlert
-        saveState={saveState}
-        successTitle="Контакты обновлены"
-        successText="Телефон и публичные ссылки сохранены в профиле соискателя."
-      />
+      <SectionSaveAlert saveState={saveState} successTitle="Контакты обновлены" successText="Телефон и публичные ссылки сохранены в профиле." />
 
       <section className="candidate-settings-detail__section">
         <h4 className="candidate-settings-detail__section-title">Контактные данные</h4>
@@ -442,7 +446,7 @@ function CandidateContactsSettingsForm({ draft, saveState, onChange, onSocialCha
           <FormField label="Телефон">
             <Input value={draft.phone} onValueChange={(value) => onChange("phone", value)} placeholder="+7 999 000 00 00" />
           </FormField>
-          <FormField label="Почта" hint="Email берётся из аккаунта и меняется отдельно.">
+          <FormField label="Почта" hint="Email привязан к аккаунту и меняется отдельно.">
             <Input value={draft.email} readOnly copyable />
           </FormField>
         </div>
@@ -453,46 +457,24 @@ function CandidateContactsSettingsForm({ draft, saveState, onChange, onSocialCha
 
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
           <FormField label="ВКонтакте">
-            <Input
-              value={draft.socials.vk}
-              onValueChange={(value) => onSocialChange("vk", value)}
-              placeholder="username"
-              addonStart={<span className="candidate-settings-contact-prefix">vk.com/</span>}
-            />
+            <Input value={draft.socials.vk} onValueChange={(value) => onSocialChange("vk", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">vk.com/</span>} />
           </FormField>
           <FormField label="Telegram">
-            <Input
-              value={draft.socials.telegram}
-              onValueChange={(value) => onSocialChange("telegram", value.replace(/^@/, ""))}
-              placeholder="username"
-              addonStart={<span className="candidate-settings-contact-prefix">t.me/</span>}
-            />
+            <Input value={draft.socials.telegram} onValueChange={(value) => onSocialChange("telegram", value.replace(/^@/, ""))} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">t.me/</span>} />
           </FormField>
         </div>
 
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
           <FormField label="Behance">
-            <Input
-              value={draft.socials.behance}
-              onValueChange={(value) => onSocialChange("behance", value)}
-              placeholder="username"
-              addonStart={<span className="candidate-settings-contact-prefix">behance.net/</span>}
-            />
+            <Input value={draft.socials.behance} onValueChange={(value) => onSocialChange("behance", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">behance.net/</span>} />
           </FormField>
           <FormField label="Портфолио">
-            <Input
-              value={draft.socials.portfolio}
-              onValueChange={(value) => onSocialChange("portfolio", value)}
-              placeholder="https://portfolio.example"
-            />
+            <Input value={draft.socials.portfolio} onValueChange={(value) => onSocialChange("portfolio", value)} placeholder="https://portfolio.example" />
           </FormField>
         </div>
       </section>
 
-      <CandidateSettingsSaveButton
-        disabled={saveState.status === "saving"}
-        label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"}
-      />
+      <CandidateSettingsSaveButton disabled={saveState.status === "saving"} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
     </form>
   );
 }
@@ -520,31 +502,43 @@ function CandidateSecuritySettings({ email, phone, lastLogins }) {
             <Input value="************" readOnly type="password" revealable />
           </FormField>
         </div>
+      </section>
 
-        <div className="candidate-settings-fields__actions">
-          <Button href={buildForgotPasswordRoute({ email })} variant="secondary">
-            Перейти к смене пароля
+      <section className="candidate-settings-security-card">
+        <div className="candidate-settings-security-card__head">
+          <div>
+            <h4>Смена пароля</h4>
+            <p>Откроется отдельная защищённая форма восстановления пароля.</p>
+          </div>
+          <Button href={buildForgotPasswordRoute({ email })} variant="secondary" iconEnd={<ArrowRightIcon />}>
+            Перейти
           </Button>
         </div>
       </section>
 
-      <section className="candidate-settings-fields">
-        <div className="candidate-settings-fields__subhead">Последние входы</div>
+      <section className="candidate-settings-security-card">
+        <div className="candidate-settings-security-card__head">
+          <div>
+            <h4>Последние входы</h4>
+            <p>Список последних устройств, с которых вы заходили в аккаунт.</p>
+          </div>
+        </div>
 
         {lastLogins.length ? (
-          <div className="candidate-settings-fields__logins">
-            {lastLogins.map((item) => (
-              <button key={`${item.title}-${item.meta}`} type="button" className="candidate-settings-fields__login">
-                <span>
+          <div className="candidate-settings-security-list">
+            {lastLogins.map((item, index) => (
+              <Card key={`${item.title}-${item.meta}-${index}`} className="candidate-settings-security-list__item">
+                <div>
                   <strong>{item.title}</strong>
-                  {item.meta ? ` · ${item.meta}` : ""}
-                </span>
-                <ArrowRightIcon />
-              </button>
+                  {item.meta ? <p>{item.meta}</p> : null}
+                </div>
+              </Card>
             ))}
           </div>
         ) : (
-          <p className="candidate-settings-detail__hint">История входов появится после следующих авторизаций в аккаунт.</p>
+          <Card className="candidate-settings-security-list__item">
+            <p>История входов пока недоступна.</p>
+          </Card>
         )}
       </section>
     </div>
@@ -554,122 +548,119 @@ function CandidateSecuritySettings({ email, phone, lastLogins }) {
 function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup, onSave }) {
   return (
     <form className="candidate-settings-detail candidate-settings-detail--privacy" onSubmit={onSave} noValidate>
-      <SectionSaveAlert
-        saveState={saveState}
-        successTitle="Настройки приватности сохранены"
-        successText="Видимость профиля и уведомления обновлены."
-      />
+      <SectionSaveAlert saveState={saveState} successTitle="Настройки приватности сохранены" successText="Новые правила видимости и уведомлений уже применяются." />
 
-      <div className="candidate-settings-privacy-grid">
-        <Card className="candidate-settings-privacy-card">
-          <div className="candidate-settings-privacy-card__head">
-            <Tag>Публичность</Tag>
-            <button type="button" className="candidate-settings-reset" onClick={() => onResetGroup("visibility")}>
-              Сбросить
-            </button>
+      <section className="candidate-settings-detail__section">
+        <div className="candidate-settings-detail__head-inline">
+          <div>
+            <h4 className="candidate-settings-detail__section-title">Видимость профиля</h4>
+            <p className="candidate-settings-detail__section-text">Управляйте тем, кто видит профиль, проекты и активность.</p>
           </div>
-
-          <div className="candidate-settings-privacy-card__fields">
-            <FormField label="Видимость анкеты">
-              <Select value={draft.privacy.profileVisibility} onValueChange={(value) => onChange("profileVisibility", value)} options={VISIBILITY_OPTIONS} />
-            </FormField>
-            <FormField label="Видимость проектов">
-              <Select value={draft.privacy.projectsVisibility} onValueChange={(value) => onChange("projectsVisibility", value)} options={VISIBILITY_OPTIONS} />
-            </FormField>
-            <FormField label="Видимость откликов">
-              <Select value={draft.privacy.activityVisibility} onValueChange={(value) => onChange("activityVisibility", value)} options={VISIBILITY_OPTIONS} />
-            </FormField>
-          </div>
-        </Card>
-
-        <Card className="candidate-settings-privacy-card">
-          <div className="candidate-settings-privacy-card__head">
-            <Tag>Приватность</Tag>
-            <button type="button" className="candidate-settings-reset" onClick={() => onResetGroup("audience")}>
-              Сбросить
-            </button>
-          </div>
-
-          <div className="candidate-settings-privacy-card__fields">
-            <FormField label="Кто видит профиль">
-              <Select value={draft.privacy.profileAudience} onValueChange={(value) => onChange("profileAudience", value)} options={AUDIENCE_OPTIONS} />
-            </FormField>
-            <FormField label="Кто видит контакты">
-              <Select value={draft.privacy.contactsAudience} onValueChange={(value) => onChange("contactsAudience", value)} options={AUDIENCE_OPTIONS} />
-            </FormField>
-            <FormField label="Кто может писать">
-              <Select value={draft.privacy.messagesAudience} onValueChange={(value) => onChange("messagesAudience", value)} options={AUDIENCE_OPTIONS} />
-            </FormField>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="candidate-settings-privacy-card candidate-settings-notifications-card">
-        <div className="candidate-settings-privacy-card__head candidate-settings-privacy-card__head--center">
-          <Tag>Уведомления</Tag>
-          <button type="button" className="candidate-settings-reset" onClick={() => onResetGroup("notifications")}>
-            Сбросить
-          </button>
+          <Button type="button" variant="ghost" onClick={() => onResetGroup("visibility")}>Сбросить</Button>
         </div>
 
-        <div className="candidate-settings-switches">
-          <div className="candidate-settings-switch-row">
-            <Switch
-              checked={draft.privacy.responseStatus}
-              onChange={(event) => onChange("responseStatus", event.target.checked)}
-              className="candidate-settings-switch"
-              label="Изменения статуса отклика"
-            />
-          </div>
-          <div className="candidate-settings-switch-row">
-            <Switch
-              checked={draft.privacy.recommendationAlerts}
-              onChange={(event) => onChange("recommendationAlerts", event.target.checked)}
-              className="candidate-settings-switch"
-              label="Новые рекомендации"
-            />
-          </div>
-          <div className="candidate-settings-switch-row">
-            <Switch
-              checked={draft.privacy.contactInvites}
-              onChange={(event) => onChange("contactInvites", event.target.checked)}
-              className="candidate-settings-switch"
-              label="Приглашения в контакты"
-            />
-          </div>
-          <div className="candidate-settings-switch-row">
-            <Switch
-              checked={draft.privacy.newOpportunities}
-              onChange={(event) => onChange("newOpportunities", event.target.checked)}
-              className="candidate-settings-switch"
-              label="Новые возможности"
-            />
-          </div>
+        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three">
+          <FormField label="Профиль"><Select value={draft.privacy.profileVisibility} onValueChange={(value) => onChange("profileVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
+          <FormField label="Проекты"><Select value={draft.privacy.projectsVisibility} onValueChange={(value) => onChange("projectsVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
+          <FormField label="Активность"><Select value={draft.privacy.activityVisibility} onValueChange={(value) => onChange("activityVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
         </div>
-      </Card>
+      </section>
 
-      <CandidateSettingsSaveButton
-        centered
-        disabled={saveState.status === "saving"}
-        label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"}
-      />
+      <section className="candidate-settings-detail__section">
+        <div className="candidate-settings-detail__head-inline">
+          <div>
+            <h4 className="candidate-settings-detail__section-title">Кому доступно взаимодействие</h4>
+            <p className="candidate-settings-detail__section-text">Определите, кто может видеть контакты и писать вам внутри платформы.</p>
+          </div>
+          <Button type="button" variant="ghost" onClick={() => onResetGroup("audience")}>Сбросить</Button>
+        </div>
+
+        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three">
+          <FormField label="Профиль"><Select value={draft.privacy.profileAudience} onValueChange={(value) => onChange("profileAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
+          <FormField label="Контакты"><Select value={draft.privacy.contactsAudience} onValueChange={(value) => onChange("contactsAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
+          <FormField label="Сообщения"><Select value={draft.privacy.messagesAudience} onValueChange={(value) => onChange("messagesAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
+        </div>
+      </section>
+
+      <section className="candidate-settings-detail__section">
+        <div className="candidate-settings-detail__head-inline">
+          <div>
+            <h4 className="candidate-settings-detail__section-title">Уведомления</h4>
+            <p className="candidate-settings-detail__section-text">Выберите, какие оповещения хотите получать.</p>
+          </div>
+          <Button type="button" variant="ghost" onClick={() => onResetGroup("notifications")}>Сбросить</Button>
+        </div>
+
+        <div className="candidate-settings-detail__stack">
+          <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.responseStatus} onChange={(event) => onChange("responseStatus", event.target.checked)}><><span className="ui-check__label">Статусы откликов</span><span className="ui-check__hint">Сообщать о переходе откликов между этапами.</span></></Switch></Card>
+          <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.recommendationAlerts} onChange={(event) => onChange("recommendationAlerts", event.target.checked)}><><span className="ui-check__label">Карьерные рекомендации</span><span className="ui-check__hint">Присылать новые подборки возможностей и советы.</span></></Switch></Card>
+          <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.contactInvites} onChange={(event) => onChange("contactInvites", event.target.checked)}><><span className="ui-check__label">Контакты и приглашения</span><span className="ui-check__hint">Сообщать о новых контактах и приглашениях в проекты.</span></></Switch></Card>
+          <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.newOpportunities} onChange={(event) => onChange("newOpportunities", event.target.checked)}><><span className="ui-check__label">Новые возможности</span><span className="ui-check__hint">Отправлять уведомления о новых стажировках и вакансиях.</span></></Switch></Card>
+        </div>
+      </section>
+
+      <CandidateSettingsSaveButton disabled={saveState.status === "saving"} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
     </form>
   );
 }
 
+async function syncCandidateEducation(currentEducation, draftEducations) {
+  const activeEducationItems = getActiveCandidateEducationDrafts(draftEducations);
+  const persistedIds = new Set(activeEducationItems.map((item) => item.id).filter(Boolean));
+
+  for (const item of activeEducationItems) {
+    const payload = buildEducationPayload(item);
+
+    if (item.id) {
+      await updateCandidateEducation(item.id, payload);
+    } else {
+      await createCandidateEducation(payload);
+    }
+  }
+
+  for (const item of currentEducation) {
+    if (item?.id && !persistedIds.has(item.id)) {
+      await deleteCandidateEducation(item.id);
+    }
+  }
+
+  const refreshedEducation = await getCandidateEducation();
+  return Array.isArray(refreshedEducation) ? refreshedEducation : currentEducation;
+}
+
 export function CandidateSettingsApp({ onSummaryChange }) {
-  const [searchParams, setSearchParams] = useSearchParams();
   const avatarInputRef = useRef(null);
+  const sectionSyncReadyRef = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [openSection, setOpenSection] = useState(getOpenSection(searchParams));
   const [state, setState] = useState({
     status: "loading",
     profile: null,
     education: [],
-    draft: createDraft(null, []),
+    draft: null,
     error: null,
   });
-  const [formErrors, setFormErrors] = useState({});
   const [saveState, setSaveState] = useState(createSaveStates);
+  const [formErrors, setFormErrors] = useState({});
   const [avatarState, setAvatarState] = useState({ status: "idle", error: "" });
+
+  useEffect(() => {
+    if (!sectionSyncReadyRef.current) {
+      sectionSyncReadyRef.current = true;
+      return;
+    }
+
+    const section = searchParams.get("section");
+
+    if (SETTINGS_SECTIONS.some((item) => item.id === section)) {
+      setOpenSection(section);
+      return;
+    }
+
+    if (section === null) {
+      setOpenSection("");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -680,6 +671,11 @@ export function CandidateSettingsApp({ onSummaryChange }) {
           getCandidateProfile(controller.signal),
           getCandidateEducation(controller.signal),
         ]);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const educationItems = Array.isArray(education) ? education : [];
 
         setState({
@@ -689,7 +685,6 @@ export function CandidateSettingsApp({ onSummaryChange }) {
           draft: createDraft(profile, educationItems),
           error: null,
         });
-        setAvatarState({ status: "idle", error: "" });
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -699,7 +694,7 @@ export function CandidateSettingsApp({ onSummaryChange }) {
           status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
           profile: null,
           education: [],
-          draft: createDraft(null, []),
+          draft: null,
           error,
         });
       }
@@ -709,52 +704,38 @@ export function CandidateSettingsApp({ onSummaryChange }) {
     return () => controller.abort();
   }, []);
 
-  const openSection = getOpenSection(searchParams);
-
-  function clearSaveFeedback(keys = ["profile", "contacts", "privacy"]) {
-    setSaveState((current) => {
-      const next = { ...current };
-      let hasChanges = false;
-
-      keys.forEach((key) => {
-        if (current[key]?.status !== "idle") {
-          next[key] = createIdleSaveState();
-          hasChanges = true;
-        }
-      });
-
-      return hasChanges ? next : current;
-    });
-  }
-
-  function updateDraft(updater, keysToReset) {
+  function updateDraft(updater, saveGroups = ["profile", "contacts", "privacy"]) {
     setState((current) => ({
       ...current,
       draft: typeof updater === "function" ? updater(current.draft) : updater,
     }));
-    clearSaveFeedback(keysToReset);
-  }
 
-  function handleRootChange(field, value) {
-    updateDraft((currentDraft) => ({ ...currentDraft, [field]: value }), field === "phone" ? ["profile", "contacts"] : ["profile"]);
-
-    setFormErrors((current) => {
+    setSaveState((current) => {
       const next = { ...current };
-      delete next[field];
+      saveGroups.forEach((group) => {
+        next[group] = createIdleSaveState();
+      });
       return next;
     });
   }
 
+  function handleRootChange(field, value) {
+    updateDraft((currentDraft) => ({ ...currentDraft, [field]: value }));
+
+    if (field === "name" || field === "surname") {
+      setFormErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+    }
+  }
+
   async function handleAvatarUpload(event) {
-    const file = event.target.files?.[0];
+    const [file] = Array.from(event.target.files ?? []);
     event.target.value = "";
 
     if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setAvatarState({ status: "error", error: "Загрузите изображение в формате PNG, JPG, WEBP, GIF или SVG." });
       return;
     }
 
@@ -785,11 +766,7 @@ export function CandidateSettingsApp({ onSummaryChange }) {
   function handleEducationChange(draftKey, field, value) {
     updateDraft((currentDraft) => ({
       ...currentDraft,
-      educations: currentDraft.educations.map((item) => (
-        item.draftKey === draftKey
-          ? { ...item, [field]: value }
-          : item
-      )),
+      educations: currentDraft.educations.map((item) => item.draftKey === draftKey ? { ...item, [field]: value } : item),
     }), ["profile"]);
 
     setFormErrors((current) => {
@@ -817,19 +794,37 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       ...currentDraft,
       educations: createEducationDraftListAfterRemove(currentDraft.educations, draftKey),
     }), ["profile"]);
+  }
 
-    setFormErrors((current) => {
-      if (!current.educationItems?.[draftKey]) {
-        return current;
-      }
+  function handleExperienceChange(draftKey, field, value) {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      experiences: currentDraft.experiences.map((item) => {
+        if (item.draftKey !== draftKey) {
+          return item;
+        }
 
-      const next = { ...current, educationItems: { ...current.educationItems } };
-      delete next.educationItems[draftKey];
-      if (!Object.keys(next.educationItems).length) {
-        delete next.educationItems;
-      }
-      return next;
-    });
+        if (field === "isCurrent") {
+          return { ...item, isCurrent: Boolean(value), endMonth: value ? "" : item.endMonth };
+        }
+
+        return { ...item, [field]: value };
+      }),
+    }), ["profile"]);
+  }
+
+  function handleExperienceAdd() {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      experiences: [...currentDraft.experiences, createCandidateExperienceDraft()],
+    }), ["profile"]);
+  }
+
+  function handleExperienceRemove(draftKey) {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      experiences: createExperienceDraftListAfterRemove(currentDraft.experiences, draftKey),
+    }), ["profile"]);
   }
 
   function handleSocialChange(field, value) {
@@ -883,6 +878,7 @@ export function CandidateSettingsApp({ onSummaryChange }) {
 
   function handleToggle(sectionId) {
     const nextSection = sectionId === openSection ? "" : sectionId;
+    setOpenSection(nextSection);
 
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
@@ -935,47 +931,20 @@ export function CandidateSettingsApp({ onSummaryChange }) {
         skills: state.draft.skills,
         links,
       });
-
-      let educationItems = state.education;
-
-      if (hasEducationData(state.draft) || state.education.length) {
-        const activeEducationItems = getActiveCandidateEducationDrafts(state.draft.educations);
-        const persistedIds = new Set(
-          activeEducationItems
-            .map((item) => item.id)
-            .filter(Boolean)
-        );
-
-        for (const item of activeEducationItems) {
-          const payload = buildEducationPayload(item);
-
-          if (item.id) {
-            await updateCandidateEducation(item.id, payload);
-          } else {
-            await createCandidateEducation(payload);
-          }
-        }
-
-        for (const item of state.education) {
-          if (item?.id && !persistedIds.has(item.id) && !activeEducationItems.some((draftItem) => draftItem.id === item.id)) {
-            await deleteCandidateEducation(item.id);
-          }
-        }
-
-        const refreshedEducation = await getCandidateEducation();
-        educationItems = Array.isArray(refreshedEducation) ? refreshedEducation : educationItems;
-      }
+      const educationItems = await syncCandidateEducation(state.education, state.draft.educations);
+      const refreshedProfile = await getCandidateProfile();
+      const nextProfile = refreshedProfile ?? profile;
 
       setFormErrors({});
       setState({
         status: "ready",
-        profile,
+        profile: nextProfile,
         education: educationItems,
-        draft: createDraft(profile, educationItems),
+        draft: createDraft(nextProfile, educationItems),
         error: null,
       });
       setAvatarState({ status: "idle", error: "" });
-      onSummaryChange?.({ profile, education: educationItems });
+      onSummaryChange?.({ profile: nextProfile, education: educationItems });
       setSaveState((current) => ({
         ...current,
         profile: { status: "success", error: "" },
@@ -1003,13 +972,15 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       const profile = await updateCandidateProfile({
         links: buildLinksPayload(state.profile, state.draft),
       });
+      const refreshedProfile = await getCandidateProfile();
+      const nextProfile = refreshedProfile ?? profile;
 
       setState((current) => ({
         ...current,
-        profile,
-        draft: createDraft(profile, current.education),
+        profile: nextProfile,
+        draft: createDraft(nextProfile, current.education),
       }));
-      onSummaryChange?.({ profile });
+      onSummaryChange?.({ profile: nextProfile });
       setSaveState((current) => ({
         ...current,
         contacts: { status: "success", error: "" },
@@ -1037,13 +1008,15 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       const profile = await updateCandidateProfile({
         links: buildLinksPayload(state.profile, state.draft),
       });
+      const refreshedProfile = await getCandidateProfile();
+      const nextProfile = refreshedProfile ?? profile;
 
       setState((current) => ({
         ...current,
-        profile,
-        draft: createDraft(profile, current.education),
+        profile: nextProfile,
+        draft: createDraft(nextProfile, current.education),
       }));
-      onSummaryChange?.({ profile });
+      onSummaryChange?.({ profile: nextProfile });
       setSaveState((current) => ({
         ...current,
         privacy: { status: "success", error: "" },
@@ -1064,19 +1037,14 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       <CandidateSectionHeader
         eyebrow="Настройки"
         title="Настройки профиля"
-        description="Собери свой портфолио и резюме для точных рекомендаций."
+        description="Заполните профиль кандидата и настройте видимость данных внутри платформы."
       />
 
       {state.status === "loading" ? <Loader label="Загружаем настройки профиля" surface /> : null}
 
       {state.status === "unauthorized" ? (
         <Card>
-          <EmptyState
-            eyebrow="Доступ ограничен"
-            title="Нужно войти как кандидат"
-            description="Настройки профиля доступны только после авторизации кандидата."
-            tone="warning"
-          />
+          <EmptyState eyebrow="Доступ ограничен" title="Нужно войти как кандидат" description="Настройки профиля доступны только после авторизации кандидата." tone="warning" />
         </Card>
       ) : null}
 
@@ -1088,19 +1056,8 @@ export function CandidateSettingsApp({ onSummaryChange }) {
 
       {state.status === "ready" ? (
         <div className="candidate-page-stack">
-          {CANDIDATE_SETTINGS_SECTIONS.map((section) => (
-            <SettingsSectionCard
-              key={section.id}
-              id={section.id}
-              eyebrow={section.eyebrow}
-              title={section.title}
-              summary={section.summary}
-              status={section.status}
-              statusTone={section.statusTone}
-              actionLabel={section.actionLabel}
-              isOpen={openSection === section.id}
-              onToggle={() => handleToggle(section.id)}
-            >
+          {SETTINGS_SECTIONS.map((section) => (
+            <SettingsSectionCard key={section.id} id={section.id} eyebrow={section.eyebrow} title={section.title} summary={section.summary} isOpen={openSection === section.id} onToggle={() => handleToggle(section.id)}>
               {section.id === "settings-profile" ? (
                 <CandidateProfileSettingsForm
                   draft={state.draft}
@@ -1115,40 +1072,23 @@ export function CandidateSettingsApp({ onSummaryChange }) {
                   onEducationChange={handleEducationChange}
                   onEducationAdd={handleEducationAdd}
                   onEducationRemove={handleEducationRemove}
+                  onExperienceChange={handleExperienceChange}
+                  onExperienceAdd={handleExperienceAdd}
+                  onExperienceRemove={handleExperienceRemove}
                   onSave={handleProfileSave}
                 />
               ) : null}
 
               {section.id === "settings-contacts" ? (
-                <CandidateContactsSettingsForm
-                  draft={{
-                    phone: state.draft.phone,
-                    email: state.profile?.email ?? "",
-                    socials: state.draft.socials,
-                  }}
-                  saveState={saveState.contacts}
-                  onChange={handleRootChange}
-                  onSocialChange={handleSocialChange}
-                  onSave={handleContactsSave}
-                />
+                <CandidateContactsSettingsForm draft={{ phone: state.draft.phone, email: state.profile?.email ?? "", socials: state.draft.socials }} saveState={saveState.contacts} onChange={handleRootChange} onSocialChange={handleSocialChange} onSave={handleContactsSave} />
               ) : null}
 
               {section.id === "settings-security" ? (
-                <CandidateSecuritySettings
-                  email={state.profile?.email ?? ""}
-                  phone={state.draft.phone}
-                  lastLogins={state.draft.lastLogins}
-                />
+                <CandidateSecuritySettings email={state.profile?.email ?? ""} phone={state.draft.phone} lastLogins={state.draft.lastLogins} />
               ) : null}
 
               {section.id === "settings-privacy" ? (
-                <CandidatePrivacySettingsForm
-                  draft={state.draft}
-                  saveState={saveState.privacy}
-                  onChange={handlePrivacyChange}
-                  onResetGroup={handleResetPrivacyGroup}
-                  onSave={handlePrivacySave}
-                />
+                <CandidatePrivacySettingsForm draft={state.draft} saveState={saveState.privacy} onChange={handlePrivacyChange} onResetGroup={handleResetPrivacyGroup} onSave={handlePrivacySave} />
               ) : null}
             </SettingsSectionCard>
           ))}

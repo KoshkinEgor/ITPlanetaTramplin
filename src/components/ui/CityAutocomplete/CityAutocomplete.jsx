@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
-import { searchCityOptions, mergeCityOptions, normalizeCityName } from "../../../api/cities";
+import { mergeCityOptions, normalizeCityName, searchCityOptions } from "../../../api/cities";
 import { cn } from "../../../lib/cn";
 
 function ChevronIcon() {
@@ -35,6 +35,7 @@ export function CityAutocomplete({
   onValueChange,
   onSelectOption,
   fallbackOptions = [],
+  searchOptions = searchCityOptions,
   placeholder = "Выберите город",
   searchPlaceholder = "Начните вводить город",
   loadingLabel = "Ищем города…",
@@ -102,8 +103,8 @@ export function CityAutocomplete({
     const timeoutId = window.setTimeout(async () => {
       try {
         setStatus("loading");
-        const options = await searchCityOptions(deferredQuery, { signal: controller.signal });
-        setRemoteOptions(options);
+        const options = await searchOptions(deferredQuery, { signal: controller.signal });
+        setRemoteOptions(Array.isArray(options) ? options : []);
         setStatus("ready");
       } catch (error) {
         if (error?.name === "AbortError") {
@@ -119,7 +120,7 @@ export function CityAutocomplete({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [deferredQuery, disabled, isOpen, normalizedQuery]);
+  }, [deferredQuery, disabled, isOpen, normalizedQuery, searchOptions]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -274,12 +275,16 @@ export function CityAutocomplete({
 
           {status === "error" ? <div className="ui-city-autocomplete__state">{errorLabel}</div> : null}
 
+          {!visibleOptions.length && status !== "loading" && status !== "error" ? (
+            <div className="ui-city-autocomplete__state">{emptyLabel}</div>
+          ) : null}
+
           {visibleOptions.length > 0 ? (
             visibleOptions.map((option, index) => {
               const isSelected = resolvedSelectedOptionId
                 ? option.id === resolvedSelectedOptionId
                 : normalizeCityName(option.name) === normalizeCityName(value);
-              const isHighlighted = index === highlightedIndex;
+              const isHighlighted = highlightedIndex === index;
 
               return (
                 <button
@@ -297,12 +302,8 @@ export function CityAutocomplete({
                   onMouseDown={(event) => {
                     event.preventDefault();
                   }}
-                  onMouseEnter={() => {
-                    setHighlightedIndex(index);
-                  }}
-                  onClick={() => {
-                    commitSelection(option);
-                  }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onClick={() => commitSelection(option)}
                 >
                   <span className="ui-city-autocomplete__option-title">{option.name}</span>
                   {option.label && option.label !== option.name ? (
@@ -311,8 +312,6 @@ export function CityAutocomplete({
                 </button>
               );
             })
-          ) : status !== "loading" ? (
-            <div className="ui-city-autocomplete__state">{emptyLabel}</div>
           ) : null}
         </div>
       ) : null}

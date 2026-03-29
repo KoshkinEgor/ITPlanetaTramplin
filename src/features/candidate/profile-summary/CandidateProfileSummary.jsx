@@ -8,6 +8,7 @@ import {
   getCandidateMeta,
   getCandidateSkills,
 } from "../../../candidate-portal/mappers";
+import { PROFILE_COMPLETION_WARNING_THRESHOLD } from "../../../candidate-portal/onboarding";
 import { CandidateProgressCard, CandidateStatTiles } from "../../../candidate-portal/shared";
 import "./CandidateProfileSummary.css";
 
@@ -21,6 +22,10 @@ export function CandidateProfileSummary({
   const meta = getCandidateMeta(profile);
   const skills = getCandidateSkills(profile);
   const isFull = variant === "full";
+  const isWarningState = completion < PROFILE_COMPLETION_WARNING_THRESHOLD;
+  const progressNote = isWarningState
+    ? "Карьера и отклики станут доступны после заполнения обязательного минимума профиля."
+    : (isFull ? "Чем полнее профиль, тем точнее рекомендации и отклики работодателей." : undefined);
 
   return (
     <Card className={cn("candidate-profile-summary", isFull ? "candidate-profile-summary--full" : "candidate-profile-summary--compact")}>
@@ -68,8 +73,10 @@ export function CandidateProfileSummary({
 
         <div className="candidate-profile-summary__aside">
           <CandidateProgressCard
+            title={isWarningState ? "Обязательный минимум профиля" : undefined}
             value={completion}
-            note={isFull ? "Чем полнее профиль, тем точнее рекомендации и отклики работодателей." : undefined}
+            note={progressNote}
+            tone={isWarningState ? "warning" : "default"}
             className="candidate-profile-summary__progress"
           />
           <CandidateStatTiles items={stats.slice(0, isFull ? 4 : 3)} className="candidate-profile-summary__stats" />

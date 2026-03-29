@@ -2,8 +2,10 @@ using Application.DBContext;
 using DTO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Models;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Xunit;
 
 namespace ITPlanetaTramplin.Api.Tests;
@@ -21,6 +23,7 @@ public class CandidateApplicationLifecycleTests
 
         var candidate = await RegisterAndConfirmCandidateAsync(client, $"summary-{Guid.NewGuid():N}@tramplin.local");
         await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
 
         var applyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
         Assert.Equal(HttpStatusCode.OK, applyResponse.StatusCode);
@@ -39,6 +42,26 @@ public class CandidateApplicationLifecycleTests
     }
 
     [Fact]
+    public async Task ApplyToOpportunity_ReturnsForbidden_WhenMandatoryOnboardingIsIncomplete()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"incomplete-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"incomplete-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+
+        var applyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, applyResponse.StatusCode);
+
+        var payload = await applyResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("обязательные поля профиля", payload!.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CandidateCanWithdrawOwnSubmittedApplication()
     {
         await using var factory = new TestApplicationFactory();
@@ -49,6 +72,7 @@ public class CandidateApplicationLifecycleTests
 
         var candidate = await RegisterAndConfirmCandidateAsync(client, $"withdraw-{Guid.NewGuid():N}@tramplin.local");
         await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
 
         var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
 
@@ -71,6 +95,7 @@ public class CandidateApplicationLifecycleTests
 
         var candidate = await RegisterAndConfirmCandidateAsync(client, $"confirm-{Guid.NewGuid():N}@tramplin.local");
         await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
 
         var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
 
@@ -106,6 +131,7 @@ public class CandidateApplicationLifecycleTests
 
         var candidate = await RegisterAndConfirmCandidateAsync(client, $"invalid-{Guid.NewGuid():N}@tramplin.local");
         await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
 
         var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
 
@@ -128,6 +154,7 @@ public class CandidateApplicationLifecycleTests
 
         var firstCandidate = await RegisterAndConfirmCandidateAsync(client, $"foreign-a-{Guid.NewGuid():N}@tramplin.local");
         await LoginAsCandidateAsync(client, firstCandidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, firstCandidate.Email);
         var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
 
         await client.PostAsync("/api/auth/logout", null);
@@ -200,6 +227,47 @@ public class CandidateApplicationLifecycleTests
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
 
         return payload;
+    }
+
+    private static async Task CompleteMandatoryCandidateProfileAsync(TestApplicationFactory factory, string email)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+        var user = await db.Users
+            .Include(item => item.ApplicantProfile)
+            .ThenInclude(item => item.ApplicantEducations)
+            .SingleAsync(item => item.Email == email);
+
+        var profile = Assert.IsType<ApplicantProfile>(user.ApplicantProfile);
+        profile.Skills = ["UX", "Figma"];
+        profile.Links = JsonSerializer.Serialize(new
+        {
+            onboarding = new
+            {
+                profession = "UX/UI-дизайнер",
+                gender = "female",
+                birthDate = "2002-04-12",
+                phone = "+79990000000",
+                city = "Москва",
+                citizenship = "Россия",
+                noExperience = true,
+                goal = "Получить первую стажировку в продуктовой команде",
+            },
+        });
+
+        if (profile.ApplicantEducations.Count == 0)
+        {
+            profile.ApplicantEducations.Add(new ApplicantEducation
+            {
+                InstitutionName = "Test University",
+                Faculty = "Design",
+                Specialization = "Interface Design",
+                GraduationYear = 2027,
+                IsCompleted = false,
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task LoginAsCandidateAsync(HttpClient client, string email)
