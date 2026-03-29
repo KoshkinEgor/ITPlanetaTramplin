@@ -4,6 +4,7 @@ import { getCandidateDisplayName, getCandidateSkills, translateEmploymentType } 
 import { OpportunityBlockSlider } from "../../components/opportunities";
 import {
   Alert,
+  Button,
   CareerCourseCard,
   CareerMentorCard,
   CareerPeerCard,
@@ -11,11 +12,16 @@ import {
   CareerSkillsPanel,
   CareerStatsPanel,
   FilterPill,
+  Modal,
   SectionHeader,
 } from "../../shared/ui";
 
 const COURSE_SLIDER_ARIA_LABEL = "Career courses slider";
 const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
+const COURSE_ACTION_TARGET = "_blank";
+const COURSE_ACTION_REL = "noreferrer";
+const MENTOR_MODAL_TITLE = "Менторы скоро появятся";
+const MENTOR_MODAL_DESCRIPTION = "Раздел с менторами в разработке. Скоро здесь можно будет выбрать наставника и записаться на консультацию.";
 
 const SALARY_TRACKS = {
   design: [
@@ -48,14 +54,88 @@ const TRACK_SKILLS = {
 };
 
 const COURSE_CATALOG = [
-  { id: "ai-design", title: "Нейросети для дизайна", provider: "Яндекс Практикум", meta: "Продвинутый · 3 мес + онлайн", price: "40 000 ₽", oldPrice: "82 000 ₽", monthly: "2325 ₽ в месяц", tags: ["design", "default"] },
-  { id: "illustrator", title: "Adobe Illustrator с нуля", provider: "Skillbox", meta: "С нуля · 2 мес + онлайн", price: "25 000 ₽", oldPrice: "82 000 ₽", monthly: "825 ₽ в месяц", tags: ["design", "default"] },
-  { id: "typography", title: "Типографика и вёрстка: внимание к типу", provider: "Skillbox", meta: "С нуля · 1 мес + онлайн", price: "20 000 ₽", oldPrice: "82 000 ₽", monthly: "755 ₽ в месяц", tags: ["design", "development"] },
-  { id: "graphic-design", title: "Ускоренный курс по графическому дизайну", provider: "Skillbox", meta: "С нуля · 4 мес + онлайн", price: "78 000 ₽", oldPrice: "82 000 ₽", monthly: "3755 ₽ в месяц", tags: ["design", "default"] },
-  { id: "product-analytics", title: "Продуктовая аналитика", provider: "Practicum", meta: "База · 3 мес + онлайн", price: "58 000 ₽", oldPrice: "81 000 ₽", monthly: "4100 ₽ в месяц", tags: ["analytics", "default"] },
-  { id: "frontend", title: "Frontend-разработка с React", provider: "HTML Academy", meta: "Интенсив · 4 мес + онлайн", price: "69 000 ₽", oldPrice: "94 000 ₽", monthly: "5200 ₽ в месяц", tags: ["development", "default"] },
-  { id: "brand-identity", title: "\u0411\u0440\u0435\u043d\u0434-\u0434\u0438\u0437\u0430\u0439\u043d \u0438 \u0430\u0439\u0434\u0435\u043d\u0442\u0438\u043a\u0430", provider: "Bang Bang Education", meta: "\u0421 \u043d\u0443\u043b\u044f \u00b7 3 \u043c\u0435\u0441 + \u043e\u043d\u043b\u0430\u0439\u043d", price: "54 000 \u20bd", oldPrice: "71 000 \u20bd", monthly: "2250 \u20bd \u0432 \u043c\u0435\u0441\u044f\u0446", tags: ["design", "default"] },
-  { id: "motion-design", title: "\u041c\u043e\u0443\u0448\u043d-\u0434\u0438\u0437\u0430\u0439\u043d \u0434\u043b\u044f digital-\u043f\u0440\u043e\u0435\u043a\u0442\u043e\u0432", provider: "Contented", meta: "\u0421 \u043d\u0443\u043b\u044f \u00b7 2 \u043c\u0435\u0441 + \u043e\u043d\u043b\u0430\u0439\u043d", price: "47 000 \u20bd", oldPrice: "68 000 \u20bd", monthly: "1960 \u20bd \u0432 \u043c\u0435\u0441\u044f\u0446", tags: ["design", "default"] },
+  {
+    id: "ai-design",
+    title: "Нейросети для дизайна",
+    provider: "Яндекс Практикум",
+    meta: "Короткий курс · 2 месяца · онлайн",
+    monthly: "Можно платить ежемесячно",
+    href: "https://practicum.yandex.ru/ai-tools-for-designers/",
+    tags: ["design", "default"],
+  },
+  {
+    id: "illustrator",
+    title: "Adobe Illustrator",
+    provider: "Skillbox",
+    meta: "С нуля · 1 месяц · онлайн",
+    price: "4 210 ₽/мес",
+    oldPrice: "7 655 ₽/мес",
+    monthly: "Рассрочка на 6 месяцев",
+    href: "https://skillbox.ru/course/illustrator/",
+    tags: ["design", "default"],
+  },
+  {
+    id: "typography",
+    title: "Шрифт в дизайне",
+    provider: "Skillbox",
+    meta: "С нуля · 3 месяца · онлайн",
+    price: "5 214 ₽/мес",
+    oldPrice: "9 480 ₽/мес",
+    monthly: "Рассрочка на 12 месяцев",
+    href: "https://skillbox.ru/course/paratype/",
+    tags: ["design", "development"],
+  },
+  {
+    id: "graphic-design",
+    title: "Графический дизайнер с нуля",
+    provider: "Skillbox",
+    meta: "С нуля · 6 месяцев · онлайн",
+    price: "4 475 ₽/мес",
+    oldPrice: "9 945 ₽/мес",
+    monthly: "Рассрочка на 24 месяца",
+    href: "https://skillbox.ru/course/graphic-design/",
+    tags: ["design", "default"],
+  },
+  {
+    id: "product-analytics",
+    title: "Продуктовый аналитик",
+    provider: "Яндекс Практикум",
+    meta: "Профессия · онлайн",
+    price: "8 000 ₽/мес",
+    monthly: "Можно платить ежемесячно",
+    href: "https://practicum.yandex.ru/product-analyst/",
+    tags: ["analytics", "default"],
+  },
+  {
+    id: "frontend",
+    title: "React. Разработка сложных клиентских приложений",
+    provider: "HTML Academy",
+    meta: "Профессиональный курс · онлайн",
+    price: "44 700 ₽",
+    oldPrice: "89 400 ₽",
+    monthly: "Лайт-формат · доступ на 2 года",
+    href: "https://htmlacademy.ru/intensive/react",
+    tags: ["development", "default"],
+  },
+  {
+    id: "brand-identity",
+    title: "Айдентика: от идеи к визуальному воплощению",
+    provider: "Bang Bang Education",
+    meta: "С нуля · 3 месяца · онлайн",
+    href: "https://bangbangeducation.ru/course/id-from-idea-to-image",
+    tags: ["design", "default"],
+  },
+  {
+    id: "motion-design",
+    title: "Профессия моушн-дизайнер с нуля до ПРО",
+    provider: "Contented",
+    meta: "18 месяцев · онлайн",
+    price: "5 200 ₽/мес",
+    oldPrice: "8 667 ₽/мес",
+    monthly: "Рассрочка на 36 месяцев",
+    href: "https://contented.ru/edu/motion-designer-pro",
+    tags: ["design", "default"],
+  },
 ];
 
 const FALLBACK_OPPORTUNITIES = [
@@ -213,8 +293,10 @@ function mapCourseCard(course) {
     price: course.price,
     oldPrice: course.oldPrice,
     monthly: course.monthly,
-    href: routes.opportunities.catalog,
+    href: course.href,
     actionLabel: "Перейти к курсу",
+    actionTarget: COURSE_ACTION_TARGET,
+    actionRel: COURSE_ACTION_REL,
   };
 }
 
@@ -255,6 +337,7 @@ function countByStatus(items, status) {
 
 export function CandidateCareerDashboard({ profile, dashboardState }) {
   const [mentorFilter, setMentorFilter] = useState(MENTOR_FILTERS[0].value);
+  const [mentorModalOpen, setMentorModalOpen] = useState(false);
 
   const primarySkills = getPrimarySkills(profile);
   const suggestedSkills = getSuggestedSkills(profile);
@@ -266,6 +349,8 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
     () => MENTORS.filter((mentor) => mentor.focus.includes(mentorFilter)).slice(0, 3),
     [mentorFilter]
   );
+  const openMentorModal = () => setMentorModalOpen(true);
+  const closeMentorModal = () => setMentorModalOpen(false);
 
   const statsPanel = {
     title: "Твоя карьера",
@@ -348,10 +433,8 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           <OpportunityBlockSlider
             ariaLabel={OPPORTUNITY_SLIDER_ARIA_LABEL}
             items={opportunities}
-            variant="leading-featured"
             className="candidate-career-dashboard__opportunities-slider"
             itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
-            featuredWidth="var(--candidate-career-dashboard-opportunity-featured-width)"
             gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
             cardPropsBuilder={(item) => ({
               detailAction: {
@@ -372,7 +455,11 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         <SectionHeader
           title="Есть вопросы? Обратись к нашим менторам!"
           size="md"
-          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Все менторы →</a>}
+          actions={(
+            <button type="button" className="candidate-career-dashboard__section-link" onClick={openMentorModal}>
+              Все менторы →
+            </button>
+          )}
         />
         <div className="candidate-career-dashboard__mentor-filters" role="tablist" aria-label="Сценарии консультаций">
           {MENTOR_FILTERS.map((filter) => (
@@ -383,7 +470,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         </div>
         <div className="candidate-career-dashboard__card-grid candidate-career-dashboard__card-grid--mentors">
           {mentors.map((mentor) => (
-            <CareerMentorCard key={mentor.id} {...mentor} href={routes.candidate.contacts} />
+            <CareerMentorCard key={mentor.id} {...mentor} onActionClick={openMentorModal} />
           ))}
         </div>
       </section>
@@ -407,6 +494,21 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           </Alert>
         )}
       </section>
+
+      <Modal
+        open={mentorModalOpen}
+        onClose={closeMentorModal}
+        title={MENTOR_MODAL_TITLE}
+        description={MENTOR_MODAL_DESCRIPTION}
+        tone="info"
+        showIcon
+        closeLabel="Закрыть окно"
+        actions={(
+          <Button type="button" onClick={closeMentorModal}>
+            Понятно
+          </Button>
+        )}
+      />
     </div>
   );
 }

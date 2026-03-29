@@ -11,6 +11,10 @@
   background: rgba(255, 255, 255, 0.82);
 }
 
+.ui-career-course-card.ui-card {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
 .ui-career-panel.ui-card,
 .ui-career-course-card.ui-card,
 .ui-career-opportunity-card.ui-card,
@@ -43,6 +47,10 @@
 .ui-career-peer-card__copy {
   display: grid;
   gap: 10px;
+}
+
+.ui-career-course-card__copy {
+  align-content: start;
 }
 
 .ui-career-panel__meta {
@@ -220,7 +228,15 @@
 }
 
 .ui-career-course-card__action.ui-button {
+  align-self: end;
+  height: 52px;
   min-height: 52px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ui-career-course-card__action.ui-button .ui-button__label {
+  line-height: 1.1;
 }
 
 .ui-career-stats-panel__action.ui-button {

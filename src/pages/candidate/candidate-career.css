@@ -409,6 +409,11 @@
   align-items: start;
 }
 .candidate-career-dashboard__section-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
   color: var(--ui-color-accent);
   font-size: var(--ui-font-size-body);
   line-height: var(--ui-line-height-body);
@@ -454,7 +459,6 @@
 .candidate-career-dashboard__opportunities-slider {
   --candidate-career-dashboard-opportunity-slide-gap: 24px;
   --candidate-career-dashboard-opportunity-slide-width: 420px;
-  --candidate-career-dashboard-opportunity-featured-width: 760px;
 }
 
 .candidate-career-dashboard__opportunities-slider .opportunity-block-slider__rail {
@@ -528,7 +532,6 @@
 
   .candidate-career-dashboard__opportunities-slider {
     --candidate-career-dashboard-opportunity-slide-width: 360px;
-    --candidate-career-dashboard-opportunity-featured-width: 640px;
   }
 
   .candidate-career-dashboard__card-grid--opportunities {
@@ -585,7 +588,6 @@
   .candidate-career-dashboard__opportunities-slider {
     --candidate-career-dashboard-opportunity-slide-gap: 18px;
     --candidate-career-dashboard-opportunity-slide-width: 100%;
-    --candidate-career-dashboard-opportunity-featured-width: 100%;
   }
 
   .candidate-career-dashboard__card-grid--opportunities {

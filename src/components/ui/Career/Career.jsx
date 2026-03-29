@@ -168,6 +168,8 @@ export function CareerCourseCard({
   monthly,
   href = "#",
   actionLabel = "Перейти к курсу",
+  actionTarget,
+  actionRel,
   className,
   ...props
 }) {
@@ -186,7 +188,14 @@ export function CareerCourseCard({
         {monthly ? <p className="ui-career-course-card__monthly">{monthly}</p> : null}
       </div>
 
-      <Button href={href} variant="secondary" width="full" className="ui-career-course-card__action">
+      <Button
+        href={href}
+        target={actionTarget}
+        rel={actionRel}
+        variant="secondary"
+        width="full"
+        className="ui-career-course-card__action"
+      >
         {actionLabel}
       </Button>
     </Card>
@@ -275,6 +284,7 @@ export function CareerMentorCard({
   href = "#",
   imageUrl,
   actionLabel = "Профиль",
+  onActionClick,
   className,
   ...props
 }) {
@@ -292,9 +302,15 @@ export function CareerMentorCard({
         {summary ? <p className="ui-career-mentor-card__summary">{summary}</p> : null}
       </div>
 
-      <Button href={href} variant="secondary" width="full" className="ui-career-mentor-card__action">
-        {actionLabel}
-      </Button>
+      {typeof onActionClick === "function" ? (
+        <Button type="button" variant="secondary" width="full" className="ui-career-mentor-card__action" onClick={onActionClick}>
+          {actionLabel}
+        </Button>
+      ) : (
+        <Button href={href} variant="secondary" width="full" className="ui-career-mentor-card__action">
+          {actionLabel}
+        </Button>
+      )}
     </Card>
   );
 }
