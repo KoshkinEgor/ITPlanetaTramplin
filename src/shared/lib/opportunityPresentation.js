@@ -173,42 +173,125 @@ export function formatOpportunitySalaryRange(from, to) {
   return "";
 }
 
+const OPPORTUNITY_TYPE_TONE_BY_KEY = Object.freeze({
+  vacancy: "blue",
+  internship: "green",
+  event: "orange",
+  mentoring: "teal",
+});
+
+export function getOpportunityTypeTone(value) {
+  return OPPORTUNITY_TYPE_TONE_BY_KEY[normalizeOpportunityType(value)] ?? "blue";
+}
+
+function compactText(value, maxLength = 40) {
+  const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function joinSummaryFacts(...facts) {
+  return facts
+    .map((fact) => String(fact ?? "").trim())
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function formatSeatsCount(value) {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  const parsed = Number(String(value).replace(/\s+/g, "").replace(",", "."));
+
+  if (Number.isFinite(parsed)) {
+    return new Intl.NumberFormat("ru-RU").format(parsed);
+  }
+
+  return String(value).trim();
+}
+
 export function getOpportunityTypeSummary(item = {}) {
   const type = normalizeOpportunityType(item.opportunityType);
+  const typeTone = getOpportunityTypeTone(type);
+  const employmentLabel = translateEmploymentType(item.employmentType);
+  const cityLabel = String(item.locationCity ?? "").trim();
 
   switch (type) {
     case "vacancy": {
       const salary = formatOpportunitySalaryRange(item.salaryFrom, item.salaryTo);
+
       return {
-        accent: salary || "Зарплата не указана",
-        note: item.employmentType ? translateEmploymentType(item.employmentType) : "",
+        typeTone,
+        primaryFactLabel: "Зарплата",
+        primaryFactValue: salary || "Зарплата не указана",
+        secondaryFact: employmentLabel ? `Формат: ${employmentLabel}` : "Формат не указан",
+        tertiaryFact: cityLabel ? `Город: ${cityLabel}` : "",
+        compactFact: employmentLabel || (cityLabel ? `Город: ${cityLabel}` : "Формат не указан"),
       };
     }
     case "internship": {
       const stipend = formatOpportunitySalaryRange(item.stipendFrom, item.stipendTo);
+      const duration = String(item.duration ?? "").trim();
+      const primaryFactValue = item.isPaid === false ? "Без оплаты" : stipend || "Стипендия не указана";
+      const secondaryFact = duration ? `Длительность: ${duration}` : "Длительность не указана";
+
       return {
-        accent: item.isPaid === false ? "Стажировка без оплаты" : stipend || "Стажировка с оплатой не указана",
-        note: [item.duration ? `Длительность: ${item.duration}` : "", item.isPaid === false ? "Без оплаты" : ""].filter(Boolean).join(" • "),
+        typeTone,
+        primaryFactLabel: item.isPaid === false ? "Оплата" : "Стипендия",
+        primaryFactValue,
+        secondaryFact,
+        tertiaryFact: employmentLabel ? `Формат: ${employmentLabel}` : "",
+        compactFact: duration ? compactText(secondaryFact, 34) : employmentLabel || primaryFactValue,
       };
     }
     case "event": {
+      const eventStartAt = formatOpportunityDateTime(item.eventStartAt);
+      const registrationDeadline = formatOpportunityDateTime(item.registrationDeadline);
+      const registrationDate = formatOpportunityDate(item.registrationDeadline);
+
       return {
-        accent: formatOpportunityDateTime(item.eventStartAt) || "Дата события не указана",
-        note: item.registrationDeadline ? `Регистрация до ${formatOpportunityDateTime(item.registrationDeadline)}` : "",
+        typeTone,
+        primaryFactLabel: "Дата и время",
+        primaryFactValue: eventStartAt || "Дата и время не указаны",
+        secondaryFact: registrationDeadline ? `Регистрация до ${registrationDeadline}` : "Регистрация не указана",
+        tertiaryFact: [employmentLabel, cityLabel].filter(Boolean).join(" • "),
+        compactFact: registrationDate ? `До ${registrationDate}` : employmentLabel || cityLabel || "Регистрация не указана",
       };
     }
     case "mentoring": {
+      const duration = String(item.duration ?? "").trim();
+      const meetingFrequency = String(item.meetingFrequency ?? "").trim();
+      const seatsCount = formatSeatsCount(item.seatsCount);
+
       return {
-        accent: item.duration ? `Длительность: ${item.duration}` : "Длительность не указана",
-        note: [item.meetingFrequency ? `Встречи: ${item.meetingFrequency}` : "", item.seatsCount ? `Мест: ${item.seatsCount}` : ""]
-          .filter(Boolean)
-          .join(" • "),
+        typeTone,
+        primaryFactLabel: "Длительность",
+        primaryFactValue: duration || "Длительность не указана",
+        secondaryFact: meetingFrequency ? `Встречи: ${meetingFrequency}` : "Частота встреч не указана",
+        tertiaryFact: seatsCount ? `Мест: ${seatsCount}` : "Места не указаны",
+        compactFact: compactText(
+          meetingFrequency ? `Встречи: ${meetingFrequency}` : seatsCount ? `Мест: ${seatsCount}` : "Места не указаны",
+          34
+        ),
       };
     }
     default:
       return {
-        accent: translateEmploymentType(item.employmentType) || "",
-        note: item.locationCity || "",
+        typeTone,
+        primaryFactLabel: "Формат",
+        primaryFactValue: employmentLabel || "Формат не указан",
+        secondaryFact: cityLabel ? `Город: ${cityLabel}` : "",
+        tertiaryFact: "",
+        compactFact: employmentLabel || cityLabel || "Формат не указан",
       };
   }
 }
@@ -218,13 +301,23 @@ export function getOpportunityCardPresentation(item = {}) {
   const typeSummary = getOpportunityTypeSummary(item);
   const employmentLabel = translateEmploymentType(item.employmentType);
   const status = translateModerationStatus(item.moderationStatus);
+  const summaryFacts = [typeSummary.secondaryFact, typeSummary.tertiaryFact].filter(Boolean);
 
   return {
+    typeKey: normalizeOpportunityType(item.opportunityType),
+    typeTone: typeSummary.typeTone,
     type: typeLabel,
     title: item.title ?? "",
     meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" • "),
-    accent: typeSummary.accent,
-    note: typeSummary.note,
+    employmentLabel,
+    primaryFactLabel: typeSummary.primaryFactLabel,
+    primaryFactValue: typeSummary.primaryFactValue,
+    secondaryFact: typeSummary.secondaryFact,
+    tertiaryFact: typeSummary.tertiaryFact,
+    compactFact: typeSummary.compactFact,
+    summaryFacts,
+    accent: typeSummary.primaryFactValue,
+    note: joinSummaryFacts(...summaryFacts),
     status,
     statusTone: getModerationStatusTone(item.moderationStatus),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 3).filter(Boolean) : [],
@@ -232,18 +325,17 @@ export function getOpportunityCardPresentation(item = {}) {
 }
 
 export function getOpportunityDetailPresentation(item = {}) {
-  const typeLabel = translateOpportunityType(item.opportunityType);
-  const employmentLabel = translateEmploymentType(item.employmentType);
-  const typeSummary = getOpportunityTypeSummary(item);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
-    typeLabel,
-    employmentLabel,
+    ...presentation,
+    typeLabel: presentation.type,
+    employmentLabel: presentation.employmentLabel,
     statusLabel: translateModerationStatus(item.moderationStatus),
     statusTone: getModerationStatusTone(item.moderationStatus),
-    summaryAccent: typeSummary.accent,
-    summaryNote: typeSummary.note,
-    metaLine: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" • "),
+    summaryAccent: presentation.primaryFactValue,
+    summaryNote: presentation.note,
+    metaLine: [item.companyName, item.locationCity, presentation.employmentLabel].filter(Boolean).join(" • "),
     publicHref: item?.id ? buildOpportunityDetailRoute(item.id) : "",
     previewHref: item?.id ? withSearch(buildOpportunityDetailRoute(item.id), { preview: "public" }) : "",
   };
@@ -253,14 +345,54 @@ export function getOpportunityMiniCardPresentation(item = {}) {
   const presentation = getOpportunityCardPresentation(item);
 
   return {
+    typeKey: presentation.typeKey,
+    typeTone: presentation.typeTone,
     type: presentation.type,
     title: presentation.title,
     meta: presentation.meta,
+    primaryFactLabel: presentation.primaryFactLabel,
+    primaryFactValue: presentation.primaryFactValue,
+    secondaryFact: presentation.secondaryFact,
+    tertiaryFact: presentation.tertiaryFact,
+    compactFact: presentation.compactFact,
+    summaryFacts: presentation.summaryFacts,
     accent: presentation.accent,
     note: presentation.note,
     status: presentation.status,
     statusTone: presentation.statusTone,
     chips: presentation.chips,
+  };
+}
+
+export function normalizeOpportunityCardItem(item = {}) {
+  const source = item && typeof item === "object" ? item : {};
+  const derivedPresentation = source.opportunityType ? getOpportunityCardPresentation(source) : {};
+  const merged = {
+    ...derivedPresentation,
+    ...source,
+  };
+  const chips = Array.isArray(merged.chips) ? merged.chips.filter(Boolean) : [];
+  const primaryFactLabel = String(merged.primaryFactLabel ?? merged.valuePrefix ?? merged.accentPrefix ?? "").trim();
+  const primaryFactValue = String(merged.primaryFactValue ?? merged.accent ?? "").trim();
+  const secondaryFact = String(merged.secondaryFact ?? merged.note ?? "").trim();
+  const tertiaryFact = String(merged.tertiaryFact ?? "").trim();
+  const summaryFacts = [secondaryFact, tertiaryFact].filter(Boolean);
+
+  return {
+    typeKey: merged.typeKey ?? normalizeOpportunityType(merged.opportunityType),
+    typeTone: merged.typeTone ?? getOpportunityTypeTone(merged.typeKey ?? merged.opportunityType),
+    type: String(merged.type ?? merged.eyebrow ?? "").trim(),
+    status: String(merged.status ?? "").trim(),
+    statusTone: merged.statusTone ?? merged.tone ?? "neutral",
+    title: String(merged.title ?? "").trim(),
+    meta: String(merged.meta ?? merged.company ?? "").trim(),
+    primaryFactLabel,
+    primaryFactValue,
+    secondaryFact,
+    tertiaryFact,
+    compactFact: String(merged.compactFact ?? merged.valueSuffix ?? secondaryFact ?? "").trim(),
+    summaryFacts,
+    chips,
   };
 }
 

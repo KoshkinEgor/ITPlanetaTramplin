@@ -349,6 +349,28 @@ describe("HomeOpportunityMap", () => {
     expect(mapInstances).toHaveLength(1);
   });
 
+  it("uses semantic type tones for markers when they are already provided", async () => {
+    render(
+      <HomeOpportunityMap
+        items={[
+          {
+            id: "semantic-tone",
+            title: "Semantic Tone Point",
+            coordinates: [37.61, 55.75],
+            detailHref: "/semantic-tone",
+            typeTone: "teal",
+          },
+        ]}
+        selectedCity="РњРѕСЃРєРІР°"
+        activeId={null}
+        onSelectItem={vi.fn()}
+      />
+    );
+
+    const marker = await screen.findByLabelText("Semantic Tone Point");
+    expect(marker.className).toContain("ui-map-marker--teal");
+  });
+
   it("centers the initial map on the selected city coordinates instead of averaging point namesakes", async () => {
     render(
       <HomeOpportunityMap

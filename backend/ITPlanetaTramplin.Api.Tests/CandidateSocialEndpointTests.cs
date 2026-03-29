@@ -244,6 +244,77 @@ public class CandidateSocialEndpointTests
         Assert.Contains("Test Candidate User", storedProject.ParticipantsJson);
     }
 
+    [Fact]
+    public async Task RecommendationEndpoints_CreateListRecommendationsAndBlockDuplicates()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var recommender = await RegisterAndConfirmCandidateAsync(client, "recommend-recommender@tramplin.local");
+        var candidate = await RegisterAndConfirmCandidateAsync(client, "recommend-candidate@tramplin.local");
+
+        int candidateUserId;
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            candidateUserId = db.Users.Single(item => item.Email == candidate.Email).Id;
+            var employerId = db.EmployerProfiles.Single(item => item.Inn == "7707083893").Id;
+
+            var opportunity = new Opportunity
+            {
+                EmployerId = employerId,
+                Title = "Recommended opportunity",
+                Description = "Вакансия для проверки рекомендаций.",
+                OpportunityType = OpportunityTypes.Vacancy,
+                EmploymentType = "remote",
+                ModerationStatus = OpportunityModerationStatuses.Approved,
+                PublishAt = DateOnly.FromDateTime(DateTime.UtcNow),
+                ContactsJson = """[{"type":"email","value":"jobs@tramplin.local"}]""",
+            };
+
+            db.Opportunities.Add(opportunity);
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
+        }
+
+        await LoginCandidateAsync(client, recommender.Email);
+
+        var addContactResponse = await client.PostAsJsonAsync("/api/candidate/me/contacts", new
+        {
+            userId = candidateUserId,
+        });
+        Assert.Equal(HttpStatusCode.OK, addContactResponse.StatusCode);
+
+        var createRecommendationResponse = await client.PostAsJsonAsync("/api/candidate/me/recommendations", new
+        {
+            candidateId = candidateUserId,
+            opportunityId,
+            message = "Сильный профиль под эту вакансию.",
+        });
+        Assert.Equal(HttpStatusCode.OK, createRecommendationResponse.StatusCode);
+
+        var duplicateRecommendationResponse = await client.PostAsJsonAsync("/api/candidate/me/recommendations", new
+        {
+            candidateId = candidateUserId,
+            opportunityId,
+            message = "Повторная рекомендация не должна пройти.",
+        });
+        Assert.Equal(HttpStatusCode.Conflict, duplicateRecommendationResponse.StatusCode);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginCandidateAsync(client, candidate.Email);
+
+        var recommendationsResponse = await client.GetAsync("/api/candidate/me/recommendations");
+        Assert.Equal(HttpStatusCode.OK, recommendationsResponse.StatusCode);
+
+        var recommendationsPayload = await recommendationsResponse.Content.ReadFromJsonAsync<JsonArray>();
+        Assert.NotNull(recommendationsPayload);
+        Assert.Contains(recommendationsPayload!, item =>
+            item?["opportunityId"]?.GetValue<int>() == opportunityId
+            && item?["message"]?.GetValue<string>() == "Сильный профиль под эту вакансию.");
+    }
+
     private static async Task LoginCandidateAsync(HttpClient client, string email)
     {
         var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new

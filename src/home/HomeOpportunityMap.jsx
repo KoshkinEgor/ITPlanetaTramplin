@@ -132,6 +132,26 @@ function loadYandexMaps() {
 }
 
 function getMarkerTone(item) {
+  const semanticTone = String(item?.typeTone ?? "").trim().toLowerCase();
+
+  if (["blue", "green", "orange", "teal"].includes(semanticTone)) {
+    return semanticTone;
+  }
+
+  const typeKey = String(item?.typeKey ?? item?.opportunityType ?? "").trim().toLowerCase();
+
+  if (typeKey === "internship") {
+    return "green";
+  }
+
+  if (typeKey === "event") {
+    return "orange";
+  }
+
+  if (typeKey === "mentoring") {
+    return "teal";
+  }
+
   const eyebrow = String(item.eyebrow ?? "").toLowerCase();
 
   if (eyebrow.includes("стаж")) {

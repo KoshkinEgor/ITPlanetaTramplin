@@ -19,27 +19,10 @@ import {
 import { translateVerificationStatus } from "../../company-dashboard/utils";
 import { CompanyProfileSummary } from "../../features/company";
 import { ApiError } from "../../lib/http";
-import { translateOpportunityType } from "../../shared/lib/opportunityTypes";
+import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import { Alert, Button, Card, EmptyState, Loader } from "../../shared/ui";
 import { PortalHeader } from "../../widgets/layout";
 import "./CompanyPublicPage.css";
-
-function translateEmploymentType(value) {
-  switch (String(value ?? "").trim().toLowerCase()) {
-    case "remote":
-      return "Удаленно";
-    case "hybrid":
-      return "Гибрид";
-    case "office":
-    case "onsite":
-    case "on-site":
-      return "Офис";
-    case "online":
-      return "Онлайн";
-    default:
-      return String(value ?? "").trim();
-  }
-}
 
 function shortenText(value, maxLength = 96) {
   const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
@@ -55,63 +38,16 @@ function shortenText(value, maxLength = 96) {
   return `${normalized.slice(0, maxLength).trimEnd()}…`;
 }
 
-function formatSalary(value) {
-  if (value === null || value === undefined || value === "") {
-    return "";
-  }
-
-  const numericValue = Number(value);
-
-  if (Number.isFinite(numericValue)) {
-    return new Intl.NumberFormat("ru-RU").format(numericValue);
-  }
-
-  return String(value).trim();
-}
-
-function createOpportunityAccent(item, employmentLabel) {
-  const salaryFrom = formatSalary(item?.salaryFrom);
-  const salaryTo = formatSalary(item?.salaryTo);
-
-  if (salaryFrom && salaryTo) {
-    return `${salaryFrom} – ${salaryTo} ₽`;
-  }
-
-  if (salaryFrom) {
-    return `от ${salaryFrom} ₽`;
-  }
-
-  if (salaryTo) {
-    return `до ${salaryTo} ₽`;
-  }
-
-  if (String(item?.duration ?? "").trim()) {
-    return `Длительность: ${String(item.duration).trim()}`;
-  }
-
-  if (Number.isFinite(Number(item?.registrationCount))) {
-    return `${Number(item.registrationCount)} регистраций`;
-  }
-
-  return String(item?.locationAddress ?? "").trim() || employmentLabel;
-}
-
-function createOpportunityMeta(item, employmentLabel) {
-  return [item?.companyName, item?.locationCity, employmentLabel].filter(Boolean).join(" • ");
-}
-
 function createOpportunityRailItem(item) {
-  const employmentLabel = translateEmploymentType(item?.employmentType);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
     id: item.id,
-    type: translateOpportunityType(item?.opportunityType),
+    ...presentation,
     status: "Активно",
     statusTone: "success",
     title: item?.title ?? "",
-    meta: createOpportunityMeta(item, employmentLabel),
-    accent: createOpportunityAccent(item, employmentLabel),
-    note: shortenText(item?.description),
+    note: presentation.note || shortenText(item?.description),
     chips: Array.isArray(item?.tags) ? item.tags.slice(0, 4) : [],
     detailHref: buildOpportunityDetailRoute(item.id),
   };

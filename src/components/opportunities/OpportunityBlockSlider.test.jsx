@@ -5,38 +5,53 @@ import { OpportunityBlockSlider } from "./OpportunityBlockSlider";
 const items = [
   {
     id: "security",
+    typeKey: "vacancy",
+    typeTone: "blue",
     type: "Vacancy",
     status: "Open",
     statusTone: "success",
     title: "Junior Security Analyst",
-    meta: "Acme Security В· Moscow + remote",
-    accent: "from 90 000 в‚Ѕ",
+    meta: "Acme Security • Moscow + remote",
+    primaryFactLabel: "Salary",
+    primaryFactValue: "from 90 000 ₽",
+    secondaryFact: "Remote",
+    tertiaryFact: "Moscow",
     chips: ["Junior", "SOC", "SIEM"],
   },
   {
     id: "design",
+    typeKey: "internship",
+    typeTone: "green",
     type: "Internship",
     status: "Soon",
     statusTone: "warning",
     title: "Mobile UI/UX",
-    meta: "White Tiger Soft В· remote",
-    accent: "starts in April",
+    meta: "White Tiger Soft • remote",
+    primaryFactLabel: "Payment",
+    primaryFactValue: "Paid",
+    secondaryFact: "Duration: 8 weeks",
+    tertiaryFact: "Hybrid",
     chips: ["Design", "Paid"],
   },
   {
     id: "event",
+    typeKey: "event",
+    typeTone: "orange",
     type: "Event",
     status: "Open",
     statusTone: "success",
     title: "IT Planet",
-    meta: "IT Planet В· online",
-    accent: "155 registrations",
+    meta: "IT Planet • online",
+    primaryFactLabel: "Date",
+    primaryFactValue: "18 April",
+    secondaryFact: "Registration until 10 April",
+    tertiaryFact: "Online",
     chips: ["Students", "Community"],
   },
 ];
 
 describe("OpportunityBlockSlider", () => {
-  it("renders a uniform rail of medium block cards", () => {
+  it("renders a uniform rail of medium block cards with typed facts", () => {
     render(
       <OpportunityBlockSlider
         ariaLabel="Opportunity slider"
@@ -53,6 +68,9 @@ describe("OpportunityBlockSlider", () => {
     expect(rail.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(3);
     expect(rail.querySelectorAll(".ui-opportunity-card--md")).toHaveLength(3);
     expect(firstAction).toHaveClass("ui-width-full");
+    expect(within(rail).getByText("Salary")).toBeInTheDocument();
+    expect(within(rail).getByText("from 90 000 ₽")).toBeInTheDocument();
+    expect(within(rail).getByText("Remote")).toBeInTheDocument();
   });
 
   it("renders custom slide content through renderItem", () => {

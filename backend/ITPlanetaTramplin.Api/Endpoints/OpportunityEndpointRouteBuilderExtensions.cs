@@ -49,6 +49,13 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return Results.NotFound("Профиль работодателя не найден.");
         }
 
+        if (CompanyVerificationStatuses.Normalize(employer.VerificationStatus) != CompanyVerificationStatuses.Approved)
+        {
+            return AuthEndpointSupport.MessageResult(
+                "Компания должна пройти верификацию, прежде чем создавать новые возможности.",
+                StatusCodes.Status403Forbidden);
+        }
+
         var normalizedOpportunityType = NormalizeOpportunityType(request.OpportunityType);
         if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
         {

@@ -166,6 +166,100 @@ public class CandidateApplicationLifecycleTests
         Assert.Equal(HttpStatusCode.NotFound, withdrawResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CompanyAndCandidateObserveConsistentApplicationStatesAcrossReviewWithdrawInviteAndAccept()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"responses-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var firstCandidate = await RegisterAndConfirmCandidateAsync(client, $"responses-a-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, firstCandidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, firstCandidate.Email);
+        var firstApplication = await ApplyToOpportunityAsync(client, opportunityId);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+
+        var moveToReviewResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{firstApplication.Id}", new
+        {
+            status = "reviewing",
+            employerNote = "Пока держим отклик в резерве.",
+        });
+        Assert.Equal(HttpStatusCode.OK, moveToReviewResponse.StatusCode);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, firstCandidate.Email);
+
+        var firstCandidateListResponse = await client.GetAsync("/api/candidate/me/applications");
+        Assert.Equal(HttpStatusCode.OK, firstCandidateListResponse.StatusCode);
+
+        var firstCandidateApplications = await firstCandidateListResponse.Content.ReadFromJsonAsync<List<OpportunityApplicationSummaryDTO>>();
+        Assert.NotNull(firstCandidateApplications);
+        var reviewingApplication = Assert.Single(firstCandidateApplications!, item => item.Id == firstApplication.Id);
+        Assert.Equal("reviewing", reviewingApplication.Status);
+        Assert.Equal("Пока держим отклик в резерве.", reviewingApplication.EmployerNote);
+
+        var withdrawResponse = await client.PostAsync($"/api/candidate/me/applications/{firstApplication.Id}/withdraw", null);
+        Assert.Equal(HttpStatusCode.OK, withdrawResponse.StatusCode);
+
+        await client.PostAsync("/api/auth/logout", null);
+
+        var secondCandidate = await RegisterAndConfirmCandidateAsync(client, $"responses-b-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, secondCandidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, secondCandidate.Email);
+        var secondApplication = await ApplyToOpportunityAsync(client, opportunityId);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+
+        var inviteResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{secondApplication.Id}", new
+        {
+            status = "invited",
+            employerNote = "Приглашаем на интервью с командой.",
+        });
+        Assert.Equal(HttpStatusCode.OK, inviteResponse.StatusCode);
+
+        var companyApplicationsResponse = await client.GetAsync($"/api/opportunities/{opportunityId}/applications");
+        Assert.Equal(HttpStatusCode.OK, companyApplicationsResponse.StatusCode);
+
+        using (var companyApplicationsPayload = JsonDocument.Parse(await companyApplicationsResponse.Content.ReadAsStringAsync()))
+        {
+            var applications = companyApplicationsPayload.RootElement.EnumerateArray().ToArray();
+            var withdrawnApplication = Assert.Single(applications, item => item.GetProperty("id").GetInt32() == firstApplication.Id);
+            var invitedApplication = Assert.Single(applications, item => item.GetProperty("id").GetInt32() == secondApplication.Id);
+
+            Assert.Equal("withdrawn", withdrawnApplication.GetProperty("status").GetString());
+            Assert.Equal("invited", invitedApplication.GetProperty("status").GetString());
+            Assert.Equal("Приглашаем на интервью с командой.", invitedApplication.GetProperty("employerNote").GetString());
+        }
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, secondCandidate.Email);
+
+        var confirmResponse = await client.PostAsync($"/api/candidate/me/applications/{secondApplication.Id}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        var confirmedApplication = await confirmResponse.Content.ReadFromJsonAsync<OpportunityApplicationSummaryDTO>();
+        Assert.NotNull(confirmedApplication);
+        Assert.Equal("accepted", confirmedApplication!.Status);
+        Assert.Equal("Приглашаем на интервью с командой.", confirmedApplication.EmployerNote);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+
+        var companyApplicationsAfterConfirmResponse = await client.GetAsync($"/api/opportunities/{opportunityId}/applications");
+        Assert.Equal(HttpStatusCode.OK, companyApplicationsAfterConfirmResponse.StatusCode);
+
+        using var companyApplicationsAfterConfirmPayload = JsonDocument.Parse(await companyApplicationsAfterConfirmResponse.Content.ReadAsStringAsync());
+        Assert.Contains(
+            companyApplicationsAfterConfirmPayload.RootElement.EnumerateArray(),
+            item => item.GetProperty("id").GetInt32() == secondApplication.Id
+                && item.GetProperty("status").GetString() == "accepted");
+    }
+
     private static async Task<int> CreateApprovedOpportunityAsync(TestApplicationFactory factory, HttpClient client, string title)
     {
         await LoginAsCompanyAsync(client);

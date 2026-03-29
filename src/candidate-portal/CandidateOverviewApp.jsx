@@ -6,26 +6,22 @@ import { getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
+import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import { Alert, Button, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
-import { mapContactToPeerCard, translateEmploymentType, translateOpportunityType } from "./mappers";
+import { mapContactToPeerCard } from "./mappers";
 import { CandidateSectionHeader } from "./shared";
 
 function mapOpportunityCard(item) {
-  const employmentLabel = translateEmploymentType(item.employmentType);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
     id: item.id,
-    type: item.opportunityType || "Возможность",
+    ...presentation,
     status: item.moderationStatus === "approved" ? "Опубликовано" : item.moderationStatus,
     statusTone: item.moderationStatus === "approved" ? "success" : "warning",
     title: item.title,
-    company: [item.companyName, item.locationCity].filter(Boolean).join(" · "),
+    meta: [item.companyName, item.locationCity].filter(Boolean).join(" · "),
     chips: Array.isArray(item.tags) ? item.tags.slice(0, 4) : [],
-    ...{
-      type: translateOpportunityType(item.opportunityType),
-      company: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" - "),
-      accent: employmentLabel,
-    },
   };
 }
 

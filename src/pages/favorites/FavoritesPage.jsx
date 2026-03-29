@@ -8,7 +8,7 @@ import {
   setFavoriteCompany,
   subscribeToFavorites,
 } from "../../features/favorites/storage";
-import { translateOpportunityType } from "../../shared/lib/opportunityTypes";
+import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import { Alert, Button, Card, CompanyVacancyTile, DashboardPageHeader, EmptyState, Loader, SectionHeader, Tag } from "../../shared/ui";
 import { PortalHeader } from "../../widgets/layout";
 import "./favorites-page.css";
@@ -58,16 +58,15 @@ function mapModerationStatus(value) {
 
 function mapOpportunityToFavoriteCard(item) {
   const status = mapModerationStatus(item?.moderationStatus);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
     id: String(item?.id ?? ""),
-    type: translateOpportunityType(item?.opportunityType),
+    ...presentation,
     status: status.label,
     statusTone: status.tone,
     title: item?.title ?? "Без названия",
-    company: [item?.companyName, item?.locationCity].filter(Boolean).join(" · "),
-    accent: item?.locationAddress ?? "",
-    note: String(item?.description ?? "").trim(),
+    meta: [item?.companyName, item?.locationCity].filter(Boolean).join(" · "),
     chips: Array.isArray(item?.tags) ? item.tags.slice(0, 4) : [],
   };
 }

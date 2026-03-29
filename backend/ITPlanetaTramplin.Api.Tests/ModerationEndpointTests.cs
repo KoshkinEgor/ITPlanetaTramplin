@@ -292,6 +292,127 @@ public class ModerationEndpointTests
         }
     }
 
+    [Fact]
+    public async Task ModeratorSeesAndModeratesNewEventAndMentoringOpportunitiesFromCompany()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await LoginAsCompanyAsync(client);
+
+        var eventTitle = $"career-event-{Guid.NewGuid():N}";
+        var mentoringTitle = $"career-mentoring-{Guid.NewGuid():N}";
+        var eventStartAt = new DateTimeOffset(2026, 5, 20, 10, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+        var registrationDeadline = new DateTimeOffset(2026, 5, 18, 18, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+
+        var eventResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = eventTitle,
+            description = "Оффлайн день открытых дверей для начинающих инженеров.",
+            opportunityType = "event",
+            employmentType = "office",
+            locationCity = "Москва",
+            locationAddress = "ул. Тестовая, 1",
+            contactsJson = """{"email":"events@tramplin.local"}""",
+            eventStartAt,
+            registrationDeadline,
+            saveMode = "submit",
+        });
+        Assert.Equal(HttpStatusCode.Created, eventResponse.StatusCode);
+
+        var mentoringResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = mentoringTitle,
+            description = "Удалённая менторская программа для junior-разработчиков.",
+            opportunityType = "mentoring",
+            employmentType = "remote",
+            locationCity = "Москва",
+            contactsJson = """{"email":"mentors@tramplin.local"}""",
+            duration = "6 weeks",
+            meetingFrequency = "Once a week",
+            seatsCount = 12,
+            saveMode = "submit",
+        });
+        Assert.Equal(HttpStatusCode.Created, mentoringResponse.StatusCode);
+
+        int eventId;
+        int mentoringId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            eventId = await db.Opportunities.Where(item => item.Title == eventTitle).Select(item => item.Id).SingleAsync();
+            mentoringId = await db.Opportunities.Where(item => item.Title == mentoringTitle).Select(item => item.Id).SingleAsync();
+        }
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsModeratorAsync(client, "administrator@tramplin.local", "Administrator1234");
+
+        var moderationListResponse = await client.GetAsync("/api/moderation/opportunities");
+        Assert.Equal(HttpStatusCode.OK, moderationListResponse.StatusCode);
+
+        using (var moderationListPayload = JsonDocument.Parse(await moderationListResponse.Content.ReadAsStringAsync()))
+        {
+            var eventItem = moderationListPayload.RootElement.EnumerateArray()
+                .Single(item => item.GetProperty("title").GetString() == eventTitle);
+            var mentoringItem = moderationListPayload.RootElement.EnumerateArray()
+                .Single(item => item.GetProperty("title").GetString() == mentoringTitle);
+
+            Assert.Equal("event", eventItem.GetProperty("opportunityType").GetString());
+            Assert.Equal("pending", eventItem.GetProperty("moderationStatus").GetString());
+            Assert.Equal("ул. Тестовая, 1", eventItem.GetProperty("locationAddress").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(eventItem.GetProperty("eventStartAt").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(eventItem.GetProperty("registrationDeadline").GetString()));
+
+            Assert.Equal("mentoring", mentoringItem.GetProperty("opportunityType").GetString());
+            Assert.Equal("pending", mentoringItem.GetProperty("moderationStatus").GetString());
+            Assert.Equal("Once a week", mentoringItem.GetProperty("meetingFrequency").GetString());
+            Assert.Equal(12, mentoringItem.GetProperty("seatsCount").GetInt32());
+        }
+
+        var approveEventResponse = await client.PostAsJsonAsync($"/api/moderation/opportunities/{eventId}/decision", new
+        {
+            status = "approved",
+        });
+        Assert.Equal(HttpStatusCode.OK, approveEventResponse.StatusCode);
+
+        var reviseMentoringResponse = await client.PostAsJsonAsync($"/api/moderation/opportunities/{mentoringId}/decision", new
+        {
+            status = "revision",
+            reason = "Добавьте более подробную программу встреч.",
+        });
+        Assert.Equal(HttpStatusCode.OK, reviseMentoringResponse.StatusCode);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+
+        var approvedEventDetailResponse = await client.GetAsync($"/api/opportunities/{eventId}");
+        Assert.Equal(HttpStatusCode.OK, approvedEventDetailResponse.StatusCode);
+
+        using (var approvedEventDetailPayload = JsonDocument.Parse(await approvedEventDetailResponse.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("approved", approvedEventDetailPayload.RootElement.GetProperty("moderationStatus").GetString());
+            Assert.True(approvedEventDetailPayload.RootElement.GetProperty("viewer").GetProperty("canArchive").GetBoolean());
+        }
+
+        var revisedMentoringDetailResponse = await client.GetAsync($"/api/opportunities/{mentoringId}");
+        Assert.Equal(HttpStatusCode.OK, revisedMentoringDetailResponse.StatusCode);
+
+        using (var revisedMentoringDetailPayload = JsonDocument.Parse(await revisedMentoringDetailResponse.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal("revision", revisedMentoringDetailPayload.RootElement.GetProperty("moderationStatus").GetString());
+            Assert.Equal(
+                "Добавьте более подробную программу встреч.",
+                revisedMentoringDetailPayload.RootElement.GetProperty("moderationReason").GetString());
+        }
+
+        var publicFeedResponse = await client.GetAsync("/api/opportunities");
+        Assert.Equal(HttpStatusCode.OK, publicFeedResponse.StatusCode);
+
+        using var publicFeedPayload = JsonDocument.Parse(await publicFeedResponse.Content.ReadAsStringAsync());
+        Assert.Contains(publicFeedPayload.RootElement.EnumerateArray(), item => item.GetProperty("title").GetString() == eventTitle);
+        Assert.DoesNotContain(publicFeedPayload.RootElement.EnumerateArray(), item => item.GetProperty("title").GetString() == mentoringTitle);
+    }
+
     private static async Task LoginAsModeratorAsync(HttpClient client, string login, string password)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
@@ -299,6 +420,18 @@ public class ModerationEndpointTests
             role = "moderator",
             login,
             password,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private static async Task LoginAsCompanyAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

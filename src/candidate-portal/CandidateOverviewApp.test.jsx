@@ -64,6 +64,9 @@ describe("CandidateOverviewApp", () => {
         title: "Junior Product Analyst",
         companyName: "Signal Hub",
         locationCity: "Москва",
+        employmentType: "remote",
+        salaryFrom: 100000,
+        salaryTo: 130000,
         tags: ["Product", "Research"],
       },
     ]);
@@ -92,7 +95,7 @@ describe("CandidateOverviewApp", () => {
     expect(screen.getByText("Добавлен контакт Мария Соколова")).toBeInTheDocument();
   });
 
-  it("moves the catalog action to the section header and keeps detail actions inside cards", async () => {
+  it("moves the catalog action to the section header, keeps detail actions inside cards and shows typed facts", async () => {
     getOpportunities.mockResolvedValue([
       {
         id: 101,
@@ -101,21 +104,20 @@ describe("CandidateOverviewApp", () => {
         title: "Junior Product Analyst",
         companyName: "Signal Hub",
         locationCity: "Moscow",
-        employmentType: "Hybrid",
+        employmentType: "remote",
+        salaryFrom: 100000,
+        salaryTo: 130000,
         tags: ["Product", "Research"],
       },
     ]);
 
     renderApp({ skills: ["SQL", "UX", "Research"] });
 
-    expect(
-      await screen.findByRole("link", {
-        name: "\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043a\u0430\u0442\u0430\u043b\u043e\u0433",
-      })
-    ).toHaveAttribute("href", "/opportunities");
-    expect(screen.getByRole("link", { name: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435" })).toHaveAttribute("href", "/opportunities/101");
-    expect(
-      screen.queryByRole("link", { name: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043a\u0430\u0442\u0430\u043b\u043e\u0433" })
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Перейти в каталог" })).toHaveAttribute("href", "/opportunities");
+    expect(screen.getByRole("link", { name: "Подробнее" })).toHaveAttribute("href", "/opportunities/101");
+    expect(screen.queryByRole("link", { name: "Открыть каталог" })).not.toBeInTheDocument();
+    expect(screen.getByText("Зарплата")).toBeInTheDocument();
+    expect(screen.getByText(/100/)).toBeInTheDocument();
+    expect(screen.getByText("Формат: Удаленно")).toBeInTheDocument();
   });
 });

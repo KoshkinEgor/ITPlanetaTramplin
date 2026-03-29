@@ -16,7 +16,7 @@ import {
   Textarea,
 } from "../shared/ui";
 import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
-import { createOpportunityDraft, getOpportunityDetailPresentation, getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
+import { createOpportunityDraft, getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import { ModeratorFilterPill, ModeratorSearchBar, ModeratorStatusBadge } from "./shared";
 import {
   createOpportunityContactDraft,
@@ -202,6 +202,10 @@ export function ModeratorOpportunitiesApp() {
   }, [query, state.items, statusFilter]);
 
   const activeItem = detailState.detail ?? filteredItems.find((item) => item.id === selectedId) ?? state.items.find((item) => item.id === selectedId) ?? null;
+  const activePresentation = useMemo(
+    () => (activeItem ? getOpportunityCardPresentation(activeItem) : null),
+    [activeItem]
+  );
 
   useEffect(() => {
     if (selectedId === null) {
@@ -501,19 +505,19 @@ export function ModeratorOpportunitiesApp() {
               </div>
             </dl>
             <section className="moderator-detail-group">
-              <h4 className="ui-type-h3">������� ����</h4>
+              <h4 className="ui-type-h3">Ключевые факты</h4>
               <div className="moderator-detail-facts">
                 <div>
-                  <dt>������:</dt>
-                  <dd>{getOpportunityCardPresentation(activeItem).accent || "�� ������"}</dd>
+                  <dt>{activePresentation?.primaryFactLabel || "Главный факт"}:</dt>
+                  <dd>{activePresentation?.primaryFactValue || "Не указано"}</dd>
                 </div>
                 <div>
-                  <dt>����������:</dt>
-                  <dd>{getOpportunityCardPresentation(activeItem).note || "�� �������"}</dd>
+                  <dt>Второй факт:</dt>
+                  <dd>{activePresentation?.secondaryFact || "Не указан"}</dd>
                 </div>
                 <div>
-                  <dt>��������� ��������:</dt>
-                  <dd>{getOpportunityDetailPresentation(activeItem).summaryAccent || "�� �������"}</dd>
+                  <dt>Третий факт:</dt>
+                  <dd>{activePresentation?.tertiaryFact || "Не указан"}</dd>
                 </div>
               </div>
             </section>

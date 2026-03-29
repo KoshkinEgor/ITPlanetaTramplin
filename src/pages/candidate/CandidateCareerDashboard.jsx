@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { buildCandidatePublicProfileRoute, buildOpportunityDetailRoute, routes } from "../../app/routes";
-import { getCandidateDisplayName, getCandidateSkills, translateEmploymentType } from "../../candidate-portal/mappers";
+import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-portal/mappers";
 import { OpportunityBlockSlider } from "../../components/opportunities";
+import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import {
   Alert,
   Button,
@@ -203,39 +204,22 @@ function resolveTrackKey(profile) {
   return "default";
 }
 
-function mapOpportunityTypeLabel(value) {
-  switch (String(value ?? "").toLowerCase()) {
-    case "internship":
-      return "Стажировка";
-    case "vacancy":
-      return "Вакансия";
-    case "event":
-      return "Мероприятие";
-    default:
-      return value || "Возможность";
-  }
-}
-
 function mapOpportunityCard(item) {
   if (!isRecord(item)) {
     return null;
   }
 
   const opportunityId = item.id ?? item.opportunityId ?? null;
-  const employmentLabel = translateEmploymentType(item.employmentType);
+  const presentation = getOpportunityCardPresentation(item);
 
   return {
     id: opportunityId ?? `${item.title ?? "career"}-${item.companyName ?? "item"}`,
-    type: mapOpportunityTypeLabel(item.opportunityType ?? item.type ?? "internship"),
+    ...presentation,
     status: item.moderationStatus === "approved" ? "Активно" : item.statusLabel ?? "Активно",
     statusTone: "success",
     title: item.title ?? item.opportunityTitle ?? "Карьерная возможность",
-    company: item.companyName || "Компания",
+    meta: [item.companyName, item.locationCity].filter(Boolean).join(" • ") || presentation.meta || item.companyName || "Компания",
     chips: safeArray(item.tags).filter(Boolean).slice(0, 2),
-    ...{
-      company: [item.companyName, item.locationCity].filter(Boolean).join(" - ") || item.companyName || "Company",
-      accent: item.duration ?? employmentLabel ?? (item.locationCity ? `Location: ${item.locationCity}` : item.employmentType || ""),
-    },
     href: opportunityId ? buildOpportunityDetailRoute(opportunityId) : routes.opportunities.catalog,
   };
 }

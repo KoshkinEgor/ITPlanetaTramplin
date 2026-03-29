@@ -226,6 +226,73 @@ describe("HomeApp", () => {
     expect(await screen.findByText("Менторская программа")).toBeInTheDocument();
   });
 
+  it("renders typed facts and tone variants across the home cards", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "typed-vacancy",
+        employerId: 1,
+        opportunityType: "vacancy",
+        title: "Typed Security Vacancy",
+        companyName: "Signal Hub",
+        locationCity: "Москва",
+        employmentType: "remote",
+        salaryFrom: 90000,
+        salaryTo: 120000,
+        description: "Typed vacancy for the main discovery feed.",
+        tags: ["React"],
+        longitude: 37.61,
+        latitude: 55.75,
+      },
+      {
+        id: "typed-event",
+        employerId: 2,
+        opportunityType: "event",
+        title: "Typed Product Meetup",
+        companyName: "Event Lab",
+        locationCity: "Казань",
+        employmentType: "online",
+        eventStartAt: "2026-04-01T10:00:00.000Z",
+        registrationDeadline: "2026-03-31T18:00:00.000Z",
+        description: "Typed event for the recommended section.",
+        tags: ["Career"],
+      },
+    ]);
+    getCandidateRecommendations.mockResolvedValue([
+      {
+        opportunityId: "typed-mentoring",
+        employerId: 3,
+        opportunityType: "mentoring",
+        title: "Typed Mentoring Track",
+        companyName: "Mentor Hub",
+        locationCity: "Москва",
+        duration: "6 недель",
+        meetingFrequency: "1 раз в неделю",
+        seatsCount: 12,
+        description: "Typed mentoring recommendation.",
+        tags: ["Mentoring"],
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    const resultsGrid = container.querySelector(".home-results-grid");
+    expect(resultsGrid).not.toBeNull();
+
+    await waitFor(() => expect(resultsGrid.querySelector('[data-opportunity-type-tone="blue"]')).not.toBeNull());
+    expect(within(resultsGrid).getByText("Зарплата")).toBeInTheDocument();
+    expect(within(resultsGrid).getByText("Удаленно")).toBeInTheDocument();
+
+    const rails = container.querySelectorAll(".home-section__rail");
+    expect(rails).toHaveLength(2);
+    expect(rails[0].querySelector('[data-opportunity-type-tone="blue"]')).not.toBeNull();
+    expect(within(rails[0]).getByText("Зарплата")).toBeInTheDocument();
+
+    await waitFor(() => expect(rails[1].querySelector('[data-opportunity-type-tone="orange"]')).not.toBeNull());
+    expect(rails[1].querySelector('[data-opportunity-type-tone="teal"]')).not.toBeNull();
+    expect(within(rails[1]).getByText(/Регистрация до/i)).toBeInTheDocument();
+    expect(within(rails[1]).getByText(/Встречи:/i)).toBeInTheDocument();
+  });
+
   it("keeps a duplicate city selection by coordinates instead of matching only by name", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,

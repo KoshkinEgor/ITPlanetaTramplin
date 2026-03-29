@@ -16,7 +16,7 @@ describe("Career UI assemblies", () => {
       <CareerStatsPanel
         title="Твоя карьера"
         metaTitle="Анна Иванова"
-        metaDescription="UX/UI дизайнер · Чебоксары"
+        metaDescription="UX/UI дизайнер • Чебоксары"
         stats={[
           { value: "6", label: "Отклики" },
           { value: "2", label: "Рассмотрение" },
@@ -52,7 +52,7 @@ describe("Career UI assemblies", () => {
     render(
       <CareerSalaryPanel
         title="Уровень зарплат"
-        city="Чебоксарах"
+        city="Чебоксары"
         items={[
           { level: "Junior", range: "44-56 тыс. ₽", progress: 0.32 },
           { level: "Middle", range: "52-59 тыс. ₽", progress: 0.5 },
@@ -61,15 +61,15 @@ describe("Career UI assemblies", () => {
       />
     );
 
-    expect(screen.getByText("Уровень зарплат в Чебоксарах")).toBeInTheDocument();
+    expect(screen.getByText("Уровень зарплат в Чебоксары")).toBeInTheDocument();
     expect(screen.getByText("Senior").closest(".ui-career-salary-panel__item")).toHaveClass("is-highlighted");
   });
 
-  it("renders the course and opportunity cards with actions and chips", () => {
+  it("renders the course and opportunity cards with typed facts, actions and chips", () => {
     render(
       <>
         <CareerCourseCard
-          meta="Продвинутый · 3 мес + онлайн"
+          meta="Продвинутый • 3 мес + онлайн"
           title="Нейросети для дизайна"
           provider="Яндекс Практикум"
           price="40 000 ₽"
@@ -81,12 +81,17 @@ describe("Career UI assemblies", () => {
         />
         <CareerOpportunityCard
           featured
+          typeKey="internship"
+          typeTone="green"
           type="Стажировка"
           status="Активно"
           statusTone="success"
           title="Веб-дизайнер"
           company="White Tiger Soft"
-          accent="Длительность: 8 недель"
+          primaryFactLabel="Оплата"
+          primaryFactValue="Без оплаты"
+          secondaryFact="Длительность: 8 недель"
+          tertiaryFact="Формат: Гибрид"
           chips={["Студенты", "Без опыта"]}
           href="#opportunity"
         />
@@ -97,7 +102,14 @@ describe("Career UI assemblies", () => {
     expect(screen.getByRole("link", { name: "Перейти к курсу" })).toHaveAttribute("target", "_blank");
     expect(screen.getByRole("link", { name: "Перейти к курсу" })).toHaveAttribute("rel", "noreferrer");
     expect(screen.getByText("40 000 ₽")).toBeInTheDocument();
-    expect(screen.getByText("Веб-дизайнер").closest(".ui-career-opportunity-card")).toHaveClass("ui-career-opportunity-card--featured");
+
+    const opportunityCard = screen.getByText("Веб-дизайнер").closest(".ui-career-opportunity-card");
+    expect(opportunityCard).toHaveClass("ui-career-opportunity-card--featured");
+    expect(opportunityCard).toHaveAttribute("data-opportunity-type-tone", "green");
+    expect(screen.getByText("Оплата")).toBeInTheDocument();
+    expect(screen.getByText("Без оплаты")).toBeInTheDocument();
+    expect(screen.getByText("Длительность: 8 недель")).toBeInTheDocument();
+    expect(screen.getByText("Формат: Гибрид")).toBeInTheDocument();
     expect(screen.getByText("Студенты")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Сохранить возможность" })).toBeInTheDocument();
   });

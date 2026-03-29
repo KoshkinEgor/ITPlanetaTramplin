@@ -135,8 +135,339 @@ function DetailLayout({
   const s = socials(item.companySocials);
   const publicCompanyHref = item?.employerId ? buildCompanyPublicRoute(item.employerId) : "";
   const { opportunityId: favoriteOpportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(item?.id);
+  const summaryFacts = vm.summaryFacts.length ? vm.summaryFacts : [vm.compactFact].filter(Boolean);
 
-  return <div className={cn("opportunity-card-page__grid", embedded && "opportunity-card-page__grid--embedded")}><div className="opportunity-card-page__main"><Card className={cn("opportunity-focus-card", animated && "opportunity-card-fade-up")}><div className="opportunity-focus-card__eyebrow"><Tag>{vm.typeLabel}</Tag>{!hidePublicActions ? <div className="opportunity-focus-card__toolbar"><IconButton type="button" label={isFavorite ? "Убрать возможность из избранного" : "Сохранить возможность"} size="xl" className="opportunity-focus-card__toolbar-button ui-opportunity-mini-card__favorite" aria-pressed={isFavorite} active={isFavorite} data-opportunity-id={favoriteOpportunityId ?? undefined} onClick={toggleFavorite}><HeartIcon /></IconButton><div ref={menuRef} className={cn("opportunity-focus-card__menu", menuOpen && "is-open")}><IconButton type="button" label="Ещё действия" size="xl" className="opportunity-focus-card__toolbar-button" aria-haspopup="menu" aria-expanded={menuOpen} onClick={onMenuToggle}><MoreIcon /></IconButton>{menuOpen ? <div className="opportunity-focus-card__menu-popover" role="menu" aria-label="Действия с карточкой"><button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onComplaint}>Пожаловаться</button><button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onShare}>Поделиться</button></div> : null}</div></div> : null}</div><div className="opportunity-focus-card__copy"><h1 className="ui-type-h2">{item.title}</h1><p className="ui-type-body">{vm.metaLine}</p></div><dl className="opportunity-focus-card__facts"><div className="opportunity-focus-card__fact"><dt>Тип:</dt><dd>{vm.typeLabel}</dd></div><div className="opportunity-focus-card__fact"><dt>Формат:</dt><dd>{vm.employmentLabel || "Не указан"}</dd></div><div className="opportunity-focus-card__fact"><dt>Город:</dt><dd>{item.locationCity || "Не указан"}</dd></div><div className="opportunity-focus-card__fact"><dt>Адрес:</dt><dd>{item.locationAddress || "Не указан"}</dd></div><div className="opportunity-focus-card__fact"><dt>Опубликовано:</dt><dd>{formatOpportunityDateTime(item.publishAt) || "Не указано"}</dd></div><div className="opportunity-focus-card__fact"><dt>Срок:</dt><dd>{item.expireAt ? formatOpportunityDateTime(item.expireAt) : "Не указан"}</dd></div></dl>{vm.summaryAccent ? <div className="opportunity-focus-card__details"><strong className="ui-type-h3">{vm.summaryAccent}</strong>{vm.summaryNote ? <p className="ui-type-body">{vm.summaryNote}</p> : null}</div> : null}{uniq(item.tags).length ? <div className="opportunity-focus-card__chips">{uniq(item.tags).map((tag) => <Tag key={tag} tone="accent">{tag}</Tag>)}</div> : null}{!hidePublicActions ? <div className="opportunity-focus-card__footer"><div className="opportunity-focus-card__watchers">{item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}</div><div className="opportunity-focus-card__actions"><Button type="button" className="opportunity-focus-card__apply" onClick={onApply} disabled={applyState.status === "saving" || applyState.status === "success"}>{applyButtonLabel}</Button></div></div> : null}</Card>{!hidePublicActions && applyState.status === "error" ? <Alert tone="error" title="Не удалось отправить заявку" showIcon>{applyState.error}</Alert> : null}{!hidePublicActions && applyState.status === "success" ? <Alert tone="success" title={applyState.successTitle} showIcon>{applyState.successMessage}</Alert> : null}{ownerPanel}<Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}><div className="opportunity-media-panel__header"><h2 className="ui-type-h4">Медиа</h2><p className="ui-type-caption">Материалы, которые компания приложила к карточке возможности.</p></div>{m.length ? <div className="opportunity-story-card__intro">{m.map((entry, index) => entry.url ? <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">{entry.title}</AppLink> : <p key={`${entry.title}-${index}`} className="ui-type-body">{entry.title}</p>)}</div> : <p className="ui-type-body">Компания пока не добавила медиа-материалы к этой карточке.</p>}</Card><Card className={cn("opportunity-story-card", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-2")}><div className="opportunity-story-card__intro">{intro.map((paragraph, index) => <p key={`${paragraph}-${index}`} className="ui-type-body">{paragraph}</p>)}</div><section className="opportunity-story-section"><div className="opportunity-story-section__header"><h2 className="ui-type-h3">О публикации</h2></div><ul className="opportunity-story-list"><li>{formatOpportunityDateTime(item.publishAt) || "Дата не указана"}</li><li>{locationLine(item) || "Локация не указана."}</li><li>{item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}</li></ul></section>{c.length ? <section className="opportunity-story-section"><div className="opportunity-story-section__header"><h2 className="ui-type-h3">Контакты</h2></div><ul className="opportunity-story-list">{c.map((entry) => <li key={`${entry.type}-${entry.value}`}>{entry.type === "email" ? <AppLink href={`mailto:${entry.value}`}>{entry.value}</AppLink> : entry.type === "phone" ? <AppLink href={`tel:${entry.value.replace(/\s+/g, "")}`}>{entry.value}</AppLink> : <AppLink href={entry.value}>{entry.value}</AppLink>}</li>)}</ul></section> : null}{uniq(item.tags).length ? <section className="opportunity-story-section"><div className="opportunity-story-section__header"><h2 className="ui-type-h2">Ключевые навыки</h2></div><div className="opportunity-skill-cloud">{uniq(item.tags).map((tag) => <Tag key={tag} tone="accent">{tag}</Tag>)}</div></section> : null}{hidePublicActions ? null : <><p className="ui-type-caption">{formatOpportunityDateTime(item.publishAt)}</p><div className="opportunity-story-card__bottom-actions"><Button type="button" className="opportunity-story-card__bottom-primary" onClick={onApply} disabled={applyState.status === "saving" || applyState.status === "success"}>{applyButtonLabel}</Button><Button type="button" variant="secondary" className="opportunity-story-card__bottom-secondary" onClick={onComplaint}>{item.opportunityType === "event" ? "Пожаловаться на событие" : "Пожаловаться на возможность"}</Button></div></>}</Card></div><aside className="opportunity-card-page__side"><Card className={cn("company-spotlight", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}><div className="company-spotlight__company"><Avatar size="lg" initials={initials(item.companyName)} className="company-spotlight__avatar company-spotlight__avatar--brand" /><div className="company-spotlight__copy">{publicCompanyHref ? <AppLink href={publicCompanyHref} className="opportunity-card-page__more-link"><h2 className="ui-type-h4">{item.companyName}</h2></AppLink> : <h2 className="ui-type-h4">{item.companyName}</h2>}<p className="ui-type-body">{item.companyDescription || "Описание компании пока не заполнено."}</p></div></div>{item.companyLegalAddress ? <p className="ui-type-body">{item.companyLegalAddress}</p> : null}{s.length ? <div className="opportunity-story-card__intro">{s.map((entry) => <AppLink key={entry.id} href={entry.url} className="opportunity-card-page__more-link">{entry.label}</AppLink>)}</div> : null}<div className="company-spotlight__footer">{publicCompanyHref ? <Button href={publicCompanyHref} variant="secondary" className="company-spotlight__recommend">Открыть профиль компании</Button> : null}<IconButton href={c[0]?.value ? `mailto:${c[0].value}` : "#contacts"} label="Написать компании" variant="outline" size="xl" className="company-spotlight__message"><span aria-hidden="true">✉</span></IconButton></div></Card><div className="opportunity-card-page__matches"><p className="ui-type-caption opportunity-card-page__matches-label">Вам могут подойти</p>{rel.length ? rel.map((relatedItem, index) => <OpportunityMiniCard key={relatedItem.id} variant="compact" item={{ id: relatedItem.id, ...getOpportunityMiniCardPresentation(relatedItem), company: relatedItem.companyName, note: relatedItem.locationAddress || "", chips: uniq(relatedItem.tags).slice(0, 3) }} className={cn("related-opportunity-entry", animated && `opportunity-card-fade-up opportunity-card-fade-up--delay-${index + 2}`)} detailAction={{ href: buildDetailHref(relatedItem), label: "Подробнее", variant: "secondary" }} />) : <Card><EmptyState title="Пока нет похожих публикаций" description="Другие возможности появятся здесь автоматически, когда каталог станет шире." tone="neutral" compact /></Card>}<AppLink href={catalogHref} className="opportunity-card-page__more-link">Еще возможности в каталоге</AppLink></div></aside></div>;
+  return (
+    <div className={cn("opportunity-card-page__grid", embedded && "opportunity-card-page__grid--embedded")}>
+      <div className="opportunity-card-page__main">
+        <Card
+          className={cn("opportunity-focus-card", animated && "opportunity-card-fade-up")}
+          data-opportunity-type-tone={vm.typeTone ?? undefined}
+          data-opportunity-type-key={vm.typeKey ?? undefined}
+        >
+          <div className="opportunity-focus-card__eyebrow">
+            <Tag variant="surface" className="opportunity-focus-card__type">
+              {vm.typeLabel}
+            </Tag>
+
+            {!hidePublicActions ? (
+              <div className="opportunity-focus-card__toolbar">
+                <IconButton
+                  type="button"
+                  label={isFavorite ? "Убрать возможность из избранного" : "Сохранить возможность"}
+                  size="xl"
+                  className="opportunity-focus-card__toolbar-button ui-opportunity-mini-card__favorite"
+                  aria-pressed={isFavorite}
+                  active={isFavorite}
+                  data-opportunity-id={favoriteOpportunityId ?? undefined}
+                  onClick={toggleFavorite}
+                >
+                  <HeartIcon />
+                </IconButton>
+
+                <div ref={menuRef} className={cn("opportunity-focus-card__menu", menuOpen && "is-open")}>
+                  <IconButton
+                    type="button"
+                    label="Ещё действия"
+                    size="xl"
+                    className="opportunity-focus-card__toolbar-button"
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={onMenuToggle}
+                  >
+                    <MoreIcon />
+                  </IconButton>
+
+                  {menuOpen ? (
+                    <div className="opportunity-focus-card__menu-popover" role="menu" aria-label="Действия с карточкой">
+                      <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onComplaint}>
+                        Пожаловаться
+                      </button>
+                      <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onShare}>
+                        Поделиться
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="opportunity-focus-card__copy">
+            <h1 className="ui-type-h2">{item.title}</h1>
+            <p className="ui-type-body">{vm.metaLine}</p>
+          </div>
+
+          <dl className="opportunity-focus-card__facts">
+            <div className="opportunity-focus-card__fact">
+              <dt>Тип:</dt>
+              <dd>{vm.typeLabel}</dd>
+            </div>
+            <div className="opportunity-focus-card__fact">
+              <dt>Формат:</dt>
+              <dd>{vm.employmentLabel || "Не указан"}</dd>
+            </div>
+            <div className="opportunity-focus-card__fact">
+              <dt>Город:</dt>
+              <dd>{item.locationCity || "Не указан"}</dd>
+            </div>
+            <div className="opportunity-focus-card__fact">
+              <dt>Адрес:</dt>
+              <dd>{item.locationAddress || "Не указан"}</dd>
+            </div>
+            <div className="opportunity-focus-card__fact">
+              <dt>Опубликовано:</dt>
+              <dd>{formatOpportunityDateTime(item.publishAt) || "Не указано"}</dd>
+            </div>
+            <div className="opportunity-focus-card__fact">
+              <dt>Срок:</dt>
+              <dd>{item.expireAt ? formatOpportunityDateTime(item.expireAt) : "Не указан"}</dd>
+            </div>
+          </dl>
+
+          {vm.primaryFactValue ? (
+            <div className="opportunity-focus-card__summary">
+              {vm.primaryFactLabel ? (
+                <span className="opportunity-focus-card__summary-label">{vm.primaryFactLabel}</span>
+              ) : null}
+              <strong className="opportunity-focus-card__summary-value ui-type-h3">{vm.primaryFactValue}</strong>
+              {summaryFacts.length ? (
+                <div className="opportunity-focus-card__summary-facts">
+                  {summaryFacts.map((fact, index) => (
+                    <span key={`${fact}-${index}`} className="opportunity-focus-card__summary-fact">
+                      {fact}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {uniq(item.tags).length ? (
+            <div className="opportunity-focus-card__chips">
+              {uniq(item.tags).map((tag) => (
+                <Tag key={tag} tone="accent">
+                  {tag}
+                </Tag>
+              ))}
+            </div>
+          ) : null}
+
+          {!hidePublicActions ? (
+            <div className="opportunity-focus-card__footer">
+              <div className="opportunity-focus-card__watchers">
+                {item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}
+              </div>
+              <div className="opportunity-focus-card__actions">
+                <Button
+                  type="button"
+                  className="opportunity-focus-card__apply"
+                  onClick={onApply}
+                  disabled={applyState.status === "saving" || applyState.status === "success"}
+                >
+                  {applyButtonLabel}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </Card>
+
+        {!hidePublicActions && applyState.status === "error" ? (
+          <Alert tone="error" title="Не удалось отправить заявку" showIcon>
+            {applyState.error}
+          </Alert>
+        ) : null}
+
+        {!hidePublicActions && applyState.status === "success" ? (
+          <Alert tone="success" title={applyState.successTitle} showIcon>
+            {applyState.successMessage}
+          </Alert>
+        ) : null}
+
+        {ownerPanel}
+
+        <Card className={cn("opportunity-media-panel", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
+          <div className="opportunity-media-panel__header">
+            <h2 className="ui-type-h4">Медиа</h2>
+            <p className="ui-type-caption">Материалы, которые компания приложила к карточке возможности.</p>
+          </div>
+
+          {m.length ? (
+            <div className="opportunity-story-card__intro">
+              {m.map((entry, index) =>
+                entry.url ? (
+                  <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">
+                    {entry.title}
+                  </AppLink>
+                ) : (
+                  <p key={`${entry.title}-${index}`} className="ui-type-body">
+                    {entry.title}
+                  </p>
+                )
+              )}
+            </div>
+          ) : (
+            <p className="ui-type-body">Компания пока не добавила медиа-материалы к этой карточке.</p>
+          )}
+        </Card>
+
+        <Card className={cn("opportunity-story-card", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-2")}>
+          <div className="opportunity-story-card__intro">
+            {intro.map((paragraph, index) => (
+              <p key={`${paragraph}-${index}`} className="ui-type-body">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+
+          <section className="opportunity-story-section">
+            <div className="opportunity-story-section__header">
+              <h2 className="ui-type-h3">О публикации</h2>
+            </div>
+            <ul className="opportunity-story-list">
+              <li>{formatOpportunityDateTime(item.publishAt) || "Дата не указана"}</li>
+              <li>{locationLine(item) || "Локация не указана."}</li>
+              <li>{item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}</li>
+            </ul>
+          </section>
+
+          {c.length ? (
+            <section className="opportunity-story-section">
+              <div className="opportunity-story-section__header">
+                <h2 className="ui-type-h3">Контакты</h2>
+              </div>
+              <ul className="opportunity-story-list">
+                {c.map((entry) => (
+                  <li key={`${entry.type}-${entry.value}`}>
+                    {entry.type === "email" ? (
+                      <AppLink href={`mailto:${entry.value}`}>{entry.value}</AppLink>
+                    ) : entry.type === "phone" ? (
+                      <AppLink href={`tel:${entry.value.replace(/\s+/g, "")}`}>{entry.value}</AppLink>
+                    ) : (
+                      <AppLink href={entry.value}>{entry.value}</AppLink>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {uniq(item.tags).length ? (
+            <section className="opportunity-story-section">
+              <div className="opportunity-story-section__header">
+                <h2 className="ui-type-h2">Ключевые навыки</h2>
+              </div>
+              <div className="opportunity-skill-cloud">
+                {uniq(item.tags).map((tag) => (
+                  <Tag key={tag} tone="accent">
+                    {tag}
+                  </Tag>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {hidePublicActions ? null : (
+            <>
+              <p className="ui-type-caption">{formatOpportunityDateTime(item.publishAt)}</p>
+              <div className="opportunity-story-card__bottom-actions">
+                <Button
+                  type="button"
+                  className="opportunity-story-card__bottom-primary"
+                  onClick={onApply}
+                  disabled={applyState.status === "saving" || applyState.status === "success"}
+                >
+                  {applyButtonLabel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="opportunity-story-card__bottom-secondary"
+                  onClick={onComplaint}
+                >
+                  {item.opportunityType === "event" ? "Пожаловаться на событие" : "Пожаловаться на возможность"}
+                </Button>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      <aside className="opportunity-card-page__side">
+        <Card className={cn("company-spotlight", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
+          <div className="company-spotlight__company">
+            <Avatar size="lg" initials={initials(item.companyName)} className="company-spotlight__avatar company-spotlight__avatar--brand" />
+            <div className="company-spotlight__copy">
+              {publicCompanyHref ? (
+                <AppLink href={publicCompanyHref} className="opportunity-card-page__more-link">
+                  <h2 className="ui-type-h4">{item.companyName}</h2>
+                </AppLink>
+              ) : (
+                <h2 className="ui-type-h4">{item.companyName}</h2>
+              )}
+              <p className="ui-type-body">{item.companyDescription || "Описание компании пока не заполнено."}</p>
+            </div>
+          </div>
+
+          {item.companyLegalAddress ? <p className="ui-type-body">{item.companyLegalAddress}</p> : null}
+
+          {s.length ? (
+            <div className="opportunity-story-card__intro">
+              {s.map((entry) => (
+                <AppLink key={entry.id} href={entry.url} className="opportunity-card-page__more-link">
+                  {entry.label}
+                </AppLink>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="company-spotlight__footer">
+            {publicCompanyHref ? (
+              <Button href={publicCompanyHref} variant="secondary" className="company-spotlight__recommend">
+                Открыть профиль компании
+              </Button>
+            ) : null}
+            <IconButton href={c[0]?.value ? `mailto:${c[0].value}` : "#contacts"} label="Написать компании" variant="outline" size="xl" className="company-spotlight__message">
+              <span aria-hidden="true">✉</span>
+            </IconButton>
+          </div>
+        </Card>
+
+        <div className="opportunity-card-page__matches">
+          <p className="ui-type-caption opportunity-card-page__matches-label">Вам могут подойти</p>
+
+          {rel.length ? (
+            rel.map((relatedItem, index) => (
+              <OpportunityMiniCard
+                key={relatedItem.id}
+                variant="compact"
+                item={{
+                  id: relatedItem.id,
+                  ...getOpportunityMiniCardPresentation(relatedItem),
+                  chips: uniq(relatedItem.tags).slice(0, 3),
+                }}
+                className={cn("related-opportunity-entry", animated && `opportunity-card-fade-up opportunity-card-fade-up--delay-${index + 2}`)}
+                detailAction={{ href: buildDetailHref(relatedItem), label: "Подробнее", variant: "secondary" }}
+              />
+            ))
+          ) : (
+            <Card>
+              <EmptyState
+                title="Пока нет похожих публикаций"
+                description="Другие возможности появятся здесь автоматически, когда каталог станет шире."
+                tone="neutral"
+                compact
+              />
+            </Card>
+          )}
+
+          <AppLink href={catalogHref} className="opportunity-card-page__more-link">
+            Еще возможности в каталоге
+          </AppLink>
+        </div>
+      </aside>
+    </div>
+  );
 }
 
 
