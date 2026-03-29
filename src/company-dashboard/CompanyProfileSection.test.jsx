@@ -240,4 +240,20 @@ describe("CompanyProfileSection", () => {
     expect(appendSpy).toHaveBeenCalled();
     expect(removeSpy).toHaveBeenCalled();
   });
+
+  it("hides legacy verification payloads for approved companies", async () => {
+    getCompanyProfile.mockResolvedValue({
+      ...baseProfile,
+      verificationStatus: "approved",
+      verificationData: JSON.stringify({
+        source: "development-seed",
+      }),
+    });
+
+    renderSection();
+
+    expect(await screen.findByText("Запись подтверждена")).toBeInTheDocument();
+    expect(screen.queryByText("Архив")).not.toBeInTheDocument();
+    expect(screen.queryByText('{"source":"development-seed"}')).not.toBeInTheDocument();
+  });
 });

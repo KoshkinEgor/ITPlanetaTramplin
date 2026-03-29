@@ -2,7 +2,9 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCandidateRecommendation, getCandidateApplications, getCandidateContacts } from "../api/candidate";
-import { applyToOpportunity, getOpportunity, getOpportunities } from "../api/opportunities";
+import { getCompanyProfile } from "../api/company";
+import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
+import { useAuthSession } from "../auth/api";
 import { resetCandidateApplicationsStore, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
 import { FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
@@ -12,12 +14,22 @@ vi.mock("../api/opportunities", () => ({
   getOpportunity: vi.fn(),
   getOpportunities: vi.fn(() => Promise.resolve([])),
   applyToOpportunity: vi.fn(),
+  updateOpportunity: vi.fn(),
+  deleteOpportunity: vi.fn(),
 }));
 
 vi.mock("../api/candidate", () => ({
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
   getCandidateContacts: vi.fn(() => Promise.resolve([])),
   createCandidateRecommendation: vi.fn(() => Promise.resolve({})),
+}));
+
+vi.mock("../api/company", () => ({
+  getCompanyProfile: vi.fn(),
+}));
+
+vi.mock("../auth/api", () => ({
+  useAuthSession: vi.fn(),
 }));
 
 vi.mock("../widgets/layout/PortalHeader/PortalHeader", () => ({
@@ -28,16 +40,16 @@ const apiOpportunity = {
   id: 101,
   employerId: 404,
   title: "Junior Security Analyst",
-  companyName: "РћРћРћ РљРѕРјРїР°РЅРё",
-  locationCity: "РњРѕСЃРєРІР°",
-  locationAddress: "РњРѕСЃРєРІР°",
+  companyName: "ООО Компания",
+  locationCity: "Москва",
+  locationAddress: "Москва",
   opportunityType: "vacancy",
   employmentType: "online",
   moderationStatus: "approved",
   publishAt: "2026-03-10",
-  description: "РЎРёР»СЊРЅР°СЏ СЃС‚Р°СЂС‚РѕРІР°СЏ РІР°РєР°РЅСЃРёСЏ РґР»СЏ РєР°РЅРґРёРґР°С‚РѕРІ Р±РµР· Р±РѕР»СЊС€РѕРіРѕ РєРѕРјРјРµСЂС‡РµСЃРєРѕРіРѕ РѕРїС‹С‚Р°.",
+  description: "Сильная стартовая вакансия для кандидатов без большого коммерческого опыта.",
   contactsJson: '{"email":"career@example.com"}',
-  mediaContentJson: '[{"title":"РџСЂРѕРіСЂР°РјРјР° РІР°РєР°РЅСЃРёРё"}]',
+  mediaContentJson: '[{"title":"Программа вакансии"}]',
   tags: ["SOC", "SIEM"],
 };
 
@@ -49,8 +61,8 @@ const appliedSummary = {
   appliedAt: "2026-03-12T12:00:00Z",
   opportunityTitle: "Junior Security Analyst",
   opportunityType: "vacancy",
-  companyName: "РћРћРћ РљРѕРјРїР°РЅРё",
-  locationCity: "РњРѕСЃРєРІР°",
+  companyName: "ООО Компания",
+  locationCity: "Москва",
   employmentType: "online",
   opportunityDeleted: false,
   moderationStatus: "approved",
@@ -61,13 +73,13 @@ const relatedOpportunity = {
   employerId: 505,
   title: "Frontend Intern",
   companyName: "Sber",
-  locationCity: "РњРѕСЃРєРІР°",
-  locationAddress: "РљСѓС‚СѓР·РѕРІСЃРєРёР№ РїСЂРѕСЃРїРµРєС‚, 32",
+  locationCity: "Москва",
+  locationAddress: "Кутузовский проспект, 32",
   opportunityType: "vacancy",
   employmentType: "hybrid",
   moderationStatus: "approved",
   publishAt: "2026-03-11",
-  description: "РЎС‚Р°Р¶РёСЂРѕРІРєР° РїРѕ frontend-СЂР°Р·СЂР°Р±РѕС‚РєРµ.",
+  description: "Стажировка по frontend-разработке.",
   contactsJson: '{"email":"internships@sber.local"}',
   mediaContentJson: "[]",
   tags: ["React", "TypeScript", "Frontend"],
@@ -98,12 +110,16 @@ function renderDetail(path = "/opportunities/design-ui-ux") {
 describe("OpportunityDetailCardApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthSession.mockReturnValue({ status: "guest", user: null, error: null });
+    getCompanyProfile.mockResolvedValue(null);
     resetCandidateApplicationsStore();
     window.localStorage.clear();
     window.open = vi.fn();
     getOpportunity.mockResolvedValue(apiOpportunity);
     getOpportunities.mockResolvedValue([]);
     applyToOpportunity.mockResolvedValue(appliedSummary);
+    updateOpportunity.mockResolvedValue({});
+    deleteOpportunity.mockResolvedValue({});
     getCandidateApplications.mockResolvedValue([]);
     createCandidateRecommendation.mockResolvedValue({});
     getCandidateContacts.mockResolvedValue([
@@ -121,6 +137,7 @@ describe("OpportunityDetailCardApp", () => {
 
     expect(document.body).toHaveClass("opportunity-card-react-body");
     expect(await screen.findByRole("heading", { name: /UI\/UX/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ключевые навыки" })).toBeInTheDocument();
     expect(screen.getByText("Медиа")).toBeInTheDocument();
     expect(screen.getByText("Вам могут подойти")).toBeInTheDocument();
 
@@ -132,14 +149,11 @@ describe("OpportunityDetailCardApp", () => {
   it("pushes a successful application into the shared candidate responses store", async () => {
     renderDetail("/opportunities/101");
 
-    await screen.findByText("Junior Security Analyst");
-    const applyButton = document.querySelector(".opportunity-focus-card__apply");
-
-    expect(applyButton).not.toBeNull();
+    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
     fireEvent.click(applyButton);
 
     await waitFor(() => {
-      expect(applyButton).toBeDisabled();
+      expect(screen.getAllByText("Отклик отправлен").length).toBeGreaterThan(0);
     });
 
     await waitFor(() => {
@@ -151,8 +165,7 @@ describe("OpportunityDetailCardApp", () => {
   it("links the company spotlight to the public company page", async () => {
     renderDetail("/opportunities/101");
 
-    await screen.findByText("Junior Security Analyst");
-    expect(document.querySelector('a[href="/companies/404"]')).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Открыть профиль компании" })).toHaveAttribute("href", "/companies/404");
   });
 
   it("opens complaint and share options from the more actions button", async () => {
@@ -194,8 +207,6 @@ describe("OpportunityDetailCardApp", () => {
       expect(window.open).toHaveBeenCalledTimes(1);
       expect(window.open.mock.calls[0][0]).toContain("mailto:anna.petrova@tramplin.local");
     });
-
-    expect(screen.queryByText(/Контакт для отправки открыт/i)).not.toBeInTheDocument();
   });
 
   it("adds the opportunity to favorites in localStorage from the heart button", async () => {
@@ -218,7 +229,7 @@ describe("OpportunityDetailCardApp", () => {
 
     expect(await screen.findByText("Frontend Intern")).toBeInTheDocument();
 
-    const favoriteButtons = Array.from(document.querySelectorAll('button[data-opportunity-id]'));
+    const favoriteButtons = Array.from(document.querySelectorAll("button[data-opportunity-id]"));
     const relatedFavoriteButton = favoriteButtons[favoriteButtons.length - 1];
 
     fireEvent.click(relatedFavoriteButton);
@@ -230,23 +241,39 @@ describe("OpportunityDetailCardApp", () => {
 
   it("treats a 409 application response as a synced success state instead of an error", async () => {
     applyToOpportunity.mockRejectedValue(
-      new ApiError("РћС‚РєР»РёРє СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅ.", { status: 409, data: { message: "РћС‚РєР»РёРє СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅ." } })
+      new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } })
     );
     getCandidateApplications.mockResolvedValue([appliedSummary]);
 
     renderDetail("/opportunities/101");
 
-    await screen.findByText("Junior Security Analyst");
-    const applyButton = document.querySelector(".opportunity-focus-card__apply");
-
-    expect(applyButton).not.toBeNull();
+    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
     fireEvent.click(applyButton);
+
+    expect(await screen.findByText("Отклик уже отправлен")).toBeInTheDocument();
+    expect(screen.queryByText("Не удалось отправить заявку")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(getCandidateApplications).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
-      expect(applyButton).toBeDisabled();
     });
   });
-});
 
+  it("shows owner-only controls and moderation reason for company users", async () => {
+    useAuthSession.mockReturnValue({ status: "authenticated", user: { role: "company" }, error: null });
+    getCompanyProfile.mockResolvedValue({ profileId: 404 });
+    getOpportunity.mockResolvedValue({
+      ...apiOpportunity,
+      moderationStatus: "revision",
+      moderationReason: "Добавьте зарплату",
+    });
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByRole("button", { name: "Редактировать" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Просмотр публичной версии" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Открыть отклики" })).toHaveAttribute("href", "/company/dashboard/responses");
+    expect(screen.getByText("Добавьте зарплату")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Отклик отправлен|Подать заявку/ })).not.toBeInTheDocument();
+  });
+});

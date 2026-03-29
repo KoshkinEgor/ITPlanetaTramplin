@@ -4,20 +4,18 @@ import { getCompanyOpportunities } from "../api/company";
 import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
 import { ApiError } from "../lib/http";
 import { OPPORTUNITY_TYPE_OPTIONS } from "../shared/lib/opportunityTypes";
-import { Alert, Badge, Button, EmptyState, FormField, Input, Loader, Select, Textarea } from "../shared/ui";
-import { CabinetContentSection } from "../widgets/layout";
 import {
-  createOpportunityContactDraft,
+  buildOpportunityPayload,
+  buildOpportunityPreviewRoute,
   createOpportunityDraft,
-  createOpportunityMediaDraft,
-  parseOpportunityDeadlineInput,
-  parseOpportunityCoordinateInput,
-  parseTags,
-  serializeOpportunityContacts,
-  serializeOpportunityMedia,
+  getModerationStatusTone,
+  getOpportunityCardPresentation,
   translateModerationStatus,
-  translateOpportunityType,
-} from "./utils";
+  validateOpportunityDraftForSubmit,
+} from "../shared/lib/opportunityPresentation";
+import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, Textarea } from "../shared/ui";
+import { CabinetContentSection } from "../widgets/layout";
+import { createOpportunityContactDraft, createOpportunityMediaDraft } from "./utils";
 import { OpportunityLocationPicker } from "./OpportunityLocationPicker";
 import "./company-dashboard.css";
 
@@ -73,6 +71,76 @@ function detectContactType(value) {
   return "link";
 }
 
+function renderTypedFields({ draft, onFieldChange, isEditingExisting }) {
+  switch (draft.opportunityType) {
+    case "vacancy":
+      return (
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+          <FormField label="Зарплата от" required>
+            <Input type="number" value={draft.salaryFrom} onValueChange={(value) => onFieldChange("salaryFrom", value)} />
+          </FormField>
+          <FormField label="Зарплата до" required>
+            <Input type="number" value={draft.salaryTo} onValueChange={(value) => onFieldChange("salaryTo", value)} />
+          </FormField>
+        </div>
+      );
+    case "internship":
+      return (
+        <div className="company-dashboard-stack">
+          <Checkbox
+            label="Стажировка оплачиваемая"
+            checked={Boolean(draft.isPaid)}
+            onChange={(event) => onFieldChange("isPaid", event.target.checked)}
+          />
+
+          {draft.isPaid !== false ? (
+            <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+              <FormField label="Стипендия от" required>
+                <Input type="number" value={draft.stipendFrom} onValueChange={(value) => onFieldChange("stipendFrom", value)} />
+              </FormField>
+              <FormField label="Стипендия до" required>
+                <Input type="number" value={draft.stipendTo} onValueChange={(value) => onFieldChange("stipendTo", value)} />
+              </FormField>
+            </div>
+          ) : null}
+
+          <FormField label="Длительность" required>
+            <Input value={draft.duration} onValueChange={(value) => onFieldChange("duration", value)} placeholder="3 месяца" />
+          </FormField>
+        </div>
+      );
+    case "event":
+      return (
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+          <FormField label="Дата и время начала" required>
+            <Input type="datetime-local" value={draft.eventStartAt} onValueChange={(value) => onFieldChange("eventStartAt", value)} />
+          </FormField>
+          <FormField label="Дедлайн регистрации" required>
+            <Input type="datetime-local" value={draft.registrationDeadline} onValueChange={(value) => onFieldChange("registrationDeadline", value)} />
+          </FormField>
+        </div>
+      );
+    case "mentoring":
+      return (
+        <div className="company-dashboard-stack">
+          <FormField label="Длительность" required>
+            <Input value={draft.duration} onValueChange={(value) => onFieldChange("duration", value)} placeholder="6 недель" />
+          </FormField>
+          <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+            <FormField label="Частота встреч" required>
+              <Input value={draft.meetingFrequency} onValueChange={(value) => onFieldChange("meetingFrequency", value)} placeholder="1 раз в неделю" />
+            </FormField>
+            <FormField label="Количество мест" required>
+              <Input type="number" value={draft.seatsCount} onValueChange={(value) => onFieldChange("seatsCount", value)} />
+            </FormField>
+          </div>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 export function CompanyOpportunitiesSection() {
   const [state, setState] = useState({ status: "loading", opportunities: [], error: null });
   const [draft, setDraft] = useState(createOpportunityDraft());
@@ -105,14 +173,14 @@ export function CompanyOpportunitiesSection() {
     return () => controller.abort();
   }, [reloadKey]);
 
-  function resetSuccessState() {
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "", message: "" } : current));
-  }
-
   function scrollEditorIntoView() {
     setTimeout(() => {
       editorRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     }, 0);
+  }
+
+  function resetSuccessState() {
+    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "", message: "" } : current));
   }
 
   function openCreateForm() {
@@ -203,42 +271,20 @@ export function CompanyOpportunitiesSection() {
     scrollEditorIntoView();
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function persistOpportunity(saveMode) {
+    const validationErrors = saveMode === "submit" ? validateOpportunityDraftForSubmit(draft) : [];
 
-    if (!draft.title.trim()) {
-      setSaveState({ status: "error", error: "Укажите название публикации.", message: "" });
+    if (validationErrors.length) {
+      setSaveState({ status: "error", error: validationErrors[0], message: "" });
       return;
     }
-
-    if (!draft.description.trim()) {
-      setSaveState({ status: "error", error: "Добавьте описание публикации.", message: "" });
-      return;
-    }
-
-    const contactsJson = serializeOpportunityContacts(draft.contacts);
-    const mediaContentJson = serializeOpportunityMedia(draft.media);
 
     setSaveState({ status: "saving", error: "", message: "" });
 
     try {
-      const payload = {
-        title: draft.title.trim(),
-        description: draft.description.trim(),
-        locationCity: draft.locationCity.trim() || null,
-        locationAddress: draft.locationAddress.trim() || null,
-        opportunityType: draft.opportunityType,
-        employmentType: draft.employmentType,
-        latitude: parseOpportunityCoordinateInput(draft.latitude),
-        longitude: parseOpportunityCoordinateInput(draft.longitude),
-        expireAt: parseOpportunityDeadlineInput(draft.expireAt),
-        contactsJson,
-        mediaContentJson,
-        tags: parseTags(draft.tags),
-      };
-      const isEditing = Boolean(draft.id);
+      const payload = buildOpportunityPayload(draft, { saveMode });
 
-      if (isEditing) {
+      if (draft.id) {
         await updateOpportunity(draft.id, payload);
       } else {
         await createOpportunity(payload);
@@ -249,9 +295,7 @@ export function CompanyOpportunitiesSection() {
       setSaveState({
         status: "success",
         error: "",
-        message: isEditing
-          ? "Публикация обновлена и при необходимости снова пройдет модерацию."
-          : "Публикация создана и отправлена на модерацию.",
+        message: saveMode === "submit" ? "Публикация отправлена на модерацию." : "Черновик сохранен.",
       });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -272,10 +316,11 @@ export function CompanyOpportunitiesSection() {
         ...current,
         opportunities: current.opportunities.filter((item) => item.id !== opportunityId),
       }));
+
       if (draft.id === opportunityId) {
-        setDraft(createOpportunityDraft());
-        setEditorMode(null);
+        closeEditor();
       }
+
       setSaveState({ status: "success", error: "", message: "Публикация удалена." });
     } catch (error) {
       setSaveState({
@@ -284,6 +329,69 @@ export function CompanyOpportunitiesSection() {
         message: "",
       });
     }
+  }
+
+  async function handleArchive(opportunityId) {
+    setSaveState({ status: "saving", error: "", message: "" });
+
+    try {
+      await updateOpportunity(opportunityId, {
+        saveMode: "archive",
+        moderationStatus: "archived",
+      });
+      setReloadKey((current) => current + 1);
+      setSaveState({ status: "success", error: "", message: "Публикация архивирована." });
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "Не удалось архивировать публикацию.",
+        message: "",
+      });
+    }
+  }
+
+  function renderEditorActions() {
+    const status = String(draft.moderationStatus ?? "draft").toLowerCase();
+    const canArchive = status === "approved";
+    const canSubmit = ["draft", "revision", "rejected", "archived"].includes(status);
+    const canDelete = Number(draft.applicationsCount ?? 0) === 0;
+    const canPreview = Boolean(draft.id);
+
+    return (
+      <div className="company-dashboard-panel__actions">
+        <Button type="button" onClick={() => void persistOpportunity("draft")} disabled={saveState.status === "saving"}>
+          Сохранить как черновик
+        </Button>
+
+        {canSubmit ? (
+          <Button type="button" variant="secondary" onClick={() => void persistOpportunity("submit")} disabled={saveState.status === "saving"}>
+            Отправить на модерацию
+          </Button>
+        ) : null}
+
+        {canArchive && draft.id ? (
+          <Button type="button" variant="secondary" onClick={() => void handleArchive(draft.id)} disabled={saveState.status === "saving"}>
+            Снять с публикации/архивировать
+          </Button>
+        ) : null}
+
+        {canPreview && draft.id ? (
+          <Button type="button" variant="secondary" href={buildOpportunityPreviewRoute(draft.id)}>
+            Просмотр публичной версии
+          </Button>
+        ) : null}
+
+        {canDelete && draft.id ? (
+          <Button type="button" variant="ghost" onClick={() => void handleDelete(draft.id)} disabled={saveState.status === "saving"}>
+            Удалить
+          </Button>
+        ) : null}
+
+        <Button type="button" variant="ghost" onClick={closeEditor} disabled={saveState.status === "saving"}>
+          Отмена
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -332,47 +440,61 @@ export function CompanyOpportunitiesSection() {
           >
             {state.opportunities.length ? (
               <div className="company-dashboard-stack">
-                {state.opportunities.map((item) => (
-                  <article key={item.id} className="company-dashboard-list-item company-dashboard-list-item--opportunity">
-                    <div className="company-dashboard-list-item__top">
-                      <div>
-                        <h3 className="ui-type-h3">{item.title}</h3>
-                        <p className="ui-type-caption">
-                          {translateOpportunityType(item.opportunityType)}
-                          {item.locationCity ? ` • ${item.locationCity}` : ""}
-                        </p>
-                      </div>
-                      <Badge tone={item.moderationStatus === "approved" ? "success" : item.moderationStatus === "revision" ? "warning" : "neutral"}>
-                        {translateModerationStatus(item.moderationStatus)}
-                      </Badge>
-                    </div>
+                {state.opportunities.map((item) => {
+                  const presentation = getOpportunityCardPresentation(item);
+                  const canDelete = Number(item.applicationsCount ?? 0) === 0;
+                  const canArchive = String(item.moderationStatus ?? "").toLowerCase() === "approved";
 
-                    <p className="ui-type-body">{item.description || "Описание пока не заполнено."}</p>
-
-                    <div className="company-dashboard-list-item__meta-grid">
-                      <div className="company-dashboard-list-item__meta-card">
-                        <span>Срок</span>
-                        <strong>{formatDeadlineLabel(item.expireAt)}</strong>
+                  return (
+                    <article key={item.id} className="company-dashboard-list-item company-dashboard-list-item--opportunity">
+                      <div className="company-dashboard-list-item__top">
+                        <div>
+                          <h3 className="ui-type-h3">{item.title}</h3>
+                          <p className="ui-type-caption">
+                            {presentation.type}
+                            {item.locationCity ? ` • ${item.locationCity}` : ""}
+                          </p>
+                        </div>
+                        <Badge tone={presentation.statusTone}>{presentation.status}</Badge>
                       </div>
-                      <div className="company-dashboard-list-item__meta-card">
-                        <span>Отклики</span>
-                        <strong>{item.applicationsCount}</strong>
-                      </div>
-                    </div>
 
-                    <div className="company-dashboard-panel__actions">
-                      <Button type="button" variant="secondary" href={buildOpportunityDetailRoute(item.id)}>
-                        Перейти на страницу возможности
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => startEditing(item)} disabled={saveState.status === "saving"}>
-                        Редактировать
-                      </Button>
-                      <Button type="button" variant="ghost" onClick={() => handleDelete(item.id)} disabled={saveState.status === "saving"}>
-                        Удалить
-                      </Button>
-                    </div>
-                  </article>
-                ))}
+                      <p className="ui-type-body">{item.description || "Описание пока не заполнено."}</p>
+
+                      <div className="company-dashboard-list-item__meta-grid">
+                        <div className="company-dashboard-list-item__meta-card">
+                          <span>Срок</span>
+                          <strong>{formatDeadlineLabel(item.expireAt)}</strong>
+                        </div>
+                        <div className="company-dashboard-list-item__meta-card">
+                          <span>Акцент</span>
+                          <strong>{presentation.accent}</strong>
+                        </div>
+                      </div>
+
+                      {presentation.note ? <p className="ui-type-caption">{presentation.note}</p> : null}
+
+                      <div className="company-dashboard-panel__actions">
+                        <Button type="button" variant="secondary" href={buildOpportunityPreviewRoute(item.id)}>
+                          Просмотр публичной версии
+                        </Button>
+                        <Button type="button" variant="secondary" href={buildOpportunityDetailRoute(item.id)}>
+                          Перейти на страницу возможности
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={() => void startEditing(item)} disabled={saveState.status === "saving"}>
+                          Редактировать
+                        </Button>
+                        {canArchive ? (
+                          <Button type="button" variant="secondary" onClick={() => void handleArchive(item.id)} disabled={saveState.status === "saving"}>
+                            Снять с публикации/архивировать
+                          </Button>
+                        ) : null}
+                        <Button type="button" variant="ghost" onClick={() => void handleDelete(item.id)} disabled={saveState.status === "saving" || !canDelete}>
+                          Удалить
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <EmptyState
@@ -386,11 +508,18 @@ export function CompanyOpportunitiesSection() {
 
           {editorMode ? (
             <CabinetContentSection
+              ref={editorRef}
               eyebrow="Редактор"
               title={draft.id ? "Редактирование публикации" : "Новая публикация"}
-              description="Заполните карточку возможности: опишите предложение, укажите срок и добавьте основные параметры публикации."
+              description="Заполните карточку возможности и выберите, отправить её на модерацию или оставить в черновике."
             >
-              <form ref={editorRef} className="company-dashboard-stack" onSubmit={handleSubmit} noValidate>
+              {draft.moderationStatus === "revision" || draft.moderationStatus === "rejected" ? (
+                <Alert tone="warning" title="Причина возврата" showIcon>
+                  {draft.moderationReason || "Модератор не оставил комментарий."}
+                </Alert>
+              ) : null}
+
+              <form className="company-dashboard-stack" onSubmit={(event) => event.preventDefault()} noValidate>
                 <FormField label="Название" required>
                   <Input value={draft.title} onValueChange={(value) => updateField("title", value)} />
                 </FormField>
@@ -401,7 +530,12 @@ export function CompanyOpportunitiesSection() {
 
                 <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                   <FormField label="Тип публикации">
-                    <Select value={draft.opportunityType} onValueChange={(value) => updateField("opportunityType", value)} options={OPPORTUNITY_TYPE_OPTIONS} />
+                    <Select
+                      value={draft.opportunityType}
+                      onValueChange={(value) => updateField("opportunityType", value)}
+                      options={OPPORTUNITY_TYPE_OPTIONS}
+                      disabled={Number(draft.applicationsCount ?? 0) > 0}
+                    />
                   </FormField>
                   <FormField label="Формат">
                     <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
@@ -411,6 +545,12 @@ export function CompanyOpportunitiesSection() {
                 <FormField label="Срок или дата">
                   <Input type="date" value={draft.expireAt} onValueChange={(value) => updateField("expireAt", value)} />
                 </FormField>
+
+                {renderTypedFields({
+                  draft,
+                  onFieldChange: updateField,
+                  isEditingExisting: editorMode === "edit",
+                })}
 
                 <OpportunityLocationPicker
                   locationCity={draft.locationCity}
@@ -448,16 +588,8 @@ export function CompanyOpportunitiesSection() {
                   <div className="company-dashboard-social-links">
                     {draft.media.map((item, index) => (
                       <div className="company-dashboard-social-links__row" key={`opportunity-media-${index}`}>
-                        <Input
-                          value={item.title}
-                          onValueChange={(value) => updateMedia(index, "title", value)}
-                          placeholder="Название медиа"
-                        />
-                        <Input
-                          value={item.url}
-                          onValueChange={(value) => updateMedia(index, "url", value)}
-                          placeholder="https://..."
-                        />
+                        <Input value={item.title} onValueChange={(value) => updateMedia(index, "title", value)} placeholder="Название медиа" />
+                        <Input value={item.url} onValueChange={(value) => updateMedia(index, "url", value)} placeholder="https://..." />
                         <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
                           Удалить
                         </Button>
@@ -469,18 +601,7 @@ export function CompanyOpportunitiesSection() {
                   </div>
                 </FormField>
 
-                <div className="company-dashboard-panel__actions">
-                  <Button type="submit" disabled={saveState.status === "saving"}>
-                    {saveState.status === "saving"
-                      ? "Сохраняем..."
-                      : draft.id
-                        ? "Сохранить публикацию"
-                        : "Создать публикацию"}
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={closeEditor} disabled={saveState.status === "saving"}>
-                    Отмена
-                  </Button>
-                </div>
+                {renderEditorActions()}
               </form>
             </CabinetContentSection>
           ) : null}

@@ -30,6 +30,8 @@ function findNextIndex(options, currentIndex, direction) {
 
 export function CityAutocomplete({
   value = "",
+  selectedOption = null,
+  selectedOptionId,
   onValueChange,
   onSelectOption,
   fallbackOptions = [],
@@ -59,10 +61,11 @@ export function CityAutocomplete({
   const [remoteOptions, setRemoteOptions] = useState([]);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeCityName(deferredQuery);
+  const resolvedSelectedOptionId = selectedOptionId ?? selectedOption?.id ?? "";
 
   const localOptions = useMemo(
-    () => mergeCityOptions(value ? [{ name: value }] : [], fallbackOptions),
-    [fallbackOptions, value]
+    () => mergeCityOptions(selectedOption ? [selectedOption] : value ? [{ name: value }] : [], fallbackOptions),
+    [fallbackOptions, selectedOption, value]
   );
 
   const visibleOptions = useMemo(() => {
@@ -123,8 +126,12 @@ export function CityAutocomplete({
       return;
     }
 
-    setHighlightedIndex(visibleOptions.length ? 0 : -1);
-  }, [isOpen, visibleOptions]);
+    const selectedIndex = visibleOptions.findIndex((option) =>
+      resolvedSelectedOptionId ? option.id === resolvedSelectedOptionId : normalizeCityName(option.name) === normalizeCityName(value)
+    );
+
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : visibleOptions.length ? 0 : -1);
+  }, [isOpen, resolvedSelectedOptionId, value, visibleOptions]);
 
   const commitSelection = (option) => {
     if (!option) {
@@ -220,8 +227,15 @@ export function CityAutocomplete({
             if (event.key === "Enter") {
               event.preventDefault();
 
-              const exactMatch = visibleOptions.find((option) => normalizeCityName(option.name) === normalizeCityName(query));
-              commitSelection(exactMatch ?? activeOption ?? visibleOptions[0] ?? null);
+              const normalizedEnteredValue = normalizeCityName(query);
+              const highlightedMatch =
+                activeOption && normalizeCityName(activeOption.name) === normalizedEnteredValue ? activeOption : null;
+              const selectedMatch = visibleOptions.find((option) =>
+                option.id === resolvedSelectedOptionId && normalizeCityName(option.name) === normalizedEnteredValue
+              );
+              const exactMatch = visibleOptions.find((option) => normalizeCityName(option.name) === normalizedEnteredValue);
+
+              commitSelection(highlightedMatch ?? selectedMatch ?? exactMatch ?? activeOption ?? visibleOptions[0] ?? null);
             }
           }}
         />
@@ -262,7 +276,9 @@ export function CityAutocomplete({
 
           {visibleOptions.length > 0 ? (
             visibleOptions.map((option, index) => {
-              const isSelected = normalizeCityName(option.name) === normalizeCityName(value);
+              const isSelected = resolvedSelectedOptionId
+                ? option.id === resolvedSelectedOptionId
+                : normalizeCityName(option.name) === normalizeCityName(value);
               const isHighlighted = index === highlightedIndex;
 
               return (

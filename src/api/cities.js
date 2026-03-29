@@ -18,8 +18,46 @@ export function normalizeCityName(value) {
   return String(value ?? "").trim().toLowerCase();
 }
 
-function buildCityLabel({ name, admin1, country }) {
-  return [name, admin1, country && country !== "Россия" ? country : ""].filter(Boolean).join(", ");
+function normalizeCoordinateNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function formatCoordinateToken(value) {
+  const numericValue = normalizeCoordinateNumber(value);
+  return numericValue == null ? "" : numericValue.toFixed(5);
+}
+
+function buildCityLabel({ name, admin1, admin2, country }) {
+  return [
+    name,
+    admin1 && admin1 !== name ? admin1 : "",
+    admin2 && admin2 !== admin1 ? admin2 : "",
+    country && country !== "Россия" ? country : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function buildCityOptionId({ name, admin1, admin2, countryCode, latitude, longitude }) {
+  return [
+    normalizeCityName(name),
+    normalizeCityName(admin1),
+    normalizeCityName(admin2),
+    String(countryCode ?? "").trim().toLowerCase(),
+    formatCoordinateToken(latitude),
+    formatCoordinateToken(longitude),
+  ]
+    .filter(Boolean)
+    .join("|");
+}
+
+function hasOptionCoordinates(option) {
+  return normalizeCoordinateNumber(option?.latitude) != null && normalizeCoordinateNumber(option?.longitude) != null;
 }
 
 export function createCityOption(entry) {
@@ -32,21 +70,23 @@ export function createCityOption(entry) {
   }
 
   const admin1 = String(entry?.admin1 ?? "").trim();
+  const admin2 = String(entry?.admin2 ?? "").trim();
   const country = String(entry?.country ?? "").trim();
   const countryCode = String(entry?.countryCode ?? entry?.country_code ?? "").trim().toUpperCase();
-  const latitude = Number(entry?.latitude);
-  const longitude = Number(entry?.longitude);
+  const latitude = normalizeCoordinateNumber(entry?.latitude);
+  const longitude = normalizeCoordinateNumber(entry?.longitude);
 
   return {
-    id: [name, admin1, countryCode].filter(Boolean).join("|").toLowerCase(),
+    id: buildCityOptionId({ name, admin1, admin2, countryCode, latitude, longitude }),
     name,
     value: name,
-    label: buildCityLabel({ name, admin1, country }),
+    label: buildCityLabel({ name, admin1, admin2, country }),
     admin1,
+    admin2,
     country,
     countryCode,
-    latitude: Number.isFinite(latitude) ? latitude : null,
-    longitude: Number.isFinite(longitude) ? longitude : null,
+    latitude,
+    longitude,
   };
 }
 
@@ -74,7 +114,51 @@ function filterFallbackOptions(query) {
 }
 
 export function mergeCityOptions(...optionGroups) {
-  const dedupeMap = new Map();
+  const groupedOptions = new Map();
+
+  function getLooseKey(option) {
+    return [
+      normalizeCityName(option?.name),
+      String(option?.countryCode ?? "").trim().toLowerCase(),
+    ]
+      .filter(Boolean)
+      .join("|");
+  }
+
+  function getSemanticKey(option) {
+    return [
+      normalizeCityName(option?.name),
+      normalizeCityName(option?.admin1),
+      normalizeCityName(option?.admin2),
+      String(option?.countryCode ?? "").trim().toLowerCase(),
+    ]
+      .filter(Boolean)
+      .join("|");
+  }
+
+  function getCoordinateKey(option) {
+    if (!hasOptionCoordinates(option)) {
+      return "";
+    }
+
+    return [
+      normalizeCityName(option?.name),
+      String(option?.countryCode ?? "").trim().toLowerCase(),
+      formatCoordinateToken(option?.latitude),
+      formatCoordinateToken(option?.longitude),
+    ]
+      .filter(Boolean)
+      .join("|");
+  }
+
+  function getOptionScore(option) {
+    return [
+      hasOptionCoordinates(option) ? 4 : 0,
+      option?.admin2 ? 2 : 0,
+      option?.admin1 ? 1 : 0,
+      option?.country ? 1 : 0,
+    ].reduce((total, value) => total + value, 0);
+  }
 
   optionGroups.flat().forEach((option) => {
     const normalizedOption = createCityOption(option);
@@ -83,14 +167,57 @@ export function mergeCityOptions(...optionGroups) {
       return;
     }
 
-    const key = [normalizeCityName(normalizedOption.name), normalizeCityName(normalizedOption.admin1), normalizedOption.countryCode].join("|");
+    const looseKey = getLooseKey(normalizedOption) || normalizedOption.id;
+    const semanticKey = getSemanticKey(normalizedOption) || normalizedOption.id;
+    const coordinateKey = getCoordinateKey(normalizedOption);
+    const currentGroup = groupedOptions.get(looseKey) ?? [];
+    const currentCoordinateIndex = coordinateKey
+      ? currentGroup.findIndex((entry) => getCoordinateKey(entry) === coordinateKey)
+      : -1;
 
-    if (!dedupeMap.has(key)) {
-      dedupeMap.set(key, normalizedOption);
+    if (currentCoordinateIndex >= 0) {
+      if (getOptionScore(normalizedOption) >= getOptionScore(currentGroup[currentCoordinateIndex])) {
+        currentGroup[currentCoordinateIndex] = normalizedOption;
+      }
+
+      groupedOptions.set(looseKey, currentGroup);
+      return;
     }
+
+    if (hasOptionCoordinates(normalizedOption)) {
+      const nonCoordinateIndices = currentGroup
+        .map((entry, index) => ({ entry, index }))
+        .filter(({ entry }) => !hasOptionCoordinates(entry))
+        .map(({ index }) => index)
+        .reverse();
+
+      nonCoordinateIndices.forEach((index) => {
+        currentGroup.splice(index, 1);
+      });
+
+      currentGroup.push(normalizedOption);
+      groupedOptions.set(looseKey, currentGroup);
+      return;
+    }
+
+    if (currentGroup.some((entry) => hasOptionCoordinates(entry))) {
+      return;
+    }
+
+    const currentSemanticIndex = currentGroup.findIndex((entry) => getSemanticKey(entry) === semanticKey);
+
+    if (currentSemanticIndex >= 0) {
+      if (getOptionScore(normalizedOption) >= getOptionScore(currentGroup[currentSemanticIndex])) {
+        currentGroup[currentSemanticIndex] = normalizedOption;
+      }
+    } else {
+      currentGroup.push(normalizedOption);
+    }
+
+    groupedOptions.set(looseKey, currentGroup);
   });
 
-  return [...dedupeMap.values()];
+  return [...groupedOptions.values()].flat();
 }
 
 export function getFallbackCityOption(cityName = DEFAULT_CITY_NAME) {

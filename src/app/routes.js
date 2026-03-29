@@ -104,6 +104,10 @@ export function buildOpportunityDetailRoute(opportunityId = "design-ui-ux") {
   return routes.opportunities.detail.replace(":id", opportunityId);
 }
 
+export function buildOpportunityPreviewRoute(opportunityId = "design-ui-ux") {
+  return withSearch(buildOpportunityDetailRoute(opportunityId), { preview: "public" });
+}
+
 export function buildCompanyPublicRoute(companyId) {
   return routes.companies.detail.replace(":id", companyId);
 }

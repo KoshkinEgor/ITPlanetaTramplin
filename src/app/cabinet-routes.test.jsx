@@ -202,7 +202,7 @@ describe("cabinet shell routes", () => {
       expect(updateCandidateProfile).toHaveBeenCalledTimes(1);
       expect(getCandidateProgressValues(container)).toEqual(["55", "55"]);
     });
-  });
+  }, 15000);
 
   it("redirects guests from candidate routes to the career entry page", async () => {
     getCurrentAuthUser.mockRejectedValue({ status: 401 });

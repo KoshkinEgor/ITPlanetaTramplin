@@ -16,6 +16,8 @@ public partial class EmployerProfile
     public string? VerificationData { get; set; }
     public string VerificationStatus { get; set; } = string.Empty;
 
+    public string? VerificationReason { get; set; }
+
     public string? LegalAddress { get; set; }
 
     public string? ProfileImage { get; set; }

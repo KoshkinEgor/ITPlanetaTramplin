@@ -63,8 +63,8 @@ function getVerificationCardContent(status, hasLockedRequest) {
   if (status === "approved") {
     return {
       badge: "Подтверждена",
-      title: "Компания подтверждена",
-      description: "Профиль уже виден в каталоге и открыт для обновлений.",
+      title: "Запись подтверждена",
+      description: "",
       actionLabel: "",
       toneClassName: "approved",
     };
@@ -169,6 +169,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
   const hasVerificationMeta = Boolean(
     verificationData?.snapshot || verificationData?.contact || verificationData?.document || verificationData?.legacyText
   );
+  const shouldShowVerificationMeta = verificationStatus !== "approved" && hasVerificationMeta;
 
   function handleOpenModal() {
     setVerificationDraft(createVerificationDraft(profile));
@@ -312,7 +313,9 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
               </Badge>
               <div className="company-dashboard-verification-card__copy">
                 <h3 className="company-dashboard-editor-card__title">{verificationCard.title}</h3>
-                <p className="company-dashboard-editor-card__description">{verificationCard.description}</p>
+                {verificationCard.description ? (
+                  <p className="company-dashboard-editor-card__description">{verificationCard.description}</p>
+                ) : null}
               </div>
             </div>
 
@@ -335,7 +338,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
             </Alert>
           ) : null}
 
-          {hasVerificationMeta ? (
+          {shouldShowVerificationMeta ? (
             <div className="company-dashboard-verification-card__meta">
               {verificationData?.snapshot ? (
                 <div className="company-dashboard-verification-card__group">

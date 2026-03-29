@@ -100,6 +100,8 @@ namespace DTO
         public string? VerificationMethod { get; set; }
 
         public string? VerificationStatus { get; set; }
+
+        public string? VerificationReason { get; set; }
     }
 
     public class CompanyProfileUpdateDTO

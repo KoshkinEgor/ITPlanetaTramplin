@@ -354,6 +354,170 @@ body.home-react-body {
   color: #ffffff;
 }
 
+.home-about {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 62px;
+}
+
+.home-about__lead.ui-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(280px, 0.84fr);
+  gap: 22px;
+  padding: 30px;
+  border: none;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 255, 31, 0.22), transparent 28%),
+    radial-gradient(circle at 12% 0%, rgba(47, 128, 255, 0.12), transparent 26%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.99), rgba(243, 248, 255, 0.95));
+  box-shadow: 0 24px 52px rgba(36, 49, 77, 0.1);
+}
+
+.home-about__lead::before,
+.home-about__lead::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.home-about__lead::before {
+  right: -36px;
+  top: -34px;
+  width: 180px;
+  height: 180px;
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.2), rgba(47, 128, 255, 0));
+}
+
+.home-about__lead::after {
+  left: -18px;
+  bottom: -38px;
+  width: 160px;
+  height: 160px;
+  background: linear-gradient(180deg, rgba(201, 255, 31, 0.16), rgba(201, 255, 31, 0));
+}
+
+.home-about__intro,
+.home-about__aside {
+  position: relative;
+  z-index: 1;
+}
+
+.home-about__intro p,
+.home-about__value-card p {
+  margin: 0;
+}
+
+.home-about__intro .ui-type-body {
+  max-width: 660px;
+  margin-top: 16px;
+  color: rgba(48, 57, 80, 0.8);
+}
+
+.home-about__intro h2 {
+  margin: 0;
+  max-width: 720px;
+  color: #1d2540;
+}
+
+.home-about__tags,
+.home-about__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.home-about__tags {
+  margin-top: 22px;
+}
+
+.home-about__tag {
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+.home-about__actions {
+  margin-top: 24px;
+}
+
+.home-about__actions .ui-button {
+  min-height: 50px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.home-about__aside {
+  display: grid;
+  gap: 12px;
+}
+
+.home-about__step-compact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(14px);
+}
+
+.home-about__step-number {
+  min-width: 52px;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.14), rgba(201, 255, 31, 0.22));
+  color: #1d2540;
+  font-size: var(--ui-font-size-caption);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.home-about__step-compact strong {
+  display: block;
+  color: #1f2740;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+}
+
+.home-about__step-compact p {
+  margin: 8px 0 0;
+  color: rgba(48, 57, 80, 0.76);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+}
+
+.home-about__value-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.home-about__value-card.ui-card {
+  min-height: 188px;
+  padding: 26px 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(24, 29, 45, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 250, 255, 0.96));
+  box-shadow: 0 18px 34px rgba(36, 49, 77, 0.07);
+}
+
+.home-about__value-card h3 {
+  margin: 0;
+}
+
+.home-about__value-card p {
+  margin-top: 10px;
+  color: rgba(48, 57, 80, 0.76);
+}
+
 .home-discovery {
   margin-bottom: 62px;
 }
@@ -759,6 +923,13 @@ body.home-react-body {
     transform var(--ui-transition-fast);
 }
 
+.home-filter-dropdown__trigger .ui-sort-control__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-filter-dropdown__trigger:hover,
 .home-filter-dropdown.is-open .home-filter-dropdown__trigger,
 .home-skills-filter__trigger:hover,
@@ -1017,7 +1188,12 @@ body.home-react-body {
   display: grid;
   grid-template-columns: minmax(360px, 1fr) minmax(470px, 0.98fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.home-discovery__grid > * {
+  min-height: 0;
 }
 
 .home-discovery__grid--list {
@@ -1030,12 +1206,14 @@ body.home-react-body {
 
 .home-map-card.ui-card {
   height: var(--home-discovery-panel-height);
+  min-height: 0;
   padding: 14px;
   display: flex;
   flex-direction: column;
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 20px 44px rgba(36, 49, 77, 0.08);
+  overflow: hidden;
 }
 
 .home-map-card.is-muted {
@@ -1349,6 +1527,7 @@ body.home-react-body {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+  min-height: 0;
 }
 
 .home-results-grid .home-opportunity-entry.ui-card.is-selected {
@@ -1391,10 +1570,12 @@ body.home-react-body {
 
 .home-discovery__grid--map .home-results-grid {
   height: var(--home-discovery-panel-height);
+  min-height: 0;
   overflow-y: auto;
   padding-right: 6px;
   align-content: start;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .home-discovery__grid--map .home-results-grid::-webkit-scrollbar {
@@ -1417,6 +1598,9 @@ body.home-react-body {
 }
 
 .home-advanced-search.ui-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 20px;
   border-radius: 26px;
   border: 1px solid rgba(24, 29, 45, 0.06);
@@ -1426,14 +1610,19 @@ body.home-react-body {
 
 .home-discovery__grid--map .home-advanced-search.ui-card {
   height: var(--home-discovery-panel-height);
+  min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .home-discovery__grid--list.is-advanced-open .home-advanced-search.ui-card {
   position: sticky;
   top: 12px;
   width: auto;
+  max-height: calc(var(--home-discovery-panel-height) - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .home-advanced-search__header {
@@ -1936,6 +2125,8 @@ body.home-react-body {
   }
 
   .home-hero,
+  .home-about__lead.ui-card,
+  .home-about__value-grid,
   .home-discovery__grid,
   .home-hubs {
     grid-template-columns: 1fr;
@@ -1995,6 +2186,11 @@ body.home-react-body {
 
   .home-hero__visual {
     min-height: 360px;
+  }
+
+  .home-about__lead.ui-card,
+  .home-about__value-card.ui-card {
+    padding: 24px;
   }
 
   .home-hero__shape--blue {
@@ -2079,6 +2275,15 @@ body.home-react-body {
   .home-hero__photo-card.ui-card {
     inset: 22px 12px 22px 28px;
     padding: 12px;
+  }
+
+  .home-about__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-about__actions .ui-button {
+    width: 100%;
   }
 
   .home-hero__shape--blue {

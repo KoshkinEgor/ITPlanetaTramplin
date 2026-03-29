@@ -23,23 +23,27 @@ internal static class CompanyVerificationStatuses
 
 internal static class OpportunityModerationStatuses
 {
+    public const string Draft = "draft";
     public const string Pending = "pending";
     public const string Approved = "approved";
     public const string Revision = "revision";
     public const string Rejected = "rejected";
+    public const string Archived = "archived";
 
     public static string Normalize(string? value) =>
         value?.Trim().ToLowerInvariant() switch
         {
+            Draft => Draft,
             Pending => Pending,
             Approved => Approved,
             Revision => Revision,
             Rejected => Rejected,
-            _ => Pending,
+            Archived => Archived,
+            _ => Draft,
         };
 
     public static bool IsKnown(string? value) =>
-        value?.Trim().ToLowerInvariant() is Pending or Approved or Revision or Rejected;
+        value?.Trim().ToLowerInvariant() is Draft or Pending or Approved or Revision or Rejected or Archived;
 }
 
 internal static class CandidateModerationStatuses

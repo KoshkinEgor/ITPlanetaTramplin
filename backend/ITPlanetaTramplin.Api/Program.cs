@@ -57,7 +57,13 @@ builder.Services.AddSingleton<PasswordResetService>();
 builder.Services.AddSingleton<CompanyVerificationStorage>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();
-builder.Services.AddHttpClient<YandexGeocoderService>();
+builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        httpClient.DefaultRequestHeaders.Referrer = new Uri("http://localhost:3000/");
+    }
+});
 builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddHealthChecks();
 

@@ -71,11 +71,15 @@ function roundToTwo(value) {
   return Math.round(value * 100) / 100;
 }
 
+function isFiniteCoordinateValue(value) {
+  return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
+}
+
 function getFallbackCenter(selectedCity, selectedCityCoordinates) {
   if (
     Array.isArray(selectedCityCoordinates)
     && selectedCityCoordinates.length === 2
-    && selectedCityCoordinates.every((coordinate) => Number.isFinite(Number(coordinate)))
+    && selectedCityCoordinates.every((coordinate) => isFiniteCoordinateValue(coordinate))
   ) {
     return [Number(selectedCityCoordinates[0]), Number(selectedCityCoordinates[1])];
   }
@@ -99,21 +103,13 @@ function buildLocation(points, fallbackCenter) {
 
   if (points.length === 1) {
     return {
-      center: points[0].coordinates,
-      zoom: 12.4,
+      center: fallbackCenter,
+      zoom: 11.2,
     };
   }
 
-  const total = points.reduce(
-    (accumulator, point) => ({
-      lng: accumulator.lng + point.coordinates[0],
-      lat: accumulator.lat + point.coordinates[1],
-    }),
-    { lng: 0, lat: 0 }
-  );
-
   return {
-    center: [total.lng / points.length, total.lat / points.length],
+    center: fallbackCenter,
     zoom: 10.2,
   };
 }

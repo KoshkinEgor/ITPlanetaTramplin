@@ -71,10 +71,10 @@ export function decideCompanyModeration(companyId, status) {
   });
 }
 
-export function decideOpportunityModeration(opportunityId, status) {
+export function decideOpportunityModeration(opportunityId, payload) {
   return apiRequest(`/moderation/opportunities/${opportunityId}/decision`, {
     method: "POST",
-    body: { status },
+    body: typeof payload === "string" ? { status: payload } : payload,
   });
 }
 

@@ -579,11 +579,13 @@ internal static class DevelopmentDataSeeder
                 opportunity.OpportunityType = OpportunityTypes.Normalize(seedOpportunity.OpportunityType) ?? OpportunityTypes.Vacancy;
                 opportunity.EmploymentType = seedOpportunity.EmploymentType;
                 opportunity.ModerationStatus = OpportunityModerationStatuses.Approved;
+                opportunity.ModerationReason = null;
                 opportunity.DeletedAt = null;
                 opportunity.PublishAt = DateOnly.FromDateTime(DateTime.UtcNow);
                 opportunity.ExpireAt = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2));
                 opportunity.ContactsJson = seedOpportunity.ContactsJson;
                 opportunity.MediaContentJson = "[]";
+                ApplySeedTypedFields(opportunity, seedOpportunity);
                 opportunity.Tags = seedOpportunity.TagNames.Select(tagName => tagsByName[tagName]).ToList();
 
                 opportunitiesByTitle[seedOpportunity.Title] = opportunity;
@@ -828,6 +830,41 @@ internal static class DevelopmentDataSeeder
         string EmploymentType,
         string ContactsJson,
         string[] TagNames);
+
+    private static void ApplySeedTypedFields(Opportunity opportunity, SeedOpportunity seedOpportunity)
+    {
+        var opportunityType = OpportunityTypes.Normalize(seedOpportunity.OpportunityType) ?? OpportunityTypes.Vacancy;
+
+        if (opportunityType == OpportunityTypes.Vacancy)
+        {
+            opportunity.SalaryFrom = 80000;
+            opportunity.SalaryTo = 150000;
+            return;
+        }
+
+        if (opportunityType == OpportunityTypes.Internship)
+        {
+            opportunity.IsPaid = true;
+            opportunity.Duration = "3 months";
+            opportunity.StipendFrom = 30000;
+            opportunity.StipendTo = 50000;
+            return;
+        }
+
+        if (opportunityType == OpportunityTypes.Event)
+        {
+            opportunity.EventStartAt = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30));
+            opportunity.RegistrationDeadline = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(20));
+            return;
+        }
+
+        if (opportunityType == OpportunityTypes.Mentoring)
+        {
+            opportunity.Duration = "8 weeks";
+            opportunity.MeetingFrequency = "Weekly";
+            opportunity.SeatsCount = 5;
+        }
+    }
 
     private sealed record SeedApplication(string CandidateEmail, string OpportunityTitle, string Status, string? EmployerNote);
 

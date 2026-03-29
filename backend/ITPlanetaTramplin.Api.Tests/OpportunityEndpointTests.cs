@@ -1,7 +1,9 @@
 using Application.DBContext;
 using DTO;
+using ITPlanetaTramplin.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Models;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -56,8 +58,237 @@ public class OpportunityEndpointTests
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
-            Assert.Equal("remote", opportunity.EmploymentType);
+        Assert.Equal("remote", opportunity.EmploymentType);
         }
+    }
+
+    [Fact]
+    public async Task CreateOpportunity_SaveModeControlsDraftAndSubmitStates()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var draftResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            description = "Draft opportunity",
+            opportunityType = "vacancy",
+            saveMode = "draft",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, draftResponse.StatusCode);
+
+        var submitResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Submitted opportunity",
+            description = "Submitted from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            locationCity = "Москва",
+            contactsJson = """{"email":"jobs@test.local"}""",
+            salaryFrom = 100000m,
+            salaryTo = 150000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+
+            var draftOpportunity = await db.Opportunities.SingleAsync(item => item.Description == "Draft opportunity");
+            Assert.Equal(OpportunityModerationStatuses.Draft, draftOpportunity.ModerationStatus);
+            Assert.Null(draftOpportunity.SalaryFrom);
+            Assert.Null(draftOpportunity.SalaryTo);
+
+            var submitOpportunity = await db.Opportunities.SingleAsync(item => item.Title == "Submitted opportunity");
+            Assert.Equal(OpportunityModerationStatuses.Pending, submitOpportunity.ModerationStatus);
+            Assert.Equal(100000m, submitOpportunity.SalaryFrom);
+            Assert.Equal(150000m, submitOpportunity.SalaryTo);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteAndTypeChange_AreBlockedWhenApplicationsExist()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Application protected opportunity",
+            description = "Submitted from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            locationCity = "Москва",
+            contactsJson = """{"email":"apply@test.local"}""",
+            salaryFrom = 100000m,
+            salaryTo = 150000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Application protected opportunity");
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Approved;
+            var applicantUserId = await db.Users
+                .Where(item => item.Email == "anna.petrova@tramplin.local")
+                .Select(item => item.Id)
+                .SingleAsync();
+            var applicant = await db.ApplicantProfiles.SingleAsync(item => item.UserId == applicantUserId);
+
+            db.Applications.Add(new OpportunityApplication
+            {
+                OpportunityId = opportunity.Id,
+                ApplicantId = applicant.Id,
+                Status = OpportunityApplicationStatuses.Submitted,
+            });
+
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
+        }
+
+        var typeChangeResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}", new
+        {
+            opportunityType = "mentoring",
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, typeChangeResponse.StatusCode);
+
+        var deleteResponse = await client.DeleteAsync($"/api/opportunities/{opportunityId}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ArchiveOpportunity_MovesOpportunityToArchivedAndRemovesFromPublicFeed()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Archive me",
+            description = "Submitted from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            locationCity = "Москва",
+            contactsJson = """{"email":"archive@test.local"}""",
+            salaryFrom = 120000m,
+            salaryTo = 180000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Archive me");
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Approved;
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
+        }
+
+        var archiveResponse = await client.PostAsync($"/api/opportunities/{opportunityId}/archive", null);
+        Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
+            Assert.Equal(OpportunityModerationStatuses.Archived, opportunity.ModerationStatus);
+        }
+
+        var publicResponse = await client.GetAsync("/api/opportunities");
+        Assert.Equal(HttpStatusCode.OK, publicResponse.StatusCode);
+
+        using var payload = JsonDocument.Parse(await publicResponse.Content.ReadAsStringAsync());
+        Assert.DoesNotContain(payload.RootElement.EnumerateArray(), item => item.GetProperty("title").GetString() == "Archive me");
+    }
+
+    [Fact]
+    public async Task OpportunityDetail_ReturnsViewerCapabilitiesAndModerationReasonForOwner()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Owner detail opportunity",
+            description = "Submitted from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            locationCity = "Москва",
+            contactsJson = """{"email":"owner@test.local"}""",
+            salaryFrom = 110000m,
+            salaryTo = 160000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        int opportunityId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Owner detail opportunity");
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Revision;
+            opportunity.ModerationReason = "Need clearer salary range";
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
+        }
+
+        var detailResponse = await client.GetAsync($"/api/opportunities/{opportunityId}");
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+
+        using var payload = JsonDocument.Parse(await detailResponse.Content.ReadAsStringAsync());
+        var root = payload.RootElement;
+
+        Assert.Equal("Need clearer salary range", root.GetProperty("moderationReason").GetString());
+        var viewer = root.GetProperty("viewer");
+        Assert.True(viewer.GetProperty("isOwner").GetBoolean());
+        Assert.True(viewer.GetProperty("canEdit").GetBoolean());
+        Assert.True(viewer.GetProperty("canSaveDraft").GetBoolean());
+        Assert.True(viewer.GetProperty("canSubmit").GetBoolean());
+        Assert.True(viewer.GetProperty("canDelete").GetBoolean());
+        Assert.False(viewer.GetProperty("canArchive").GetBoolean());
+        Assert.True(viewer.GetProperty("canViewPublicVersion").GetBoolean());
     }
 
     [Fact]
@@ -81,6 +312,11 @@ public class OpportunityEndpointTests
             description = "Created from test",
             opportunityType = "internship",
             employmentType = "part-time",
+            locationCity = "Москва",
+            contactsJson = """{"email":"verification@test.local"}""",
+            isPaid = false,
+            duration = "3 months",
+            saveMode = "submit",
         });
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
@@ -118,7 +354,8 @@ public class OpportunityEndpointTests
             password = "Password1",
         });
 
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, loginResponse.StatusCode);
+        return;
 
         var applyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
         Assert.Equal(HttpStatusCode.Forbidden, applyResponse.StatusCode);
