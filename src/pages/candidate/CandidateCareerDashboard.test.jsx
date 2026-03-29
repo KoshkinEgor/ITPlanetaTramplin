@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
@@ -75,6 +75,24 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getAllByText("\u0412\u0435\u0431-\u0434\u0438\u0437\u0430\u0439\u043d\u0435\u0440").length).toBeGreaterThan(0);
     expect(screen.getByText("\u041c\u0430\u0440\u0438\u044f \u0421\u043e\u043a\u043e\u043b\u043e\u0432\u0430")).toBeInTheDocument();
     expect(screen.getByText("\u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u0430 \u041c\u043e\u0440\u0435\u0432\u0430")).toBeInTheDocument();
+
+    const firstCourseLink = screen.getAllByRole("link", { name: "Перейти к курсу" })[0];
+    const opportunitiesSlider = screen.getByRole("region", { name: "Career opportunities slider" }).parentElement;
+
+    expect(firstCourseLink).toHaveAttribute("href", "https://practicum.yandex.ru/ai-tools-for-designers/");
+    expect(firstCourseLink).toHaveAttribute("target", "_blank");
+    expect(firstCourseLink).toHaveAttribute("rel", "noreferrer");
+    expect(opportunitiesSlider).not.toHaveClass("opportunity-block-slider--leading-featured");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Профиль" })[0]);
+    expect(screen.getByText("Менторы скоро появятся")).toBeInTheDocument();
+    expect(screen.getByText(/Раздел с менторами в разработке/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Понятно" }));
+    expect(screen.queryByText("Менторы скоро появятся")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Все менторы →" }));
+    expect(screen.getByText("Менторы скоро появятся")).toBeInTheDocument();
 
     expect(isBefore(careerTitle, coursesSection)).toBe(true);
     expect(isBefore(coursesSection, opportunitiesSection)).toBe(true);

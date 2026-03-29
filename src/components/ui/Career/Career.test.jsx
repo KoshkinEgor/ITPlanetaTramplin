@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import {
   CareerCourseCard,
   CareerMentorCard,
@@ -76,6 +76,8 @@ describe("Career UI assemblies", () => {
           oldPrice="82 000 ₽"
           monthly="2325 ₽ в месяц"
           href="#course"
+          actionTarget="_blank"
+          actionRel="noreferrer"
         />
         <CareerOpportunityCard
           featured
@@ -92,6 +94,8 @@ describe("Career UI assemblies", () => {
     );
 
     expect(screen.getByRole("link", { name: "Перейти к курсу" })).toHaveAttribute("href", "#course");
+    expect(screen.getByRole("link", { name: "Перейти к курсу" })).toHaveAttribute("target", "_blank");
+    expect(screen.getByRole("link", { name: "Перейти к курсу" })).toHaveAttribute("rel", "noreferrer");
     expect(screen.getByText("40 000 ₽")).toBeInTheDocument();
     expect(screen.getByText("Веб-дизайнер").closest(".ui-career-opportunity-card")).toHaveClass("ui-career-opportunity-card--featured");
     expect(screen.getByText("Студенты")).toBeInTheDocument();
@@ -99,13 +103,15 @@ describe("Career UI assemblies", () => {
   });
 
   it("renders mentor avatar fallback and shared-skills peer card", () => {
+    const handleMentorAction = vi.fn();
+
     render(
       <>
         <CareerMentorCard
           name="Мария Соколова"
           role="Карьерный консультант"
           summary="Сертифицированный карьерный консультант."
-          href="#mentor"
+          onActionClick={handleMentorAction}
         />
         <CareerPeerCard
           name="Александра Морева"
@@ -118,7 +124,8 @@ describe("Career UI assemblies", () => {
     );
 
     expect(screen.getByText("МС")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Профиль" })).toHaveAttribute("href", "#mentor");
+    fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
+    expect(handleMentorAction).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("link", { name: /Александра Морева/ })).toHaveAttribute("href", "#peer-profile");
     expect(screen.getByText("3 общих навыка: Web-design, UX, Figma")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Добавить в контакты" })).toHaveAttribute("href", "#peer");
