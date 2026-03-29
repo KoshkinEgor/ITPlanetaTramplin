@@ -270,7 +270,7 @@ export function PortalHeader({
   navItems,
   currentKey,
   brandHref = routes.home,
-  brandLabel = "TRAMPLIN",
+  brandLabel = "рамплин",
   actionHref,
   actionLabel,
   actionVariant = "primary",
@@ -292,7 +292,7 @@ export function PortalHeader({
   return (
     <div className={cn("portal-header-shell", floating && "is-floating", visible ? "is-visible" : "is-hidden", shellClassName)}>
       <header className={cn("portal-header", isPublicProfileVariant && "portal-header--public-profile", className)}>
-        <AppLink href={brandHref} className="portal-header__brand" aria-label="Tramplin">
+        <AppLink href={brandHref} className="portal-header__brand" aria-label="рамплин">
           <span className="portal-header__brand-mark" aria-hidden="true" />
           <span className="portal-header__brand-text">{brandLabel}</span>
         </AppLink>

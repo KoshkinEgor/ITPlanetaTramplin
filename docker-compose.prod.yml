@@ -38,6 +38,7 @@ services:
       Smtp__FromEmail: ${API_SMTP_FROM_EMAIL:-}
       Smtp__FromName: ${API_SMTP_FROM_NAME:-Tramplin}
       Dadata__ApiKey: ${API_DADATA_API_KEY:-}
+      VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
     expose:
       - "8080"
 
@@ -47,6 +48,7 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         VITE_API_BASE_URL: ${FRONTEND_VITE_API_BASE_URL:-/api}
+        VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
     restart: unless-stopped
     depends_on:
       - api
