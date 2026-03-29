@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentAuthUser, logoutCurrentAuthUser, useAuthSession } from "../auth/api";
-import { updateCandidateProfile } from "../api/candidate";
+import { getCandidateEducation, getCandidateProfile, updateCandidateProfile } from "../api/candidate";
 import { getCompanyOpportunities, getCompanyProfile } from "../api/company";
 import { resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
 import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
@@ -180,7 +180,7 @@ describe("cabinet shell routes", () => {
     expect(screen.queryByTestId("candidate-cabinet-shell")).not.toBeInTheDocument();
   });
 
-  it("updates candidate progress after saving profile settings inside the cabinet shell", async () => {
+  it("keeps candidate progress tied to the mandatory onboarding fields", async () => {
     updateCandidateProfile.mockResolvedValue({
       ...candidateProfile,
       description: "",
@@ -191,7 +191,7 @@ describe("cabinet shell routes", () => {
     expect(await screen.findByTestId("candidate-cabinet-shell")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(getCandidateProgressValues(container)).toEqual(["75", "75"]);
+      expect(getCandidateProgressValues(container)).toEqual(["100", "100"]);
     });
 
     fireEvent.click(screen.getAllByRole("button", { expanded: false })[0]);
@@ -200,9 +200,37 @@ describe("cabinet shell routes", () => {
 
     await waitFor(() => {
       expect(updateCandidateProfile).toHaveBeenCalledTimes(1);
-      expect(getCandidateProgressValues(container)).toEqual(["55", "55"]);
+      expect(getCandidateProgressValues(container)).toEqual(["100", "100"]);
     });
   }, 15000);
+
+  it("shows a warning progress state when the mandatory profile is barely filled", async () => {
+    getCandidateProfile.mockResolvedValue({
+      ...candidateProfile,
+      skills: [],
+      links: {
+        onboarding: {
+          ...candidateProfile.links.onboarding,
+          profession: "",
+          city: "",
+          goal: "",
+        },
+      },
+    });
+    getCandidateEducation.mockResolvedValue([]);
+
+    const { container } = renderRoute(routes.candidate.profile);
+
+    expect(await screen.findByTestId("candidate-cabinet-shell")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getCandidateProgressValues(container)).toEqual(["17", "17"]);
+    });
+
+    expect(container.querySelectorAll(".candidate-progress-card--warning").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Обязательный минимум профиля").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Карьера и отклики/).length).toBeGreaterThan(0);
+  });
 
   it("redirects guests from candidate routes to the career entry page", async () => {
     getCurrentAuthUser.mockRejectedValue({ status: 401 });

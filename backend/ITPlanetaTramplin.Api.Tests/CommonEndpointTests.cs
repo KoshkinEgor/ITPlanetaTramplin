@@ -1,12 +1,35 @@
 using DTO;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Xunit;
 
 namespace ITPlanetaTramplin.Api.Tests;
 
 public class CommonEndpointTests
 {
+    [Fact]
+    public async Task ProfessionSearch_ReturnsCatalogMatches()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/professions?query=frontend&count=5");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var items = payload.RootElement.GetProperty("items").EnumerateArray().ToArray();
+
+        Assert.NotEmpty(items);
+        Assert.Contains(items, item => item.GetProperty("value").GetString() == "Frontend-разработчик");
+        Assert.All(items, item =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(item.GetProperty("value").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(item.GetProperty("label").GetString()));
+        });
+    }
+
     [Fact]
     public async Task AddressSuggestions_ReturnPrimaryMatchesAndNearbyHousesForStreetQuery()
     {

@@ -351,6 +351,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         var applicant = await db.ApplicantProfiles
             .Include(item => item.User)
+            .Include(item => item.ApplicantEducations)
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
         var opportunity = await db.Opportunities.FirstOrDefaultAsync(item =>
             item.Id == request.opportunityId &&
@@ -365,6 +366,13 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         {
             return AuthEndpointSupport.MessageResult(
                 "Подтвердите аккаунт полностью, чтобы отправлять отклики на возможности.",
+                StatusCodes.Status403Forbidden);
+        }
+
+        if (!CandidateOnboardingSupport.IsMandatoryProfileComplete(applicant))
+        {
+            return AuthEndpointSupport.MessageResult(
+                "Заполните обязательные поля профиля кандидата, чтобы отправлять отклики на возможности.",
                 StatusCodes.Status403Forbidden);
         }
 

@@ -1,5 +1,6 @@
 import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { buildSocialProfileHref } from "./social";
+import { getCandidateMandatoryCompletion, getCandidateOnboardingData, getCandidatePrimaryProfession } from "./onboarding";
 
 export function getCandidateDisplayName(profile) {
   if (!profile) {
@@ -34,15 +35,14 @@ export function getCandidateMeta(profile) {
     return "Личный кабинет соискателя";
   }
 
-  const links = isRecord(profile.links) ? profile.links : {};
-  const onboarding = isRecord(links.onboarding) ? links.onboarding : {};
+  const onboarding = getCandidateOnboardingData(profile);
   const education = Array.isArray(onboarding.educations) && onboarding.educations.length && isRecord(onboarding.educations[0])
     ? onboarding.educations[0]
     : isRecord(onboarding.education)
       ? onboarding.education
       : {};
   const metaParts = [
-    normalizeMetaPart(onboarding.profession),
+    normalizeMetaPart(getCandidatePrimaryProfession(profile)),
     normalizeMetaPart(onboarding.city),
     education.graduationYear ? `выпуск ${education.graduationYear}` : "",
   ].filter(Boolean);
@@ -62,18 +62,8 @@ export function getCandidateSkills(profile) {
   return Array.isArray(profile?.skills) ? profile.skills.filter(Boolean) : [];
 }
 
-export function getProfileCompletion(profile, education, achievements, projects) {
-  let points = 0;
-  const skills = getCandidateSkills(profile);
-
-  if (profile?.name) points += 20;
-  if (profile?.description) points += 20;
-  if (skills.length) points += 20;
-  if (Array.isArray(education) && education.length) points += 15;
-  if (Array.isArray(achievements) && achievements.length) points += 10;
-  if (Array.isArray(projects) && projects.length) points += 15;
-
-  return Math.min(points, 100);
+export function getProfileCompletion(profile, education) {
+  return getCandidateMandatoryCompletion(profile, education);
 }
 
 export function formatLongDate(value) {
@@ -105,7 +95,7 @@ export function formatMonthRange(startDate, endDate, isOngoing) {
     return startLabel;
   }
 
-  return `${startLabel} — ${endLabel}`;
+  return `${startLabel} - ${endLabel}`;
 }
 
 function formatMonth(value) {
@@ -154,7 +144,7 @@ export function mapCandidateApplicationToCard(application) {
     statusLabel: translateApplicationStatus(status),
     title: application.opportunityTitle,
     company: companyMeta || application.companyName || "Компания",
-    details: [`Дата отправления заявки: ${appliedAtLabel}`],
+    details: [`Дата отправки заявки: ${appliedAtLabel}`],
     description: buildApplicationDescription(status, application.employerNote),
     canWithdraw: status === "submitted" || status === "reviewing",
     canConfirm: status === "invited",
@@ -218,17 +208,6 @@ export function mapContactToPeerCard(contact, candidateSkills = []) {
 
 export function translateOpportunityType(value) {
   return translateSharedOpportunityType(value);
-/*
-  switch (value) {
-    case "internship":
-      return "Стажировка";
-    case "vacancy":
-      return "Вакансия";
-    case "event":
-      return "Мероприятие";
-    default:
-      return value || "Возможность";
-  }*/
 }
 
 export function translateApplicationStatus(value) {
@@ -273,11 +252,12 @@ export function translateEmploymentType(value) {
     case "remote":
       return "Удаленно";
     case "hybrid":
+      return "Гибрид";
     case "online":
-      return "онлайн";
+      return "Онлайн";
     case "office":
     case "onsite":
-      return "офис";
+      return "Офис";
     default:
       return value && normalizeStatus(value) !== "unspecified" ? value : "";
   }

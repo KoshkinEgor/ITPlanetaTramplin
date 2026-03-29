@@ -1,4 +1,5 @@
 using DTO;
+using ITPlanetaTramplin.Api.Domain;
 using ITPlanetaTramplin.Api.Integrations;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
@@ -7,10 +8,17 @@ internal static class CommonEndpointRouteBuilderExtensions
 {
     public static RouteGroupBuilder MapCommonEndpoints(this RouteGroupBuilder api)
     {
+        api.MapGet("/professions", HandleProfessionSearchAsync);
         api.MapGet("/location/address-suggestions", HandleAddressSuggestionsAsync);
         api.MapGet("/location/reverse-geocode", HandleReverseGeocodeAsync);
 
         return api;
+    }
+
+    private static IResult HandleProfessionSearchAsync(string? query, int? count)
+    {
+        var items = CandidateProfessionCatalog.Search(query, count ?? 12);
+        return Results.Ok(new { Items = items });
     }
 
     private static async Task<IResult> HandleAddressSuggestionsAsync(

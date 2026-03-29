@@ -1,4 +1,7 @@
+import { searchAddressSuggestions } from "./addresses";
+
 const OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
+const YANDEX_CITY_KIND = "city";
 
 export const DEFAULT_CITY_NAME = "Чебоксары";
 
@@ -96,8 +99,8 @@ export const FALLBACK_CITY_OPTIONS = Object.freeze(
     .filter(Boolean)
 );
 
-function getCacheKey(query, { count, language, countryCode }) {
-  return [normalizeCityName(query), count, language, countryCode].join("|");
+function getCacheKey(query, { count, language, countryCode, source = "open-meteo" }) {
+  return [source, normalizeCityName(query), count, language, countryCode].join("|");
 }
 
 function filterFallbackOptions(query) {
@@ -229,6 +232,31 @@ function normalizeRemoteOptions(results) {
   return Array.isArray(results) ? results.map(createCityOption).filter(Boolean) : [];
 }
 
+function createYandexCityOption(option) {
+  const name = String(option?.city ?? option?.label ?? option?.value ?? "").trim();
+
+  if (!name) {
+    return null;
+  }
+
+  return createCityOption({
+    name,
+    admin1: String(option?.details ?? "").trim(),
+    country: "Россия",
+    countryCode: "RU",
+    latitude: option?.latitude,
+    longitude: option?.longitude,
+  });
+}
+
+function isYandexCityLikeOption(option) {
+  if (String(option?.kind ?? "").trim().toLowerCase() === YANDEX_CITY_KIND) {
+    return true;
+  }
+
+  return Boolean(option?.city) && !option?.street && !option?.house;
+}
+
 export async function searchCityOptions(
   query,
   {
@@ -284,6 +312,51 @@ export async function searchCityOptions(
   return requestPromise;
 }
 
+export async function searchYandexCityOptions(
+  query,
+  {
+    signal,
+    count = 8,
+  } = {}
+) {
+  const trimmedQuery = String(query ?? "").trim();
+
+  if (!trimmedQuery) {
+    return filterFallbackOptions("");
+  }
+
+  const cacheKey = getCacheKey(trimmedQuery, {
+    count,
+    language: "ru",
+    countryCode: "RU",
+    source: "yandex",
+  });
+
+  if (citySearchCache.has(cacheKey)) {
+    return citySearchCache.get(cacheKey);
+  }
+
+  const requestPromise = searchAddressSuggestions(trimmedQuery, {
+    signal,
+    count: Math.min(Math.max(Number(count) || 8, 1), 10),
+  })
+    .then((payload) => {
+      const yandexOptions = (Array.isArray(payload?.suggestions) ? payload.suggestions : [])
+        .filter(isYandexCityLikeOption)
+        .map(createYandexCityOption)
+        .filter(Boolean);
+
+      return mergeCityOptions(yandexOptions, filterFallbackOptions(trimmedQuery)).slice(0, count);
+    })
+    .catch((error) => {
+      citySearchCache.delete(cacheKey);
+      throw error;
+    });
+
+  citySearchCache.set(cacheKey, requestPromise);
+  return requestPromise;
+}
+
 export async function resolveCityOption(cityName, options = {}) {
   const normalizedCityName = normalizeCityName(cityName);
 
@@ -297,7 +370,10 @@ export async function resolveCityOption(cityName, options = {}) {
     return exactFallback;
   }
 
-  const cityOptions = await searchCityOptions(cityName, options);
+  const searchFn = typeof options.searchOptions === "function"
+    ? options.searchOptions
+    : searchCityOptions;
+  const cityOptions = await searchFn(cityName, options);
 
   return cityOptions.find((option) => normalizeCityName(option.name) === normalizedCityName) ?? cityOptions[0] ?? null;
 }
