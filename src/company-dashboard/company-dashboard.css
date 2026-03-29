@@ -1383,8 +1383,11 @@
 
 .company-dashboard-portfolio--compact.ui-card {
   gap: 18px;
+  min-height: auto;
   padding: 22px;
   border-radius: 30px;
+  align-content: start;
+  align-self: start;
 }
 
 .company-dashboard-portfolio--compact .company-dashboard-portfolio__head,
@@ -1409,6 +1412,15 @@
 
 .company-dashboard-portfolio--compact .company-dashboard-portfolio__viewport {
   border-radius: 26px;
+}
+
+.company-dashboard-portfolio--compact .ui-empty-state {
+  min-height: 260px;
+  align-content: start;
+}
+
+.company-dashboard-portfolio--compact .company-dashboard-portfolio__cta.ui-button {
+  min-height: 56px;
 }
 
 .company-dashboard-gallery-scroll--compact {

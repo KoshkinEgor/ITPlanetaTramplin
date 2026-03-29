@@ -754,7 +754,7 @@ export function CompanyProfileSection() {
                 compact
                 eyebrow="Кейсы"
                 title="Портфолио компании"
-                description="Готовый slider уже показывает публичные карточки. Новые проекты добавляются через кнопку внутри блока."
+                description="Добавьте проекты, чтобы показать кандидатам опыт команды, подход к работе и результаты в живом формате."
                 onCtaClick={handleOpenPortfolioModal}
               />
             </div>
