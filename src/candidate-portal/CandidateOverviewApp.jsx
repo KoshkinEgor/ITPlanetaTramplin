@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppLink } from "../app/AppLink";
 import { buildOpportunityDetailRoute, routes } from "../app/routes";
 import { OpportunityBlockCard, OpportunityBlockRail } from "../components/opportunities";
-import { getCandidateContacts } from "../api/candidate";
+import { getCandidateContactSuggestions, getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { useCandidateApplications } from "./candidate-applications-store";
 import { ApiError } from "../lib/http";
@@ -10,6 +10,7 @@ import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresent
 import { Alert, Button, Card, CareerPeerCard, DashboardActivityCard, EmptyState, Loader } from "../shared/ui";
 import { mapContactToPeerCard } from "./mappers";
 import { CandidateSectionHeader } from "./shared";
+import { mapSocialUserToCard } from "./social";
 
 function mapOpportunityCard(item) {
   const presentation = getOpportunityCardPresentation(item);
@@ -25,14 +26,12 @@ function mapOpportunityCard(item) {
   };
 }
 
-
 function formatActivityDate(value) {
   if (!value) {
     return "";
   }
 
   const parsed = new Date(value);
-
   if (Number.isNaN(parsed.getTime())) {
     return "";
   }
@@ -65,11 +64,11 @@ function buildApplicationActivityTitle(application) {
     case "accepted":
       return `Подтверждено участие: ${title}`;
     case "rejected":
-      return `Завершён отклик: ${title}`;
+      return `Завершен отклик: ${title}`;
     case "withdrawn":
       return `Отклик снят: ${title}`;
     default:
-      return `Обновлён отклик: ${title}`;
+      return `Обновлен отклик: ${title}`;
   }
 }
 
@@ -80,7 +79,7 @@ function buildContactActivityDescription(contact) {
     return `Навыки: ${skills.join(", ")}`;
   }
 
-  return contact?.email || "Контакт сохранён в личной сети.";
+  return contact?.email || "Контакт сохранен в личной сети.";
 }
 
 function buildRecentActions(applications, contacts) {
@@ -90,7 +89,7 @@ function buildRecentActions(applications, contacts) {
     order: index,
     timestamp: formatActivityDate(application?.appliedAt),
     title: buildApplicationActivityTitle(application),
-    description: [application?.companyName, application?.locationCity].filter(Boolean).join(" · ") || "Статус отклика обновлён.",
+    description: [application?.companyName, application?.locationCity].filter(Boolean).join(" · ") || "Статус отклика обновлен.",
   }));
   const contactActions = (Array.isArray(contacts) ? contacts : []).slice(0, 2).map((contact, index) => {
     const name = contact?.name || contact?.email || "новый контакт";
@@ -110,11 +109,31 @@ function buildRecentActions(applications, contacts) {
     .slice(0, 3);
 }
 
+function mapSuggestionToPeerCard(user) {
+  const card = mapSocialUserToCard(user);
+
+  return {
+    id: card.id,
+    userId: card.userId,
+    initials: card.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "К",
+    name: card.name,
+    sharedSkills: card.skills.slice(0, 3),
+    reasons: card.reasons,
+    href: card.href,
+  };
+}
+
 export function CandidateOverviewApp({ profile = null }) {
   const applicationsState = useCandidateApplications();
   const [state, setState] = useState({
     status: "loading",
     contacts: [],
+    suggestions: [],
     opportunities: [],
     error: null,
   });
@@ -124,14 +143,16 @@ export function CandidateOverviewApp({ profile = null }) {
 
     async function load() {
       try {
-        const [contacts, opportunities] = await Promise.all([
+        const [contacts, suggestions, opportunities] = await Promise.all([
           getCandidateContacts(controller.signal),
+          getCandidateContactSuggestions({ source: "overview", limit: 4 }, controller.signal),
           getOpportunities(controller.signal),
         ]);
 
         setState({
           status: "ready",
           contacts: Array.isArray(contacts) ? contacts : [],
+          suggestions: Array.isArray(suggestions) ? suggestions : [],
           opportunities: Array.isArray(opportunities) ? opportunities : [],
           error: null,
         });
@@ -143,6 +164,7 @@ export function CandidateOverviewApp({ profile = null }) {
         setState({
           status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
           contacts: [],
+          suggestions: [],
           opportunities: [],
           error,
         });
@@ -164,6 +186,10 @@ export function CandidateOverviewApp({ profile = null }) {
       .filter((contact) => contact.id)
       .slice(0, 2),
     [candidateSkills, state.contacts]
+  );
+  const topSuggestions = useMemo(
+    () => state.suggestions.slice(0, 2).map(mapSuggestionToPeerCard),
+    [state.suggestions]
   );
   const recentActions = useMemo(
     () => buildRecentActions(applicationsState.applications, state.contacts),
@@ -195,9 +221,10 @@ export function CandidateOverviewApp({ profile = null }) {
         <>
           <section className="candidate-page-section">
             <div className="candidate-overview-section-head">
-            <CandidateSectionHeader title="Рекомендуемые возможности" />
-
-              <Button href={routes.opportunities.catalog} variant="secondary" children={"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043a\u0430\u0442\u0430\u043b\u043e\u0433"} />
+              <CandidateSectionHeader title="Рекомендуемые возможности" />
+              <Button href={routes.opportunities.catalog} variant="secondary">
+                Перейти в каталог
+              </Button>
             </div>
 
             {topOpportunities.length ? (
@@ -218,7 +245,7 @@ export function CandidateOverviewApp({ profile = null }) {
                     {...cardProps}
                     detailAction={{
                       href: buildOpportunityDetailRoute(item.id),
-                      label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
+                      label: "Подробнее",
                       variant: "secondary",
                     }}
                   />
@@ -240,10 +267,10 @@ export function CandidateOverviewApp({ profile = null }) {
             <Card className="candidate-overview-spotlight">
               <div className="candidate-overview-spotlight__head">
                 <span className="ui-pill-button ui-pill-button--lg is-active candidate-overview-spotlight__pill">
-                  Рекомендуемые контакты
+                  Моя сеть
                 </span>
                 <AppLink href={routes.candidate.contacts} className="candidate-overview-spotlight__link">
-                  Все рекомендации
+                  Открыть contacts hub
                 </AppLink>
               </div>
 
@@ -256,12 +283,34 @@ export function CandidateOverviewApp({ profile = null }) {
               ) : (
                 <EmptyState
                   eyebrow="Нет контактов"
-                  title="Рекомендации пока не собраны"
-                  description="Контакты появятся здесь после новых связей и совпадений по навыкам."
+                  title="Ваша сеть пока пустая"
+                  description="Сохраняйте кандидатов в контакты, и быстрый доступ к ним появится здесь."
                   tone="neutral"
                   compact
                 />
               )}
+
+              <div className="candidate-overview-spotlight__subsection">
+                <div className="candidate-overview-spotlight__head">
+                  <span className="ui-pill-button candidate-overview-spotlight__subpill">Люди для вас</span>
+                </div>
+
+                {topSuggestions.length ? (
+                  <div className="candidate-overview-spotlight__stack">
+                    {topSuggestions.map((contact) => (
+                      <CareerPeerCard key={`suggestion-${contact.id}`} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" className="candidate-overview-contact-card" />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    eyebrow="Нет suggestions"
+                    title="Новых рекомендаций пока нет"
+                    description="Когда появятся релевантные люди по навыкам, городу и откликам, они появятся здесь."
+                    tone="neutral"
+                    compact
+                  />
+                )}
+              </div>
             </Card>
 
             <Card className="candidate-overview-spotlight candidate-overview-spotlight--activity">

@@ -177,12 +177,23 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         var applications = await db.Applications
             .Include(item => item.Opportunity)
             .ThenInclude(item => item.Employer)
+            .Include(item => item.Opportunity)
+            .ThenInclude(item => item.Tags)
             .Where(item => item.ApplicantId == profile.Id)
             .OrderByDescending(item => item.AppliedAt)
-            .Select(OpportunityApplicationMapping.CandidateSummaryProjection)
             .ToListAsync();
 
-        return Results.Ok(applications);
+        var result = new List<OpportunityApplicationSummaryDTO>(applications.Count);
+        foreach (var application in applications)
+        {
+            var summary = OpportunityApplicationMapping.ToCandidateSummary(application);
+            summary.AllowPeerVisibility = application.AllowPeerVisibility;
+            summary.OpportunityTags = application.Opportunity.Tags.Select(tag => tag.Name).ToList();
+            summary.SocialContextPreview = await BuildApplicationSocialContextPreviewAsync(db, profile, application.Opportunity);
+            result.Add(summary);
+        }
+
+        return Results.Ok(result);
     }
 
     private static Task<IResult> WithdrawCurrentCandidateApplicationAsync(
@@ -226,6 +237,8 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         var application = await db.Applications
             .Include(item => item.Opportunity)
             .ThenInclude(item => item.Employer)
+            .Include(item => item.Opportunity)
+            .ThenInclude(item => item.Tags)
             .FirstOrDefaultAsync(item => item.Id == applicationId && item.ApplicantId == profile.Id);
 
         if (application is null)

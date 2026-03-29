@@ -188,6 +188,45 @@ export function cancelCandidateProjectInvite(inviteId) {
   });
 }
 
+export function getCandidateOpportunityShares(box = "all", signal) {
+  const searchParams = new URLSearchParams();
+
+  if (typeof box === "string" && box.trim() && box.trim().toLowerCase() !== "all") {
+    searchParams.set("box", box.trim().toLowerCase());
+  }
+
+  const query = searchParams.toString();
+  return apiRequest(`/candidate/me/opportunity-shares${query ? `?${query}` : ""}`, { signal });
+}
+
+export function createCandidateOpportunityShare(body) {
+  return apiRequest("/candidate/me/opportunity-shares", {
+    method: "POST",
+    body,
+  });
+}
+
+export function getCandidateContactSuggestions(options = {}, signal) {
+  const searchParams = new URLSearchParams();
+  const source = typeof options?.source === "string" ? options.source.trim().toLowerCase() : "";
+  const limit = Number(options?.limit);
+
+  if (source) {
+    searchParams.set("source", source);
+  }
+
+  if (Number.isFinite(limit) && limit > 0) {
+    searchParams.set("limit", String(Math.round(limit)));
+  }
+
+  const query = searchParams.toString();
+  return apiRequest(`/candidate/me/contact-suggestions${query ? `?${query}` : ""}`, { signal });
+}
+
+export function getCandidateOpportunitySocialContext(opportunityId, signal) {
+  return apiRequest(`/candidate/opportunities/${opportunityId}/social-context`, { signal });
+}
+
 export function getCandidatePublicProfile(userId, signal) {
   return apiRequest(`/candidate/public/${userId}`, { signal });
 }

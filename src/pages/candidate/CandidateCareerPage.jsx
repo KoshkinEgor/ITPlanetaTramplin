@@ -5,6 +5,7 @@ import {
   createCandidateEducation,
   deleteCandidateEducation,
   getCandidateApplications,
+  getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
   getCandidateProfile,
@@ -319,6 +320,7 @@ export function CandidateCareerPage() {
     status: "idle",
     applications: [],
     contacts: [],
+    suggestions: [],
     recommendations: [],
     opportunities: [],
     degraded: false,
@@ -378,6 +380,7 @@ export function CandidateCareerPage() {
     Promise.allSettled([
       getCandidateApplications(controller.signal),
       getCandidateContacts(controller.signal),
+      getCandidateContactSuggestions({ source: "dashboard", limit: 6 }, controller.signal),
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
     ]).then((results) => {
@@ -385,18 +388,19 @@ export function CandidateCareerPage() {
         return;
       }
 
-      const [applicationsResult, contactsResult, recommendationsResult, opportunitiesResult] = results;
+      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
 
       setDashboardState({
         status: "ready",
         applications: applicationsResult.status === "fulfilled" ? safeArray(applicationsResult.value) : [],
         contacts: contactsResult.status === "fulfilled" ? safeArray(contactsResult.value) : [],
+        suggestions: suggestionsResult.status === "fulfilled" ? safeArray(suggestionsResult.value) : [],
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
         degraded: failedCount > 0,
         error: failedCount === results.length
-          ? (applicationsResult.reason ?? contactsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
+          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
           : null,
       });
     }).catch((error) => {
@@ -408,6 +412,7 @@ export function CandidateCareerPage() {
         status: "error",
         applications: [],
         contacts: [],
+        suggestions: [],
         recommendations: [],
         opportunities: [],
         degraded: false,

@@ -20,6 +20,8 @@ internal static class OpportunityApplicationMapping
         EmploymentType = item.Opportunity.EmploymentType,
         OpportunityDeleted = item.Opportunity.DeletedAt != null,
         ModerationStatus = item.Opportunity.ModerationStatus,
+        AllowPeerVisibility = item.AllowPeerVisibility,
+        OpportunityTags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
     };
 
     public static OpportunityApplicationSummaryDTO ToCandidateSummary(OpportunityApplication item) =>
@@ -37,5 +39,7 @@ internal static class OpportunityApplicationMapping
             EmploymentType = item.Opportunity.EmploymentType,
             OpportunityDeleted = item.Opportunity.DeletedAt != null,
             ModerationStatus = item.Opportunity.ModerationStatus,
+            AllowPeerVisibility = item.AllowPeerVisibility,
+            OpportunityTags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
         };
 }

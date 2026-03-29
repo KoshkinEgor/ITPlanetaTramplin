@@ -28,8 +28,9 @@ export function deleteOpportunity(opportunityId) {
   });
 }
 
-export function applyToOpportunity(opportunityId) {
+export function applyToOpportunity(opportunityId, body = {}) {
   return apiRequest(`/opportunities/${opportunityId}/applications`, {
     method: "POST",
+    body,
   });
 }

@@ -62,6 +62,34 @@ public class CandidateProjectInviteReadDTO
     public SocialUserSummaryDTO Counterparty { get; set; } = new();
 }
 
+public class OpportunityShareCreateDTO
+{
+    public int OpportunityId { get; set; }
+
+    public int RecipientUserId { get; set; }
+
+    public string? Note { get; set; }
+}
+
+public class OpportunityShareReadDTO
+{
+    public int Id { get; set; }
+
+    public int SenderUserId { get; set; }
+
+    public int RecipientUserId { get; set; }
+
+    public int OpportunityId { get; set; }
+
+    public string OpportunityTitle { get; set; } = string.Empty;
+
+    public string? Note { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public SocialUserSummaryDTO Counterparty { get; set; } = new();
+}
+
 public class RelationshipSummaryDTO
 {
     public string ContactState { get; set; } = "none";
@@ -89,7 +117,51 @@ public class SocialUserSummaryDTO
 
     public List<string>? Skills { get; set; }
 
+    public List<string> Reasons { get; set; } = [];
+
     public RelationshipSummaryDTO Relationship { get; set; } = new();
+}
+
+public class CompanyContactDTO
+{
+    public string Type { get; set; } = "link";
+
+    public string Label { get; set; } = string.Empty;
+
+    public string Value { get; set; } = string.Empty;
+
+    public string Href { get; set; } = string.Empty;
+}
+
+public class SocialContextPreviewDTO
+{
+    public List<CompanyContactDTO> CompanyContactsPreview { get; set; } = [];
+
+    public List<SocialUserSummaryDTO> NetworkCandidatesPreview { get; set; } = [];
+
+    public int PeerCount { get; set; }
+
+    public int IncomingShareCount { get; set; }
+}
+
+public class OpportunitySocialContextCountsDTO
+{
+    public int NetworkCandidateCount { get; set; }
+
+    public int PeerCount { get; set; }
+
+    public int IncomingShareCount { get; set; }
+}
+
+public class OpportunitySocialContextDTO
+{
+    public List<CompanyContactDTO> CompanyContacts { get; set; } = [];
+
+    public List<SocialUserSummaryDTO> NetworkCandidates { get; set; } = [];
+
+    public List<SocialUserSummaryDTO> Peers { get; set; } = [];
+
+    public OpportunitySocialContextCountsDTO Counts { get; set; } = new();
 }
 
 public class CandidatePublicProfileReadDTO

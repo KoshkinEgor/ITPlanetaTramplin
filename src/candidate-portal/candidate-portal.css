@@ -529,6 +529,15 @@ body.candidate-portal-react-body {
   gap: 18px;
 }
 
+.candidate-overview-spotlight__subsection {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-overview-spotlight__subpill {
+  width: fit-content;
+}
+
 .candidate-overview-contact-card.ui-card,
 .candidate-overview-activity-card {
   box-shadow: none;
@@ -3212,6 +3221,12 @@ body.candidate-portal-react-body {
   margin: 0;
 }
 
+.candidate-social-card__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .candidate-social-card__tags {
   display: flex;
   flex-wrap: wrap;
@@ -3226,6 +3241,107 @@ body.candidate-portal-react-body {
 
 .candidate-social-card__action.ui-button {
   min-width: 0;
+}
+
+.candidate-social-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.candidate-social-opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.candidate-social-share-entry {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-social-share-entry__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.candidate-social-share-entry__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.candidate-social-share-entry__avatar {
+  --ui-avatar-size: 44px;
+}
+
+.candidate-social-share-entry__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.candidate-social-share-entry__copy strong {
+  color: var(--ui-color-text);
+}
+
+.candidate-social-share-entry__copy span,
+.candidate-social-share-entry__note {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  font-weight: 600;
+}
+
+.candidate-social-share-entry__note {
+  margin: 0;
+}
+
+.candidate-social-share-entry__card.ui-card {
+  min-height: 100%;
+}
+
+.candidate-application-card__social {
+  display: grid;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(129, 156, 198, 0.16);
+  border-radius: 24px;
+  background: rgba(247, 250, 255, 0.82);
+}
+
+.candidate-application-card__social-group {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-application-card__social-label {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  font-weight: 800;
+  letter-spacing: var(--ui-letter-spacing-caption);
+  text-transform: uppercase;
+}
+
+.candidate-application-card__social-value {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  font-weight: 600;
+}
+
+.candidate-application-card__social-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 @media (max-width: 760px) {
@@ -3245,5 +3361,9 @@ body.candidate-portal-react-body {
 
   .candidate-social-card__action.ui-button {
     width: 100%;
+  }
+
+  .candidate-social-opportunity-grid {
+    grid-template-columns: 1fr;
   }
 }

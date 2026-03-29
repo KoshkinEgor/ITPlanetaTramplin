@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCandidateContacts } from "../api/candidate";
+import { getCandidateContactSuggestions, getCandidateContacts } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { CandidateOverviewApp } from "./CandidateOverviewApp";
 
@@ -9,6 +9,7 @@ const useCandidateApplicationsMock = vi.fn();
 
 vi.mock("../api/candidate", () => ({
   getCandidateContacts: vi.fn(() => Promise.resolve([])),
+  getCandidateContactSuggestions: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("../api/opportunities", () => ({
@@ -36,10 +37,11 @@ describe("CandidateOverviewApp", () => {
       error: null,
     });
     getCandidateContacts.mockResolvedValue([]);
+    getCandidateContactSuggestions.mockResolvedValue([]);
     getOpportunities.mockResolvedValue([]);
   });
 
-  it("renders recommended contacts with shared skills and recent actions", async () => {
+  it("renders network, suggestions, and recent actions", async () => {
     getCandidateContacts.mockResolvedValue([
       {
         contactProfileId: 12,
@@ -48,12 +50,20 @@ describe("CandidateOverviewApp", () => {
         skills: ["SQL", "UX", "Research"],
         createdAt: "2026-03-14T10:00:00Z",
       },
+    ]);
+    getCandidateContactSuggestions.mockResolvedValue([
       {
-        contactProfileId: 28,
+        userId: 28,
         name: "Илья Демин",
         email: "ilya@example.com",
+        city: "Москва",
         skills: ["Analytics", "UX"],
-        createdAt: "2026-03-12T08:00:00Z",
+        reasons: ["Общие навыки: Analytics, UX"],
+        relationship: {
+          contactState: "none",
+          friendState: "none",
+          projectInviteState: "none",
+        },
       },
     ]);
     getOpportunities.mockResolvedValue([
@@ -89,13 +99,15 @@ describe("CandidateOverviewApp", () => {
 
     expect(await screen.findByText("Мария Соколова")).toBeInTheDocument();
     expect(screen.getByText("3 общих навыка: SQL, UX, Research")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Все рекомендации" })).toHaveAttribute("href", "/candidate/contacts");
+    expect(screen.getByText("Люди для вас")).toBeInTheDocument();
+    expect(screen.getByText("Илья Демин")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Открыть contacts hub" })).toHaveAttribute("href", "/candidate/contacts");
     expect(screen.getByText("Последние действия")).toBeInTheDocument();
     expect(screen.getByText("Отклик отправлен: Летняя школа SOC")).toBeInTheDocument();
     expect(screen.getByText("Добавлен контакт Мария Соколова")).toBeInTheDocument();
   });
 
-  it("moves the catalog action to the section header, keeps detail actions inside cards and shows typed facts", async () => {
+  it("keeps catalog action in the header and detail action inside cards", async () => {
     getOpportunities.mockResolvedValue([
       {
         id: 101,

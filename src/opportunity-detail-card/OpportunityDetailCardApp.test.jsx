@@ -2,11 +2,11 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  createCandidateRecommendation,
   getCandidateApplications,
-  getCandidateContacts,
   getCandidateEducation,
+  getCandidateOpportunitySocialContext,
   getCandidateProfile,
+  createCandidateOpportunityShare,
 } from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
 import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
@@ -26,10 +26,10 @@ vi.mock("../api/opportunities", () => ({
 
 vi.mock("../api/candidate", () => ({
   getCandidateApplications: vi.fn(() => Promise.resolve([])),
-  getCandidateContacts: vi.fn(() => Promise.resolve([])),
   getCandidateEducation: vi.fn(() => Promise.resolve([])),
+  getCandidateOpportunitySocialContext: vi.fn(() => Promise.resolve({ companyContacts: [], networkCandidates: [], peers: [], counts: { peerCount: 0, incomingShareCount: 0, networkCandidateCount: 0 } })),
   getCandidateProfile: vi.fn(() => Promise.resolve({})),
-  createCandidateRecommendation: vi.fn(() => Promise.resolve({})),
+  createCandidateOpportunityShare: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("../api/company", () => ({
@@ -133,15 +133,8 @@ describe("OpportunityDetailCardApp", () => {
     updateOpportunity.mockResolvedValue({});
     deleteOpportunity.mockResolvedValue({});
     getCandidateApplications.mockResolvedValue([]);
-    createCandidateRecommendation.mockResolvedValue({});
-    getCandidateContacts.mockResolvedValue([
-      {
-        userId: 901,
-        name: "Anna Petrova",
-        email: "anna.petrova@tramplin.local",
-        skills: ["React"],
-      },
-    ]);
+    createCandidateOpportunityShare.mockResolvedValue({});
+    getCandidateOpportunitySocialContext.mockResolvedValue({ companyContacts: [], networkCandidates: [], peers: [], counts: { peerCount: 0, incomingShareCount: 0, networkCandidateCount: 0 } });
     getCandidateProfile.mockResolvedValue({
       id: 1,
       name: "Анна",
@@ -251,6 +244,34 @@ describe("OpportunityDetailCardApp", () => {
   });
 
   it("opens the share modal with contacts and triggers sharing for the selected contact", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    getCandidateOpportunitySocialContext.mockResolvedValue({
+      companyContacts: [],
+      networkCandidates: [
+        {
+          userId: 901,
+          name: "Anna Petrova",
+          email: "anna.petrova@tramplin.local",
+          skills: ["React"],
+          relationship: {
+            contactState: "saved",
+            friendState: "none",
+            projectInviteState: "none",
+          },
+        },
+      ],
+      peers: [],
+      counts: {
+        peerCount: 0,
+        incomingShareCount: 0,
+        networkCandidateCount: 1,
+      },
+    });
+
     renderDetail("/opportunities/101");
 
     await screen.findByText("Junior Security Analyst");
@@ -261,18 +282,18 @@ describe("OpportunityDetailCardApp", () => {
     fireEvent.click(screen.getAllByRole("menuitem")[1]);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(await screen.findByText("Anna Petrova")).toBeInTheDocument();
+    expect((await screen.findAllByText("Anna Petrova")).length).toBeGreaterThan(0);
 
-    const shareButton = document.querySelector(".opportunity-share-modal__item .ui-button");
+    const shareButton = screen.getAllByRole("button", { name: "Поделиться" }).at(-1);
 
-    expect(shareButton).not.toBeNull();
+    expect(shareButton).toBeTruthy();
     fireEvent.click(shareButton);
 
     await waitFor(() => {
-      expect(createCandidateRecommendation).toHaveBeenCalledWith({
-        candidateId: 901,
+      expect(createCandidateOpportunityShare).toHaveBeenCalledWith({
+        recipientUserId: 901,
         opportunityId: 101,
-        message: expect.stringContaining("Junior Security Analyst"),
+        note: expect.stringContaining("Junior Security Analyst"),
       });
       expect(window.open).toHaveBeenCalledTimes(1);
       expect(window.open.mock.calls[0][0]).toContain("mailto:anna.petrova@tramplin.local");
