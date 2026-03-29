@@ -867,6 +867,12 @@ namespace ITPlanetaTramplin.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowPeerVisibility")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("allow_peer_visibility");
+
                     b.Property<int>("ApplicantId")
                         .HasColumnType("integer")
                         .HasColumnName("applicant_id");
@@ -903,6 +909,55 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.HasIndex(new[] { "OpportunityId" }, "idx_applications_opportunity_id");
 
                     b.ToTable("applications", (string)null);
+                });
+
+            modelBuilder.Entity("Models.OpportunityShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("integer")
+                        .HasColumnName("opportunity_id");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("recipient_user_id");
+
+                    b.Property<int>("SenderUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sender_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("opportunity_shares_pkey");
+
+                    b.HasIndex(new[] { "OpportunityId" }, "idx_opportunity_shares_opportunity_id");
+
+                    b.HasIndex(new[] { "RecipientUserId" }, "idx_opportunity_shares_recipient_user_id");
+
+                    b.HasIndex(new[] { "SenderUserId" }, "idx_opportunity_shares_sender_user_id");
+
+                    b.HasIndex(new[] { "SenderUserId", "RecipientUserId", "OpportunityId" }, "opportunity_shares_sender_user_id_recipient_user_id_opportunity_id_key")
+                        .IsUnique();
+
+                    b.ToTable("opportunity_shares", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OpportunityShares_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
+                        });
                 });
 
             modelBuilder.Entity("Models.Recommendation", b =>
@@ -1336,6 +1391,36 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("Applicant");
 
                     b.Navigation("Opportunity");
+                });
+
+            modelBuilder.Entity("Models.OpportunityShare", b =>
+                {
+                    b.HasOne("Models.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("opportunity_shares_opportunity_id_fkey");
+
+                    b.HasOne("Models.User", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("opportunity_shares_recipient_user_id_fkey");
+
+                    b.HasOne("Models.User", "SenderUser")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("opportunity_shares_sender_user_id_fkey");
+
+                    b.Navigation("Opportunity");
+
+                    b.Navigation("RecipientUser");
+
+                    b.Navigation("SenderUser");
                 });
 
             modelBuilder.Entity("Models.Recommendation", b =>

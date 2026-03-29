@@ -28,6 +28,16 @@ function normalizeSkillList(value) {
     .filter(Boolean);
 }
 
+export function normalizeReasonList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+}
+
 function normalizeLinkValue(value) {
   const normalized = normalizeText(value);
   if (!normalized) {
@@ -98,6 +108,81 @@ export function isFriend(relationship) {
 export function canInviteCandidateToProject(relationship) {
   const normalized = normalizeRelationship(relationship);
   return normalized.canInviteToProject || normalized.contactState === "saved" || normalized.friendState === "friends";
+}
+
+export function canShareOpportunityWithRelationship(relationship) {
+  const normalized = normalizeRelationship(relationship);
+  return normalized.contactState === "saved" || normalized.friendState === "friends";
+}
+
+export function getRelationshipActionState(relationship) {
+  const normalized = normalizeRelationship(relationship);
+
+  if (normalized.projectInviteState === "incoming") {
+    return "project_invite_incoming";
+  }
+
+  if (normalized.projectInviteState === "outgoing") {
+    return "project_invite_outgoing";
+  }
+
+  if (normalized.friendState === "incoming") {
+    return "friend_request_incoming";
+  }
+
+  if (normalized.friendState === "outgoing") {
+    return "friend_request_outgoing";
+  }
+
+  if (normalized.friendState === "friends") {
+    return "friends";
+  }
+
+  if (normalized.contactState === "saved") {
+    return "saved";
+  }
+
+  return "none";
+}
+
+export function getRelationshipPrimaryAction(state) {
+  switch (state) {
+    case "none":
+      return { key: "save-contact", label: "Добавить в контакты", variant: "primary", disabled: false };
+    case "saved":
+      return { key: "send-friend-request", label: "Отправить заявку в друзья", variant: "secondary", disabled: false };
+    case "friend_request_outgoing":
+      return { key: "friend-request-sent", label: "Заявка отправлена", variant: "secondary", disabled: true };
+    case "friend_request_incoming":
+      return { key: "accept-friend-request", label: "Принять", variant: "primary", disabled: false };
+    case "friends":
+      return { key: "invite-to-project", label: "Пригласить в проект", variant: "primary", disabled: false };
+    case "project_invite_outgoing":
+      return { key: "project-invite-sent", label: "Инвайт отправлен", variant: "secondary", disabled: true };
+    case "project_invite_incoming":
+      return { key: "accept-project-invite", label: "Принять инвайт", variant: "primary", disabled: false };
+    default:
+      return null;
+  }
+}
+
+export function getRelationshipSecondaryAction(state) {
+  switch (state) {
+    case "friend_request_incoming":
+      return { key: "decline-friend-request", label: "Отклонить", variant: "secondary", disabled: false };
+    case "friend_request_outgoing":
+      return { key: "cancel-friend-request", label: "Отменить заявку", variant: "ghost", disabled: false };
+    case "project_invite_incoming":
+      return { key: "decline-project-invite", label: "Отклонить", variant: "secondary", disabled: false };
+    case "project_invite_outgoing":
+      return { key: "cancel-project-invite", label: "Отменить инвайт", variant: "ghost", disabled: false };
+    case "friends":
+      return { key: "share-opportunity", label: "Поделиться возможностью", variant: "secondary", disabled: false };
+    case "saved":
+      return { key: "share-opportunity", label: "Поделиться возможностью", variant: "ghost", disabled: false };
+    default:
+      return null;
+  }
 }
 
 export function getRelationshipBadge(relationship) {
@@ -173,8 +258,11 @@ export function mapSocialUserToCard(user) {
     userId: normalizeUserId(user?.userId ?? user?.contactProfileId ?? user?.id),
     name,
     email: normalizeText(user?.email),
+    city: normalizeText(user?.city),
     skills,
+    reasons: normalizeReasonList(user?.reasons),
     relationship,
+    relationshipState: getRelationshipActionState(relationship),
     badge: getRelationshipBadge(relationship),
     href: buildSocialProfileHref(user),
   };

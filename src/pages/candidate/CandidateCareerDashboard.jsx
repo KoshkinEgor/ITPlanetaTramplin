@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildCandidatePublicProfileRoute, buildOpportunityDetailRoute, routes } from "../../app/routes";
 import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-portal/mappers";
+import { mapSocialUserToCard } from "../../candidate-portal/social";
 import { OpportunityBlockSlider } from "../../components/opportunities";
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import {
@@ -315,6 +316,21 @@ function getSharedContacts(profile, contacts) {
   }).filter((contact) => contact.id).slice(0, 3);
 }
 
+function getSuggestedContacts(suggestions) {
+  return safeArray(suggestions).map((user) => {
+    const card = mapSocialUserToCard(user);
+
+    return {
+      id: card.id,
+      name: card.name,
+      initials: buildInitials(card.name),
+      sharedSkills: card.skills.slice(0, 3),
+      reasons: card.reasons.slice(0, 3),
+      href: card.href,
+    };
+  }).filter((contact) => contact.id).slice(0, 3);
+}
+
 function countByStatus(items, status) {
   return items.filter((item) => item?.status === status).length;
 }
@@ -328,7 +344,9 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
   const courses = pickCourses(profile).map(mapCourseCard);
   const opportunities = getOpportunityCards(dashboardState.recommendations, dashboardState.opportunities);
   const salaryTrack = SALARY_TRACKS[resolveTrackKey(profile)] ?? SALARY_TRACKS.default;
-  const sharedContacts = getSharedContacts(profile, dashboardState.contacts);
+  const networkContacts = getSharedContacts(profile, dashboardState.contacts);
+  const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
+  const sharedContacts = networkContacts;
   const mentors = useMemo(
     () => MENTORS.filter((mentor) => mentor.focus.includes(mentorFilter)).slice(0, 3),
     [mentorFilter]
@@ -435,7 +453,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         )}
       </section>
 
-      <section className="candidate-career-dashboard__section">
+      <section className="candidate-career-dashboard__section" id="mentors">
         <SectionHeader
           title="Есть вопросы? Обратись к нашим менторам!"
           size="md"
@@ -461,10 +479,10 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
 
       <section className="candidate-career-dashboard__section">
         <SectionHeader
-          title="У вас есть общие интересы"
-          description="Вы можете найти единомышленников и погрузиться в профессиональную среду. Работайте над проектами совместно и развивайте не только профильные навыки."
+          title="Активные связи"
+          description="Ваши текущие контакты и друзья, с которыми уже можно обсуждать отклики и совместные проекты."
           size="md"
-          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Найти единомышленников →</a>}
+          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Открыть мою сеть →</a>}
         />
         {sharedContacts.length ? (
           <div className="candidate-career-dashboard__peer-grid">
@@ -475,6 +493,26 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         ) : (
           <Alert tone="info" title="Пока нет реальных рекомендаций" showIcon>
             Когда в сети появятся контакты с общими интересами, они появятся здесь.
+          </Alert>
+        )}
+      </section>
+
+      <section className="candidate-career-dashboard__section">
+        <SectionHeader
+          title="Люди под ваши отклики"
+          description="Новые кандидаты, которые пересекаются с вашими навыками, городом и активными откликами."
+          size="md"
+          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Открыть suggestions →</a>}
+        />
+        {suggestedContacts.length ? (
+          <div className="candidate-career-dashboard__peer-grid">
+            {suggestedContacts.map((contact) => (
+              <CareerPeerCard key={`suggested-${contact.id}`} {...contact} profileHref={contact.href} actionLabel="Открыть профиль" />
+            ))}
+          </div>
+        ) : (
+          <Alert tone="info" title="Пока нет новых рекомендаций" showIcon>
+            Когда появятся релевантные люди под ваши отклики, они будут показаны здесь.
           </Alert>
         )}
       </section>

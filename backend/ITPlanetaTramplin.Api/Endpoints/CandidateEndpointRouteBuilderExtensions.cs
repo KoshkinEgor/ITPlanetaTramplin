@@ -39,6 +39,10 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         api.MapPost("/candidate/me/project-invites/{inviteId:int}/accept", AcceptCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/project-invites/{inviteId:int}/decline", DeclineCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/project-invites/{inviteId:int}/cancel", CancelCandidateProjectInviteAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/opportunity-shares", GetCurrentCandidateOpportunitySharesAsync).RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/opportunity-shares", CreateCurrentCandidateOpportunityShareAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/contact-suggestions", GetCurrentCandidateContactSuggestionsAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/opportunities/{opportunityId:int}/social-context", GetCandidateOpportunitySocialContextAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/recommendations", GetCurrentCandidateRecommendationsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/recommendations", CreateCandidateRecommendationAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/candidate/me/projects", GetCurrentCandidateProjectsAsync).RequireAuthorization("requireCandidateRole");

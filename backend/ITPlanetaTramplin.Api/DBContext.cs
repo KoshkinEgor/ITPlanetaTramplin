@@ -37,6 +37,8 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<Opportunity> Opportunities { get; set; }
 
+    public virtual DbSet<OpportunityShare> OpportunityShares { get; set; }
+
     public virtual DbSet<Recommendation> Recommendations { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
@@ -252,6 +254,9 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.AppliedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("applied_at");
+            entity.Property(e => e.AllowPeerVisibility)
+                .HasDefaultValue(false)
+                .HasColumnName("allow_peer_visibility");
             entity.Property(e => e.EmployerNote).HasColumnName("employer_note");
             entity.Property(e => e.OpportunityId).HasColumnName("opportunity_id");
             entity.Property(e => e.Status)
@@ -267,6 +272,47 @@ public partial class ApplicationDBContext : DbContext
                 .HasConstraintName("applications_opportunity_id_fkey");
 
 
+        });
+
+        modelBuilder.Entity<OpportunityShare>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("opportunity_shares_pkey");
+
+            entity.ToTable("opportunity_shares");
+
+            entity.HasIndex(e => new { e.SenderUserId, e.RecipientUserId, e.OpportunityId }, "opportunity_shares_sender_user_id_recipient_user_id_opportunity_id_key")
+                .IsUnique();
+            entity.HasIndex(e => e.RecipientUserId, "idx_opportunity_shares_recipient_user_id");
+            entity.HasIndex(e => e.SenderUserId, "idx_opportunity_shares_sender_user_id");
+            entity.HasIndex(e => e.OpportunityId, "idx_opportunity_shares_opportunity_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SenderUserId).HasColumnName("sender_user_id");
+            entity.Property(e => e.RecipientUserId).HasColumnName("recipient_user_id");
+            entity.Property(e => e.OpportunityId).HasColumnName("opportunity_id");
+            entity.Property(e => e.Note).HasColumnName("note");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.SenderUser)
+                .WithMany()
+                .HasForeignKey(d => d.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("opportunity_shares_sender_user_id_fkey");
+
+            entity.HasOne(d => d.RecipientUser)
+                .WithMany()
+                .HasForeignKey(d => d.RecipientUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("opportunity_shares_recipient_user_id_fkey");
+
+            entity.HasOne(d => d.Opportunity)
+                .WithMany()
+                .HasForeignKey(d => d.OpportunityId)
+                .HasConstraintName("opportunity_shares_opportunity_id_fkey");
+
+            entity.HasCheckConstraint("CK_OpportunityShares_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
         });
 
         modelBuilder.Entity<Contact>(entity =>

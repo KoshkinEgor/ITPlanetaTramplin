@@ -1,5 +1,5 @@
 import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
-import { buildSocialProfileHref } from "./social";
+import { buildSocialProfileHref, mapSocialUserToCard } from "./social";
 import { getCandidateMandatoryCompletion, getCandidateOnboardingData, getCandidatePrimaryProfession } from "./onboarding";
 
 export function getCandidateDisplayName(profile) {
@@ -134,6 +134,7 @@ export function mapCandidateApplicationToCard(application) {
   const status = normalizeStatus(application.status);
   const employmentLabel = translateEmploymentType(application.employmentType);
   const companyMeta = [application.companyName, application.locationCity, employmentLabel].filter(Boolean).join(" · ");
+  const socialContextPreview = normalizeSocialContextPreview(application.socialContextPreview);
 
   return {
     id: application.id,
@@ -150,6 +151,9 @@ export function mapCandidateApplicationToCard(application) {
     canConfirm: status === "invited",
     opportunityDeleted: Boolean(application.opportunityDeleted),
     moderationStatus: application.moderationStatus,
+    allowPeerVisibility: Boolean(application.allowPeerVisibility),
+    opportunityTags: Array.isArray(application.opportunityTags) ? application.opportunityTags.filter(Boolean) : [],
+    socialContextPreview,
   };
 }
 
@@ -197,6 +201,7 @@ export function mapContactToPeerCard(contact, candidateSkills = []) {
     sharedSkills: sharedSkills.length ? sharedSkills : contactSkills.slice(0, 3),
     email: contact?.email || "",
     relationship: contact?.relationship ?? null,
+    reasons: Array.isArray(contact?.reasons) ? contact.reasons.filter(Boolean) : [],
     href: buildSocialProfileHref({
       userId,
       name,
@@ -286,6 +291,29 @@ function buildApplicationDescription(status, employerNote) {
     default:
       return "Статус отклика обновляется.";
   }
+}
+
+function normalizeSocialContextPreview(value) {
+  const preview = isRecord(value) ? value : {};
+
+  return {
+    companyContacts: Array.isArray(preview.companyContactsPreview)
+      ? preview.companyContactsPreview
+        .filter(isRecord)
+        .map((item) => ({
+          type: normalizeMetaPart(item.type) || "link",
+          label: normalizeMetaPart(item.label) || "Контакт компании",
+          value: normalizeMetaPart(item.value),
+          href: normalizeMetaPart(item.href),
+        }))
+        .filter((item) => item.value || item.href)
+      : [],
+    networkCandidates: Array.isArray(preview.networkCandidatesPreview)
+      ? preview.networkCandidatesPreview.map(mapSocialUserToCard).filter((item) => item?.id)
+      : [],
+    peerCount: Number(preview.peerCount) || 0,
+    incomingShareCount: Number(preview.incomingShareCount) || 0,
+  };
 }
 
 function isRecord(value) {

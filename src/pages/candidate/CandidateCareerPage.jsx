@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildAuthLoginRoute, routes } from "../../app/routes";
 import {
   createCandidateEducation,
   deleteCandidateEducation,
   getCandidateApplications,
+  getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
   getCandidateProfile,
@@ -54,6 +55,7 @@ import {
   Tag,
   Textarea,
 } from "../../shared/ui";
+import { scheduleHashScroll } from "../../shared/lib/scrollToHashTarget";
 import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
 import { loadCandidateCareerContext } from "./candidate-access";
 import "./candidate-career.css";
@@ -312,11 +314,13 @@ async function syncCandidateEducation(profileEducation, draftEducations) {
 }
 
 export function CandidateCareerPage() {
+  const location = useLocation();
   const [contextState, setContextState] = useState({ status: "loading", data: null, error: null });
   const [dashboardState, setDashboardState] = useState({
     status: "idle",
     applications: [],
     contacts: [],
+    suggestions: [],
     recommendations: [],
     opportunities: [],
     degraded: false,
@@ -376,6 +380,7 @@ export function CandidateCareerPage() {
     Promise.allSettled([
       getCandidateApplications(controller.signal),
       getCandidateContacts(controller.signal),
+      getCandidateContactSuggestions({ source: "dashboard", limit: 6 }, controller.signal),
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
     ]).then((results) => {
@@ -383,18 +388,19 @@ export function CandidateCareerPage() {
         return;
       }
 
-      const [applicationsResult, contactsResult, recommendationsResult, opportunitiesResult] = results;
+      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
 
       setDashboardState({
         status: "ready",
         applications: applicationsResult.status === "fulfilled" ? safeArray(applicationsResult.value) : [],
         contacts: contactsResult.status === "fulfilled" ? safeArray(contactsResult.value) : [],
+        suggestions: suggestionsResult.status === "fulfilled" ? safeArray(suggestionsResult.value) : [],
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
         degraded: failedCount > 0,
         error: failedCount === results.length
-          ? (applicationsResult.reason ?? contactsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
+          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
           : null,
       });
     }).catch((error) => {
@@ -406,6 +412,7 @@ export function CandidateCareerPage() {
         status: "error",
         applications: [],
         contacts: [],
+        suggestions: [],
         recommendations: [],
         opportunities: [],
         degraded: false,
@@ -418,6 +425,17 @@ export function CandidateCareerPage() {
       controller.abort();
     };
   }, [contextState]);
+
+  useEffect(() => {
+    if (!location.hash) {
+      return undefined;
+    }
+
+    return scheduleHashScroll(location.hash, {
+      offset: 112,
+      behavior: "smooth",
+    });
+  }, [dashboardState.status, location.hash, location.pathname]);
 
   const activeStep = CANDIDATE_ONBOARDING_STEPS[activeStepIndex];
   const stepError = useMemo(

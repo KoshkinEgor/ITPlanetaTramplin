@@ -2,6 +2,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
+import { getPublicCompany } from "../api/company";
 import { getOpportunities } from "../api/opportunities";
 import {
   FAVORITE_COMPANY_IDS_STORAGE_KEY,
@@ -17,6 +18,10 @@ vi.mock("../api/opportunities", () => ({
 
 vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(),
+}));
+
+vi.mock("../api/company", () => ({
+  getPublicCompany: vi.fn(),
 }));
 
 vi.mock("../home/HomeOpportunityMap", () => ({
@@ -154,6 +159,25 @@ const opportunities = [
   },
 ];
 
+const publicCompanies = {
+  101: {
+    id: 101,
+    companyName: "IGrids",
+    description: "Продуктовая компания с командами frontend, аналитики и внутренних платформ.",
+    legalAddress: "Москва, Ленинградский проспект, 39",
+    socials: '[{"type":"website","url":"igrids.dev"},{"type":"telegram","url":"https://t.me/igrids"}]',
+    verificationStatus: "approved",
+  },
+  404: {
+    id: 404,
+    companyName: "Case Systems",
+    description: "Команда продуктового дизайна и QA для B2B-сервисов.",
+    legalAddress: "Чебоксары, Президентский бульвар, 1",
+    socials: '[{"type":"website","url":"case.systems"}]',
+    verificationStatus: "approved",
+  },
+};
+
 function renderApp() {
   return render(
     <MemoryRouter>
@@ -166,6 +190,14 @@ describe("OpportunitiesCatalogApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    getPublicCompany.mockImplementation(async (companyId) => publicCompanies[companyId] ?? {
+      id: companyId,
+      companyName: `Company ${companyId}`,
+      description: "",
+      legalAddress: "",
+      socials: "[]",
+      verificationStatus: "approved",
+    });
   });
 
   it("shows the loading state and cleans up the body class on unmount", () => {
@@ -229,6 +261,7 @@ describe("OpportunitiesCatalogApp", () => {
     const slider = await screen.findByRole("region", { name: "Рекомендуемые возможности" });
 
     expect(within(slider).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(within(slider).getAllByText(/Подходит на \d+%/).length).toBeGreaterThan(0);
     expect(slider.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(4);
     expect(slider.closest(".ui-kit-slider-showcase__section")).not.toBeNull();
     expect(slider.querySelector(".ui-kit-opportunity-slider__card")).not.toBeNull();
@@ -428,20 +461,57 @@ describe("OpportunitiesCatalogApp", () => {
     expect(within(mapPanel).getByText("Нет точек по текущим фильтрам")).toBeInTheDocument();
   });
 
-  it("aggregates companies for the default city section", async () => {
+  it("renders the companies slider with spotlight cards and enriched profile data", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
     renderApp();
 
-    const caseSystems = await screen.findByText("Case Systems");
-    const companiesCard = caseSystems.closest(".ui-card");
+    const companiesSection = await waitFor(() => {
+      const node = document.getElementById("companies");
+      expect(node).not.toBeNull();
+      return node;
+    });
+    const slider = within(companiesSection).getByRole("region", { name: "Компании Чебоксары" });
+    const caseSystems = within(slider).getByRole("heading", { name: "Case Systems" });
+    const caseCard = caseSystems.closest(".company-spotlight");
 
-    expect(companiesCard).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Вакансии в Чебоксары" })).toBeInTheDocument();
-    expect(within(companiesCard).getByText("Case Systems")).toBeInTheDocument();
-    expect(within(companiesCard).getByText("Case Systems").closest("a")).toHaveAttribute("href", "/companies/404");
+    expect(screen.getByRole("heading", { name: "Компании в Чебоксары" })).toBeInTheDocument();
+    expect(caseCard).not.toBeNull();
+    expect(caseSystems.closest("a")).toHaveAttribute("href", "/companies/404");
     expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
+    expect(within(caseCard).getByText("Команда продуктового дизайна и QA для B2B-сервисов.")).toBeInTheDocument();
+    expect(within(caseCard).getByText("Чебоксары, Президентский бульвар, 1")).toBeInTheDocument();
+    expect(within(caseCard).getByRole("link", { name: "website" })).toHaveAttribute("href", "https://case.systems");
+    expect(within(caseCard).queryByRole("button", { name: "Написать компании" })).not.toBeInTheDocument();
+  });
+
+  it("falls back to catalog description and address when the public company profile is unavailable", async () => {
+    getOpportunities.mockResolvedValue(opportunities);
+    getCandidateProfile.mockResolvedValue(null);
+    getPublicCompany.mockImplementation(async (companyId) => {
+      if (String(companyId) === "505") {
+        throw new Error("Missing company profile");
+      }
+
+      return publicCompanies[companyId] ?? {
+        id: companyId,
+        companyName: `Company ${companyId}`,
+        description: "",
+        legalAddress: "",
+        socials: "[]",
+        verificationStatus: "approved",
+      };
+    });
+
+    renderApp();
+
+    const shieldHeading = await screen.findByRole("heading", { name: "Shield Ops" });
+    const shieldCard = shieldHeading.closest(".company-spotlight");
+
+    expect(shieldCard).not.toBeNull();
+    expect(within(shieldCard).getByText("SOC monitoring and SIEM triage for junior analysts in the local team.")).toBeInTheDocument();
+    expect(within(shieldCard).getByText("Ярославская, 29")).toBeInTheDocument();
   });
 
   it("supports company favorites and propagates them to the map", async () => {
@@ -450,8 +520,8 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    const caseSystemsTile = await screen.findByText("Case Systems");
-    const tileCard = caseSystemsTile.closest(".ui-company-vacancy-tile");
+    const caseSystemsTile = await screen.findByRole("heading", { name: "Case Systems" });
+    const tileCard = caseSystemsTile.closest(".company-spotlight");
 
     expect(tileCard).not.toBeNull();
 

@@ -17,6 +17,8 @@ public partial class OpportunityApplication
 
     public string? EmployerNote { get; set; }
 
+    public bool AllowPeerVisibility { get; set; }
+
     public virtual ApplicantProfile Applicant { get; set; } = null!;
 
     public virtual Opportunity Opportunity { get; set; } = null!;

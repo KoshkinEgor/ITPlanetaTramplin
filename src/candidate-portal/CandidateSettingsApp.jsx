@@ -163,6 +163,7 @@ function createDraft(profile, education = []) {
   const visibility = isRecord(preferences.visibility) ? preferences.visibility : {};
   const audience = isRecord(preferences.audience) ? preferences.audience : {};
   const notifications = isRecord(preferences.notifications) ? preferences.notifications : {};
+  const social = isRecord(preferences.social) ? preferences.social : {};
   const security = isRecord(links.security) ? links.security : {};
 
   return {
@@ -182,6 +183,7 @@ function createDraft(profile, education = []) {
       profileAudience: normalizeString(audience.profileAudience) || "contacts",
       contactsAudience: normalizeString(audience.contactsAudience) || "employers-and-contacts",
       messagesAudience: normalizeString(audience.messagesAudience) || "everyone",
+      peerVisibilityDefault: Boolean(social.peerVisibilityDefault),
       responseStatus: notifications.responseStatus !== false,
       recommendationAlerts: notifications.recommendationAlerts !== false,
       contactInvites: notifications.contactInvites !== false,
@@ -243,6 +245,9 @@ function buildLinksPayload(profile, draft) {
         profileAudience: draft.privacy.profileAudience,
         contactsAudience: draft.privacy.contactsAudience,
         messagesAudience: draft.privacy.messagesAudience,
+      },
+      social: {
+        peerVisibilityDefault: Boolean(draft.privacy.peerVisibilityDefault),
       },
       notifications: {
         responseStatus: Boolean(draft.privacy.responseStatus),
@@ -582,11 +587,11 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
         </div>
       </section>
 
-      <section className="candidate-settings-detail__section">
-        <div className="candidate-settings-detail__head-inline">
-          <div>
-            <h4 className="candidate-settings-detail__section-title">Уведомления</h4>
-            <p className="candidate-settings-detail__section-text">Выберите, какие оповещения хотите получать.</p>
+        <section className="candidate-settings-detail__section">
+          <div className="candidate-settings-detail__head-inline">
+            <div>
+              <h4 className="candidate-settings-detail__section-title">Уведомления</h4>
+              <p className="candidate-settings-detail__section-text">Выберите, какие оповещения хотите получать.</p>
           </div>
           <Button type="button" variant="ghost" onClick={() => onResetGroup("notifications")}>Сбросить</Button>
         </div>
@@ -596,13 +601,34 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
           <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.recommendationAlerts} onChange={(event) => onChange("recommendationAlerts", event.target.checked)}><><span className="ui-check__label">Карьерные рекомендации</span><span className="ui-check__hint">Присылать новые подборки возможностей и советы.</span></></Switch></Card>
           <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.contactInvites} onChange={(event) => onChange("contactInvites", event.target.checked)}><><span className="ui-check__label">Контакты и приглашения</span><span className="ui-check__hint">Сообщать о новых контактах и приглашениях в проекты.</span></></Switch></Card>
           <Card className="candidate-project-editor-switch-card"><Switch className="candidate-project-editor-switch" checked={draft.privacy.newOpportunities} onChange={(event) => onChange("newOpportunities", event.target.checked)}><><span className="ui-check__label">Новые возможности</span><span className="ui-check__hint">Отправлять уведомления о новых стажировках и вакансиях.</span></></Switch></Card>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <CandidateSettingsSaveButton disabled={saveState.status === "saving"} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
-    </form>
-  );
-}
+        <section className="candidate-settings-detail__section">
+          <div className="candidate-settings-detail__head-inline">
+            <div>
+              <h4 className="candidate-settings-detail__section-title">Peers по возможностям</h4>
+              <p className="candidate-settings-detail__section-text">Управляйте значением по умолчанию для показа вас в списке других откликнувшихся.</p>
+            </div>
+            <Button type="button" variant="ghost" onClick={() => onChange("peerVisibilityDefault", false)}>Сбросить</Button>
+          </div>
+
+          <div className="candidate-settings-detail__stack">
+            <Card className="candidate-project-editor-switch-card">
+              <Switch className="candidate-project-editor-switch" checked={draft.privacy.peerVisibilityDefault} onChange={(event) => onChange("peerVisibilityDefault", event.target.checked)}>
+                <>
+                  <span className="ui-check__label">Показывать меня среди других откликнувшихся</span>
+                  <span className="ui-check__hint">Новые отклики по умолчанию будут создаваться с разрешением на peer visibility.</span>
+                </>
+              </Switch>
+            </Card>
+          </div>
+        </section>
+
+        <CandidateSettingsSaveButton disabled={saveState.status === "saving"} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
+      </form>
+    );
+  }
 
 async function syncCandidateEducation(currentEducation, draftEducations) {
   const activeEducationItems = getActiveCandidateEducationDrafts(draftEducations);

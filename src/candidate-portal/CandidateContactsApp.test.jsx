@@ -4,32 +4,56 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CandidateContactsApp } from "./CandidateContactsApp";
 import {
   acceptCandidateFriendRequest,
+  acceptCandidateProjectInvite,
+  cancelCandidateFriendRequest,
+  cancelCandidateProjectInvite,
+  createCandidateContact,
+  createCandidateFriendRequest,
+  declineCandidateFriendRequest,
+  declineCandidateProjectInvite,
+  deleteCandidateContact,
   deleteCandidateFriend,
+  getCandidateApplications,
+  getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateDirectory,
   getCandidateFriendRequests,
   getCandidateFriends,
+  getCandidateOpportunityShares,
+  getCandidateProfile,
   getCandidateProjectInvites,
 } from "../api/candidate";
+import { getOpportunity } from "../api/opportunities";
 import { useAuthSession } from "../auth/api";
 
 vi.mock("../api/candidate", () => ({
-  getCandidateContacts: vi.fn(),
-  getCandidateDirectory: vi.fn(),
-  getCandidateFriends: vi.fn(),
-  getCandidateFriendRequests: vi.fn(),
-  getCandidateProjectInvites: vi.fn(),
+  acceptCandidateFriendRequest: vi.fn(),
+  acceptCandidateProjectInvite: vi.fn(),
+  cancelCandidateFriendRequest: vi.fn(),
+  cancelCandidateProjectInvite: vi.fn(),
+  createCandidateContact: vi.fn(),
+  createCandidateFriendRequest: vi.fn(),
+  declineCandidateFriendRequest: vi.fn(),
+  declineCandidateProjectInvite: vi.fn(),
   deleteCandidateContact: vi.fn(),
   deleteCandidateFriend: vi.fn(),
-  acceptCandidateFriendRequest: vi.fn(),
-  declineCandidateFriendRequest: vi.fn(),
-  acceptCandidateProjectInvite: vi.fn(),
-  declineCandidateProjectInvite: vi.fn(),
-  cancelCandidateProjectInvite: vi.fn(),
+  getCandidateApplications: vi.fn(),
+  getCandidateContactSuggestions: vi.fn(),
+  getCandidateContacts: vi.fn(),
+  getCandidateDirectory: vi.fn(),
+  getCandidateFriendRequests: vi.fn(),
+  getCandidateFriends: vi.fn(),
+  getCandidateOpportunityShares: vi.fn(),
+  getCandidateProfile: vi.fn(),
+  getCandidateProjectInvites: vi.fn(),
 }));
 
 vi.mock("../auth/api", () => ({
   useAuthSession: vi.fn(),
+}));
+
+vi.mock("../api/opportunities", () => ({
+  getOpportunity: vi.fn(),
 }));
 
 function renderApp(initialEntry = "/candidate/contacts") {
@@ -38,6 +62,49 @@ function renderApp(initialEntry = "/candidate/contacts") {
       <CandidateContactsApp />
     </MemoryRouter>
   );
+}
+
+function createBaseProfile() {
+  return {
+    id: 7,
+    name: "Анна",
+    surname: "Иванова",
+    skills: ["UX", "Research"],
+    links: {
+      onboarding: {
+        city: "Москва",
+      },
+    },
+  };
+}
+
+function primeBaseMocks() {
+  getCandidateContacts.mockResolvedValue([]);
+  getCandidateDirectory.mockResolvedValue([]);
+  getCandidateFriends.mockResolvedValue([]);
+  getCandidateFriendRequests.mockResolvedValue([]);
+  getCandidateProjectInvites.mockResolvedValue([]);
+  getCandidateOpportunityShares.mockResolvedValue([]);
+  getCandidateContactSuggestions.mockResolvedValue([]);
+  getOpportunity.mockResolvedValue(null);
+  getCandidateProfile.mockResolvedValue(createBaseProfile());
+  getCandidateApplications.mockResolvedValue([
+    {
+      id: 100,
+      opportunityId: 900,
+      opportunityTags: ["UX", "Research"],
+    },
+  ]);
+  acceptCandidateFriendRequest.mockResolvedValue({});
+  acceptCandidateProjectInvite.mockResolvedValue({});
+  cancelCandidateFriendRequest.mockResolvedValue({});
+  cancelCandidateProjectInvite.mockResolvedValue({});
+  createCandidateContact.mockResolvedValue({});
+  createCandidateFriendRequest.mockResolvedValue({});
+  declineCandidateFriendRequest.mockResolvedValue({});
+  declineCandidateProjectInvite.mockResolvedValue({});
+  deleteCandidateContact.mockResolvedValue({});
+  deleteCandidateFriend.mockResolvedValue({});
 }
 
 describe("CandidateContactsApp", () => {
@@ -52,16 +119,10 @@ describe("CandidateContactsApp", () => {
       },
       error: null,
     });
-    getCandidateContacts.mockResolvedValue([]);
-    getCandidateDirectory.mockResolvedValue([]);
-    getCandidateFriends.mockResolvedValue([]);
-    getCandidateFriendRequests.mockResolvedValue([]);
-    getCandidateProjectInvites.mockResolvedValue([]);
-    acceptCandidateFriendRequest.mockResolvedValue({});
-    deleteCandidateFriend.mockResolvedValue({});
+    primeBaseMocks();
   });
 
-  it("opens the incoming tab from query params and accepts friend requests", async () => {
+  it("opens the actual tab from query params and accepts incoming friend requests", async () => {
     getCandidateFriendRequests.mockResolvedValue([
       {
         id: 17,
@@ -84,9 +145,9 @@ describe("CandidateContactsApp", () => {
       },
     ]);
 
-    renderApp("/candidate/contacts?tab=incoming");
+    renderApp("/candidate/contacts?tab=actual");
 
-    expect(await screen.findByRole("tab", { name: /Входящие/i })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("tab", { name: /Актуальные/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Мария Соколова")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Принять" }));
@@ -96,16 +157,31 @@ describe("CandidateContactsApp", () => {
     });
   });
 
-  it("shows recommended profiles by default and searches globally after clicking the button", async () => {
+  it("shows suggestions in search and allows adding a person to contacts inline", async () => {
+    getCandidateContactSuggestions.mockResolvedValue([
+      {
+        userId: 42,
+        name: "Мария Соколова",
+        email: "maria@tramplin.local",
+        city: "Москва",
+        skills: ["UX", "Research"],
+        reasons: ["Общие навыки: UX, Research"],
+        relationship: {
+          contactState: "none",
+          friendState: "none",
+          projectInviteState: "none",
+        },
+      },
+    ]);
     getCandidateDirectory.mockResolvedValue([
       {
         userId: 42,
         name: "Мария Соколова",
         email: "maria@tramplin.local",
         city: "Москва",
-        skills: ["UX"],
+        skills: ["UX", "Research"],
         relationship: {
-          contactState: "saved",
+          contactState: "none",
           friendState: "none",
           projectInviteState: "none",
         },
@@ -127,65 +203,27 @@ describe("CandidateContactsApp", () => {
     renderApp("/candidate/contacts?tab=search");
 
     expect(await screen.findByRole("tab", { name: /Поиск/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Рекомендованные:")).toBeInTheDocument();
-    expect(screen.getByText("Мария Соколова")).toBeInTheDocument();
-    expect(screen.getByText("Илья Смирнов")).toBeInTheDocument();
+    expect(screen.getByText("Люди для вас")).toBeInTheDocument();
+    expect(screen.getAllByText("Мария Соколова").length).toBeGreaterThan(0);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Поиск контактов" }), {
-      target: { value: "илья" },
+    fireEvent.change(screen.getByRole("searchbox", { name: "Поиск кандидатов" }), {
+      target: { value: "Илья" },
     });
-
-    expect(screen.getByText("Мария Соколова")).toBeInTheDocument();
-    expect(screen.getByText("Илья Смирнов")).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole("button", { name: "Найти" }));
 
-    expect(await screen.findByText("Илья Смирнов")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Илья Смирнов")).toBeInTheDocument();
+    });
     expect(screen.queryByText("Мария Соколова")).not.toBeInTheDocument();
-    expect(screen.queryByText("Рекомендованные:")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Добавить в контакты" }));
+
+    await waitFor(() => {
+      expect(createCandidateContact).toHaveBeenCalledWith({ userId: 55 });
+    });
   });
 
-  it("filters global profiles by city", async () => {
-    getCandidateDirectory.mockResolvedValue([
-      {
-        userId: 42,
-        name: "Мария Соколова",
-        email: "maria@tramplin.local",
-        city: "Москва",
-        skills: ["UX"],
-        relationship: {
-          contactState: "saved",
-          friendState: "none",
-          projectInviteState: "none",
-        },
-      },
-      {
-        userId: 55,
-        name: "Илья Смирнов",
-        email: "ilya@tramplin.local",
-        city: "Казань",
-        skills: ["React"],
-        relationship: {
-          contactState: "none",
-          friendState: "none",
-          projectInviteState: "none",
-        },
-      },
-    ]);
-
-    renderApp("/candidate/contacts?tab=search");
-
-    expect(await screen.findByText("Мария Соколова")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Все города" }));
-    fireEvent.click(await screen.findByRole("option", { name: "Москва" }));
-
-    const panel = screen.getByRole("tabpanel");
-    expect(within(panel).getByText("Мария Соколова")).toBeInTheDocument();
-    expect(within(panel).queryByText("Илья Смирнов")).not.toBeInTheDocument();
-  });
-
-  it("filters project invites between pending and history states", async () => {
+  it("switches the network tab to invites and accepts a project invite", async () => {
     getCandidateProjectInvites.mockResolvedValue([
       {
         id: 31,
@@ -208,46 +246,80 @@ describe("CandidateContactsApp", () => {
           },
         },
       },
+    ]);
+
+    renderApp("/candidate/contacts?tab=network");
+
+    expect(await screen.findByRole("tab", { name: /Моя сеть/i })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Инвайты" }));
+
+    expect(await screen.findByText("Анна Ковалёва")).toBeInTheDocument();
+    expect(screen.getByText(/Discovery Sprint/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Принять инвайт" }));
+
+    await waitFor(() => {
+      expect(acceptCandidateProjectInvite).toHaveBeenCalledWith(31);
+    });
+  });
+
+  it("shows incoming shared opportunities as mini cards on the contacts page", async () => {
+    getCandidateOpportunityShares.mockResolvedValue([
       {
-        id: 32,
-        senderUserId: 7,
-        recipientUserId: 55,
-        status: "accepted",
-        projectTitle: "Portfolio Refresh",
-        role: "Designer",
-        createdAt: "2026-03-05T10:00:00Z",
+        id: 51,
+        senderUserId: 42,
+        recipientUserId: 7,
+        opportunityId: 900,
+        opportunityTitle: "Frontend internship",
+        note: "Посмотри, тебе должно зайти по стеку.",
+        createdAt: "2026-03-18T10:00:00Z",
         counterparty: {
-          userId: 55,
-          name: "Илья Смирнов",
-          email: "ilya@tramplin.local",
-          skills: ["Figma"],
+          userId: 42,
+          name: "Мария Соколова",
+          email: "maria@tramplin.local",
+          skills: ["React", "TypeScript"],
           relationship: {
             contactState: "saved",
-            friendState: "friends",
-            projectInviteState: "accepted",
+            friendState: "none",
+            projectInviteState: "none",
           },
         },
       },
     ]);
+    getOpportunity.mockResolvedValue({
+      id: 900,
+      title: "Frontend internship",
+      companyName: "Sber Start",
+      locationCity: "Москва",
+      opportunityType: "internship",
+      employmentType: "hybrid",
+      duration: "3 месяца",
+      isPaid: true,
+      stipendFrom: 60000,
+      stipendTo: 80000,
+      moderationStatus: "approved",
+      tags: ["React", "TypeScript"],
+    });
 
-    renderApp("/candidate/contacts?tab=project-invites");
+    renderApp("/candidate/contacts?tab=actual");
 
-    expect(await screen.findByText("Анна Ковалёва")).toBeInTheDocument();
-    expect(screen.queryByText("Илья Смирнов")).not.toBeInTheDocument();
+    expect(await screen.findByText("Возможности, которые вам посоветовали")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "История" }));
-
-    expect(await screen.findByText("Илья Смирнов")).toBeInTheDocument();
-    expect(screen.queryByText("Анна Ковалёва")).not.toBeInTheDocument();
+    const shareSection = screen.getByText("Возможности, которые вам посоветовали").closest("section");
+    expect(shareSection).not.toBeNull();
+    expect(within(shareSection).getByText("Мария Соколова")).toBeInTheDocument();
+    expect(within(shareSection).getByText("Frontend internship")).toBeInTheDocument();
+    expect(within(shareSection).getByRole("link", { name: "К возможности" })).toHaveAttribute("href", "/opportunities/900");
   });
 
-  it("falls back to contacts-only mode when optional social endpoints return 404", async () => {
+  it("keeps the hub usable when optional social endpoints are unavailable", async () => {
     getCandidateContacts.mockResolvedValue([
       {
         userId: 42,
         contactProfileId: 42,
         name: "Мария Соколова",
         email: "maria@tramplin.local",
+        city: "Москва",
         skills: ["UX"],
         relationship: {
           contactState: "saved",
@@ -273,8 +345,10 @@ describe("CandidateContactsApp", () => {
     getCandidateFriends.mockRejectedValue({ status: 404 });
     getCandidateFriendRequests.mockRejectedValue({ status: 404 });
     getCandidateProjectInvites.mockRejectedValue({ status: 404 });
+    getCandidateOpportunityShares.mockRejectedValue({ status: 404 });
+    getCandidateContactSuggestions.mockRejectedValue({ status: 404 });
 
-    renderApp("/candidate/contacts");
+    renderApp("/candidate/contacts?tab=network");
 
     expect(await screen.findByText("Мария Соколова")).toBeInTheDocument();
     expect(screen.getByText("Часть social-возможностей пока недоступна")).toBeInTheDocument();

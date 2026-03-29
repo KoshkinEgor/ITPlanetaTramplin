@@ -332,10 +332,15 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
     private static async Task<IResult> CreateOpportunityApplicationByRouteAsync(
         int id,
+        [FromBody] OpportunityApplicationDTO? request,
         HttpContext context,
         ApplicationDBContext db) =>
         await CreateOpportunityApplicationCoreAsync(
-            new OpportunityApplicationDTO { opportunityId = id },
+            new OpportunityApplicationDTO
+            {
+                opportunityId = id,
+                allowPeerVisibility = request?.allowPeerVisibility,
+            },
             context,
             db);
 
@@ -394,6 +399,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             OpportunityId = opportunity.Id,
             ApplicantId = applicant.Id,
             Status = OpportunityApplicationStatuses.Submitted,
+            AllowPeerVisibility = request.allowPeerVisibility == true,
         });
 
         await db.SaveChangesAsync();
@@ -401,6 +407,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var createdApplication = await db.Applications
             .Include(item => item.Opportunity)
             .ThenInclude(item => item.Employer)
+            .Include(item => item.Opportunity)
+            .ThenInclude(item => item.Tags)
             .FirstAsync(item => item.OpportunityId == opportunity.Id && item.ApplicantId == applicant.Id);
 
         return Results.Ok(OpportunityApplicationMapping.ToCandidateSummary(createdApplication));

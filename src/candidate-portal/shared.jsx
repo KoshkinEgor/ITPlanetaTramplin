@@ -166,7 +166,7 @@ export function CandidateProfileHero({
       <CandidateProgressCard value={completion} className="candidate-hero__progress" />
       <CandidateStatTiles items={stats} className="candidate-hero__stats" />
       <Button href={buildCandidateSettingsRoute("settings-profile")} variant="secondary" width="full" className="candidate-hero__action candidate-hero__aside-action">
-        ������������� �������
+        Редактировать профиль
       </Button>
     </>
   );
@@ -175,16 +175,16 @@ export function CandidateProfileHero({
     <Card className={cn("candidate-hero", className)}>
       <div className="candidate-hero__cover">
         <button type="button" className="candidate-hero__cover-link">
-          �������� ������ �������
+          Загрузить шапку профиля
         </button>
 
         <div className="candidate-hero__cover-pills">
-          <span className="candidate-hero__pill candidate-hero__pill--accent">������� ����������</span>
+          <span className="candidate-hero__pill candidate-hero__pill--accent">Профиль соискателя</span>
           <span className="candidate-hero__pill candidate-hero__pill--status">
             <span className="candidate-hero__pill-icon" aria-hidden="true">
               <HeartLineIcon />
             </span>
-            ������
+            Онлайн
           </span>
         </div>
       </div>
@@ -300,7 +300,7 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
           <strong>{contact.name}</strong>
           <span>{contact.summary}</span>
         </div>
-        <CandidateActionCircle label="�������� �������" icon={<PlusIcon />} tone="neutral" />
+        <CandidateActionCircle label="Добавить контакт" icon={<PlusIcon />} tone="neutral" />
       </AppLink>
     );
   }
@@ -325,9 +325,9 @@ export function CandidateContactCard({ contact, variant = "grid", className }) {
 
       <div className="candidate-contact-card__actions">
         <Button as="a" href={profileHref} variant="secondary" className="candidate-contact-card__button">
-          ������� �������
+          Рекомендовать возможность
         </Button>
-        <CandidateActionCircle label="�������� ��������" icon={<MailIcon />} href={profileHref} />
+        <CandidateActionCircle label="Написать контакт" icon={<MailIcon />} href={profileHref} />
       </div>
     </Card>
   );
@@ -394,7 +394,7 @@ export function CandidateProjectCard({ item }) {
       </div>
 
       <Button as="a" href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary" width="full" className="candidate-project-card__action">
-        ���������
+        Подробнее
       </Button>
     </Card>
   );
@@ -453,7 +453,7 @@ export function CandidatePreferenceCard({ panel, className }) {
         ))}
       </div>
 
-      <StatusBadge tone="success" className="candidate-preference-card__status">���������</StatusBadge>
+      <StatusBadge tone="success" className="candidate-preference-card__status">{panel.statusLabel ?? "Обновлено"}</StatusBadge>
     </Card>
   );
 }
@@ -499,7 +499,7 @@ export function CandidateSettingsPreviewCard({ section, className, isOpen = fals
             aria-expanded={isOpen}
             aria-controls={contentId}
           >
-            {section.actionLabel ?? "�������������"}
+            {section.actionLabel ?? "Редактировать"}
           </Button>
         </div>
       </div>
@@ -530,17 +530,17 @@ export function CandidateSearchBar({ value, onChange, placeholder }) {
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      clearLabel="�������� �����"
+      clearLabel="Очистить поиск"
       className="candidate-search-bar"
       appearance="elevated"
     />
   );
 }
 
-export function CandidateSortButton({ label = "�� �������" }) {
+export function CandidateSortButton({ label = "По новизне" }) {
   return (
     <SortControl
-      label="����������"
+      label="Сортировка"
       value={label}
       options={[{ value: label, label }]}
       open={false}
@@ -578,16 +578,16 @@ export function CandidateSettingsFields({ section }) {
       </div>
 
       <div className="candidate-settings-fields__grid">
-        <FormField label="�����">
+        <FormField label="Почта">
           <Input value={section.email} readOnly />
         </FormField>
-        <FormField label="������">
+        <FormField label="Пароль">
           <Input value={section.password} readOnly type="password" />
         </FormField>
       </div>
 
       <div className="candidate-settings-fields__actions">
-        <Button>������� ��������� �������</Button>
+        <Button>Изменить пароль</Button>
       </div>
     </section>
   );

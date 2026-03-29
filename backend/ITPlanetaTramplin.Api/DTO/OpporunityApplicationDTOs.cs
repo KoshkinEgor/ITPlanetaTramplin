@@ -3,6 +3,8 @@ namespace DTO;
 public partial class OpportunityApplicationDTO
 {
     public int opportunityId { get; set; }
+
+    public bool? allowPeerVisibility { get; set; }
 }
 
 public class OpportunityApplicationSummaryDTO
@@ -19,4 +21,7 @@ public class OpportunityApplicationSummaryDTO
     public string? EmploymentType { get; set; }
     public bool OpportunityDeleted { get; set; }
     public string ModerationStatus { get; set; } = string.Empty;
+    public bool AllowPeerVisibility { get; set; }
+    public List<string> OpportunityTags { get; set; } = [];
+    public SocialContextPreviewDTO? SocialContextPreview { get; set; }
 }

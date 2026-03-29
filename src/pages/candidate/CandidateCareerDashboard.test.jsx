@@ -32,9 +32,31 @@ describe("CandidateCareerDashboard", () => {
       contacts: [
         {
           id: "peer-1",
+          userId: 1,
           name: "Александра Морева",
           email: "alex@example.com",
+          city: "Чебоксары",
           skills: ["UX", "Figma", "Web-design"],
+          relationship: {
+            contactState: "saved",
+            friendState: "none",
+            projectInviteState: "none",
+          },
+        },
+      ],
+      suggestions: [
+        {
+          userId: 2,
+          name: "Мария Ильина",
+          email: "maria@example.com",
+          city: "Чебоксары",
+          skills: ["Research", "UX"],
+          reasons: ["Общие навыки: UX, Research"],
+          relationship: {
+            contactState: "none",
+            friendState: "none",
+            projectInviteState: "none",
+          },
         },
       ],
       recommendations: [
@@ -67,7 +89,8 @@ describe("CandidateCareerDashboard", () => {
     const coursesSection = screen.getByRole("heading", { name: "Курсы по навыкам" });
     const opportunitiesSection = screen.getByRole("heading", { name: "Пройди стажировку и совершенствуй свои навыки" });
     const mentorsSection = screen.getByRole("heading", { name: "Есть вопросы? Обратись к нашим менторам!" });
-    const peersSection = screen.getByRole("heading", { name: "У вас есть общие интересы" });
+    const networkSection = screen.getByRole("heading", { name: "Активные связи" });
+    const suggestionsSection = screen.getByRole("heading", { name: "Люди под ваши отклики" });
 
     expect(topPanel).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Твои навыки" })).toBeInTheDocument();
@@ -80,6 +103,7 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByText("Без оплаты")).toBeInTheDocument();
     expect(screen.getByText("Длительность: 8 недель")).toBeInTheDocument();
     expect(screen.getByText("Александра Морева")).toBeInTheDocument();
+    expect(screen.getByText("Мария Ильина")).toBeInTheDocument();
 
     const firstCourseLink = screen.getAllByRole("link", { name: "Перейти к курсу" })[0];
     const opportunitiesSlider = screen.getByRole("region", { name: "Career opportunities slider" }).parentElement;
@@ -102,7 +126,8 @@ describe("CandidateCareerDashboard", () => {
     expect(isBefore(careerTitle, coursesSection)).toBe(true);
     expect(isBefore(coursesSection, opportunitiesSection)).toBe(true);
     expect(isBefore(opportunitiesSection, mentorsSection)).toBe(true);
-    expect(isBefore(mentorsSection, peersSection)).toBe(true);
+    expect(isBefore(mentorsSection, networkSection)).toBe(true);
+    expect(isBefore(networkSection, suggestionsSection)).toBe(true);
   });
 
   it("shows an honest empty state when there are no real shared contacts", () => {
@@ -122,6 +147,7 @@ describe("CandidateCareerDashboard", () => {
       status: "ready",
       applications: [],
       contacts: [],
+      suggestions: [],
       recommendations: [],
       opportunities: [],
       degraded: false,
