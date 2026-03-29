@@ -1654,8 +1654,8 @@ export function HomeApp() {
         })
       ) : (
         <Card className="home-results-empty">
-          <strong>РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</strong>
-          <p>РЎР±СЂРѕСЃСЊС‚Рµ С‡Р°СЃС‚СЊ С„РёР»СЊС‚СЂРѕРІ, С‡С‚РѕР±С‹ СЃРЅРѕРІР° СѓРІРёРґРµС‚СЊ РІР°РєР°РЅСЃРёРё Рё РјРµСЂРѕРїСЂРёСЏС‚РёСЏ.</p>
+          <strong>Ничего не найдено</strong>
+          <p>Сбросьте часть фильтров, чтобы снова увидеть вакансии и мероприятия.</p>
         </Card>
       )}
     </div>
@@ -1985,7 +1985,7 @@ export function HomeApp() {
           <div className="home-section__head">
             <h2 className="ui-type-h1">Популярные вакансии</h2>
           </div>
-          <div className="home-section__rail" aria-label="РџРѕРїСѓР»СЏСЂРЅС‹Рµ РІР°РєР°РЅСЃРёРё">
+          <div className="home-section__rail" aria-label="Популярные вакансии">
             {nearbyItemsState.popularVacancyItems.length ? (
               nearbyItemsState.popularVacancyItems.map((item, index) => (
                 <OpportunityBlockCard
@@ -2010,7 +2010,7 @@ export function HomeApp() {
           <div className="home-section__head">
             <h2 className="ui-type-h1">Рекомендуемые возможности</h2>
           </div>
-          <div className="home-section__rail" aria-label="Р РµРєРѕРјРµРЅРґСѓРµРјС‹Рµ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё">
+          <div className="home-section__rail" aria-label="Рекомендуемые возможности">
             {nearbyItemsState.recommendedItems.length ? (
               nearbyItemsState.recommendedItems.map((item, index) => (
                 <OpportunityBlockCard
