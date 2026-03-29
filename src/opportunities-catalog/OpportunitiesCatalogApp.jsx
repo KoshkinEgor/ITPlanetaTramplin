@@ -1,9 +1,13 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { useLocation } from "react-router-dom";
+import { AppLink } from "../app/AppLink";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCandidateProfile } from "../api/candidate";
+import { getPublicCompany } from "../api/company";
 import { getOpportunities } from "../api/opportunities";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
+import { parseSocialLinks } from "../features/company/socialLinks";
 import {
   readFavoriteCompanyIds,
   readFavoriteOpportunityIds,
@@ -11,15 +15,17 @@ import {
   toggleFavoriteCompany,
 } from "../features/favorites/storage";
 import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
+import { scheduleHashScroll } from "../shared/lib/scrollToHashTarget";
 import { getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
   Alert,
+  Avatar,
   Button,
   Card,
-  CompanyVacancyTile,
   EmptyState,
+  IconButton,
   Loader,
   PillButton,
   SearchInput,
@@ -31,6 +37,7 @@ import "../ui-kit/ui-kit.css";
 import "./opportunities-catalog.css";
 
 const BODY_CLASS = "opportunities-browser-react-body";
+const HASH_SCROLL_OFFSET = 112;
 
 const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
 
@@ -66,6 +73,20 @@ function FilterIcon() {
       <path d="M4 6h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M7 10h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M9 14h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HeartIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -246,7 +267,7 @@ function createRecommendationCard(item, scoreData) {
   return {
     id: item.id,
     ...cardPresentation,
-    status: hasSkillMatch ? `�������� �� ${scoreData.score}%` : "",
+    status: hasSkillMatch ? `Подходит на ${scoreData.score}%` : "",
     statusTone: hasSkillMatch ? "success" : "neutral",
     meta: createOpportunityMeta(item),
   };
@@ -260,6 +281,131 @@ function createRecommendationSliderCardProps(item) {
       variant: "secondary",
     },
   };
+}
+
+function getCompanyInitial(name) {
+  return String(name ?? "").trim().slice(0, 1).toUpperCase() || "C";
+}
+
+function createCompanyFallbackDescription(company) {
+  if (company.sampleDescription) {
+    return shortenText(company.sampleDescription, 144);
+  }
+
+  return `Сейчас у компании ${formatCount(company.count, ["открыта возможность", "открыты возможности", "открыто возможностей"])} в ${company.locationCity}.`;
+}
+
+function getCompanyDescription(company, profile) {
+  const profileDescription = String(profile?.description ?? "").trim();
+
+  if (profileDescription) {
+    return profileDescription;
+  }
+
+  return createCompanyFallbackDescription(company);
+}
+
+function getCompanyAddress(company, profile) {
+  return (
+    String(profile?.legalAddress ?? "").trim()
+    || String(company.sampleAddress ?? "").trim()
+    || String(company.locationCity ?? "").trim()
+  );
+}
+
+function isTelegramSocialLink(link) {
+  const href = String(link?.href ?? "").trim().toLowerCase();
+  const type = normalize(link?.type);
+
+  return type === "telegram" || type === "tg" || href.includes("t.me/");
+}
+
+function isWebsiteSocialLink(link) {
+  const href = String(link?.href ?? "").trim().toLowerCase();
+  const type = normalize(link?.type);
+
+  if (isTelegramSocialLink(link)) {
+    return false;
+  }
+
+  return type === "website" || type === "site" || type === "web" || href.startsWith("http");
+}
+
+function getCompanyLinks(profile) {
+  return parseSocialLinks(profile?.socials)
+    .filter((link) => isTelegramSocialLink(link) || isWebsiteSocialLink(link))
+    .sort((left, right) => Number(isTelegramSocialLink(left)) - Number(isTelegramSocialLink(right)))
+    .slice(0, 2)
+    .map((link) => ({
+      ...link,
+      label: isTelegramSocialLink(link) ? "telegram" : "website",
+    }));
+}
+
+function CompanySpotlightSlide({ company, profileState, isFavorite, onToggleFavorite }) {
+  const profile = profileState?.status === "ready" ? profileState.profile : null;
+  const companyHref = company.employerId ? buildCompanyPublicRoute(company.employerId) : "";
+  const links = getCompanyLinks(profile);
+  const description = getCompanyDescription(company, profile);
+  const address = getCompanyAddress(company, profile);
+
+  return (
+    <Card className="company-spotlight opportunities-browser__company-spotlight">
+      <div className="company-spotlight__company">
+        <Avatar
+          size="lg"
+          name={company.name}
+          initials={getCompanyInitial(company.name)}
+          className="company-spotlight__avatar company-spotlight__avatar--brand"
+        />
+        <div className="company-spotlight__copy">
+          {companyHref ? (
+            <AppLink href={companyHref} className="opportunity-card-page__more-link">
+              <h2 className="ui-type-h4">{company.name}</h2>
+            </AppLink>
+          ) : (
+            <h2 className="ui-type-h4">{company.name}</h2>
+          )}
+          <p className="ui-type-body">{description}</p>
+        </div>
+      </div>
+
+      {address ? <p className="ui-type-body">{address}</p> : null}
+
+      {links.length ? (
+        <div className="opportunity-story-card__intro">
+          {links.map((link) => (
+            <AppLink key={link.id} href={link.href} className="opportunity-card-page__more-link">
+              {link.label}
+            </AppLink>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="company-spotlight__footer">
+        {companyHref ? (
+          <Button href={companyHref} variant="secondary" className="company-spotlight__recommend">
+            Открыть профиль компании
+          </Button>
+        ) : null}
+
+        {company.employerId ? (
+          <IconButton
+            type="button"
+            label={isFavorite ? "Убрать компанию из избранного" : "Сохранить компанию"}
+            variant="outline"
+            size="xl"
+            className="opportunities-browser__company-favorite"
+            aria-pressed={isFavorite}
+            active={isFavorite}
+            onClick={() => onToggleFavorite(company.employerId)}
+          >
+            <HeartIcon />
+          </IconButton>
+        ) : null}
+      </div>
+    </Card>
+  );
 }
 
 function buildCompanyGroups(items) {
@@ -281,9 +427,14 @@ function buildCompanyGroups(items) {
       employerId,
       name: companyName,
       count: 0,
+      locationCity: city,
+      sampleAddress: "",
+      sampleDescription: "",
     };
 
     companyEntry.count += 1;
+    companyEntry.sampleAddress ||= String(item.locationAddress ?? "").trim();
+    companyEntry.sampleDescription ||= String(item.description ?? "").trim();
     cityEntry.count += 1;
     cityEntry.companies.set(companyKey, companyEntry);
     cityMap.set(city, cityEntry);
@@ -299,6 +450,7 @@ function buildCompanyGroups(items) {
 }
 
 export function OpportunitiesCatalogApp() {
+  const location = useLocation();
   const filtersAnchorRef = useRef(null);
   const [state, setState] = useState({
     status: "loading",
@@ -324,8 +476,8 @@ export function OpportunitiesCatalogApp() {
   const [favoriteCompanyIds, setFavoriteCompanyIds] = useState(() => readFavoriteCompanyIds());
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(3);
-  const [expandedCompanies, setExpandedCompanies] = useState(false);
   const [companyCity, setCompanyCity] = useState("");
+  const [companyProfiles, setCompanyProfiles] = useState({});
 
   useEffect(() => {
     document.body.classList.add(BODY_CLASS);
@@ -337,6 +489,17 @@ export function OpportunitiesCatalogApp() {
 
   useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
   useEffect(() => subscribeToFavorites(setFavoriteCompanyIds, { scope: "companies" }), []);
+
+  useEffect(() => {
+    if (!location.hash || state.status !== "ready") {
+      return undefined;
+    }
+
+    return scheduleHashScroll(location.hash, {
+      offset: HASH_SCROLL_OFFSET,
+      behavior: "smooth",
+    });
+  }, [location.hash, location.pathname, state.status]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -385,7 +548,6 @@ export function OpportunitiesCatalogApp() {
 
   useEffect(() => {
     setVisibleCount(3);
-    setExpandedCompanies(false);
   }, [filters.query, filters.activeType, filters.city, filters.specialization, filters.employmentTypes]);
 
   useEffect(() => {
@@ -511,7 +673,82 @@ export function OpportunitiesCatalogApp() {
   }, [mapItems, selectedMapItemId]);
 
   const activeCompanyGroup = companyGroups.find((entry) => entry.city === companyCity) ?? companyGroups[0] ?? null;
-  const visibleCompanies = expandedCompanies ? activeCompanyGroup?.companies ?? [] : (activeCompanyGroup?.companies ?? []).slice(0, 6);
+  const missingActiveCompanyProfileIds = useMemo(
+    () =>
+      (activeCompanyGroup?.companies ?? [])
+        .map((company) => company.employerId)
+        .filter(Boolean)
+        .filter((companyId) => !companyProfiles[companyId]),
+    [activeCompanyGroup, companyProfiles]
+  );
+  const missingActiveCompanyProfileKey = missingActiveCompanyProfileIds.join("|");
+
+  useEffect(() => {
+    if (!missingActiveCompanyProfileIds.length) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    setCompanyProfiles((current) => {
+      const nextProfiles = { ...current };
+
+      missingActiveCompanyProfileIds.forEach((companyId) => {
+        if (!nextProfiles[companyId]) {
+          nextProfiles[companyId] = { status: "loading", profile: null };
+        }
+      });
+
+      return nextProfiles;
+    });
+
+    Promise.all(
+      missingActiveCompanyProfileIds.map(async (companyId) => {
+        try {
+          const profile = await getPublicCompany(companyId, controller.signal);
+          return { companyId, status: "ready", profile };
+        } catch (error) {
+          if (controller.signal.aborted) {
+            return null;
+          }
+
+          return { companyId, status: "error", profile: null };
+        }
+      })
+    ).then((results) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setCompanyProfiles((current) => {
+        const nextProfiles = { ...current };
+
+        results.forEach((result) => {
+          if (!result) {
+            return;
+          }
+
+          nextProfiles[result.companyId] = {
+            status: result.status,
+            profile: result.profile,
+          };
+        });
+
+        return nextProfiles;
+      });
+    });
+
+    return () => controller.abort();
+  }, [missingActiveCompanyProfileIds, missingActiveCompanyProfileKey]);
+
+  const companySlides = useMemo(
+    () =>
+      (activeCompanyGroup?.companies ?? []).map((company) => ({
+        ...company,
+        profileState: company.employerId ? companyProfiles[company.employerId] ?? null : null,
+      })),
+    [activeCompanyGroup, companyProfiles]
+  );
 
   const heroMeta = useMemo(() => {
     if (!hasPersonalization) {
@@ -547,7 +784,7 @@ export function OpportunitiesCatalogApp() {
     return `Тебе подходит ${parts.join(" и ")}.`;
   }, [filteredItems.length, hasPersonalization, personalizedItems, state.items.length]);
 
-  const sectionCityPills = companyGroups.slice(0, 6);
+  const sectionCityPills = companyGroups;
 
   const handleFilterChange = (field, value) => {
     setFilters((current) => ({
@@ -909,12 +1146,12 @@ export function OpportunitiesCatalogApp() {
               )}
             </section>
 
-            <section className="opportunities-browser__section">
+            <section className="opportunities-browser__section" id="companies">
               <Card className="opportunities-browser__companies-card">
                 <SectionHeader
                   size="md"
-                  title={activeCompanyGroup ? `Вакансии в ${activeCompanyGroup.city}` : "Компании с открытыми вакансиями"}
-                  description="Группируем актуальные публикации по городам и компаниям без отдельных backend-эндпоинтов."
+                  title={activeCompanyGroup ? `Компании в ${activeCompanyGroup.city}` : "Компании с открытыми возможностями"}
+                  description="Переключайте города и просматривайте карточки работодателей, у которых сейчас есть активные публикации."
                   actions={
                     sectionCityPills.length ? (
                       <div className="opportunities-browser__city-pills">
@@ -929,37 +1166,25 @@ export function OpportunitiesCatalogApp() {
                 />
 
                 {activeCompanyGroup ? (
-                  <>
-                    <div className="opportunities-browser__company-grid">
-                      {visibleCompanies.map((item, index) => (
-                        <CompanyVacancyTile
-                          key={item.id}
-                          href={item.employerId ? buildCompanyPublicRoute(item.employerId) : undefined}
-                          name={item.name}
-                          count={formatCount(item.count, ["вакансия", "вакансии", "вакансий"])}
-                          tone={index % 3 === 0 ? "lime" : "neutral"}
-                          showFavorite={Boolean(item.employerId)}
-                          favoritePressed={item.employerId ? favoriteCompanyIdSet.has(String(item.employerId)) : false}
-                          favoriteLabel={
-                            item.employerId && favoriteCompanyIdSet.has(String(item.employerId))
-                              ? "Убрать компанию из избранного"
-                              : "Сохранить компанию"
-                          }
-                          onFavoriteClick={() => {
-                            if (item.employerId) {
-                              toggleFavoriteCompany(item.employerId);
-                            }
-                          }}
+                  <div className="opportunities-browser__companies-slider">
+                    <OpportunityBlockSlider
+                      ariaLabel={activeCompanyGroup ? `Компании ${activeCompanyGroup.city}` : "Компании"}
+                      items={companySlides}
+                      variant="uniform"
+                      itemWidth="380px"
+                      gap="16px"
+                      className="opportunities-browser__company-slider"
+                      itemClassName="opportunities-browser__company-slider-item"
+                      renderItem={(item) => (
+                        <CompanySpotlightSlide
+                          company={item}
+                          profileState={item.profileState}
+                          isFavorite={item.employerId ? favoriteCompanyIdSet.has(String(item.employerId)) : false}
+                          onToggleFavorite={toggleFavoriteCompany}
                         />
-                      ))}
-                    </div>
-
-                    {(activeCompanyGroup.companies?.length ?? 0) > 6 ? (
-                      <button type="button" className="opportunities-browser__expand" onClick={() => setExpandedCompanies((current) => !current)}>
-                        {expandedCompanies ? "Свернуть" : "Развернуть"}
-                      </button>
-                    ) : null}
-                  </>
+                      )}
+                    />
+                  </div>
                 ) : (
                   <EmptyState
                     title="Пока нет агрегированных компаний"

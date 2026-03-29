@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCurrentAuthUser } from "../auth/api";
@@ -15,6 +16,7 @@ import {
   translateOpportunityType as translateSharedOpportunityType,
 } from "../shared/lib/opportunityTypes";
 import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
+import { scheduleHashScroll, scrollToHashTarget as scrollToHashTargetShared } from "../shared/lib/scrollToHashTarget";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout";
@@ -515,29 +517,12 @@ function createQuickFilterOptions(items) {
 }
 
 export function scrollToHashTarget(hash, { offset = HOME_HASH_SCROLL_OFFSET, behavior = "smooth" } = {}) {
-  if (typeof window === "undefined" || !hash) {
-    return false;
-  }
+  return scrollToHashTargetShared(hash, { offset, behavior });
+}
 
-  const normalizedHash = String(hash).replace(/^#/, "");
-
-  if (!normalizedHash) {
-    return false;
-  }
-
-  const target = document.getElementById(normalizedHash);
-
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  const nextTop = target.getBoundingClientRect().top + window.scrollY - offset;
-  window.scrollTo({
-    top: Math.max(0, nextTop),
-    behavior,
-  });
-
-  return true;
+function shouldIgnoreSelectableCardEvent(event) {
+  const target = event?.target;
+  return target instanceof Element && Boolean(target.closest("a, button, input, textarea, select, label"));
 }
 
 function getOpportunityIdentifier(item, fallbackId) {
@@ -1062,9 +1047,36 @@ function HomeSortControl({ options, value, direction, onSelect, onToggleDirectio
   );
 } */
 
-function HubCard({ title, description }) {
+function HubCard({ title, description, href }) {
+  const normalizedTitle = String(title ?? "").toLowerCase();
+  const resolvedHref =
+    href
+    ?? (normalizedTitle.includes("ментор")
+      ? `${routes.candidate.career}#mentors`
+      : normalizedTitle.includes("компан")
+        ? `${routes.opportunities.catalog}#companies`
+        : "");
+
+  if (!resolvedHref) {
+    return (
+      <Card className="home-hub-card">
+        <div className="home-hub-card__copy">
+          <h3 className="ui-type-h1">{title}</h3>
+          <p className="ui-type-body">{description}</p>
+        </div>
+
+        <div className="home-hub-card__avatars" aria-hidden="true">
+          <span className="home-hub-card__avatar home-hub-card__avatar--orange">G</span>
+          <span className="home-hub-card__avatar home-hub-card__avatar--blue">VK</span>
+          <span className="home-hub-card__avatar home-hub-card__avatar--dark">M</span>
+          <span className="home-hub-card__avatar home-hub-card__avatar--count">120+</span>
+        </div>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="home-hub-card">
+    <AppLink href={resolvedHref} className="home-hub-card ui-card ui-card--interactive">
       <div className="home-hub-card__copy">
         <h3 className="ui-type-h1">{title}</h3>
         <p className="ui-type-body">{description}</p>
@@ -1076,7 +1088,7 @@ function HubCard({ title, description }) {
         <span className="home-hub-card__avatar home-hub-card__avatar--dark">M</span>
         <span className="home-hub-card__avatar home-hub-card__avatar--count">120+</span>
       </div>
-    </Card>
+    </AppLink>
   );
 }
 
@@ -1488,10 +1500,21 @@ export function HomeApp() {
       return;
     }
 
-    resultsGridRef.current?.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    const resultsElement = resultsGridRef.current;
+
+    if (!resultsElement) {
+      return;
+    }
+
+    if (typeof resultsElement.scrollTo === "function") {
+      resultsElement.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    resultsElement.scrollTop = 0;
   }, [selectedOpportunityId, view]);
 
   const lastScrollYRef = useRef(0);
@@ -1561,14 +1584,82 @@ export function HomeApp() {
       return undefined;
     }
 
-    const frameId = window.requestAnimationFrame(() => {
-      scrollToHashTarget(location.hash);
+    return scheduleHashScroll(location.hash, {
+      offset: HOME_HASH_SCROLL_OFFSET,
+      behavior: "smooth",
     });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
   }, [location.hash, location.pathname]);
+
+  const renderDiscoveryResults = () => (
+    <div
+      ref={resultsGridRef}
+      className={[
+        "home-results-grid",
+        view === "list" ? "home-results-grid--list" : "",
+        view === "list" ? "home-results-grid--bounded" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {displayedNearbyCards.length ? (
+        displayedNearbyCards.map((item) => {
+          const isSelected = selectedOpportunityId === String(item.id);
+
+          if (view === "map") {
+            return (
+              <OpportunityMiniCard
+                key={item.id ?? item.title}
+                variant="compact"
+                item={item}
+                className={`home-opportunity-entry ${isSelected ? "is-selected" : ""}`.trim()}
+                detailAction={createSafeHomeRowActions(item).detailAction}
+                interactive
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={(event) => {
+                  if (shouldIgnoreSelectableCardEvent(event)) {
+                    return;
+                  }
+
+                  setSelectedOpportunityId(String(item.id));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                  }
+
+                  if (shouldIgnoreSelectableCardEvent(event)) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  setSelectedOpportunityId(String(item.id));
+                }}
+              />
+            );
+          }
+
+          return (
+            <OpportunityRowCard
+              key={item.id ?? item.title}
+              item={item}
+              surface="plain"
+              size="sm"
+              className={`home-opportunity-entry ${isSelected ? "is-selected" : ""}`.trim()}
+              primaryAction={createSafeHomeRowActions(item).primaryAction}
+              detailAction={createSafeHomeRowActions(item).detailAction}
+            />
+          );
+        })
+      ) : (
+        <Card className="home-results-empty">
+          <strong>РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</strong>
+          <p>РЎР±СЂРѕСЃСЊС‚Рµ С‡Р°СЃС‚СЊ С„РёР»СЊС‚СЂРѕРІ, С‡С‚РѕР±С‹ СЃРЅРѕРІР° СѓРІРёРґРµС‚СЊ РІР°РєР°РЅСЃРёРё Рё РјРµСЂРѕРїСЂРёСЏС‚РёСЏ.</p>
+        </Card>
+      )}
+    </div>
+  );
 
   return (
     <main className="home-page">
@@ -1813,6 +1904,10 @@ export function HomeApp() {
                 onChangeField={updateAdvancedField}
                 onReset={resetAdvancedSearch}
               />
+            ) : view === "list" ? (
+              <Card className="home-results-panel">
+                {renderDiscoveryResults()}
+              </Card>
             ) : (
               <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
                 {displayedNearbyCards.length ? (
@@ -1824,6 +1919,29 @@ export function HomeApp() {
                         item={item}
                         className={`home-opportunity-entry ${selectedOpportunityId === item.id ? "is-selected" : ""}`.trim()}
                         detailAction={createSafeHomeRowActions(item).detailAction}
+                        interactive
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={selectedOpportunityId === item.id}
+                        onClick={(event) => {
+                          if (shouldIgnoreSelectableCardEvent(event)) {
+                            return;
+                          }
+
+                          setSelectedOpportunityId(String(item.id));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") {
+                            return;
+                          }
+
+                          if (shouldIgnoreSelectableCardEvent(event)) {
+                            return;
+                          }
+
+                          event.preventDefault();
+                          setSelectedOpportunityId(String(item.id));
+                        }}
                       />
                     ) : (
                       <OpportunityRowCard

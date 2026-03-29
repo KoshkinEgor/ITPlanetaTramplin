@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildAuthLoginRoute, routes } from "../../app/routes";
 import {
   createCandidateEducation,
@@ -54,6 +54,7 @@ import {
   Tag,
   Textarea,
 } from "../../shared/ui";
+import { scheduleHashScroll } from "../../shared/lib/scrollToHashTarget";
 import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
 import { loadCandidateCareerContext } from "./candidate-access";
 import "./candidate-career.css";
@@ -312,6 +313,7 @@ async function syncCandidateEducation(profileEducation, draftEducations) {
 }
 
 export function CandidateCareerPage() {
+  const location = useLocation();
   const [contextState, setContextState] = useState({ status: "loading", data: null, error: null });
   const [dashboardState, setDashboardState] = useState({
     status: "idle",
@@ -418,6 +420,17 @@ export function CandidateCareerPage() {
       controller.abort();
     };
   }, [contextState]);
+
+  useEffect(() => {
+    if (!location.hash) {
+      return undefined;
+    }
+
+    return scheduleHashScroll(location.hash, {
+      offset: 112,
+      behavior: "smooth",
+    });
+  }, [dashboardState.status, location.hash, location.pathname]);
 
   const activeStep = CANDIDATE_ONBOARDING_STEPS[activeStepIndex];
   const stepError = useMemo(

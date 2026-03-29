@@ -399,17 +399,17 @@ function createMarkerElement(point, isActive, handlers = {}) {
     event.stopPropagation();
     handlers.onTogglePoint?.(point.id);
   });
-  marker.addEventListener("mouseenter", () => {
-    handlers.onPreviewStart?.(point.id);
+  marker.addEventListener("mouseenter", (event) => {
+    handlers.onPreviewStart?.(point.id, event);
   });
-  marker.addEventListener("mouseleave", () => {
-    handlers.onPreviewEnd?.(point.id);
+  marker.addEventListener("mouseleave", (event) => {
+    handlers.onPreviewEnd?.(point.id, event);
   });
-  marker.addEventListener("focus", () => {
-    handlers.onPreviewStart?.(point.id);
+  marker.addEventListener("focus", (event) => {
+    handlers.onPreviewStart?.(point.id, event);
   });
-  marker.addEventListener("blur", () => {
-    handlers.onPreviewEnd?.(point.id);
+  marker.addEventListener("blur", (event) => {
+    handlers.onPreviewEnd?.(point.id, event);
   });
 
   const markerPin = document.createElement("span");
@@ -529,6 +529,18 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
     previewCloseTimeoutRef.current = null;
   }
 
+  function isPreviewRelatedTarget(pointId, relatedTarget) {
+    if (!(relatedTarget instanceof Element)) {
+      return false;
+    }
+
+    if (previewRef.current?.contains(relatedTarget)) {
+      return true;
+    }
+
+    return relatedTarget.closest("[data-point-id]")?.dataset.pointId === String(pointId);
+  }
+
   function schedulePreviewClose(pointId = null) {
     clearPendingPreviewClose();
 
@@ -545,7 +557,7 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
         return current;
       });
       previewCloseTimeoutRef.current = null;
-    }, 80);
+    }, 120);
   }
 
   function handleClusterSelect(coordinates) {
@@ -572,8 +584,13 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
     setHoveredId(String(pointId));
   }
 
-  function handlePreviewEnd(pointId) {
+  function handlePreviewEnd(pointId, event) {
     if (activeIdRef.current) {
+      return;
+    }
+
+    if (isPreviewRelatedTarget(pointId, event?.relatedTarget)) {
+      clearPendingPreviewClose();
       return;
     }
 
@@ -971,9 +988,9 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
           className={`home-yandex-map__preview home-yandex-map__preview--${previewLayout?.placement ?? "top"}${previewLayout ? " is-positioned" : " is-measuring"}`}
           style={previewStyle}
           onMouseEnter={() => handlePreviewStart(activeItem.id)}
-          onMouseLeave={() => handlePreviewEnd(activeItem.id)}
+          onMouseLeave={(event) => handlePreviewEnd(activeItem.id, event)}
           onFocusCapture={() => handlePreviewStart(activeItem.id)}
-          onBlurCapture={() => handlePreviewEnd(activeItem.id)}
+          onBlurCapture={(event) => handlePreviewEnd(activeItem.id, event)}
         >
           <OpportunityMiniCard
             item={activeItem}

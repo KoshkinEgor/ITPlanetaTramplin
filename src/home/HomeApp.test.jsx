@@ -25,9 +25,10 @@ vi.mock("../widgets/layout", () => ({
 }));
 
 vi.mock("./HomeOpportunityMap", () => ({
-  HomeOpportunityMap: ({ items, selectedCityCoordinates }) => (
+  HomeOpportunityMap: ({ items, selectedCityCoordinates, activeId, onSelectItem }) => (
     <div
       data-testid="home-opportunity-map"
+      data-active-id={activeId ?? ""}
       data-selected-longitude={selectedCityCoordinates?.[0] ?? ""}
       data-selected-latitude={selectedCityCoordinates?.[1] ?? ""}
     >
@@ -37,6 +38,7 @@ vi.mock("./HomeOpportunityMap", () => ({
           type="button"
           data-favorite={item.isFavoriteOpportunity ? "true" : "false"}
           data-company-favorite={item.isFavoriteCompanyOpportunity ? "true" : "false"}
+          onClick={() => onSelectItem?.(item.id)}
         >
           {item.title}
         </button>
@@ -427,5 +429,118 @@ describe("HomeApp", () => {
     const renderedCards = [...container.querySelectorAll(".home-opportunity-entry")].map((node) => node.textContent ?? "");
     expect(renderedCards[0]).toContain("Mapped Opportunity");
     expect(renderedCards[1]).toContain("List Only Internship");
+  });
+
+  it("renders the list mode inside a bounded results panel", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "list-1",
+        employerId: 10,
+        opportunityType: "vacancy",
+        title: "Bounded Results Vacancy",
+        companyName: "Signal Hub",
+        locationCity: "Москва",
+        locationAddress: "Ленинградский проспект, 3",
+        employmentType: "remote",
+        description: "The list mode should use an internal scrollable panel.",
+        tags: ["React"],
+        longitude: 37.61,
+        latitude: 55.75,
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await screen.findAllByText("Bounded Results Vacancy");
+    fireEvent.click(screen.getByRole("button", { name: /Список возможностей/i }));
+
+    await waitFor(() => {
+      expect(container.querySelector(".home-results-panel")).not.toBeNull();
+      expect(container.querySelector(".home-results-grid--bounded")).not.toBeNull();
+    });
+  });
+
+  it("links the home hub cards to mentors and companies anchors", async () => {
+    renderApp();
+
+    expect(await screen.findByRole("link", { name: /Компании/i })).toHaveAttribute("href", "/opportunities#companies");
+    expect(screen.getByRole("link", { name: /Менторы/i })).toHaveAttribute("href", "/career#mentors");
+  });
+
+  it("selects a map marker when the matching right-side card is clicked", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "map-1",
+        employerId: 10,
+        opportunityType: "vacancy",
+        title: "Map Linked Vacancy",
+        companyName: "Signal Hub",
+        locationCity: "Чебоксары",
+        locationAddress: "Президентский бульвар, 4",
+        employmentType: "remote",
+        description: "Clicking the right-side card should sync the active map point.",
+        tags: ["React"],
+        longitude: 47.251942,
+        latitude: 56.1439,
+      },
+      {
+        id: "map-2",
+        employerId: 11,
+        opportunityType: "internship",
+        title: "Map Linked Internship",
+        companyName: "Design Lab",
+        locationCity: "Чебоксары",
+        locationAddress: "Ярославская, 1",
+        employmentType: "hybrid",
+        description: "Another item in the same results rail.",
+        tags: ["UI/UX"],
+        longitude: 47.2442,
+        latitude: 56.1322,
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await waitFor(() => expect(container.querySelector(".home-results-grid")).not.toBeNull());
+    const results = container.querySelector(".home-results-grid");
+    const card = within(results).getByText("Map Linked Internship").closest(".home-opportunity-entry");
+
+    fireEvent.click(card);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("home-opportunity-map")).toHaveAttribute("data-active-id", "map-2");
+    });
+  });
+
+  it("does not change the active map point when nested card actions are clicked", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "map-1",
+        employerId: 10,
+        opportunityType: "vacancy",
+        title: "Nested Action Vacancy",
+        companyName: "Signal Hub",
+        locationCity: "Чебоксары",
+        locationAddress: "Президентский бульвар, 4",
+        employmentType: "remote",
+        description: "Nested actions should not trigger the map sync handler.",
+        tags: ["React"],
+        longitude: 47.251942,
+        latitude: 56.1439,
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await waitFor(() => expect(container.querySelector(".home-results-grid")).not.toBeNull());
+    const results = container.querySelector(".home-results-grid");
+    const card = within(results).getByText("Nested Action Vacancy").closest(".home-opportunity-entry");
+    const favoriteButton = within(card).getByRole("button", { name: "Сохранить возможность" });
+
+    fireEvent.click(favoriteButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("home-opportunity-map")).toHaveAttribute("data-active-id", "");
+    });
   });
 });

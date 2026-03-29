@@ -435,7 +435,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         )}
       </section>
 
-      <section className="candidate-career-dashboard__section">
+      <section className="candidate-career-dashboard__section" id="mentors">
         <SectionHeader
           title="Есть вопросы? Обратись к нашим менторам!"
           size="md"
