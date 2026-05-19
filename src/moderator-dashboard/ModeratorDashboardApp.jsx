@@ -159,7 +159,7 @@ function getActivityEmptyState(filter) {
     case "complaints":
       return {
         title: "Жалобы пока не подключены",
-        description: "Структура блока готова. После появления moderation API жалобы появятся в этой ленте.",
+        description: "Структура блока готова. После подключения раздела жалобы появятся в этой ленте.",
       };
     case "users":
       return {

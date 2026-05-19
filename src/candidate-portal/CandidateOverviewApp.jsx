@@ -303,7 +303,7 @@ export function CandidateOverviewApp({ profile = null }) {
                   </div>
                 ) : (
                   <EmptyState
-                    eyebrow="Нет suggestions"
+                    eyebrow="Пока нет рекомендаций"
                     title="Новых рекомендаций пока нет"
                     description="Когда появятся релевантные люди по навыкам, городу и откликам, они появятся здесь."
                     tone="neutral"

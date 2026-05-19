@@ -167,6 +167,7 @@ export const Select = forwardRef(function Select(
       className={cn(
         "ui-control-shell",
         "ui-select-shell",
+        open && "is-open",
         iconStart && "ui-control-shell--has-start",
         showClear && "ui-control-shell--has-action",
         sharedClassName,

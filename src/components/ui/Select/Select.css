@@ -2,6 +2,10 @@
   position: relative;
 }
 
+.ui-select-shell.is-open {
+  z-index: 32;
+}
+
 .ui-select {
   position: relative;
   display: flex;

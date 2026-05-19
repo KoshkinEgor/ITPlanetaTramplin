@@ -25,14 +25,14 @@ function SummaryFallback({ status }) {
   if (status === "loading") {
     return (
       <Card>
-        <Loader label="Загружаем summary компании" surface />
+        <Loader label="Загружаем профиль компании" surface />
       </Card>
     );
   }
 
   return (
     <Card>
-      <p className="ui-type-body">Summary компании недоступен. Контент разделов остается доступным по route-level секциям.</p>
+      <p className="ui-type-body">Профиль компании временно недоступен. Содержимое разделов можно открыть по отдельности.</p>
     </Card>
   );
 }

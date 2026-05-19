@@ -166,9 +166,7 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
   const verificationCard = getVerificationCardContent(verificationStatus, isPendingVerificationLocked);
   const prerequisiteError = getVerificationPrerequisiteError(profile, draft);
   const canOpenVerificationModal = verificationStatus !== "approved" && !isPendingVerificationLocked;
-  const hasVerificationMeta = Boolean(
-    verificationData?.snapshot || verificationData?.contact || verificationData?.document || verificationData?.legacyText
-  );
+  const hasVerificationMeta = Boolean(verificationData?.snapshot || verificationData?.contact || verificationData?.document);
   const shouldShowVerificationMeta = verificationStatus !== "approved" && hasVerificationMeta;
 
   function handleOpenModal() {
@@ -391,12 +389,6 @@ export function CompanyVerificationSection({ profile, draft, onProfileUpdated })
                 </div>
               ) : null}
 
-              {verificationData?.legacyText ? (
-                <div className="company-dashboard-verification-card__group">
-                  <span className="company-dashboard-verification-card__group-label">Архив</span>
-                  <p className="ui-type-body">{verificationData.legacyText}</p>
-                </div>
-              ) : null}
             </div>
           ) : null}
         </Card>

@@ -472,6 +472,7 @@
 }
 
 .company-dashboard-response {
+  position: relative;
   display: grid;
   gap: 0;
   padding: 0;
@@ -482,6 +483,11 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 255, 0.94));
   border: 1px solid rgba(47, 128, 255, 0.1);
   box-shadow: 0 16px 36px rgba(36, 49, 77, 0.08);
+}
+
+.company-dashboard-response.is-open {
+  overflow: visible;
+  z-index: 12;
 }
 
 .company-dashboard-response__summary,
@@ -656,6 +662,8 @@
 }
 
 .company-dashboard-response__field--status {
+  position: relative;
+  z-index: 2;
   width: 100%;
   max-width: none;
 }

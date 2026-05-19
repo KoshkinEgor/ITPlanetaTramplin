@@ -351,7 +351,7 @@ describe("CandidateContactsApp", () => {
     renderApp("/candidate/contacts?tab=network");
 
     expect(await screen.findByText("Мария Соколова")).toBeInTheDocument();
-    expect(screen.getByText("Часть social-возможностей пока недоступна")).toBeInTheDocument();
-    expect(screen.queryByText("Не удалось загрузить social hub")).not.toBeInTheDocument();
+    expect(screen.getByText("Часть возможностей раздела пока недоступна")).toBeInTheDocument();
+    expect(screen.queryByText("Не удалось загрузить контакты и связи")).not.toBeInTheDocument();
   });
 });

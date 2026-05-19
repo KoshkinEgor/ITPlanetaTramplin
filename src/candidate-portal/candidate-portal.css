@@ -2467,6 +2467,8 @@ body.candidate-portal-react-body {
 .candidate-editor-save {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
   padding-top: 8px;
 }
 

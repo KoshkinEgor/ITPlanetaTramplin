@@ -441,7 +441,7 @@ async function loadSocialHubCollections(signal, currentUserId) {
     applications: applicationsResult.status === "fulfilled" && Array.isArray(applicationsResult.value) ? applicationsResult.value : [],
     degraded,
     degradedMessage: degraded
-      ? "Часть social-возможностей пока недоступна. Мы показываем только те данные, которые удалось загрузить."
+      ? "Часть возможностей раздела пока недоступна. Мы показываем только те данные, которые удалось загрузить."
       : "",
   };
 }
@@ -728,31 +728,6 @@ export function CandidateContactsApp() {
               );
             })}
 
-            {false && incomingShares.map((share) => {
-              const card = mapSocialUserToCard(share.counterparty);
-
-              return (
-                <SocialHubCard
-                  key={`share-${share.id}`}
-                  title={card.name}
-                  subtitle={share.opportunityTitle || "Поделился возможностью"}
-                  meta={share.note || (share.createdAt ? `Отправлено ${formatLongDate(share.createdAt)}` : "Возможность из вашей сети")}
-                  tags={card.skills}
-                  reasons={card.reasons}
-                  badge={{ label: "Возможность", tone: "accent" }}
-                  href={card.href}
-                  primaryAction={{
-                    label: "К возможности",
-                    variant: "secondary",
-                    loading: false,
-                    disabled: false,
-                    onClick: () => {
-                      window.location.href = buildOpportunityDetailRoute(share.opportunityId);
-                    },
-                  }}
-                />
-              );
-            })}
           </div>
         ) : (
           <Card>
@@ -846,7 +821,7 @@ export function CandidateContactsApp() {
           <Card>
             <EmptyState
               eyebrow="Пока пусто"
-              title="Новых suggestions пока нет"
+              title="Новых рекомендаций пока нет"
               description="Когда появятся релевантные люди по навыкам, городу и вашим откликам, они появятся здесь."
               tone="neutral"
             />
@@ -1074,16 +1049,16 @@ export function CandidateContactsApp() {
         description="Управляйте входящими действиями, своей сетью и поиском людей вокруг ваших откликов из одного места."
       />
 
-      {state.status === "loading" ? <Loader label="Загружаем social hub" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем контакты и связи" surface /> : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="Не удалось загрузить social hub" showIcon>
+        <Alert tone="error" title="Не удалось загрузить контакты и связи" showIcon>
           {state.error?.message ?? "Попробуйте обновить страницу позже."}
         </Alert>
       ) : null}
 
       {state.status === "ready" && state.degraded ? (
-        <Alert tone="warning" title="Часть social-возможностей пока недоступна" showIcon>
+        <Alert tone="warning" title="Часть возможностей раздела пока недоступна" showIcon>
           {state.degradedMessage}
         </Alert>
       ) : null}
@@ -1092,7 +1067,7 @@ export function CandidateContactsApp() {
         <Tabs
           value={currentTab}
           onChange={changeTab}
-          tabListLabel="Разделы social hub"
+          tabListLabel="Разделы контактов и связей"
           items={tabs}
           className="candidate-social-tabs"
         />

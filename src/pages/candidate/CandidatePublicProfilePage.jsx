@@ -743,7 +743,7 @@ function getAvailabilityTag({ isSelfPublicView, isPreviewMode }) {
   }
 
   if (isPreviewMode) {
-    return { label: "Preview-режим", tone: "neutral" };
+    return { label: "Режим предпросмотра", tone: "neutral" };
   }
 
   return { label: "Ищет работу", tone: "success" };
@@ -755,7 +755,7 @@ function getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMo
   }
 
   if (isPreviewMode) {
-    return [{ label: "Профиль открыт в preview-режиме", tone: "neutral" }];
+    return [{ label: "Профиль открыт в режиме предпросмотра", tone: "neutral" }];
   }
 
   const items = [];
@@ -1116,7 +1116,7 @@ export function CandidatePublicProfilePage() {
     if (state.mode !== "public") {
       return (
         <div className="candidate-public-profile__hero-status">
-          <Tag tone="neutral">Preview-режим</Tag>
+          <Tag tone="neutral">Режим предпросмотра</Tag>
         </div>);
 
     }

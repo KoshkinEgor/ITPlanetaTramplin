@@ -502,7 +502,7 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           title="Люди под ваши отклики"
           description="Новые кандидаты, которые пересекаются с вашими навыками, городом и активными откликами."
           size="md"
-          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Открыть suggestions →</a>}
+          actions={<a href={routes.candidate.contacts} className="candidate-career-dashboard__section-link">Открыть рекомендации →</a>}
         />
         {suggestedContacts.length ? (
           <div className="candidate-career-dashboard__peer-grid">

@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createCandidateProject } from "../api/candidate";
-import { Alert, Button, Card, FormField, Input, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
+import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject } from "../api/candidate";
+import { Alert, Button, Card, FormField, Input, Loader, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
 import { CandidatePortfolioProjectCard } from "./portfolio-kit";
 import {
@@ -92,6 +92,73 @@ function createProjectDraftFromSearchParams(searchParams) {
         role: participantRole,
       }),
     ],
+  };
+}
+
+function normalizeProjectMonth(value) {
+  const normalizedValue = normalizeString(value);
+  return normalizedValue ? normalizedValue.slice(0, 7) : "";
+}
+
+function createProjectDraftFromProject(project) {
+  const initialDraft = createInitialProjectDraft();
+
+  return {
+    ...initialDraft,
+    title: normalizeString(project?.title),
+    projectType: normalizeString(project?.projectType),
+    shortDescription: normalizeString(project?.shortDescription),
+    organization: normalizeString(project?.organization),
+    role: normalizeString(project?.role),
+    teamSize: project?.teamSize ? String(project.teamSize) : "",
+    startMonth: normalizeProjectMonth(project?.startDate),
+    endMonth: normalizeProjectMonth(project?.endDate),
+    isOngoing: Boolean(project?.isOngoing),
+    problem: normalizeString(project?.problem),
+    contribution: normalizeString(project?.contribution),
+    result: normalizeString(project?.result),
+    metrics: normalizeString(project?.metrics),
+    lessonsLearned: normalizeString(project?.lessonsLearned),
+    tags: Array.isArray(project?.tags) ? project.tags.filter((tag) => typeof tag === "string" && tag.trim()) : [],
+    coverImageUrl: normalizeString(project?.coverImageUrl),
+    participants: Array.isArray(project?.participants)
+      ? project.participants.map((participant) => createProjectParticipantDraft(participant))
+      : [],
+    demoUrl: normalizeString(project?.demoUrl),
+    repositoryUrl: normalizeString(project?.repositoryUrl),
+    designUrl: normalizeString(project?.designUrl),
+    caseStudyUrl: normalizeString(project?.caseStudyUrl),
+    showInPortfolio: typeof project?.showInPortfolio === "boolean" ? project.showInPortfolio : initialDraft.showInPortfolio,
+  };
+}
+
+function createProjectPayload(normalizedProjectDraft) {
+  return {
+    title: normalizedProjectDraft.title,
+    projectType: normalizedProjectDraft.projectType,
+    shortDescription: normalizedProjectDraft.shortDescription,
+    organization: normalizedProjectDraft.organization || null,
+    role: normalizedProjectDraft.role,
+    teamSize: normalizedProjectDraft.teamSize ? Number(normalizedProjectDraft.teamSize) : null,
+    startDate: normalizedProjectDraft.startMonth,
+    endDate: normalizedProjectDraft.isOngoing ? null : normalizedProjectDraft.endMonth,
+    isOngoing: normalizedProjectDraft.isOngoing,
+    problem: normalizedProjectDraft.problem,
+    contribution: normalizedProjectDraft.contribution,
+    result: normalizedProjectDraft.result,
+    metrics: normalizedProjectDraft.metrics || null,
+    lessonsLearned: normalizedProjectDraft.lessonsLearned || null,
+    tags: normalizedProjectDraft.tags,
+    coverImageUrl: normalizedProjectDraft.coverImageUrl || null,
+    participants: normalizedProjectDraft.participants.map((participant) => ({
+      name: participant.name,
+      role: participant.role || null,
+    })),
+    demoUrl: normalizedProjectDraft.demoUrl || null,
+    repositoryUrl: normalizedProjectDraft.repositoryUrl || null,
+    designUrl: normalizedProjectDraft.designUrl || null,
+    caseStudyUrl: normalizedProjectDraft.caseStudyUrl || null,
+    showInPortfolio: normalizedProjectDraft.showInPortfolio,
   };
 }
 
@@ -260,12 +327,83 @@ function ProjectParticipantsEditor({ participants, error, onAdd, onChange, onRem
 export function CandidateProjectEditorApp() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const searchParamsKey = searchParams.toString();
+  const projectId = normalizeString(searchParams.get("projectId"));
+  const isEditMode = Boolean(projectId);
   const coverInputRef = useRef(null);
   const [draft, setDraft] = useState(() => createProjectDraftFromSearchParams(searchParams));
   const [errors, setErrors] = useState({});
-  const [submitError, setSubmitError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isPreparingCoverImage, setIsPreparingCoverImage] = useState(false);
+  const [projectState, setProjectState] = useState(() => ({
+    status: isEditMode ? "loading" : "ready",
+    error: null,
+  }));
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setDraft(createProjectDraftFromSearchParams(new URLSearchParams(searchParamsKey)));
+      setErrors({});
+      setActionError("");
+      setProjectState({
+        status: "ready",
+        error: null,
+      });
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    async function loadProject() {
+      try {
+        setProjectState({
+          status: "loading",
+          error: null,
+        });
+
+        const projects = await getCandidateProjects(controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const matchedProject = Array.isArray(projects)
+          ? projects.find((project) => String(project?.id) === projectId)
+          : null;
+
+        if (!matchedProject) {
+          setProjectState({
+            status: "not-found",
+            error: null,
+          });
+          return;
+        }
+
+        setDraft(createProjectDraftFromProject(matchedProject));
+        setErrors({});
+        setActionError("");
+        setProjectState({
+          status: "ready",
+          error: null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setProjectState({
+          status: "error",
+          error,
+        });
+      }
+    }
+
+    loadProject();
+
+    return () => controller.abort();
+  }, [isEditMode, projectId, searchParamsKey]);
 
   function clearFieldErrors(fields) {
     setErrors((current) => {
@@ -356,7 +494,7 @@ export function CandidateProjectEditorApp() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setSubmitError("");
+    setActionError("");
 
     const { errors: validationErrors, normalized } = validateProjectDraft(draft);
 
@@ -367,44 +505,79 @@ export function CandidateProjectEditorApp() {
 
     try {
       setIsSubmitting(true);
+      const payload = createProjectPayload(normalized);
 
-      await createCandidateProject({
-        title: normalized.title,
-        projectType: normalized.projectType,
-        shortDescription: normalized.shortDescription,
-        organization: normalized.organization || null,
-        role: normalized.role,
-        teamSize: normalized.teamSize ? Number(normalized.teamSize) : null,
-        startDate: normalized.startMonth,
-        endDate: normalized.isOngoing ? null : normalized.endMonth,
-        isOngoing: normalized.isOngoing,
-        problem: normalized.problem,
-        contribution: normalized.contribution,
-        result: normalized.result,
-        metrics: normalized.metrics || null,
-        lessonsLearned: normalized.lessonsLearned || null,
-        tags: normalized.tags,
-        coverImageUrl: normalized.coverImageUrl || null,
-        participants: normalized.participants.map((participant) => ({
-          name: participant.name,
-          role: participant.role || null,
-        })),
-        demoUrl: normalized.demoUrl || null,
-        repositoryUrl: normalized.repositoryUrl || null,
-        designUrl: normalized.designUrl || null,
-        caseStudyUrl: normalized.caseStudyUrl || null,
-        showInPortfolio: normalized.showInPortfolio,
-      });
+      if (isEditMode) {
+        await updateCandidateProject(projectId, payload);
+      } else {
+        await createCandidateProject(payload);
+      }
 
       navigate(CANDIDATE_PAGE_ROUTES.projects);
     } catch (error) {
-      setSubmitError(error?.message ?? "Не удалось сохранить проект.");
+      setActionError(error?.message ?? "Не удалось сохранить проект.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  async function handleDelete() {
+    if (!isEditMode) {
+      return;
+    }
+
+    setActionError("");
+
+    try {
+      setIsDeleting(true);
+      await deleteCandidateProject(projectId);
+      navigate(CANDIDATE_PAGE_ROUTES.projects);
+    } catch (error) {
+      setActionError(error?.message ?? "Не удалось удалить проект.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const coverImageUrlInputValue = isProjectImageDataUrl(draft.coverImageUrl) ? "" : draft.coverImageUrl;
+  const isBusy = isSubmitting || isDeleting || isPreparingCoverImage;
+  const pageTitle = isEditMode ? "Редактирование проекта" : "Проект";
+  const pageDescription = isEditMode
+    ? "Обновите карточку проекта: описание, материалы и результат. После сохранения изменения сразу появятся в портфолио."
+    : "Добавляйте проекты, над которыми вы работали. Расскажите подробно о роли, обязанностях и результате.";
+  const submitButtonLabel = isSubmitting
+    ? isEditMode ? "Сохраняем изменения..." : "Сохраняем..."
+    : isEditMode ? "Сохранить изменения" : "Сохранить проект";
+
+  if (projectState.status === "loading") {
+    return (
+      <section className="candidate-project-editor-page candidate-editor-page">
+        <Loader label="Загружаем проект" surface />
+      </section>
+    );
+  }
+
+  if (projectState.status === "error" || projectState.status === "not-found") {
+    return (
+      <section className="candidate-project-editor-page candidate-editor-page">
+        <Card className="candidate-project-editor-card">
+          <SectionHeader
+            eyebrow="Портфолио"
+            title="Не удалось открыть проект"
+            description="Проверьте, что проект существует и доступен в вашем кабинете."
+            size="lg"
+            actions={<Button href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary">Назад к портфолио</Button>}
+          />
+
+          <Alert tone="error" title={projectState.status === "not-found" ? "Проект не найден" : "Ошибка загрузки"} showIcon>
+            {projectState.status === "not-found"
+              ? "Проект не найден или больше недоступен."
+              : projectState.error?.message ?? "Не удалось загрузить данные проекта. Попробуйте обновить страницу позже."}
+          </Alert>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="candidate-project-editor-page candidate-editor-page">
@@ -413,16 +586,16 @@ export function CandidateProjectEditorApp() {
           <header className="candidate-editor-head">
             <SectionHeader
               eyebrow="Портфолио"
-              title="Проект"
-              description="Добавляйте проекты, над которыми вы работали. Расскажите подробно о роли, обязанностях и результате."
+              title={pageTitle}
+              description={pageDescription}
               size="lg"
               actions={<Button href={CANDIDATE_PAGE_ROUTES.projects} variant="secondary">Назад к портфолио</Button>}
             />
           </header>
 
-          {submitError ? (
-            <Alert tone="error" title="Ошибка сохранения" showIcon>
-              {submitError}
+          {actionError ? (
+            <Alert tone="error" title="Операция не выполнена" showIcon>
+              {actionError}
             </Alert>
           ) : null}
 
@@ -597,8 +770,13 @@ export function CandidateProjectEditorApp() {
           </ProjectEditorSection>
 
           <div className="candidate-project-editor-save candidate-editor-save">
-            <Button type="submit" disabled={isSubmitting || isPreparingCoverImage}>
-              {isSubmitting ? "Сохраняем..." : "Сохранить проект"}
+            {isEditMode ? (
+              <Button type="button" variant="danger" onClick={() => void handleDelete()} loading={isDeleting} disabled={isBusy}>
+                Удалить проект
+              </Button>
+            ) : null}
+            <Button type="submit" disabled={isBusy}>
+              {submitButtonLabel}
             </Button>
           </div>
         </div>

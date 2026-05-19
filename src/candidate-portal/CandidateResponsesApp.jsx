@@ -15,13 +15,13 @@ function SocialContextModal({ state, onClose }) {
       open={state.open}
       onClose={onClose}
       title={state.title || "Связи по отклику"}
-      description="Контакты компании, люди из вашей сети и видимые peers по выбранной возможности."
+      description="Контакты компании, люди из вашей сети и другие откликнувшиеся по выбранной возможности."
       size="lg"
     >
-      {state.status === "loading" ? <Loader label="Загружаем social-context" /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем связи по отклику" /> : null}
 
       {state.status === "error" ? (
-        <Alert tone="error" title="Не удалось загрузить social-context" showIcon>
+        <Alert tone="error" title="Не удалось загрузить связи по отклику" showIcon>
           {state.error}
         </Alert>
       ) : null}
@@ -69,7 +69,7 @@ function SocialContextModal({ state, onClose }) {
                 ))}
               </div>
             ) : (
-              <p className="candidate-application-card__social-value">Пока нет видимых peers</p>
+              <p className="candidate-application-card__social-value">Пока нет откликнувшихся с открытым профилем</p>
             )}
           </Card>
         </div>
@@ -93,10 +93,10 @@ function ShareOpportunityModal({ state, onClose, onShare }) {
       description="Выберите контакт из вашей сети, которому хотите отправить возможность."
       size="md"
     >
-      {state.status === "loading" ? <Loader label="Загружаем контакты для шаринга" /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем контакты для отправки" /> : null}
 
       {state.error ? (
-        <Alert tone="error" title="Не удалось открыть шаринг" showIcon>
+        <Alert tone="error" title="Не удалось открыть список контактов" showIcon>
           {state.error}
         </Alert>
       ) : null}
@@ -104,7 +104,7 @@ function ShareOpportunityModal({ state, onClose, onShare }) {
       {state.status === "ready" && !state.contacts.length ? (
         <EmptyState
           eyebrow="Пока пусто"
-          title="Нет контактов для шаринга"
+          title="Нет контактов, с кем можно поделиться"
           description="Поделиться возможностью можно с сохранёнными контактами и друзьями."
           tone="neutral"
           compact
@@ -118,7 +118,7 @@ function ShareOpportunityModal({ state, onClose, onShare }) {
               <div className="opportunity-share-modal__identity">
                 <div className="opportunity-share-modal__copy">
                   <strong>{contact.name}</strong>
-                  <span>{contact.email || "Контакт без email"}</span>
+                  <span>{contact.email || "Почта не указана"}</span>
                 </div>
               </div>
 
@@ -239,7 +239,7 @@ export function CandidateResponsesApp() {
         open: true,
         status: "error",
         title: item.title,
-        error: error?.message ?? "Не удалось загрузить social-context.",
+        error: error?.message ?? "Не удалось загрузить связи по отклику.",
         socialContext: {
           companyContacts: [],
           networkCandidates: [],
@@ -300,7 +300,7 @@ export function CandidateResponsesApp() {
         opportunityId: item.opportunityId,
         contacts: [],
         busyKey: "",
-        error: error?.message ?? "Не удалось загрузить контакты для шаринга.",
+        error: error?.message ?? "Не удалось загрузить список контактов.",
       });
     }
   }

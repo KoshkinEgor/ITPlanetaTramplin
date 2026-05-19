@@ -607,7 +607,7 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
         <section className="candidate-settings-detail__section">
           <div className="candidate-settings-detail__head-inline">
             <div>
-              <h4 className="candidate-settings-detail__section-title">Peers по возможностям</h4>
+              <h4 className="candidate-settings-detail__section-title">Видимость среди откликнувшихся</h4>
               <p className="candidate-settings-detail__section-text">Управляйте значением по умолчанию для показа вас в списке других откликнувшихся.</p>
             </div>
             <Button type="button" variant="ghost" onClick={() => onChange("peerVisibilityDefault", false)}>Сбросить</Button>
@@ -618,7 +618,7 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
               <Switch className="candidate-project-editor-switch" checked={draft.privacy.peerVisibilityDefault} onChange={(event) => onChange("peerVisibilityDefault", event.target.checked)}>
                 <>
                   <span className="ui-check__label">Показывать меня среди других откликнувшихся</span>
-                  <span className="ui-check__hint">Новые отклики по умолчанию будут создаваться с разрешением на peer visibility.</span>
+                  <span className="ui-check__hint">Для новых откликов по умолчанию будет включен показ вашего профиля среди других откликнувшихся.</span>
                 </>
               </Switch>
             </Card>

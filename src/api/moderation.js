@@ -64,10 +64,10 @@ export function createModeratorInvitation(payload) {
   });
 }
 
-export function decideCompanyModeration(companyId, status) {
+export function decideCompanyModeration(companyId, payload) {
   return apiRequest(`/moderation/companies/${companyId}/decision`, {
     method: "POST",
-    body: { status },
+    body: typeof payload === "string" ? { status: payload } : payload,
   });
 }
 
@@ -78,9 +78,9 @@ export function decideOpportunityModeration(opportunityId, payload) {
   });
 }
 
-export function decideUserModeration(userId, status) {
+export function decideUserModeration(userId, payload) {
   return apiRequest(`/moderation/users/${userId}/decision`, {
     method: "POST",
-    body: { status },
+    body: typeof payload === "string" ? { status: payload } : payload,
   });
 }

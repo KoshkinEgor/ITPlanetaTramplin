@@ -202,24 +202,24 @@ describe("CompanyProfileSection", () => {
       ...baseProfile,
       verificationMethod: "manual_document",
       verificationData: JSON.stringify({
-        snapshot: {
-          companyName: "Northwind",
-          inn: "1234567890",
-          legalAddress: "Moscow",
+        Snapshot: {
+          CompanyName: "Northwind",
+          Inn: "1234567890",
+          LegalAddress: "Moscow",
         },
-        contact: {
-          name: "Irina Smirnova",
-          role: "HR Lead",
-          phone: "+7 999 000-00-00",
-          email: "hr@northwind.example",
+        Contact: {
+          Name: "Irina Smirnova",
+          Role: "HR Lead",
+          Phone: "+7 999 000-00-00",
+          Email: "hr@northwind.example",
         },
-        document: {
-          originalName: "egrul.pdf",
-          contentType: "application/pdf",
-          sizeBytes: 4096,
-          storageKey: "company-12/egrul.pdf",
+        Document: {
+          OriginalName: "egrul.pdf",
+          ContentType: "application/pdf",
+          SizeBytes: 4096,
+          StorageKey: "company-12/egrul.pdf",
         },
-        submittedAt: "2026-03-28T10:00:00.000Z",
+        SubmittedAt: "2026-03-28T10:00:00.000Z",
       }),
     });
 
@@ -239,6 +239,22 @@ describe("CompanyProfileSection", () => {
 
     expect(appendSpy).toHaveBeenCalled();
     expect(removeSpy).toHaveBeenCalled();
+  });
+
+  it("hides raw legacy verification payloads for pending companies", async () => {
+    getCompanyProfile.mockResolvedValue({
+      ...baseProfile,
+      verificationStatus: "pending",
+      verificationData: JSON.stringify({
+        source: "development-seed",
+      }),
+    });
+
+    renderSection();
+
+    expect(await screen.findByText("Northwind")).toBeInTheDocument();
+    expect(screen.queryByText("РђСЂС…РёРІ")).not.toBeInTheDocument();
+    expect(screen.queryByText('{"source":"development-seed"}')).not.toBeInTheDocument();
   });
 
   it("hides legacy verification payloads for approved companies", async () => {

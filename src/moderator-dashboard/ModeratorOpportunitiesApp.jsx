@@ -11,6 +11,7 @@ import {
   Input,
   Loader,
   Modal,
+  ModerationActionDialog,
   Select,
   Tag,
   Textarea,
@@ -52,6 +53,50 @@ const DECISION_OPTIONS = [
 
 function normalize(value) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getDecisionDialogVariant(status) {
+  switch (normalize(status)) {
+    case "revision":
+      return "revision";
+    case "rejected":
+      return "reject";
+    default:
+      return "approve";
+  }
+}
+
+function getOpportunityDecisionDialogContent(status) {
+  switch (normalize(status)) {
+    case "approved":
+      return {
+        actionLabel: "Одобрить публикацию",
+        description: "Публикация получит одобренный статус после подтверждения решения.",
+        confirmLabel: "Одобрить",
+      };
+    case "revision":
+      return {
+        actionLabel: "Вернуть публикацию на доработку",
+        description: "Публикация будет возвращена на доработку после подтверждения.",
+        confirmLabel: "Отправить на доработку",
+      };
+    case "rejected":
+      return {
+        actionLabel: "Отклонить публикацию",
+        description: "Укажите комментарий перед подтверждением отклонения публикации.",
+        confirmLabel: "Отклонить",
+      };
+    default:
+      return {
+        actionLabel: "Вернуть публикацию на проверку",
+        description: "Публикация снова попадет в очередь модерации после подтверждения.",
+        confirmLabel: "Вернуть на проверку",
+      };
+  }
 }
 
 function translateOpportunityType(value) {
@@ -167,6 +212,7 @@ export function ModeratorOpportunitiesApp() {
   const [draft, setDraft] = useState(null);
   const [decision, setDecision] = useState("approved");
   const [decisionReason, setDecisionReason] = useState("");
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
 
@@ -206,6 +252,7 @@ export function ModeratorOpportunitiesApp() {
     () => (activeItem ? getOpportunityCardPresentation(activeItem) : null),
     [activeItem]
   );
+  const decisionDialogContent = getOpportunityDecisionDialogContent(decision);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -219,6 +266,7 @@ export function ModeratorOpportunitiesApp() {
 
   useEffect(() => {
     if (!selectedId) {
+      setDecisionDialogOpen(false);
       setDetailState({ status: "idle", detail: null, error: null });
       setDraft(null);
       return;
@@ -240,6 +288,7 @@ export function ModeratorOpportunitiesApp() {
         setDraft(createOpportunityDraft(detail));
         setDecision(normalize(detail?.moderationStatus) || "approved");
         setDecisionReason(detail?.moderationReason ?? "");
+        setDecisionDialogOpen(false);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -255,6 +304,7 @@ export function ModeratorOpportunitiesApp() {
 
   function handleOpportunitySelect(nextId) {
     setSelectedId((current) => (current === nextId ? null : nextId));
+    setDecisionDialogOpen(false);
     setSaveState({ status: "idle", error: "" });
     setDecisionState({ status: "idle", error: "" });
   }
@@ -358,23 +408,53 @@ export function ModeratorOpportunitiesApp() {
     }
   }
 
-  async function handleDecisionSave() {
+  function handleDecisionChange(nextValue) {
+    setDecision(nextValue);
+    setDecisionState({ status: "idle", error: "" });
+  }
+
+  function handleOpenDecisionDialog() {
     if (!selectedId) {
       return;
     }
+
+    setDecisionState({ status: "idle", error: "" });
+    setDecisionDialogOpen(true);
+  }
+
+  function handleCloseDecisionDialog() {
+    if (decisionState.status === "saving") {
+      return;
+    }
+
+    setDecisionDialogOpen(false);
+  }
+
+  function handleCloseOpportunityModal() {
+    setDecisionDialogOpen(false);
+    setSelectedId(null);
+  }
+
+  async function handleDecisionSave({ reason } = {}) {
+    if (!selectedId) {
+      return;
+    }
+
+    const normalizedReason = normalizeText(reason ?? decisionReason) || null;
 
     setDecisionState({ status: "saving", error: "" });
 
     try {
       await decideOpportunityModeration(selectedId, {
         status: decision,
-        reason: decisionReason.trim() || null,
+        reason: normalizedReason,
       });
       const refreshed = await getModerationOpportunity(selectedId);
       setDetailState({ status: "ready", detail: refreshed, error: null });
       setDraft(createOpportunityDraft(refreshed));
       setDecision(normalize(refreshed?.moderationStatus) || decision);
-      setDecisionReason(refreshed?.moderationReason ?? decisionReason);
+      setDecisionReason(refreshed?.moderationReason ?? normalizedReason ?? "");
+      setDecisionDialogOpen(false);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -432,7 +512,7 @@ export function ModeratorOpportunitiesApp() {
               <div className="moderator-panel__copy">
                 <Tag tone="accent">Возможности</Tag>
                 <h2 className="ui-type-h2">Список публикаций</h2>
-                <p className="ui-type-body">Выберите карточку слева, чтобы открыть форму редактирования и смены moderation status.</p>
+                <p className="ui-type-body">Выберите карточку слева, чтобы открыть форму редактирования и изменить статус проверки.</p>
               </div>
               <span className="moderator-panel__counter">{filteredItems.length}</span>
             </div>
@@ -471,7 +551,7 @@ export function ModeratorOpportunitiesApp() {
 
       <Modal
         open={Boolean(activeItem)}
-        onClose={() => setSelectedId(null)}
+        onClose={handleCloseOpportunityModal}
         title="Проверка публикации"
         description="Форма использует moderation detail/update endpoints и не меняет статус автоматически."
         size="lg"
@@ -537,7 +617,7 @@ export function ModeratorOpportunitiesApp() {
 
             {saveState.status === "success" ? (
               <Alert tone="success" title="Публикация обновлена" showIcon>
-                Контент сохранен через moderation API без неявного перевода в pending.
+                Изменения сохранены без автоматического возврата на повторную проверку.
               </Alert>
             ) : null}
 
@@ -658,11 +738,11 @@ export function ModeratorOpportunitiesApp() {
                   <h4 className="ui-type-h3">Решение модерации</h4>
                   <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                     <FormField label="Статус модерации">
-                      <Select value={decision} onValueChange={setDecision} options={DECISION_OPTIONS} />
+                      <Select value={decision} onValueChange={handleDecisionChange} options={DECISION_OPTIONS} />
                     </FormField>
                   </div>
                   <div className="company-dashboard-panel__actions">
-                    <Button type="button" variant="secondary" onClick={handleDecisionSave} disabled={decisionState.status === "saving"}>
+                    <Button type="button" variant="secondary" onClick={handleOpenDecisionDialog} disabled={decisionState.status === "saving"}>
                       {decisionState.status === "saving" ? "Обновляем..." : "Применить решение"}
                     </Button>
                   </div>
@@ -671,6 +751,32 @@ export function ModeratorOpportunitiesApp() {
             ) : null}
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={decisionDialogOpen}
+        onClose={handleCloseDecisionDialog}
+        ariaLabel="Подтверждение решения по публикации"
+        showDismiss={false}
+        closeOnEscape={decisionState.status !== "saving"}
+        closeOnOverlayClick={decisionState.status !== "saving"}
+        className="ui-moderation-action-dialog-shell"
+      >
+        <ModerationActionDialog
+          variant={getDecisionDialogVariant(decision)}
+          actionLabel={decisionDialogContent.actionLabel}
+          question="Подтвердить решение?"
+          description={decisionDialogContent.description}
+          confirmLabel={decisionDialogContent.confirmLabel}
+          busy={decisionState.status === "saving"}
+          reasonLabel={decision === "rejected" ? "Комментарий модератора" : undefined}
+          reasonValue={decisionReason}
+          reasonPlaceholder={decision === "rejected" ? "Укажите причину отклонения публикации" : undefined}
+          reasonRequired={decision === "rejected"}
+          onReasonChange={setDecisionReason}
+          onCancel={handleCloseDecisionDialog}
+          onConfirm={handleDecisionSave}
+        />
       </Modal>
     </>
   );
