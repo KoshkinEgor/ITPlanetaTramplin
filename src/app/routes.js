@@ -129,8 +129,9 @@ export function buildCandidatePublicProfileRoute({ userId, name, email, skills =
   });
 }
 
-export function buildCandidateProjectEditRoute({ participantUserId, participantName, participantRole } = {}) {
+export function buildCandidateProjectEditRoute({ projectId, participantUserId, participantName, participantRole } = {}) {
   return withSearch(routes.candidate.projectEdit, {
+    projectId,
     participantUserId,
     participantName,
     participantRole,

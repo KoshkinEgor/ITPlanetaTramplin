@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { buildCandidateProjectEditRoute } from "../app/routes";
 import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, getCandidateProjects } from "../api/candidate";
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, Loader } from "../shared/ui";
@@ -348,7 +349,11 @@ export function CandidateProjectsApp() {
           {projectItems.length ? (
             <div className="candidate-page-grid candidate-page-grid--two">
               {projectItems.map((item) => (
-                <CandidatePortfolioProjectCard key={item.id} item={item} />
+                <CandidatePortfolioProjectCard
+                  key={item.id}
+                  item={item}
+                  actionHref={buildCandidateProjectEditRoute({ projectId: item.id })}
+                />
               ))}
             </div>
           ) : (

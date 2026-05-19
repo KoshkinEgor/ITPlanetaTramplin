@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   decideOpportunityModeration,
@@ -77,20 +77,27 @@ describe("ModeratorOpportunitiesApp", () => {
     });
   });
 
-  it("applies moderation decisions explicitly", async () => {
+  it("opens a confirmation modal and sends the rejection comment", async () => {
     render(<ModeratorOpportunitiesApp />);
 
     await openOpportunityModal();
 
     expect(await screen.findByLabelText("Статус модерации")).toHaveValue("pending");
 
-    fireEvent.change(screen.getByLabelText("Статус модерации"), { target: { value: "approved" } });
+    fireEvent.change(screen.getByLabelText("Статус модерации"), { target: { value: "rejected" } });
     fireEvent.click(screen.getByRole("button", { name: "Применить решение" }));
+
+    const confirmDialog = await screen.findByRole("dialog", { name: "Подтверждение решения по публикации" });
+
+    fireEvent.change(within(confirmDialog).getByLabelText("Комментарий модератора"), {
+      target: { value: "Публикацию нельзя разместить без уточнения условий." },
+    });
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Отклонить" }));
 
     await waitFor(() => {
       expect(decideOpportunityModeration).toHaveBeenCalledWith(101, {
-        status: "approved",
-        reason: null,
+        status: "rejected",
+        reason: "Публикацию нельзя разместить без уточнения условий.",
       });
     });
   });

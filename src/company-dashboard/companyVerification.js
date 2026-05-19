@@ -6,6 +6,20 @@ function normalizeRecord(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
 
+function readRecordValue(record, ...keys) {
+  if (!record) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(record, key)) {
+      return record[key];
+    }
+  }
+
+  return undefined;
+}
+
 export function parseCompanyVerificationData(value) {
   const rawValue = normalizeText(value);
   if (!rawValue) {
@@ -20,10 +34,11 @@ export function parseCompanyVerificationData(value) {
       return { legacyText: rawValue };
     }
 
-    const snapshot = normalizeRecord(record.snapshot);
-    const contact = normalizeRecord(record.contact);
-    const document = normalizeRecord(record.document);
-    const hasStructuredPayload = Boolean(snapshot || contact || document || normalizeText(record.submittedAt));
+    const snapshot = normalizeRecord(readRecordValue(record, "snapshot", "Snapshot"));
+    const contact = normalizeRecord(readRecordValue(record, "contact", "Contact"));
+    const document = normalizeRecord(readRecordValue(record, "document", "Document"));
+    const submittedAt = normalizeText(readRecordValue(record, "submittedAt", "SubmittedAt"));
+    const hasStructuredPayload = Boolean(snapshot || contact || document || submittedAt);
 
     if (!hasStructuredPayload) {
       return { legacyText: rawValue };
@@ -32,28 +47,28 @@ export function parseCompanyVerificationData(value) {
     return {
       snapshot: snapshot
         ? {
-            companyName: normalizeText(snapshot.companyName),
-            inn: normalizeText(snapshot.inn),
-            legalAddress: normalizeText(snapshot.legalAddress),
+            companyName: normalizeText(readRecordValue(snapshot, "companyName", "CompanyName")),
+            inn: normalizeText(readRecordValue(snapshot, "inn", "Inn")),
+            legalAddress: normalizeText(readRecordValue(snapshot, "legalAddress", "LegalAddress")),
           }
         : null,
       contact: contact
         ? {
-            name: normalizeText(contact.name),
-            role: normalizeText(contact.role),
-            phone: normalizeText(contact.phone),
-            email: normalizeText(contact.email),
+            name: normalizeText(readRecordValue(contact, "name", "Name")),
+            role: normalizeText(readRecordValue(contact, "role", "Role")),
+            phone: normalizeText(readRecordValue(contact, "phone", "Phone")),
+            email: normalizeText(readRecordValue(contact, "email", "Email")),
           }
         : null,
       document: document
         ? {
-            originalName: normalizeText(document.originalName),
-            contentType: normalizeText(document.contentType),
-            sizeBytes: Number(document.sizeBytes) || 0,
-            storageKey: normalizeText(document.storageKey),
+            originalName: normalizeText(readRecordValue(document, "originalName", "OriginalName")),
+            contentType: normalizeText(readRecordValue(document, "contentType", "ContentType")),
+            sizeBytes: Number(readRecordValue(document, "sizeBytes", "SizeBytes")) || 0,
+            storageKey: normalizeText(readRecordValue(document, "storageKey", "StorageKey")),
           }
         : null,
-      submittedAt: normalizeText(record.submittedAt),
+      submittedAt,
       legacyText: "",
     };
   } catch {

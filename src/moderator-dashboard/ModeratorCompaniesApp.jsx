@@ -18,6 +18,7 @@ import {
   Input,
   Loader,
   Modal,
+  ModerationActionDialog,
   Select,
   Tag,
   Textarea,
@@ -57,6 +58,46 @@ function translateCompanyStatus(status) {
       return "Отклонена";
     default:
       return "На проверке";
+  }
+}
+
+function getDecisionDialogVariant(status) {
+  switch (normalize(status)) {
+    case "revision":
+      return "revision";
+    case "rejected":
+      return "reject";
+    default:
+      return "approve";
+  }
+}
+
+function getCompanyDecisionDialogContent(status) {
+  switch (normalize(status)) {
+    case "approved":
+      return {
+        actionLabel: "Подтвердить компанию",
+        description: "Компания получит подтвержденный статус после подтверждения решения.",
+        confirmLabel: "Подтвердить",
+      };
+    case "revision":
+      return {
+        actionLabel: "Вернуть компанию на доработку",
+        description: "Компания будет переведена в статус доработки после подтверждения.",
+        confirmLabel: "Отправить на доработку",
+      };
+    case "rejected":
+      return {
+        actionLabel: "Отклонить компанию",
+        description: "Укажите комментарий для компании перед подтверждением отклонения.",
+        confirmLabel: "Отклонить",
+      };
+    default:
+      return {
+        actionLabel: "Вернуть компанию на проверку",
+        description: "Компания снова попадет в очередь модерации после подтверждения.",
+        confirmLabel: "Вернуть на проверку",
+      };
   }
 }
 
@@ -173,7 +214,7 @@ function VerificationRequestSummary({ item, onDownload, downloadState }) {
       {verificationData.legacyText ? (
         <div className="moderator-detail-facts moderator-detail-facts--stack">
           <div>
-            <dt>Legacy-данные</dt>
+            <dt>Данные из предыдущей версии</dt>
             <dd>{verificationData.legacyText}</dd>
           </div>
         </div>
@@ -205,6 +246,8 @@ export function ModeratorCompaniesApp() {
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [decision, setDecision] = useState("approved");
+  const [decisionReason, setDecisionReason] = useState("");
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
   const [documentState, setDocumentState] = useState({ status: "idle", error: "" });
@@ -244,6 +287,7 @@ export function ModeratorCompaniesApp() {
 
   useEffect(() => {
     if (!selectedId) {
+      setDecisionDialogOpen(false);
       setDetailState({ status: "idle", detail: null, error: null });
       setDraft(null);
       return;
@@ -264,6 +308,8 @@ export function ModeratorCompaniesApp() {
         setDetailState({ status: "ready", detail, error: null });
         setDraft(createCompanyDraft(detail));
         setDecision(normalize(detail?.verificationStatus) || "approved");
+        setDecisionReason(normalizeText(detail?.verificationReason));
+        setDecisionDialogOpen(false);
         setDocumentState({ status: "idle", error: "" });
       } catch (error) {
         if (controller.signal.aborted) {
@@ -290,6 +336,7 @@ export function ModeratorCompaniesApp() {
 
   function handleSelect(nextId) {
     setSelectedId((current) => (current === nextId ? null : nextId));
+    setDecisionDialogOpen(false);
     setSaveState({ status: "idle", error: "" });
     setDecisionState({ status: "idle", error: "" });
     setDocumentState({ status: "idle", error: "" });
@@ -352,19 +399,53 @@ export function ModeratorCompaniesApp() {
     }
   }
 
-  async function handleDecisionSave() {
+  function handleDecisionChange(nextValue) {
+    setDecision(nextValue);
+    setDecisionState({ status: "idle", error: "" });
+  }
+
+  function handleOpenDecisionDialog() {
     if (!selectedId) {
       return;
     }
 
+    setDecisionState({ status: "idle", error: "" });
+    setDecisionDialogOpen(true);
+  }
+
+  function handleCloseDecisionDialog() {
+    if (decisionState.status === "saving") {
+      return;
+    }
+
+    setDecisionDialogOpen(false);
+  }
+
+  function handleCloseCompanyModal() {
+    setDecisionDialogOpen(false);
+    setSelectedId(null);
+  }
+
+  async function handleDecisionSave({ reason } = {}) {
+    if (!selectedId) {
+      return;
+    }
+
+    const normalizedReason = normalizeText(reason ?? decisionReason) || null;
+
     setDecisionState({ status: "saving", error: "" });
 
     try {
-      await decideCompanyModeration(selectedId, decision);
+      await decideCompanyModeration(selectedId, {
+        status: decision,
+        reason: normalizedReason,
+      });
       const refreshed = await getModerationCompany(selectedId);
       setDetailState({ status: "ready", detail: refreshed, error: null });
       setDraft(createCompanyDraft(refreshed));
       setDecision(normalize(refreshed?.verificationStatus) || decision);
+      setDecisionReason(normalizeText(refreshed?.verificationReason) || normalizedReason || "");
+      setDecisionDialogOpen(false);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -374,6 +455,8 @@ export function ModeratorCompaniesApp() {
       });
     }
   }
+
+  const decisionDialogContent = getCompanyDecisionDialogContent(decision);
 
   return (
     <>
@@ -451,7 +534,7 @@ export function ModeratorCompaniesApp() {
 
       <Modal
         open={Boolean(activeItem)}
-        onClose={() => setSelectedId(null)}
+        onClose={handleCloseCompanyModal}
         title="Проверка компании"
         description="Редактирование профиля работодателя и применение решения модерации в одном окне."
         size="lg"
@@ -507,7 +590,7 @@ export function ModeratorCompaniesApp() {
 
             {saveState.status === "success" ? (
               <Alert tone="success" title="Профиль обновлен" showIcon>
-                Данные компании сохранены через moderation API без сброса текущего статуса.
+                Данные компании сохранены без сброса текущего статуса проверки.
               </Alert>
             ) : null}
 
@@ -565,11 +648,11 @@ export function ModeratorCompaniesApp() {
                   <h4 className="ui-type-h3">Решение модерации</h4>
                   <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                     <FormField label="Статус верификации">
-                      <Select value={decision} onValueChange={setDecision} options={COMPANY_DECISION_OPTIONS} />
+                      <Select value={decision} onValueChange={handleDecisionChange} options={COMPANY_DECISION_OPTIONS} />
                     </FormField>
                   </div>
                   <div className="company-dashboard-panel__actions">
-                    <Button type="button" variant="secondary" onClick={handleDecisionSave} disabled={decisionState.status === "saving"}>
+                    <Button type="button" variant="secondary" onClick={handleOpenDecisionDialog} disabled={decisionState.status === "saving"}>
                       {decisionState.status === "saving" ? "Обновляем..." : "Применить решение"}
                     </Button>
                   </div>
@@ -578,6 +661,32 @@ export function ModeratorCompaniesApp() {
             ) : null}
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={decisionDialogOpen}
+        onClose={handleCloseDecisionDialog}
+        ariaLabel="Подтверждение решения по компании"
+        showDismiss={false}
+        closeOnEscape={decisionState.status !== "saving"}
+        closeOnOverlayClick={decisionState.status !== "saving"}
+        className="ui-moderation-action-dialog-shell"
+      >
+        <ModerationActionDialog
+          variant={getDecisionDialogVariant(decision)}
+          actionLabel={decisionDialogContent.actionLabel}
+          question="Подтвердить решение?"
+          description={decisionDialogContent.description}
+          confirmLabel={decisionDialogContent.confirmLabel}
+          busy={decisionState.status === "saving"}
+          reasonLabel={decision === "rejected" ? "Комментарий модератора" : undefined}
+          reasonValue={decisionReason}
+          reasonPlaceholder={decision === "rejected" ? "Укажите причину отклонения компании" : undefined}
+          reasonRequired={decision === "rejected"}
+          onReasonChange={setDecisionReason}
+          onCancel={handleCloseDecisionDialog}
+          onConfirm={handleDecisionSave}
+        />
       </Modal>
     </>
   );

@@ -74,7 +74,7 @@ export function CandidateApplicationCard({
           <div className="candidate-application-card__social-group">
             <span className="candidate-application-card__social-label">Другие откликнувшиеся</span>
             <p className="candidate-application-card__social-value">
-              {preview.peerCount > 0 ? `${preview.peerCount} видимых peer` : "Пока нет видимых peers"}
+              {preview.peerCount > 0 ? `Открытых профилей: ${preview.peerCount}` : "Пока нет откликнувшихся с открытым профилем"}
             </p>
           </div>
         </div>

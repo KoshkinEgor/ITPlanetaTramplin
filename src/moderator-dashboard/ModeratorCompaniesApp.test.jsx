@@ -108,7 +108,7 @@ describe("ModeratorCompaniesApp", () => {
     });
   });
 
-  it("applies verification decisions explicitly", async () => {
+  it("opens a confirmation modal and sends the rejection comment", async () => {
     render(<ModeratorCompaniesApp />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Northwind/i }));
@@ -117,11 +117,21 @@ describe("ModeratorCompaniesApp", () => {
 
     expect(within(dialog).getByLabelText("Статус верификации")).toHaveValue("pending");
 
-    fireEvent.change(within(dialog).getByLabelText("Статус верификации"), { target: { value: "approved" } });
+    fireEvent.change(within(dialog).getByLabelText("Статус верификации"), { target: { value: "rejected" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Применить решение" }));
 
+    const confirmDialog = await screen.findByRole("dialog", { name: "Подтверждение решения по компании" });
+
+    fireEvent.change(within(confirmDialog).getByLabelText("Комментарий модератора"), {
+      target: { value: "Документы компании не прошли проверку." },
+    });
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Отклонить" }));
+
     await waitFor(() => {
-      expect(decideCompanyModeration).toHaveBeenCalledWith(12, "approved");
+      expect(decideCompanyModeration).toHaveBeenCalledWith(12, {
+        status: "rejected",
+        reason: "Документы компании не прошли проверку.",
+      });
     });
   });
 

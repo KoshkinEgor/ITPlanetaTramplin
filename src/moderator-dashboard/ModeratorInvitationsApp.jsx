@@ -126,7 +126,7 @@ export function ModeratorInvitationsApp() {
     if (!canInvite) {
       setSaveState({
         status: "error",
-        error: "Приглашать кураторов может только administrator.",
+        error: "Приглашать кураторов может только администратор.",
         payload: null,
       });
       return;
@@ -214,7 +214,7 @@ export function ModeratorInvitationsApp() {
 
           {!canInvite ? (
             <Alert tone="warning" title="Создание приглашений ограничено" showIcon>
-              Приглашать кураторов может только <strong>administrator</strong>. История уже созданных приглашений остаётся доступной.
+              Приглашать кураторов может только <strong>администратор</strong>. История уже созданных приглашений остаётся доступной.
             </Alert>
           ) : null}
 
@@ -258,7 +258,7 @@ export function ModeratorInvitationsApp() {
                 <DashboardSectionHeader
                   eyebrow="Права доступа"
                   title="Форма скрыта для обычных модераторов"
-                  description="Вы можете просматривать историю приглашений, но создавать новые записи может только administrator."
+                  description="Вы можете просматривать историю приглашений, но создавать новые записи может только администратор."
                 />
               </Card>
             )}
@@ -267,7 +267,7 @@ export function ModeratorInvitationsApp() {
               <DashboardSectionHeader
                 eyebrow="Правила"
                 title="Как это работает"
-                description="Новый модератор не регистрируется сам. Доступ появляется только после приглашения от administrator."
+                description="Новый модератор не регистрируется сам. Доступ появляется только после приглашения от администратора."
               />
 
               <div className="moderator-invitations-note-list">

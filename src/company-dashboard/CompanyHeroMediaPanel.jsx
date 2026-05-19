@@ -28,7 +28,7 @@ export function CompanyHeroMediaPanel({
   media,
   mode = "viewer",
   eyebrow = "О компании",
-  title = "Hero-media компании",
+  title = "Медиа компании",
   description = "Тот же медиа-блок компании используется в кабинете и на публичной странице.",
   testId = "company-hero-media-panel",
   compact = false,
@@ -63,7 +63,7 @@ export function CompanyHeroMediaPanel({
         <div className="company-dashboard-media-panel__body company-dashboard-media-panel__body--editor">
           <div className="company-dashboard-media-panel__preview company-dashboard-media-panel__preview--editor">
             {hasPreviewImage ? (
-              <img src={resolvedPreviewUrl} alt={item.title || "Hero media компании"} loading="lazy" />
+              <img src={resolvedPreviewUrl} alt={item.title || "Медиа компании"} loading="lazy" />
             ) : (
               <div className="company-dashboard-media-panel__preview-placeholder company-dashboard-media-panel__preview-placeholder--editor">
                 {resolvedType === "video" ? <PlayBadge /> : null}
@@ -97,7 +97,7 @@ export function CompanyHeroMediaPanel({
 
           <FormField
             label="Ссылка на источник"
-            hint="Система сама определит, это фотография или видео. Отдельные поля preview и type не нужны."
+            hint="Система сама определит, это фотография или видео. Отдельно указывать превью и тип не нужно."
           >
             <Input
               value={item.sourceUrl}
@@ -110,7 +110,7 @@ export function CompanyHeroMediaPanel({
         <div className="company-dashboard-media-panel__body">
           <div className="company-dashboard-media-panel__preview">
             {hasPreviewImage ? (
-              <img src={resolvedPreviewUrl} alt={item.title || "Hero media компании"} loading="lazy" />
+              <img src={resolvedPreviewUrl} alt={item.title || "Медиа компании"} loading="lazy" />
             ) : (
               <div className="company-dashboard-media-panel__preview-placeholder">
                 {resolvedType === "video" ? <PlayBadge /> : null}

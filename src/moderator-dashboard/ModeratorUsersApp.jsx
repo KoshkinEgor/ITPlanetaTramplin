@@ -12,6 +12,7 @@ import {
   Input,
   Loader,
   Modal,
+  ModerationActionDialog,
   Select,
   Tag,
   Textarea,
@@ -92,6 +93,46 @@ function translateModerationStatus(status) {
       return { label: "Отклонено", tone: "rejected" };
     default:
       return { label: "На проверке", tone: "pending" };
+  }
+}
+
+function getDecisionDialogVariant(status) {
+  switch (normalize(status)) {
+    case "revision":
+      return "revision";
+    case "rejected":
+      return "reject";
+    default:
+      return "approve";
+  }
+}
+
+function getUserDecisionDialogContent(status) {
+  switch (normalize(status)) {
+    case "approved":
+      return {
+        actionLabel: "Одобрить кандидата",
+        description: "Профиль кандидата получит статус одобренного после подтверждения.",
+        confirmLabel: "Одобрить",
+      };
+    case "revision":
+      return {
+        actionLabel: "Отправить кандидата на доработку",
+        description: "Профиль кандидата будет возвращен на доработку после подтверждения.",
+        confirmLabel: "Отправить на доработку",
+      };
+    case "rejected":
+      return {
+        actionLabel: "Отклонить кандидата",
+        description: "Решение об отклонении профиля будет сохранено после подтверждения.",
+        confirmLabel: "Отклонить",
+      };
+    default:
+      return {
+        actionLabel: "Вернуть кандидата на проверку",
+        description: "Профиль кандидата снова попадет в очередь модерации после подтверждения.",
+        confirmLabel: "Вернуть на проверку",
+      };
   }
 }
 
@@ -223,6 +264,7 @@ export function ModeratorUsersApp() {
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
   const [decision, setDecision] = useState("approved");
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -277,6 +319,7 @@ export function ModeratorUsersApp() {
 
   useEffect(() => {
     if (!selectedId || !isCandidateActive) {
+      setDecisionDialogOpen(false);
       setDetailState({ status: "idle", detail: null, error: null });
       setDraft(null);
       return;
@@ -312,6 +355,7 @@ export function ModeratorUsersApp() {
 
   function handleSelect(nextId) {
     setSelectedId((current) => (current === nextId ? null : nextId));
+    setDecisionDialogOpen(false);
     setSaveState({ status: "idle", error: "" });
     setDecisionState({ status: "idle", error: "" });
   }
@@ -348,6 +392,33 @@ export function ModeratorUsersApp() {
     }
   }
 
+  function handleDecisionChange(nextValue) {
+    setDecision(nextValue);
+    setDecisionState({ status: "idle", error: "" });
+  }
+
+  function handleOpenDecisionDialog() {
+    if (!selectedId || !isCandidateActive) {
+      return;
+    }
+
+    setDecisionState({ status: "idle", error: "" });
+    setDecisionDialogOpen(true);
+  }
+
+  function handleCloseDecisionDialog() {
+    if (decisionState.status === "saving") {
+      return;
+    }
+
+    setDecisionDialogOpen(false);
+  }
+
+  function handleCloseUserModal() {
+    setDecisionDialogOpen(false);
+    setSelectedId(null);
+  }
+
   async function handleDecisionSave() {
     if (!selectedId || !isCandidateActive) {
       return;
@@ -361,17 +432,19 @@ export function ModeratorUsersApp() {
       setDetailState({ status: "ready", detail: refreshed, error: null });
       setDraft(createCandidateDraft(refreshed));
       setDecision(normalizeText(refreshed?.moderationStatus) || decision);
+      setDecisionDialogOpen(false);
       setDecisionState({ status: "success", error: "" });
       setReloadKey((current) => current + 1);
     } catch (error) {
       setDecisionState({
         status: "error",
-        error: error?.message ?? "Не удалось обновить moderation status.",
+        error: error?.message ?? "Не удалось обновить статус проверки.",
       });
     }
   }
 
   const activeStatus = getUserStatusPresentation(activeItem);
+  const decisionDialogContent = getUserDecisionDialogContent(decision);
 
   return (
     <>
@@ -448,9 +521,9 @@ export function ModeratorUsersApp() {
 
       <Modal
         open={Boolean(activeListItem)}
-        onClose={() => setSelectedId(null)}
+        onClose={handleCloseUserModal}
         title="Карточка пользователя"
-        description={isCandidateActive ? "Редактирование основной публичной анкеты кандидата и moderation status." : "Для этой роли доступен обзор без редактирования анкеты."}
+        description={isCandidateActive ? "Редактирование публичной анкеты кандидата и статуса проверки." : "Для этой роли доступен обзор без редактирования анкеты."}
         size="lg"
         closeLabel="Закрыть окно пользователя"
         className="moderator-user-modal"
@@ -502,7 +575,7 @@ export function ModeratorUsersApp() {
 
             {saveState.status === "success" ? (
               <Alert tone="success" title="Анкета обновлена" showIcon>
-                Основная карточка кандидата сохранена через moderation API.
+                Анкета кандидата сохранена.
               </Alert>
             ) : null}
 
@@ -514,13 +587,13 @@ export function ModeratorUsersApp() {
 
             {decisionState.status === "success" ? (
               <Alert tone="success" title="Статус обновлен" showIcon>
-                Moderation status кандидата сохранен.
+                Статус проверки кандидата сохранён.
               </Alert>
             ) : null}
 
             {!isCandidateActive ? (
               <p className="ui-type-body moderator-detail-surface__description">
-                Для работодателей и модераторов на этом экране доступен только обзор учетной записи. Редактирование через moderation workflow используется только для карточек кандидатов.
+                Для работодателей и модераторов на этом экране доступен только обзор учетной записи. Редактирование через инструменты модерации доступно только для карточек кандидатов.
               </p>
             ) : null}
 
@@ -590,14 +663,14 @@ export function ModeratorUsersApp() {
                 </section>
 
                 <section className="moderator-detail-group">
-                  <h4 className="ui-type-h3">Moderation status</h4>
+                  <h4 className="ui-type-h3">Статус проверки</h4>
                   <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                     <FormField label="Статус проверки">
-                      <Select value={decision} onValueChange={setDecision} options={MODERATION_STATUS_OPTIONS} />
+                      <Select value={decision} onValueChange={handleDecisionChange} options={MODERATION_STATUS_OPTIONS} />
                     </FormField>
                   </div>
                   <div className="company-dashboard-panel__actions">
-                    <Button type="button" variant="secondary" onClick={handleDecisionSave} disabled={decisionState.status === "saving"}>
+                    <Button type="button" variant="secondary" onClick={handleOpenDecisionDialog} disabled={decisionState.status === "saving"}>
                       {decisionState.status === "saving" ? "Обновляем..." : "Обновить статус"}
                     </Button>
                   </div>
@@ -606,6 +679,27 @@ export function ModeratorUsersApp() {
             ) : null}
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={decisionDialogOpen}
+        onClose={handleCloseDecisionDialog}
+        ariaLabel="Подтверждение решения по кандидату"
+        showDismiss={false}
+        closeOnEscape={decisionState.status !== "saving"}
+        closeOnOverlayClick={decisionState.status !== "saving"}
+        className="ui-moderation-action-dialog-shell"
+      >
+        <ModerationActionDialog
+          variant={getDecisionDialogVariant(decision)}
+          actionLabel={decisionDialogContent.actionLabel}
+          question="Подтвердить решение?"
+          description={decisionDialogContent.description}
+          confirmLabel={decisionDialogContent.confirmLabel}
+          busy={decisionState.status === "saving"}
+          onCancel={handleCloseDecisionDialog}
+          onConfirm={handleDecisionSave}
+        />
       </Modal>
     </>
   );

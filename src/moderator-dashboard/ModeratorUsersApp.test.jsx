@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   decideUserModeration,
@@ -97,6 +97,7 @@ describe("ModeratorUsersApp", () => {
 
     fireEvent.change(screen.getByLabelText("Статус проверки"), { target: { value: "approved" } });
     fireEvent.click(screen.getByRole("button", { name: "Обновить статус" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Подтверждение решения по кандидату" })).getByRole("button", { name: "Одобрить" }));
 
     await waitFor(() => {
       expect(decideUserModeration).toHaveBeenCalledWith(1, "approved");

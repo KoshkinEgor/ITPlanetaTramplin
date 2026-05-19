@@ -243,13 +243,13 @@ function OpportunitySocialSections({
         <div>
           <h2 className="ui-type-h3">Люди вокруг возможности</h2>
           <p className="ui-type-body">
-            Контакты компании, люди из вашей сети и peers по этой возможности собраны в одном месте.
+            Контакты компании, люди из вашей сети и другие откликнувшиеся по этой возможности собраны в одном месте.
           </p>
         </div>
-        {incomingShareCount > 0 ? <Tag tone="accent">{incomingShareCount} входящих шаров</Tag> : null}
+        {incomingShareCount > 0 ? <Tag tone="accent">{`С вами поделились: ${incomingShareCount}`}</Tag> : null}
       </div>
 
-      {status === "loading" ? <Loader label="Загружаем social-context" /> : null}
+      {status === "loading" ? <Loader label="Загружаем связи по отклику" /> : null}
       {error ?
       <Alert tone="warning" title="Не всё удалось загрузить" showIcon>
           {error}
@@ -327,8 +327,8 @@ function OpportunitySocialSections({
 
           <p className="opportunity-social-context__empty">
               {showAuthHint && status === "idle" ?
-            "Peers доступны после входа как кандидат и только для тех, кто дал согласие на видимость." :
-            "Пока нет видимых peers по этой возможности."}
+            "Список других откликнувшихся доступен после входа как кандидат и только для тех, кто открыл свой профиль." :
+            "Пока нет других откликнувшихся с открытым профилем."}
             </p>
           }
         </Card>
@@ -495,7 +495,7 @@ function DetailLayout({
               checked={allowPeerVisibility}
               onChange={(event) => onAllowPeerVisibilityChange(event.target.checked)}
               disabled={applyState.status === "saving"}
-              label="Показывать мой отклик в peers по этой возможности"
+              label="Показывать меня среди других откликнувшихся по этой возможности"
               hint="Другие кандидаты увидят вас только если эта опция включена."
               className="opportunity-focus-card__peer-visibility" />
             
@@ -895,7 +895,7 @@ export function OpportunityDetailCardApp() {
           setSocialContextState({
             status: "error",
             data: { companyContacts: [], networkCandidates: [], peers: [], counts: { peerCount: 0, incomingShareCount: 0, networkCandidateCount: 0 } },
-            error: error?.message ?? "Не удалось загрузить social-context."
+            error: error?.message ?? "Не удалось загрузить связи по отклику."
           });
         }
       }
@@ -1172,7 +1172,7 @@ ${currentUrl}`;
           {shareContactsState.status === "loading" ? <Loader label="Загружаем контакты" /> : null}
 
           {shareContactsState.error ?
-          <Alert tone="error" title="Не удалось открыть шаринг" showIcon>
+          <Alert tone="error" title="Не удалось открыть список контактов" showIcon>
               {shareContactsState.error}
             </Alert> :
           null}
@@ -1181,7 +1181,7 @@ ${currentUrl}`;
           <EmptyState
             eyebrow="Пока пусто"
             title="Список контактов пока пуст"
-            description="Добавьте контакты в кабинете кандидата, и они появятся здесь для быстрого шаринга."
+            description="Добавьте контакты в кабинете кандидата, и они появятся здесь, чтобы быстро поделиться возможностью."
             tone="neutral"
             compact /> :
 
@@ -1199,7 +1199,7 @@ ${currentUrl}`;
                 
                     <div className="opportunity-share-modal__copy">
                       <strong>{contact.name}</strong>
-                      <span>{contact.email || "Контакт без email"}</span>
+                      <span>{contact.email || "Почта не указана"}</span>
                     </div>
                   </div>
 
@@ -1224,7 +1224,7 @@ ${currentUrl}`;
           open={postApplyModalOpen}
           onClose={() => setPostApplyModalOpen(false)}
           title="С кем это обсудить"
-          description="Сразу после отклика можно связаться с компанией, посмотреть релевантные контакты и peers по этой возможности."
+          description="Сразу после отклика можно связаться с компанией, посмотреть полезные контакты и других откликнувшихся по этой возможности."
           size="lg">
           
           <OpportunitySocialSections

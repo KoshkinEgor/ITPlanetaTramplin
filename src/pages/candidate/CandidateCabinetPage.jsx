@@ -54,14 +54,14 @@ function SummaryFallback({ status }) {
   if (status === "loading") {
     return (
       <Card>
-        <Loader label="Загружаем summary кандидата" surface />
+        <Loader label="Загружаем профиль кандидата" surface />
       </Card>
     );
   }
 
   return (
     <Card>
-      <p className="ui-type-body">Summary кандидата недоступен. Контент раздела остаётся доступным отдельно.</p>
+      <p className="ui-type-body">Профиль кандидата временно недоступен. Содержимое раздела можно открыть отдельно.</p>
     </Card>
   );
 }
