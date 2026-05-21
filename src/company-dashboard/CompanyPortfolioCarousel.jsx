@@ -131,7 +131,7 @@ export function CompanyPortfolioCarousel({
   testId = "company-profile-portfolio-slider",
   showCreateAction,
   emptyTitle = "Кейсы пока не добавлены",
-  emptyDescription = "После заполнения карточек здесь появится лента проектов компании.",
+  emptyDescription = "Когда карточки будут заполнены, здесь появится подборка проектов компании.",
   eyebrow,
   title,
   description,

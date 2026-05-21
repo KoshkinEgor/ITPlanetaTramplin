@@ -907,7 +907,7 @@ export function CompanyProfileSection({ onSummaryChange }) {
                 compact
                 eyebrow="Кейсы"
                 title="Портфолио компании"
-                description="Проверьте, как кейсы будут выглядеть на публичной странице. Новые проекты добавляются через кнопку внутри блока."
+                description="Добавьте проекты, чтобы показать кандидатам опыт команды, подход к работе и результаты в живом формате."
                 onCtaClick={handleOpenPortfolioModal}
               />
             </div>
