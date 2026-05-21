@@ -25,6 +25,8 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<OpportunityApplication> Applications { get; set; }
 
+    public virtual DbSet<Complaint> Complaints { get; set; }
+
     public virtual DbSet<Contact> Contacts { get; set; }
 
     public virtual DbSet<FriendRequest> FriendRequests { get; set; }
@@ -32,8 +34,13 @@ public partial class ApplicationDBContext : DbContext
     public virtual DbSet<CuratorProfile> CuratorProfiles { get; set; }
 
     public virtual DbSet<EmployerProfile> EmployerProfiles { get; set; }
+    public virtual DbSet<CompanySetting> CompanySettings { get; set; }
 
     public virtual DbSet<ModeratorInvitation> ModeratorInvitations { get; set; }
+
+    public virtual DbSet<ModeratorSetting> ModeratorSettings { get; set; }
+
+    public virtual DbSet<ModerationAuditLog> ModerationAuditLogs { get; set; }
 
     public virtual DbSet<Opportunity> Opportunities { get; set; }
 
@@ -43,7 +50,11 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<Tag> Tags { get; set; }
 
+    public virtual DbSet<SystemReferenceItem> SystemReferenceItems { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<UserNotification> UserNotifications { get; set; }
 
     public virtual DbSet<VApplicantStat> VApplicantStats { get; set; }
 
@@ -315,6 +326,53 @@ public partial class ApplicationDBContext : DbContext
             entity.HasCheckConstraint("CK_OpportunityShares_SenderNotEqualRecipient", "sender_user_id <> recipient_user_id");
         });
 
+        modelBuilder.Entity<Complaint>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("complaints_pkey");
+
+            entity.ToTable("complaints");
+
+            entity.HasIndex(e => e.OpportunityId, "idx_complaints_opportunity_id");
+            entity.HasIndex(e => e.ReporterUserId, "idx_complaints_reporter_user_id");
+            entity.HasIndex(e => e.Status, "idx_complaints_status");
+            entity.HasIndex(e => e.CreatedAt, "idx_complaints_created_at");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ReporterUserId).HasColumnName("reporter_user_id");
+            entity.Property(e => e.OpportunityId).HasColumnName("opportunity_id");
+            entity.Property(e => e.Reason)
+                .HasMaxLength(120)
+                .HasColumnName("reason");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValue("pending")
+                .HasColumnName("status");
+            entity.Property(e => e.ModeratorNote).HasColumnName("moderator_note");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
+            entity.Property(e => e.ResolvedByUserId).HasColumnName("resolved_by_user_id");
+
+            entity.HasOne(d => d.ReporterUser)
+                .WithMany(p => p.Complaints)
+                .HasForeignKey(d => d.ReporterUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("complaints_reporter_user_id_fkey");
+
+            entity.HasOne(d => d.Opportunity)
+                .WithMany(p => p.Complaints)
+                .HasForeignKey(d => d.OpportunityId)
+                .HasConstraintName("complaints_opportunity_id_fkey");
+
+            entity.HasOne(d => d.ResolvedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.ResolvedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("complaints_resolved_by_user_id_fkey");
+        });
+
         modelBuilder.Entity<Contact>(entity =>
         {
             entity.HasKey(e => new { e.UserId, e.ContactProfileId }).HasName("contacts_pkey");
@@ -503,6 +561,51 @@ public partial class ApplicationDBContext : DbContext
                 .HasColumnName("verification_reason");
         });
 
+        modelBuilder.Entity<CompanySetting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("company_settings_pkey");
+
+            entity.ToTable("company_settings");
+
+            entity.HasIndex(e => e.EmployerId, "company_settings_employer_id_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.EmployerId).HasColumnName("employer_id");
+            entity.Property(e => e.NotificationEmail)
+                .HasMaxLength(255)
+                .HasColumnName("notification_email");
+            entity.Property(e => e.NotifyNewApplications)
+                .HasDefaultValue(true)
+                .HasColumnName("notify_new_applications");
+            entity.Property(e => e.NotifyModerationUpdates)
+                .HasDefaultValue(true)
+                .HasColumnName("notify_moderation_updates");
+            entity.Property(e => e.NotifyComplaintsAndSystem)
+                .HasDefaultValue(true)
+                .HasColumnName("notify_complaints_and_system");
+            entity.Property(e => e.DefaultStartSection)
+                .HasMaxLength(40)
+                .HasDefaultValue("profile")
+                .HasColumnName("default_start_section");
+            entity.Property(e => e.DefaultResponsesSort)
+                .HasMaxLength(40)
+                .HasDefaultValue("newest")
+                .HasColumnName("default_responses_sort");
+            entity.Property(e => e.ShowArchivedOpportunities)
+                .HasDefaultValue(false)
+                .HasColumnName("show_archived_opportunities");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Employer)
+                .WithOne(p => p.Settings)
+                .HasForeignKey<CompanySetting>(d => d.EmployerId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("company_settings_employer_id_fkey");
+        });
+
         modelBuilder.Entity<ModeratorInvitation>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("moderator_invitations_pkey");
@@ -591,6 +694,12 @@ public partial class ApplicationDBContext : DbContext
                 .HasColumnName("event_start_at");
             entity.Property(e => e.EmploymentType)
                 .HasColumnName("employment_type");
+            entity.Property(e => e.ExperienceLevel)
+                .HasMaxLength(80)
+                .HasColumnName("experience_level");
+            entity.Property(e => e.Schedule)
+                .HasMaxLength(80)
+                .HasColumnName("schedule");
             entity.Property(e => e.IsPaid)
                 .HasColumnName("is_paid");
             entity.Property(e => e.MeetingFrequency)
@@ -710,20 +819,145 @@ public partial class ApplicationDBContext : DbContext
             entity.ToTable("tags");
 
             entity.HasIndex(e => e.Name, "tags_name_key").IsUnique();
+            entity.HasIndex(e => e.MergedIntoTagId, "idx_tags_merged_into_tag_id");
+            entity.HasIndex(e => e.UpdatedByUserId, "idx_tags_updated_by_user_id");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+            entity.Property(e => e.MergedIntoTagId).HasColumnName("merged_into_tag_id");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.UpdatedByUserId).HasColumnName("updated_by_user_id");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Tags)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("tags_created_by_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany()
+                .HasForeignKey(d => d.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("tags_updated_by_user_id_fkey");
+
+            entity.HasOne(d => d.MergedIntoTag).WithMany(p => p.MergedTags)
+                .HasForeignKey(d => d.MergedIntoTagId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("tags_merged_into_tag_id_fkey");
+        });
+
+        modelBuilder.Entity<SystemReferenceItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("system_reference_items_pkey");
+
+            entity.ToTable("system_reference_items");
+
+            entity.HasIndex(e => new { e.Category, e.Key }, "system_reference_items_category_key_key").IsUnique();
+            entity.HasIndex(e => new { e.Category, e.IsActive, e.SortOrder }, "idx_system_reference_items_category_active_sort");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Category)
+                .HasMaxLength(80)
+                .HasColumnName("category");
+            entity.Property(e => e.Key)
+                .HasMaxLength(120)
+                .HasColumnName("key");
+            entity.Property(e => e.Label)
+                .HasMaxLength(255)
+                .HasColumnName("label");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.IsSystem)
+                .HasDefaultValue(false)
+                .HasColumnName("is_system");
+            entity.Property(e => e.SortOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("sort_order");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.UpdatedByUserId).HasColumnName("updated_by_user_id");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany()
+                .HasForeignKey(d => d.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("system_reference_items_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<ModeratorSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("moderator_settings_pkey");
+
+            entity.ToTable("moderator_settings");
+
+            entity.HasIndex(e => e.UserId, "moderator_settings_user_id_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.NotificationSettingsJson)
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasColumnType("jsonb")
+                .HasColumnName("notification_settings");
+            entity.Property(e => e.QueueSettingsJson)
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasColumnType("jsonb")
+                .HasColumnName("queue_settings");
+            entity.Property(e => e.StartPage)
+                .HasMaxLength(120)
+                .HasColumnName("start_page");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.User).WithOne()
+                .HasForeignKey<ModeratorSetting>(d => d.UserId)
+                .HasConstraintName("moderator_settings_user_id_fkey");
+        });
+
+        modelBuilder.Entity<ModerationAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("moderation_audit_logs_pkey");
+
+            entity.ToTable("moderation_audit_logs");
+
+            entity.HasIndex(e => e.ActorUserId, "idx_moderation_audit_logs_actor_user_id");
+            entity.HasIndex(e => new { e.EntityType, e.EntityId }, "idx_moderation_audit_logs_entity");
+            entity.HasIndex(e => e.CreatedAt, "idx_moderation_audit_logs_created_at");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id");
+            entity.Property(e => e.Action)
+                .HasMaxLength(120)
+                .HasColumnName("action");
+            entity.Property(e => e.EntityType)
+                .HasMaxLength(80)
+                .HasColumnName("entity_type");
+            entity.Property(e => e.EntityId).HasColumnName("entity_id");
+            entity.Property(e => e.Summary)
+                .HasMaxLength(1000)
+                .HasColumnName("summary");
+            entity.Property(e => e.MetadataJson)
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasColumnType("jsonb")
+                .HasColumnName("metadata");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.ActorUser).WithMany()
+                .HasForeignKey(d => d.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("moderation_audit_logs_actor_user_id_fkey");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -770,6 +1004,74 @@ public partial class ApplicationDBContext : DbContext
                 .HasColumnName("password_reset_code_hash");
             entity.Property(e => e.PasswordResetExpiresAt).HasColumnName("password_reset_expires_at");
             entity.Property(e => e.PasswordResetSentAt).HasColumnName("password_reset_sent_at");
+        });
+
+        modelBuilder.Entity<UserNotification>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("user_notifications_pkey");
+
+            entity.ToTable("user_notifications");
+
+            entity.HasIndex(e => e.UserId, "idx_user_notifications_user_id");
+            entity.HasIndex(e => new { e.UserId, e.IsRead, e.CreatedAt }, "idx_user_notifications_user_unread_created_at");
+            entity.HasIndex(e => e.CreatedAt, "idx_user_notifications_created_at");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Type)
+                .HasMaxLength(80)
+                .HasColumnName("type");
+            entity.Property(e => e.Title)
+                .HasMaxLength(255)
+                .HasColumnName("title");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.Link)
+                .HasMaxLength(1000)
+                .HasColumnName("link");
+            entity.Property(e => e.IsRead)
+                .HasDefaultValue(false)
+                .HasColumnName("is_read");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ReadAt).HasColumnName("read_at");
+            entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id");
+            entity.Property(e => e.OpportunityId).HasColumnName("opportunity_id");
+            entity.Property(e => e.ApplicationId).HasColumnName("application_id");
+            entity.Property(e => e.ComplaintId).HasColumnName("complaint_id");
+            entity.Property(e => e.MetadataJson)
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasColumnType("jsonb")
+                .HasColumnName("metadata");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("user_notifications_user_id_fkey");
+
+            entity.HasOne(d => d.ActorUser)
+                .WithMany()
+                .HasForeignKey(d => d.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("user_notifications_actor_user_id_fkey");
+
+            entity.HasOne(d => d.Opportunity)
+                .WithMany()
+                .HasForeignKey(d => d.OpportunityId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("user_notifications_opportunity_id_fkey");
+
+            entity.HasOne(d => d.Application)
+                .WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.ApplicationId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("user_notifications_application_id_fkey");
+
+            entity.HasOne(d => d.Complaint)
+                .WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.ComplaintId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("user_notifications_complaint_id_fkey");
         });
 
         modelBuilder.Entity<VApplicantStat>(entity =>

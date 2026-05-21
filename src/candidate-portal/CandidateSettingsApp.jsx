@@ -10,6 +10,8 @@ import {
   updateCandidateProfile,
 } from "../api/candidate";
 import { searchYandexCityOptions } from "../api/cities";
+import { uploadImage } from "../api/uploads";
+import { refreshAuthSession } from "../auth/api";
 import {
   createCandidateEducationDraft,
   createEducationDraftListAfterRemove,
@@ -48,8 +50,8 @@ import {
 import { getCandidateAvatarUrl } from "./mappers";
 
 const CITIZENSHIP_OPTIONS = CANDIDATE_CITIZENSHIP_OPTIONS.map((value) => ({ value, label: value }));
-const PROFILE_AVATAR_MAX_SIZE_BYTES = 3 * 1024 * 1024;
-const PROFILE_AVATAR_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+const PROFILE_AVATAR_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const PROFILE_AVATAR_ACCEPT = "image/png,image/jpeg,image/webp";
 
 const SETTINGS_SECTIONS = [
   {
@@ -118,27 +120,6 @@ function formatFileSize(bytes) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string" && reader.result) {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.onerror = () => {
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.readAsDataURL(file);
-  });
 }
 
 function normalizeLoginItems(value) {
@@ -347,7 +328,7 @@ function CandidateProfileSettingsForm({
               ) : null}
             </div>
             <p className="candidate-settings-photo__hint">
-              Поддерживаются PNG, JPG, WEBP, GIF и SVG. Максимальный размер: {formatFileSize(PROFILE_AVATAR_MAX_SIZE_BYTES)}.
+              Поддерживаются PNG, JPG и WEBP. Максимальный размер: {formatFileSize(PROFILE_AVATAR_MAX_SIZE_BYTES)}.
             </p>
             {avatarError ? <p className="candidate-settings-photo__error" role="alert">{avatarError}</p> : null}
           </div>
@@ -765,6 +746,14 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       return;
     }
 
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setAvatarState({
+        status: "error",
+        error: "Загрузите изображение в формате JPG, PNG или WEBP.",
+      });
+      return;
+    }
+
     if (file.size > PROFILE_AVATAR_MAX_SIZE_BYTES) {
       setAvatarState({
         status: "error",
@@ -776,8 +765,12 @@ export function CandidateSettingsApp({ onSummaryChange }) {
     setAvatarState({ status: "loading", error: "" });
 
     try {
-      const avatarUrl = await readFileAsDataUrl(file);
-      updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl }), ["profile"]);
+      const upload = await uploadImage(file);
+      if (!upload.url) {
+        throw new Error("Сервер не вернул ссылку на изображение.");
+      }
+
+      updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: upload.url }), ["profile"]);
       setAvatarState({ status: "idle", error: "" });
     } catch (error) {
       setAvatarState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение." });
@@ -971,6 +964,7 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       });
       setAvatarState({ status: "idle", error: "" });
       onSummaryChange?.({ profile: nextProfile, education: educationItems });
+      await refreshAuthSession({ force: true }).catch(() => null);
       setSaveState((current) => ({
         ...current,
         profile: { status: "success", error: "" },

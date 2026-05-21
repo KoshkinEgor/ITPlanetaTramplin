@@ -9,6 +9,8 @@ import {
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../api/candidate";
+import { uploadImage } from "../api/uploads";
+import { refreshAuthSession } from "../auth/api";
 import { CandidateSettingsApp } from "./CandidateSettingsApp";
 
 vi.mock("../api/candidate", () => ({
@@ -18,6 +20,14 @@ vi.mock("../api/candidate", () => ({
   getCandidateProfile: vi.fn(() => Promise.resolve({})),
   updateCandidateEducation: vi.fn(() => Promise.resolve({})),
   updateCandidateProfile: vi.fn((body) => Promise.resolve(body)),
+}));
+
+vi.mock("../api/uploads", () => ({
+  uploadImage: vi.fn(() => Promise.resolve({ url: "https://cdn.example.com/avatar.png" })),
+}));
+
+vi.mock("../auth/api", () => ({
+  refreshAuthSession: vi.fn(() => Promise.resolve({})),
 }));
 
 const profile = {
@@ -71,21 +81,6 @@ describe("CandidateSettingsApp", () => {
   });
 
   it("uploads a profile photo and includes it in the save payload", async () => {
-    class MockFileReader {
-      constructor() {
-        this.onload = null;
-        this.onerror = null;
-        this.result = null;
-      }
-
-      readAsDataURL() {
-        this.result = "data:image/png;base64,avatar";
-        this.onload?.();
-      }
-    }
-
-    vi.stubGlobal("FileReader", MockFileReader);
-
     renderApp();
 
     expect(await screen.findByDisplayValue("Anna")).toBeInTheDocument();
@@ -96,7 +91,8 @@ describe("CandidateSettingsApp", () => {
       },
     });
 
-    expect(await screen.findByRole("img", { name: "Фото профиля" })).toHaveAttribute("src", "data:image/png;base64,avatar");
+    expect(uploadImage).toHaveBeenCalledWith(expect.objectContaining({ name: "avatar.png" }));
+    expect(await screen.findByRole("img", { name: "Фото профиля" })).toHaveAttribute("src", "https://cdn.example.com/avatar.png");
 
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
@@ -105,11 +101,10 @@ describe("CandidateSettingsApp", () => {
         name: "Anna",
         surname: "Kovaleva",
         links: expect.objectContaining({
-          avatarUrl: "data:image/png;base64,avatar",
+          avatarUrl: "https://cdn.example.com/avatar.png",
         }),
       }));
+      expect(refreshAuthSession).toHaveBeenCalledWith({ force: true });
     });
-
-    vi.unstubAllGlobals();
   });
 });

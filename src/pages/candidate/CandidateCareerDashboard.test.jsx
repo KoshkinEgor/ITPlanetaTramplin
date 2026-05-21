@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
@@ -113,15 +113,9 @@ describe("CandidateCareerDashboard", () => {
     expect(firstCourseLink).toHaveAttribute("rel", "noreferrer");
     expect(opportunitiesSlider).not.toHaveClass("opportunity-block-slider--leading-featured");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Профиль" })[0]);
-    expect(screen.getByText("Менторы скоро появятся")).toBeInTheDocument();
-    expect(screen.getByText(/Раздел с менторами в разработке/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Понятно" }));
+    expect(screen.getByRole("link", { name: "Все менторы →" })).toHaveAttribute("href", "/opportunities?type=mentoring");
+    expect(screen.getAllByRole("link", { name: "Смотреть программы" })[0]).toHaveAttribute("href", "/opportunities?type=mentoring");
     expect(screen.queryByText("Менторы скоро появятся")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Все менторы →" }));
-    expect(screen.getByText("Менторы скоро появятся")).toBeInTheDocument();
 
     expect(isBefore(careerTitle, coursesSection)).toBe(true);
     expect(isBefore(coursesSection, opportunitiesSection)).toBe(true);

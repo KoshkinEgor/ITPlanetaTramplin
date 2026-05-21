@@ -18,6 +18,10 @@ function resolveCompanyActiveKey(pathname) {
     return "responses";
   }
 
+  if (pathname.startsWith(routes.company.settings)) {
+    return "settings";
+  }
+
   return "profile";
 }
 
@@ -61,6 +65,14 @@ export function CompanyCabinetPage() {
     opportunities: [],
     applications: [],
   });
+
+  function handleSummaryChange(profile) {
+    if (!profile) {
+      return;
+    }
+
+    setState((current) => ({ ...current, profile }));
+  }
 
   useEffect(() => {
     if (!shouldShowSummary) {
@@ -136,7 +148,7 @@ export function CompanyCabinetPage() {
       summary={summary}
       data-testid="company-cabinet-shell"
     >
-      <Outlet />
+      <Outlet context={{ profile: state.profile, onSummaryChange: handleSummaryChange }} />
     </CabinetShell>
   );
 }

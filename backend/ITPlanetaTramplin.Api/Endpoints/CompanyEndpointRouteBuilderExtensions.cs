@@ -16,6 +16,8 @@ internal static class CompanyEndpointRouteBuilderExtensions
     {
         api.MapGet("/company/me", GetCompanyMeAsync).RequireAuthorization("requireCompanyRole");
         api.MapPut("/company/me", UpdateCompanyMeAsync).RequireAuthorization("requireCompanyRole");
+        api.MapGet("/company/me/settings", GetCompanySettingsAsync).RequireAuthorization("requireCompanyRole");
+        api.MapPut("/company/me/settings", UpdateCompanySettingsAsync).RequireAuthorization("requireCompanyRole");
         api.MapPost("/company/me/verification-request", SubmitCompanyVerificationRequestAsync)
             .DisableAntiforgery()
             .RequireAuthorization("requireCompanyRole");
@@ -59,6 +61,39 @@ internal static class CompanyEndpointRouteBuilderExtensions
 
         await db.SaveChangesAsync();
         return Results.Ok(MapCompanyProfile(profile));
+    }
+
+    private static async Task<IResult> GetCompanySettingsAsync(HttpContext context, ApplicationDBContext db)
+    {
+        var profile = await GetCurrentCompanyProfileAsync(context, db);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var settings = await GetOrCreateCompanySettingsAsync(db, profile);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(MapCompanySettings(settings, profile.User.Email));
+    }
+
+    private static async Task<IResult> UpdateCompanySettingsAsync(
+        [FromBody] CompanySettingsDTO request,
+        HttpContext context,
+        ApplicationDBContext db)
+    {
+        var profile = await GetCurrentCompanyProfileAsync(context, db);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var settings = await GetOrCreateCompanySettingsAsync(db, profile);
+        ApplyCompanySettings(settings, request, profile.User.Email);
+        settings.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(MapCompanySettings(settings, profile.User.Email));
     }
 
     private static async Task<IResult> SubmitCompanyVerificationRequestAsync(
@@ -207,7 +242,33 @@ internal static class CompanyEndpointRouteBuilderExtensions
         return await db.EmployerProfiles
             .Include(item => item.User)
             .Include(item => item.Opportunities)
+            .Include(item => item.Settings)
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
+    }
+
+    private static async Task<CompanySetting> GetOrCreateCompanySettingsAsync(ApplicationDBContext db, EmployerProfile profile)
+    {
+        if (profile.Settings is not null)
+        {
+            return profile.Settings;
+        }
+
+        var settings = await db.CompanySettings.FirstOrDefaultAsync(item => item.EmployerId == profile.Id);
+        if (settings is not null)
+        {
+            profile.Settings = settings;
+            return settings;
+        }
+
+        settings = new CompanySetting
+        {
+            EmployerId = profile.Id,
+            NotificationEmail = profile.User.Email,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.CompanySettings.Add(settings);
+        profile.Settings = settings;
+        return settings;
     }
 
     internal static bool ApplyCompanyProfileUpdate(EmployerProfile profile, CompanyProfileUpdateDTO request)
@@ -296,6 +357,51 @@ internal static class CompanyEndpointRouteBuilderExtensions
             VerificationReason = profile.VerificationReason,
         };
 
+    private static CompanySettingsDTO MapCompanySettings(CompanySetting settings, string fallbackEmail) =>
+        new()
+        {
+            Id = settings.Id,
+            EmployerId = settings.EmployerId,
+            NotificationEmail = string.IsNullOrWhiteSpace(settings.NotificationEmail) ? fallbackEmail : settings.NotificationEmail,
+            NotifyNewApplications = settings.NotifyNewApplications,
+            NotifyModerationUpdates = settings.NotifyModerationUpdates,
+            NotifyComplaintsAndSystem = settings.NotifyComplaintsAndSystem,
+            DefaultStartSection = NormalizeStartSection(settings.DefaultStartSection),
+            DefaultResponsesSort = NormalizeResponsesSort(settings.DefaultResponsesSort),
+            ShowArchivedOpportunities = settings.ShowArchivedOpportunities,
+        };
+
+    private static void ApplyCompanySettings(CompanySetting settings, CompanySettingsDTO request, string fallbackEmail)
+    {
+        settings.NotificationEmail = string.IsNullOrWhiteSpace(request.NotificationEmail)
+            ? fallbackEmail
+            : request.NotificationEmail.Trim();
+        settings.NotifyNewApplications = request.NotifyNewApplications;
+        settings.NotifyModerationUpdates = request.NotifyModerationUpdates;
+        settings.NotifyComplaintsAndSystem = request.NotifyComplaintsAndSystem;
+        settings.DefaultStartSection = NormalizeStartSection(request.DefaultStartSection);
+        settings.DefaultResponsesSort = NormalizeResponsesSort(request.DefaultResponsesSort);
+        settings.ShowArchivedOpportunities = request.ShowArchivedOpportunities;
+    }
+
+    private static string NormalizeStartSection(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            "opportunities" => "opportunities",
+            "responses" => "responses",
+            "settings" => "settings",
+            _ => "profile",
+        };
+
+    private static string NormalizeResponsesSort(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            "oldest" => "oldest",
+            "status" => "status",
+            "opportunity" => "opportunity",
+            _ => "newest",
+        };
+
     internal static CompanyVerificationDataDTO? TryParseCompanyVerificationData(string? rawValue)
     {
         if (string.IsNullOrWhiteSpace(rawValue))
@@ -360,10 +466,13 @@ internal static class CompanyEndpointRouteBuilderExtensions
                 item.RegistrationDeadline,
                 item.MeetingFrequency,
                 item.SeatsCount,
+                item.PublishAt,
                 item.ExpireAt,
                 item.ContactsJson,
                 item.MediaContentJson,
                 item.EmploymentType,
+                item.ExperienceLevel,
+                item.Schedule,
                 CompanyName = item.Employer.CompanyName,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),
                 item.OpportunityType,

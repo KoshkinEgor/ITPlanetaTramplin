@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeSelectedAddressLabel, reverseGeocodeAddress } from "../api/addresses";
 import { getFallbackCityOption } from "../api/cities";
 import { loadYandexMapsApi } from "../shared/lib/loadYandexMapsApi";
-import { AddressAutocomplete, Button, FormField, Input } from "../shared/ui";
+import { AddressAutocomplete, Button, FormField } from "../shared/ui";
 
 const mapScriptId = "yandex-maps-js-api-v3";
 const markerSourceId = "company-location-picker-marker-source";
@@ -602,14 +602,6 @@ export function OpportunityLocationPicker({
             ) : null}
           </div>
 
-          <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
-            <FormField label="Широта" hint="Можно поправить вручную, если нужна точная координата.">
-              <Input value={latitude} onValueChange={(value) => onFieldChange("latitude", value)} placeholder="56.123456" />
-            </FormField>
-            <FormField label="Долгота" hint="После ручного ввода точка сразу отобразится на карте.">
-              <Input value={longitude} onValueChange={(value) => onFieldChange("longitude", value)} placeholder="47.654321" />
-            </FormField>
-          </div>
         </>
       ) : (
         <p className="company-dashboard-location-picker__map-note">

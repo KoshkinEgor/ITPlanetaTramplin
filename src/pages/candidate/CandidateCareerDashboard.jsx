@@ -6,7 +6,6 @@ import { OpportunityBlockSlider } from "../../components/opportunities";
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import {
   Alert,
-  Button,
   CareerCourseCard,
   CareerMentorCard,
   CareerPeerCard,
@@ -14,7 +13,6 @@ import {
   CareerSkillsPanel,
   CareerStatsPanel,
   FilterPill,
-  Modal,
   SectionHeader,
 } from "../../shared/ui";
 
@@ -22,8 +20,7 @@ const COURSE_SLIDER_ARIA_LABEL = "Career courses slider";
 const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
 const COURSE_ACTION_TARGET = "_blank";
 const COURSE_ACTION_REL = "noreferrer";
-const MENTOR_MODAL_TITLE = "Менторы скоро появятся";
-const MENTOR_MODAL_DESCRIPTION = "Раздел с менторами в разработке. Скоро здесь можно будет выбрать наставника и записаться на консультацию.";
+const MENTOR_CATALOG_HREF = `${routes.opportunities.catalog}?type=mentoring`;
 
 const SALARY_TRACKS = {
   design: [
@@ -337,7 +334,6 @@ function countByStatus(items, status) {
 
 export function CandidateCareerDashboard({ profile, dashboardState }) {
   const [mentorFilter, setMentorFilter] = useState(MENTOR_FILTERS[0].value);
-  const [mentorModalOpen, setMentorModalOpen] = useState(false);
 
   const primarySkills = getPrimarySkills(profile);
   const suggestedSkills = getSuggestedSkills(profile);
@@ -351,8 +347,6 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
     () => MENTORS.filter((mentor) => mentor.focus.includes(mentorFilter)).slice(0, 3),
     [mentorFilter]
   );
-  const openMentorModal = () => setMentorModalOpen(true);
-  const closeMentorModal = () => setMentorModalOpen(false);
 
   const statsPanel = {
     title: "Твоя карьера",
@@ -458,9 +452,9 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           title="Есть вопросы? Обратись к нашим менторам!"
           size="md"
           actions={(
-            <button type="button" className="candidate-career-dashboard__section-link" onClick={openMentorModal}>
+            <a href={MENTOR_CATALOG_HREF} className="candidate-career-dashboard__section-link">
               Все менторы →
-            </button>
+            </a>
           )}
         />
         <div className="candidate-career-dashboard__mentor-filters" role="tablist" aria-label="Сценарии консультаций">
@@ -472,7 +466,12 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         </div>
         <div className="candidate-career-dashboard__card-grid candidate-career-dashboard__card-grid--mentors">
           {mentors.map((mentor) => (
-            <CareerMentorCard key={mentor.id} {...mentor} onActionClick={openMentorModal} />
+            <CareerMentorCard
+              key={mentor.id}
+              {...mentor}
+              href={MENTOR_CATALOG_HREF}
+              actionLabel="Смотреть программы"
+            />
           ))}
         </div>
       </section>
@@ -517,20 +516,6 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         )}
       </section>
 
-      <Modal
-        open={mentorModalOpen}
-        onClose={closeMentorModal}
-        title={MENTOR_MODAL_TITLE}
-        description={MENTOR_MODAL_DESCRIPTION}
-        tone="info"
-        showIcon
-        closeLabel="Закрыть окно"
-        actions={(
-          <Button type="button" onClick={closeMentorModal}>
-            Понятно
-          </Button>
-        )}
-      />
     </div>
   );
 }

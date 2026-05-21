@@ -264,7 +264,6 @@ export function FavoritesPage() {
                         surface="plain"
                         size="sm"
                         className="favorites-page__row-card"
-                        favoritePressed
                         favoriteLabel="Убрать возможность из избранного"
                         detailAction={{
                           href: buildOpportunityDetailRoute(item.id),

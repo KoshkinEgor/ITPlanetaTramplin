@@ -402,6 +402,152 @@ namespace ITPlanetaTramplin.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Models.CompanySetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DefaultResponsesSort")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("newest")
+                        .HasColumnName("default_responses_sort");
+
+                    b.Property<string>("DefaultStartSection")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("profile")
+                        .HasColumnName("default_start_section");
+
+                    b.Property<int>("EmployerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("employer_id");
+
+                    b.Property<string>("NotificationEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("notification_email");
+
+                    b.Property<bool>("NotifyComplaintsAndSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("notify_complaints_and_system");
+
+                    b.Property<bool>("NotifyModerationUpdates")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("notify_moderation_updates");
+
+                    b.Property<bool>("NotifyNewApplications")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("notify_new_applications");
+
+                    b.Property<bool>("ShowArchivedOpportunities")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("show_archived_opportunities");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("company_settings_pkey");
+
+                    b.HasIndex(new[] { "EmployerId" }, "company_settings_employer_id_key")
+                        .IsUnique();
+
+                    b.ToTable("company_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Models.Complaint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("ModeratorNote")
+                        .HasColumnType("text")
+                        .HasColumnName("moderator_note");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("integer")
+                        .HasColumnName("opportunity_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("reporter_user_id");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<int?>("ResolvedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("pending")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("complaints_pkey");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "idx_complaints_created_at");
+
+                    b.HasIndex(new[] { "OpportunityId" }, "idx_complaints_opportunity_id");
+
+                    b.HasIndex(new[] { "ReporterUserId" }, "idx_complaints_reporter_user_id");
+
+                    b.HasIndex(new[] { "Status" }, "idx_complaints_status");
+
+                    b.ToTable("complaints", (string)null);
+                });
+
             modelBuilder.Entity("Models.Contact", b =>
                 {
                     b.Property<int>("UserId")
@@ -623,6 +769,66 @@ namespace ITPlanetaTramplin.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Models.ModerationAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("action");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("integer")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("summary");
+
+                    b.HasKey("Id")
+                        .HasName("moderation_audit_logs_pkey");
+
+                    b.HasIndex(new[] { "ActorUserId" }, "idx_moderation_audit_logs_actor_user_id");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "idx_moderation_audit_logs_created_at");
+
+                    b.HasIndex(new[] { "EntityType", "EntityId" }, "idx_moderation_audit_logs_entity");
+
+                    b.ToTable("moderation_audit_logs", (string)null);
+                });
+
             modelBuilder.Entity("Models.ModeratorInvitation", b =>
                 {
                     b.Property<int>("Id")
@@ -702,6 +908,59 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.ToTable("moderator_invitations", (string)null);
                 });
 
+            modelBuilder.Entity("Models.ModeratorSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("NotificationSettingsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("notification_settings")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<string>("QueueSettingsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("queue_settings")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<string>("StartPage")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("start_page");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("moderator_settings_pkey");
+
+                    b.HasIndex(new[] { "UserId" }, "moderator_settings_user_id_key")
+                        .IsUnique();
+
+                    b.ToTable("moderator_settings", (string)null);
+                });
+
             modelBuilder.Entity("Models.Opportunity", b =>
                 {
                     b.Property<int>("Id")
@@ -742,6 +1001,11 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Property<DateOnly?>("EventStartAt")
                         .HasColumnType("date")
                         .HasColumnName("event_start_at");
+
+                    b.Property<string>("ExperienceLevel")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("experience_level");
 
                     b.Property<DateOnly?>("ExpireAt")
                         .HasColumnType("date")
@@ -817,6 +1081,11 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("salary_to");
+
+                    b.Property<string>("Schedule")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("schedule");
 
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .HasColumnType("tsvector")
@@ -1004,6 +1273,82 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.ToTable("recommendations", (string)null);
                 });
 
+            modelBuilder.Entity("Models.SystemReferenceItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_system");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("system_reference_items_pkey");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex(new[] { "Category", "IsActive", "SortOrder" }, "idx_system_reference_items_category_active_sort");
+
+                    b.HasIndex(new[] { "Category", "Key" }, "system_reference_items_category_key_key")
+                        .IsUnique();
+
+                    b.ToTable("system_reference_items", (string)null);
+                });
+
             modelBuilder.Entity("Models.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -1023,16 +1368,32 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
 
+                    b.Property<int?>("MergedIntoTagId")
+                        .HasColumnType("integer")
+                        .HasColumnName("merged_into_tag_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("updated_by_user_id");
+
                     b.HasKey("Id")
                         .HasName("tags_pkey");
 
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "MergedIntoTagId" }, "idx_tags_merged_into_tag_id");
+
+                    b.HasIndex(new[] { "UpdatedByUserId" }, "idx_tags_updated_by_user_id");
 
                     b.HasIndex(new[] { "Name" }, "tags_name_key")
                         .IsUnique();
@@ -1131,6 +1492,98 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Models.UserNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<int?>("ApplicationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("application_id");
+
+                    b.Property<int?>("ComplaintId")
+                        .HasColumnType("integer")
+                        .HasColumnName("complaint_id");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("link");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<string>("MetadataJson")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<int?>("OpportunityId")
+                        .HasColumnType("integer")
+                        .HasColumnName("opportunity_id");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("type");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("user_notifications_pkey");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.HasIndex("OpportunityId");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "idx_user_notifications_created_at");
+
+                    b.HasIndex(new[] { "UserId" }, "idx_user_notifications_user_id");
+
+                    b.HasIndex(new[] { "UserId", "IsRead", "CreatedAt" }, "idx_user_notifications_user_unread_created_at");
+
+                    b.ToTable("user_notifications", (string)null);
                 });
 
             modelBuilder.Entity("Models.VApplicantStat", b =>
@@ -1277,6 +1730,47 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("SenderUser");
                 });
 
+            modelBuilder.Entity("Models.CompanySetting", b =>
+                {
+                    b.HasOne("Models.EmployerProfile", "Employer")
+                        .WithOne("Settings")
+                        .HasForeignKey("Models.CompanySetting", "EmployerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("company_settings_employer_id_fkey");
+
+                    b.Navigation("Employer");
+                });
+
+            modelBuilder.Entity("Models.Complaint", b =>
+                {
+                    b.HasOne("Models.Opportunity", "Opportunity")
+                        .WithMany("Complaints")
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("complaints_opportunity_id_fkey");
+
+                    b.HasOne("Models.User", "ReporterUser")
+                        .WithMany("Complaints")
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("complaints_reporter_user_id_fkey");
+
+                    b.HasOne("Models.User", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("complaints_resolved_by_user_id_fkey");
+
+                    b.Navigation("Opportunity");
+
+                    b.Navigation("ReporterUser");
+
+                    b.Navigation("ResolvedByUser");
+                });
+
             modelBuilder.Entity("Models.Contact", b =>
                 {
                     b.HasOne("Models.User", "ContactProfile")
@@ -1340,6 +1834,17 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("SenderUser");
                 });
 
+            modelBuilder.Entity("Models.ModerationAuditLog", b =>
+                {
+                    b.HasOne("Models.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("moderation_audit_logs_actor_user_id_fkey");
+
+                    b.Navigation("ActorUser");
+                });
+
             modelBuilder.Entity("Models.ModeratorInvitation", b =>
                 {
                     b.HasOne("Models.User", "AcceptedUser")
@@ -1358,6 +1863,18 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("AcceptedUser");
 
                     b.Navigation("InvitedByUser");
+                });
+
+            modelBuilder.Entity("Models.ModeratorSetting", b =>
+                {
+                    b.HasOne("Models.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Models.ModeratorSetting", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("moderator_settings_user_id_fkey");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Models.Opportunity", b =>
@@ -1453,6 +1970,17 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("Recommender");
                 });
 
+            modelBuilder.Entity("Models.SystemReferenceItem", b =>
+                {
+                    b.HasOne("Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("system_reference_items_updated_by_user_id_fkey");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("Models.Tag", b =>
                 {
                     b.HasOne("Models.User", "CreatedByNavigation")
@@ -1461,7 +1989,67 @@ namespace ITPlanetaTramplin.Api.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("tags_created_by_fkey");
 
+                    b.HasOne("Models.Tag", "MergedIntoTag")
+                        .WithMany("MergedTags")
+                        .HasForeignKey("MergedIntoTagId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("tags_merged_into_tag_id_fkey");
+
+                    b.HasOne("Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("tags_updated_by_user_id_fkey");
+
                     b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("MergedIntoTag");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Models.UserNotification", b =>
+                {
+                    b.HasOne("Models.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("user_notifications_actor_user_id_fkey");
+
+                    b.HasOne("Models.OpportunityApplication", "Application")
+                        .WithMany("Notifications")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("user_notifications_application_id_fkey");
+
+                    b.HasOne("Models.Complaint", "Complaint")
+                        .WithMany("Notifications")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("user_notifications_complaint_id_fkey");
+
+                    b.HasOne("Models.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("user_notifications_opportunity_id_fkey");
+
+                    b.HasOne("Models.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("user_notifications_user_id_fkey");
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("Application");
+
+                    b.Navigation("Complaint");
+
+                    b.Navigation("Opportunity");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("OpportunityTag", b =>
@@ -1501,21 +2089,42 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("Invites");
                 });
 
+            modelBuilder.Entity("Models.Complaint", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
             modelBuilder.Entity("Models.EmployerProfile", b =>
                 {
                     b.Navigation("Opportunities");
+
+                    b.Navigation("Settings");
                 });
 
             modelBuilder.Entity("Models.Opportunity", b =>
                 {
                     b.Navigation("Applications");
 
+                    b.Navigation("Complaints");
+
                     b.Navigation("Recommendations");
+                });
+
+            modelBuilder.Entity("Models.OpportunityApplication", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
+            modelBuilder.Entity("Models.Tag", b =>
+                {
+                    b.Navigation("MergedTags");
                 });
 
             modelBuilder.Entity("Models.User", b =>
                 {
                     b.Navigation("ApplicantProfile");
+
+                    b.Navigation("Complaints");
 
                     b.Navigation("Contacts");
 
@@ -1526,6 +2135,8 @@ namespace ITPlanetaTramplin.Api.Migrations
                     b.Navigation("IncomingFriendRequests");
 
                     b.Navigation("IncomingProjectInvites");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("OutgoingFriendRequests");
 

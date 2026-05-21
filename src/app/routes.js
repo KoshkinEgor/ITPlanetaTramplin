@@ -39,6 +39,7 @@ export const routes = {
     dashboard: "/company/dashboard",
     opportunities: "/company/dashboard/opportunities",
     responses: "/company/dashboard/responses",
+    settings: "/company/dashboard/settings",
   },
   companies: {
     detail: "/companies/:id",

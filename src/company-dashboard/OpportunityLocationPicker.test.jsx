@@ -155,8 +155,7 @@ describe("OpportunityLocationPicker", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(screen.getByDisplayValue("56.14391")).toBeInTheDocument());
-    expect(screen.getByDisplayValue("47.25195")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("coordinates-state")).toHaveTextContent("56.14391|47.25195"));
     expect(screen.getByDisplayValue("ул. Ленина, 1")).toBeInTheDocument();
     expect(reverseGeocodeAddressMock).toHaveBeenCalledWith({
       latitude: 56.14391,
@@ -182,8 +181,7 @@ describe("OpportunityLocationPicker", () => {
     });
 
     await waitFor(() => expect(reverseGeocodeAddressMock).toHaveBeenCalledTimes(1));
-    expect(screen.getByDisplayValue("56.1439")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("47.251942")).toBeInTheDocument();
+    expect(screen.getByTestId("coordinates-state")).toHaveTextContent("56.1439|47.251942");
   });
 
   it("keeps only the address input when the maps key is missing", () => {

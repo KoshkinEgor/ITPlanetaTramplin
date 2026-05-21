@@ -9,7 +9,7 @@ using Models;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
-internal static class ModerationEndpointRouteBuilderExtensions
+internal static partial class ModerationEndpointRouteBuilderExtensions
 {
     public static RouteGroupBuilder MapModerationEndpoints(this RouteGroupBuilder api)
     {
@@ -29,6 +29,7 @@ internal static class ModerationEndpointRouteBuilderExtensions
         api.MapPost("/moderation/users/{id:int}/decision", ApplyCandidateDecisionAsync).RequireAuthorization("requireModeratorRole");
         api.MapGet("/moderation/moderator-invitations", GetModeratorInvitationsAsync).RequireAuthorization("requireModeratorRole");
         api.MapPost("/moderation/moderator-invitations", CreateModeratorInvitationAsync).RequireAuthorization("requireModeratorRole");
+        MapModeratorSystemEndpoints(api);
 
         return api;
     }
@@ -267,8 +268,9 @@ internal static class ModerationEndpointRouteBuilderExtensions
         return Results.Ok(CandidateEndpointRouteBuilderExtensions.MapCandidateProfile(profile));
     }
 
-    private static async Task<IResult> ApplyCandidateDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)
+    private static async Task<IResult> ApplyCandidateDecisionAsync(int id, ModerationDecisionDTO request, HttpContext context, ApplicationDBContext db)
     {
+        var moderatorUserId = AuthEndpointSupport.GetCurrentUserId(context);
         var profile = await db.ApplicantProfiles
             .Include(item => item.User)
             .FirstOrDefaultAsync(item => item.UserId == id);
@@ -284,6 +286,16 @@ internal static class ModerationEndpointRouteBuilderExtensions
 
         var normalizedStatus = CandidateModerationStatuses.Normalize(request.Status);
         profile.ModerationStatus = normalizedStatus;
+        AddAuditLog(db, moderatorUserId, "candidate.decision", "candidate", profile.UserId, $"Профиль кандидата получил статус «{normalizedStatus}»");
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            profile.UserId,
+            "candidate.moderation",
+            "Статус профиля обновлен",
+            BuildModerationNotificationMessage("Профиль кандидата", normalizedStatus, request.Reason),
+            "/candidate/profile",
+            actorUserId: moderatorUserId,
+            opportunityId: null);
         await db.SaveChangesAsync();
 
         return Results.Ok(new
@@ -454,8 +466,9 @@ internal static class ModerationEndpointRouteBuilderExtensions
         return Results.Created($"/api/moderation/moderator-invitations/{invitation.Id}", payload);
     }
 
-    private static async Task<IResult> ApplyCompanyDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)
+    private static async Task<IResult> ApplyCompanyDecisionAsync(int id, ModerationDecisionDTO request, HttpContext context, ApplicationDBContext db)
     {
+        var moderatorUserId = AuthEndpointSupport.GetCurrentUserId(context);
         var company = await db.EmployerProfiles.FirstOrDefaultAsync(item => item.Id == id);
         if (company is null)
         {
@@ -472,6 +485,15 @@ internal static class ModerationEndpointRouteBuilderExtensions
         company.VerificationReason = normalizedStatus is CompanyVerificationStatuses.Revision or CompanyVerificationStatuses.Rejected
             ? string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim()
             : null;
+        AddAuditLog(db, moderatorUserId, "company.decision", "company", company.Id, $"Компания получила статус «{normalizedStatus}»");
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            company.UserId,
+            "company.verification",
+            "Статус проверки компании обновлен",
+            BuildModerationNotificationMessage("Профиль компании", normalizedStatus, company.VerificationReason),
+            "/company/dashboard",
+            actorUserId: moderatorUserId);
         await db.SaveChangesAsync();
 
         return Results.Ok(new
@@ -482,9 +504,12 @@ internal static class ModerationEndpointRouteBuilderExtensions
         });
     }
 
-    private static async Task<IResult> ApplyOpportunityDecisionAsync(int id, ModerationDecisionDTO request, ApplicationDBContext db)
+    private static async Task<IResult> ApplyOpportunityDecisionAsync(int id, ModerationDecisionDTO request, HttpContext context, ApplicationDBContext db)
     {
-        var opportunity = await db.Opportunities.FirstOrDefaultAsync(item => item.Id == id);
+        var moderatorUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        var opportunity = await db.Opportunities
+            .Include(item => item.Employer)
+            .FirstOrDefaultAsync(item => item.Id == id);
         if (opportunity is null)
         {
             return Results.NotFound();
@@ -500,6 +525,16 @@ internal static class ModerationEndpointRouteBuilderExtensions
         opportunity.ModerationReason = normalizedStatus is OpportunityModerationStatuses.Revision or OpportunityModerationStatuses.Rejected
             ? string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim()
             : null;
+        AddAuditLog(db, moderatorUserId, "opportunity.decision", "opportunity", opportunity.Id, $"Возможность «{opportunity.Title}» получила статус «{normalizedStatus}»");
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            opportunity.Employer.UserId,
+            "opportunity.moderation",
+            "Статус публикации обновлен",
+            BuildModerationNotificationMessage($"Публикация «{opportunity.Title}»", normalizedStatus, opportunity.ModerationReason),
+            $"/opportunities/{opportunity.Id}",
+            actorUserId: moderatorUserId,
+            opportunityId: opportunity.Id);
         await db.SaveChangesAsync();
 
         return Results.Ok(new
@@ -508,6 +543,21 @@ internal static class ModerationEndpointRouteBuilderExtensions
             ModerationStatus = normalizedStatus,
             opportunity.ModerationReason,
         });
+    }
+
+    private static string BuildModerationNotificationMessage(string subject, string status, string? reason)
+    {
+        var statusText = status switch
+        {
+            "approved" => "одобрен",
+            "revision" => "возвращен на доработку",
+            "rejected" => "отклонен",
+            "pending" => "на проверке",
+            _ => "обновлен",
+        };
+
+        var note = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" Комментарий модератора: {reason.Trim()}";
+        return $"{subject} {statusText}.{note}";
     }
 
     private static object BuildModerationOpportunityResponse(Opportunity opportunity) =>

@@ -3,7 +3,7 @@ import { buildCandidatePublicProfileRoute } from "../app/routes";
 import { getCompanyOpportunities, updateOpportunityApplicationStatus } from "../api/company";
 import { cn } from "../lib/cn";
 import { ApiError } from "../lib/http";
-import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Loader, Select, Tag, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Input, Loader, Select, Tag, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { loadCompanyApplications, translateApplicationStatus } from "./utils";
 import "./company-dashboard.css";
@@ -21,6 +21,25 @@ const APPLICATION_FILTER_OPTIONS = [
   { value: "all", label: "Все" },
   ...APPLICATION_STATUS_OPTIONS,
 ];
+
+const APPLICATION_SORT_OPTIONS = [
+  { value: "newest", label: "Новые сначала" },
+  { value: "oldest", label: "Старые сначала" },
+  { value: "status", label: "По статусу" },
+  { value: "opportunity", label: "По возможности" },
+];
+
+const ALL_FILTER_VALUE = "all";
+
+function normalizeSearchValue(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getApplicationDateValue(item) {
+  const value = item?.createdAt ?? item?.appliedAt ?? item?.submittedAt ?? item?.updatedAt ?? null;
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed.getTime() : 0;
+}
 
 function ChevronDownIcon() {
   return (
@@ -159,7 +178,12 @@ export function CompanyResponsesSection() {
   const [applicationEdits, setApplicationEdits] = useState({});
   const [busyApplicationId, setBusyApplicationId] = useState(0);
   const [expandedApplicationId, setExpandedApplicationId] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [filters, setFilters] = useState({
+    query: "",
+    status: ALL_FILTER_VALUE,
+    opportunity: ALL_FILTER_VALUE,
+    sort: "newest",
+  });
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
 
   useEffect(() => {
@@ -209,13 +233,67 @@ export function CompanyResponsesSection() {
     [state.applications]
   );
 
-  const filteredApplications = useMemo(() => {
-    if (statusFilter === "all") {
-      return state.applications;
-    }
+  const opportunityOptions = useMemo(() => {
+    const items = new Map();
 
-    return state.applications.filter((item) => item.status === statusFilter);
-  }, [state.applications, statusFilter]);
+    state.applications.forEach((item) => {
+      const value = String(item?.opportunityId ?? item?.opportunityTitle ?? "").trim();
+      if (!value || items.has(value)) {
+        return;
+      }
+
+      items.set(value, item?.opportunityTitle || "Возможность без названия");
+    });
+
+    return [
+      { value: ALL_FILTER_VALUE, label: "Все возможности" },
+      ...Array.from(items, ([value, label]) => ({ value, label })).sort((left, right) => String(left.label).localeCompare(String(right.label), "ru")),
+    ];
+  }, [state.applications]);
+
+  const filteredApplications = useMemo(() => {
+    const query = normalizeSearchValue(filters.query);
+
+    return [...state.applications]
+      .filter((item) => {
+        const matchesQuery = !query || [
+          item.candidateName,
+          item.candidateEmail,
+          item.opportunityTitle,
+        ].some((value) => normalizeSearchValue(value).includes(query));
+        const matchesStatus = filters.status === ALL_FILTER_VALUE || item.status === filters.status;
+        const opportunityValue = String(item?.opportunityId ?? item?.opportunityTitle ?? "").trim();
+        const matchesOpportunity = filters.opportunity === ALL_FILTER_VALUE || opportunityValue === filters.opportunity;
+
+        return matchesQuery && matchesStatus && matchesOpportunity;
+      })
+      .sort((left, right) => {
+        switch (filters.sort) {
+          case "oldest":
+            return getApplicationDateValue(left) - getApplicationDateValue(right);
+          case "status":
+            return translateApplicationStatus(left.status).localeCompare(translateApplicationStatus(right.status), "ru");
+          case "opportunity":
+            return String(left.opportunityTitle ?? "").localeCompare(String(right.opportunityTitle ?? ""), "ru");
+          case "newest":
+          default:
+            return getApplicationDateValue(right) - getApplicationDateValue(left);
+        }
+      });
+  }, [filters, state.applications]);
+
+  function updateFilter(field, value) {
+    setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetFilters() {
+    setFilters({
+      query: "",
+      status: ALL_FILTER_VALUE,
+      opportunity: ALL_FILTER_VALUE,
+      sort: "newest",
+    });
+  }
 
   function handleApplicationEditChange(applicationId, field, value) {
     setApplicationEdits((current) => ({
@@ -303,11 +381,32 @@ export function CompanyResponsesSection() {
                     key={filter.value}
                     label={filter.label}
                     count={filter.value === "all" ? state.applications.length : (filterCounts[filter.value] ?? 0)}
-                    active={statusFilter === filter.value}
-                    onClick={() => setStatusFilter(filter.value)}
+                    active={filters.status === filter.value}
+                    onClick={() => updateFilter("status", filter.value)}
                     className="company-dashboard-response-filter"
                   />
                 ))}
+              </div>
+
+              <div className="company-dashboard-responses-toolbar">
+                <Input
+                  value={filters.query}
+                  onValueChange={(value) => updateFilter("query", value)}
+                  placeholder="Поиск по кандидату, email или возможности"
+                />
+                <Select
+                  value={filters.opportunity}
+                  onValueChange={(value) => updateFilter("opportunity", value)}
+                  options={opportunityOptions}
+                />
+                <Select
+                  value={filters.sort}
+                  onValueChange={(value) => updateFilter("sort", value)}
+                  options={APPLICATION_SORT_OPTIONS}
+                />
+                <Button type="button" variant="ghost" onClick={resetFilters}>
+                  Сбросить
+                </Button>
               </div>
 
               <div className="company-dashboard-stack">
@@ -327,7 +426,7 @@ export function CompanyResponsesSection() {
               {filteredApplications.length ? null : (
                 <EmptyState
                   title="Нет откликов в выбранном статусе"
-                  description="Попробуйте другой фильтр или дождитесь обновлений по кандидатам."
+                  description="Попробуйте изменить поиск, возможность или статус."
                   tone="neutral"
                   compact
                 />

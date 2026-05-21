@@ -1474,8 +1474,8 @@ function OpportunitySliderAssembly() {
     <Card className="ui-kit-assembly-card ui-kit-assembly-card--wide">
       <div className="ui-kit-foundation-card__copy">
         <span className="ui-kit-eyebrow">Assembly</span>
-        <h3 className="ui-type-h3">Opportunity block sliders</h3>
-        <p className="ui-type-body">Three slider variants share the same block card: a steady medium rail, a width-led featured rail, and a raised featured rail with arrows and mouse drag.</p>
+        <h3 className="ui-type-h3">Ленты возможностей</h3>
+        <p className="ui-type-body">Несколько вариантов ленты помогают показать карточки в плотном списке, акцентном блоке или витрине с навигацией.</p>
       </div>
 
       <div className="ui-kit-slider-showcase">
@@ -1758,7 +1758,7 @@ function CompanyPortfolioAssembly() {
       <div className="ui-kit-foundation-card__copy">
         <span className="ui-kit-eyebrow">Assembly</span>
         <h3 className="ui-type-h3">Company portfolio carousel</h3>
-        <p className="ui-type-body">The same mini-project slider from the company cabinet is mirrored here for isolated review inside the UI kit.</p>
+        <p className="ui-type-body">Лента проектов компании показана отдельно, чтобы проверить карточки, навигацию и публичный режим.</p>
       </div>
 
       <div className="ui-kit-company-portfolio-preview">

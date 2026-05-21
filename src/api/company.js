@@ -11,6 +11,17 @@ export function updateCompanyProfile(body) {
   });
 }
 
+export function getCompanySettings(signal) {
+  return apiRequest("/company/me/settings", { signal });
+}
+
+export function updateCompanySettings(body) {
+  return apiRequest("/company/me/settings", {
+    method: "PUT",
+    body,
+  });
+}
+
 export function submitCompanyVerificationRequest(body) {
   return apiRequest("/company/me/verification-request", {
     method: "POST",

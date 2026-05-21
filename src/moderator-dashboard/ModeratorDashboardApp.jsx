@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { routes } from "../app/routes";
 import { useAuthSession } from "../auth/api";
-import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
+import { getModerationCompanies, getModerationComplaints, getModerationOpportunities, getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
 import { translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
 import {
@@ -107,6 +107,10 @@ function isPendingCompany(item) {
   return item?.verificationStatus === "pending" || item?.verificationStatus === "revision";
 }
 
+function isActiveComplaint(item) {
+  return item?.status === "pending" || item?.status === "in_review";
+}
+
 function isAttentionUser(item) {
   return !item?.isVerified || !item?.preVerify;
 }
@@ -158,8 +162,8 @@ function getActivityEmptyState(filter) {
   switch (filter) {
     case "complaints":
       return {
-        title: "Жалобы пока не подключены",
-        description: "Структура блока готова. После подключения раздела жалобы появятся в этой ленте.",
+        title: "Новых жалоб нет",
+        description: "Когда пользователи отправят жалобы на публикации, они появятся в этой ленте.",
       };
     case "users":
       return {
@@ -184,7 +188,7 @@ function getQueueEmptyState(filter) {
     case "complaints":
       return {
         title: "Очередь жалоб пуста",
-        description: "После подключения раздела жалоб карточки появятся в этом приоритетном списке.",
+        description: "Активные жалобы появятся в приоритетном списке и в отдельной очереди модератора.",
       };
     case "verification":
       return {
@@ -242,6 +246,20 @@ function buildUserActivity(item) {
   };
 }
 
+function buildComplaintActivity(item) {
+  const count = Number(item.count ?? 1);
+
+  return {
+    id: `activity-complaint-${item.id}`,
+    kind: "complaints",
+    badge: "Жалоба",
+    timestamp: formatActivityTimestamp(item.createdAt),
+    sortValue: getTimestamp(item.createdAt),
+    title: count > 1 ? `Повторные жалобы: ${count}` : "Новая жалоба на публикацию",
+    description: `${item.reporterEmail || "Пользователь"} сообщил о проблеме в «${item.opportunityTitle || "публикации"}». Причина: ${item.reason || "не указана"}.`,
+  };
+}
+
 function buildOpportunityQueueItem(item) {
   return {
     id: `queue-opportunity-${item.id}`,
@@ -275,11 +293,29 @@ function buildVerificationQueueItem(item) {
   };
 }
 
+function buildComplaintQueueItem(item) {
+  const count = Number(item.count ?? 1);
+
+  return {
+    id: `queue-complaint-${item.id}`,
+    kind: "complaints",
+    badge: count > 1 ? `${count} жалоб` : "Жалоба",
+    title: item.opportunityTitle || "Публикация с жалобой",
+    description: `${item.companyName || "Компания не указана"} · ${item.reason || "Причина не указана"}`,
+    dateLabel: formatDateLabel(item.createdAt),
+    sortValue: getTimestamp(item.createdAt),
+    actionHref: routes.moderator.complaints,
+    actionLabel: "Разобрать",
+    actionVariant: "primary",
+  };
+}
+
 export function ModeratorDashboardApp() {
   const authSession = useAuthSession();
   const [state, setState] = useState({
     status: "loading",
     companies: [],
+    complaints: [],
     opportunities: [],
     users: [],
     error: null,
@@ -295,6 +331,7 @@ export function ModeratorDashboardApp() {
           : {
             status: "loading",
             companies: [],
+            complaints: [],
             opportunities: [],
             users: [],
             error: null,
@@ -307,6 +344,7 @@ export function ModeratorDashboardApp() {
       setState({
         status: "unauthorized",
         companies: [],
+        complaints: [],
         opportunities: [],
         users: [],
         error: null,
@@ -318,6 +356,7 @@ export function ModeratorDashboardApp() {
     setState({
       status: "loading",
       companies: [],
+      complaints: [],
       opportunities: [],
       users: [],
       error: null,
@@ -325,8 +364,9 @@ export function ModeratorDashboardApp() {
 
     async function load() {
       try {
-        const [companies, opportunities, users] = await Promise.all([
+        const [companies, complaints, opportunities, users] = await Promise.all([
           getModerationCompanies(controller.signal),
+          getModerationComplaints(controller.signal),
           getModerationOpportunities(controller.signal),
           getModerationUsers(controller.signal),
         ]);
@@ -334,6 +374,7 @@ export function ModeratorDashboardApp() {
         setState({
           status: "ready",
           companies: Array.isArray(companies) ? companies : [],
+          complaints: Array.isArray(complaints) ? complaints : [],
           opportunities: Array.isArray(opportunities) ? opportunities : [],
           users: Array.isArray(users) ? users : [],
           error: null,
@@ -346,6 +387,7 @@ export function ModeratorDashboardApp() {
         setState({
           status: error instanceof ApiError && (error.status === 401 || error.status === 403) ? "unauthorized" : "error",
           companies: [],
+          complaints: [],
           opportunities: [],
           users: [],
           error,
@@ -358,15 +400,21 @@ export function ModeratorDashboardApp() {
   }, [authSession.status, authSession.user?.id, authSession.user?.role]);
 
   const pendingCompanies = useMemo(() => state.companies.filter(isPendingCompany), [state.companies]);
+  const activeComplaints = useMemo(() => state.complaints.filter(isActiveComplaint), [state.complaints]);
   const pendingOpportunities = useMemo(() => state.opportunities.filter(isPendingOpportunity), [state.opportunities]);
   const attentionUsers = useMemo(() => state.users.filter(isAttentionUser), [state.users]);
 
   const activityItems = useMemo(
     () =>
-      [...pendingOpportunities.map(buildOpportunityActivity), ...pendingCompanies.map(buildCompanyActivity), ...attentionUsers.map(buildUserActivity)]
+      [
+        ...activeComplaints.map(buildComplaintActivity),
+        ...pendingOpportunities.map(buildOpportunityActivity),
+        ...pendingCompanies.map(buildCompanyActivity),
+        ...attentionUsers.map(buildUserActivity),
+      ]
         .sort((left, right) => right.sortValue - left.sortValue)
         .slice(0, 6),
-    [attentionUsers, pendingCompanies, pendingOpportunities]
+    [activeComplaints, attentionUsers, pendingCompanies, pendingOpportunities]
   );
 
   const filteredActivityItems = useMemo(
@@ -376,10 +424,14 @@ export function ModeratorDashboardApp() {
 
   const queueItems = useMemo(
     () =>
-      [...pendingOpportunities.map(buildOpportunityQueueItem), ...pendingCompanies.map(buildVerificationQueueItem)]
+      [
+        ...activeComplaints.map(buildComplaintQueueItem),
+        ...pendingOpportunities.map(buildOpportunityQueueItem),
+        ...pendingCompanies.map(buildVerificationQueueItem),
+      ]
         .sort((left, right) => right.sortValue - left.sortValue)
         .slice(0, 8),
-    [pendingCompanies, pendingOpportunities]
+    [activeComplaints, pendingCompanies, pendingOpportunities]
   );
 
   const filteredQueueItems = useMemo(
@@ -389,6 +441,12 @@ export function ModeratorDashboardApp() {
 
   const focusItems = useMemo(
     () => [
+      {
+        id: "complaints",
+        title: "Жалобы пользователей",
+        description: "Проверяем обращения по публикациям и фиксируем решение для автора жалобы и работодателя.",
+        countLabel: `${activeComplaints.length} в работе`,
+      },
       {
         id: "opportunities",
         title: "Возможности на проверке",
@@ -408,7 +466,7 @@ export function ModeratorDashboardApp() {
         countLabel: `${attentionUsers.length} в работе`,
       },
     ],
-    [attentionUsers.length, pendingCompanies.length, pendingOpportunities.length]
+    [activeComplaints.length, attentionUsers.length, pendingCompanies.length, pendingOpportunities.length]
   );
 
   const activityEmptyState = getActivityEmptyState(activityFilter);

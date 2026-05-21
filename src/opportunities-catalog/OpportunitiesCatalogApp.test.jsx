@@ -186,6 +186,11 @@ function renderApp() {
   );
 }
 
+function selectQuickFilter(label, option) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`${label} :`, "i") }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+}
+
 describe("OpportunitiesCatalogApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -293,7 +298,7 @@ describe("OpportunitiesCatalogApp", () => {
     const results = container.querySelector(".opportunities-browser__results");
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
-    fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
+    selectQuickFilter("Тип", "Вакансия");
     fireEvent.click(screen.getByRole("button", { name: "Фильтры" }));
     fireEvent.click(screen.getByLabelText("Удаленно"));
 
@@ -301,9 +306,8 @@ describe("OpportunitiesCatalogApp", () => {
     expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
     expect(within(results).queryByText("IT-Планета")).not.toBeInTheDocument();
     expect(within(results).queryByText("QA Engineer")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "По возрастанию зарплат" })).toBeDisabled();
     expect(screen.getByPlaceholderText("от")).toBeDisabled();
-    expect(screen.getAllByText(/backend/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/обновления данных каталога/i).length).toBeGreaterThan(0);
   });
 
   it("shows the first three opportunities and expands the list by three more", async () => {
@@ -352,11 +356,11 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Карта возможностей" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Junior" } });
-    fireEvent.click(screen.getByRole("button", { name: "Вакансии" }));
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    selectQuickFilter("Тип", "Вакансия");
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
 
     const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
     expect(mapPanel).not.toBeNull();
@@ -372,9 +376,9 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Карта возможностей" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
 
     const map = screen.getByTestId("catalog-map");
     expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "true");
@@ -391,7 +395,7 @@ describe("OpportunitiesCatalogApp", () => {
     expect(screen.getByText("MAP_POINTS:3")).toBeInTheDocument();
     expect(within(map).queryByRole("button", { name: "Frontend Intern" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Список" }));
+    fireEvent.click(screen.getByRole("button", { name: "Список возможностей" }));
 
     const results = document.querySelector(".opportunities-browser__results");
     expect(results).not.toBeNull();
@@ -404,9 +408,9 @@ describe("OpportunitiesCatalogApp", () => {
     getCandidateProfile.mockResolvedValue(null);
 
     const { container } = renderApp();
-    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Карта возможностей" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
     fireEvent.click(screen.getByRole("button", { name: "Фильтры карты" }));
 
     expect(screen.getByText("Регион")).toBeInTheDocument();
@@ -427,9 +431,9 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Карта возможностей" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
 
     const map = screen.getByTestId("catalog-map");
     expect(within(map).getByRole("button", { name: "Frontend Intern" })).toHaveAttribute("data-favorite", "false");
@@ -450,10 +454,10 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    expect(await screen.findByRole("button", { name: "Карта" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Карта возможностей" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "QA Engineer" } });
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
 
     const mapPanel = screen.getByTestId("catalog-map").closest(".opportunities-browser__map-panel");
     expect(mapPanel).not.toBeNull();
@@ -529,7 +533,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     expect(JSON.parse(window.localStorage.getItem(FAVORITE_COMPANY_IDS_STORAGE_KEY) ?? "[]")).toEqual(["404"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
+    fireEvent.click(screen.getByRole("button", { name: "Карта возможностей" }));
 
     await waitFor(() => {
       expect(within(screen.getByTestId("catalog-map")).getByRole("button", { name: "Product Designer" })).toHaveAttribute(
@@ -545,7 +549,7 @@ describe("OpportunitiesCatalogApp", () => {
 
     renderApp();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Карта" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Карта возможностей" }));
 
     expect(screen.getByText("Менторская программа")).toBeInTheDocument();
   });

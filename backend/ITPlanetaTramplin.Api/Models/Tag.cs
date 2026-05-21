@@ -13,7 +13,19 @@ public partial class Tag
 
     public bool? IsActive { get; set; }
 
+    public DateTime? UpdatedAt { get; set; }
+
+    public int? UpdatedByUserId { get; set; }
+
+    public int? MergedIntoTagId { get; set; }
+
     public virtual User? CreatedByNavigation { get; set; }
+
+    public virtual User? UpdatedByUser { get; set; }
+
+    public virtual Tag? MergedIntoTag { get; set; }
+
+    public virtual ICollection<Tag> MergedTags { get; set; } = new List<Tag>();
 
     public virtual ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
 }
