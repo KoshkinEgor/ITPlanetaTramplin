@@ -21,5 +21,7 @@ public partial class OpportunityApplication
 
     public virtual ApplicantProfile Applicant { get; set; } = null!;
 
+    public virtual ICollection<UserNotification> Notifications { get; set; } = new List<UserNotification>();
+
     public virtual Opportunity Opportunity { get; set; } = null!;
 }

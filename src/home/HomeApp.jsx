@@ -6,6 +6,7 @@ import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from 
 import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
+import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
 import { OpportunityBlockCard, OpportunityRowCard } from "../components/opportunities";
 import { readFavoriteCompanyIds, readFavoriteOpportunityIds, subscribeToFavorites } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
@@ -15,10 +16,11 @@ import {
   normalizeOpportunityType,
   translateOpportunityType as translateSharedOpportunityType,
 } from "../shared/lib/opportunityTypes";
-import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
+import { getOpportunityCardPresentation, translateExperienceLevel, translateWorkSchedule } from "../shared/lib/opportunityPresentation";
 import { scheduleHashScroll, scrollToHashTarget as scrollToHashTargetShared } from "../shared/lib/scrollToHashTarget";
 import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
+import { useFloatingHeader } from "../shared/lib/useFloatingHeader";
 import { PortalHeader } from "../widgets/layout";
 import { HomeOpportunityMap } from "./HomeOpportunityMap";
 import homeHeroImage from "./homeimg 1.png";
@@ -62,7 +64,7 @@ const FILTER_ALL_LABEL = "Все";
 const QUICK_FILTERS = [
   { key: "type", label: "Тип" },
   { key: "format", label: "Формат" },
-  { key: "level", label: "Уровень" },
+  { key: "level", label: "Опыт" },
   { key: "skills", label: "Навыки" },
 ];
 const EMPLOYMENT_FILTER_ORDER = ["Офис", "Гибрид", "Удаленно", "Онлайн"];
@@ -88,6 +90,24 @@ const advancedSearchSections = {
   schedules: ["Полный день", "Частичная", "По выходным"],
   extras: ["Можно удаленно", "С контактами", "Быстрый отклик", "Только активные"],
 };
+
+const ADVANCED_SEARCH_DIRECTION_TYPES = {
+  [advancedSearchSections.directions[0]]: "vacancy",
+  [advancedSearchSections.directions[1]]: "internship",
+  [advancedSearchSections.directions[2]]: "event",
+  [advancedSearchSections.directions[3]]: "mentoring",
+};
+
+function createDefaultAdvancedSearchValues() {
+  return {
+    salaryFrom: "",
+    salaryTo: "",
+    directions: [],
+    formats: [],
+    schedules: [],
+    extras: [],
+  };
+}
 
 const nearbyCards = [
   {
@@ -399,6 +419,10 @@ function deriveStatus(item) {
 }
 
 function deriveFilterLevel(item) {
+  if (item?.experienceLevel) {
+    return translateExperienceLevel(item.experienceLevel);
+  }
+
   const tags = Array.isArray(item?.tags) ? item.tags.map(normalizeOptionValue) : [];
 
   if (tags.includes("middle")) {
@@ -494,9 +518,10 @@ function createFilterTriggerLabel(label, currentLabel) {
   return `${label} : ${currentLabel}`;
 }
 
-function createQuickFilterOptions(items) {
+function createQuickFilterOptions(items, references = FALLBACK_REFERENCE_CATEGORIES) {
   const availableTypeValues = new Set(items.map((item) => normalizeOptionValue(item.opportunityTypeValue)).filter(Boolean));
-  const typeOptions = OPPORTUNITY_TYPE_OPTIONS
+  const sourceTypeOptions = references.opportunityTypes?.length ? references.opportunityTypes : OPPORTUNITY_TYPE_OPTIONS;
+  const typeOptions = sourceTypeOptions
     .filter((option) => availableTypeValues.has(normalizeOptionValue(option.value)))
     .map((option) => ({ value: option.value, label: option.label }));
   const formatOptions = orderByKnownSequence(
@@ -557,6 +582,7 @@ function createHomeOpportunityCardBase(item, fallbackId, { status, statusTone, c
     employerId: item?.employerId != null ? String(item.employerId) : "",
     opportunityType: item?.opportunityType ?? presentation.typeKey,
     opportunityTypeValue: normalizeOptionValue(item?.opportunityType ?? presentation.typeKey),
+    employmentType: item?.employmentType ?? "",
     typeKey: presentation.typeKey,
     typeTone: presentation.typeTone,
     eyebrow: typeLabel,
@@ -577,6 +603,21 @@ function createHomeOpportunityCardBase(item, fallbackId, { status, statusTone, c
     note: presentation.note,
     chips: tags.slice(0, chipsLimit),
     tags,
+    description: item?.description ?? "",
+    salaryFrom: item?.salaryFrom ?? "",
+    salaryTo: item?.salaryTo ?? "",
+    stipendFrom: item?.stipendFrom ?? "",
+    stipendTo: item?.stipendTo ?? "",
+    schedule: item?.schedule ?? "",
+    workSchedule: item?.workSchedule ?? "",
+    employmentSchedule: item?.employmentSchedule ?? "",
+    contactsJson: item?.contactsJson ?? null,
+    contacts: item?.contacts ?? null,
+    quickApply: item?.quickApply ?? item?.isQuickApply ?? false,
+    isQuickApply: item?.isQuickApply ?? false,
+    moderationStatus: item?.moderationStatus ?? "",
+    expireAt: item?.expireAt ?? item?.expiresAt ?? "",
+    registrationDeadline: item?.registrationDeadline ?? "",
     detailHref: buildOpportunityDetailRoute(identifier),
   };
 }
@@ -684,6 +725,152 @@ function includesNormalizedValue(items, value) {
 function removeNormalizedValue(items, value) {
   const normalizedValue = normalizeOptionValue(value);
   return items.filter((item) => normalizeOptionValue(item) !== normalizedValue);
+}
+
+function parseAdvancedNumber(value) {
+  const normalizedValue = String(value ?? "")
+    .replace(/\s+/g, "")
+    .replace(/[^\d,.-]/g, "")
+    .replace(",", ".");
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function hasAdvancedSearchFilters(values) {
+  return Boolean(
+    String(values?.salaryFrom ?? "").trim()
+      || String(values?.salaryTo ?? "").trim()
+      || values?.directions?.length
+      || values?.formats?.length
+      || values?.schedules?.length
+      || values?.extras?.length
+  );
+}
+
+function getAdvancedItemCompensationRange(item) {
+  const isInternship = normalizeOpportunityType(item?.opportunityTypeValue ?? item?.opportunityType) === "internship";
+  const from = parseAdvancedNumber(isInternship ? item?.stipendFrom : item?.salaryFrom);
+  const to = parseAdvancedNumber(isInternship ? item?.stipendTo : item?.salaryTo);
+
+  return {
+    from: from ?? to,
+    to: to ?? from,
+  };
+}
+
+function hasContactPayload(value) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+
+  const normalizedValue = String(value ?? "").trim();
+  return Boolean(normalizedValue && !["[]", "{}", "null", "undefined"].includes(normalizedValue));
+}
+
+function isAdvancedItemActive(item) {
+  const status = normalizeOptionValue(item?.moderationStatus);
+
+  if (["archived", "draft", "rejected"].includes(status)) {
+    return false;
+  }
+
+  const deadlineValue = item?.expireAt ?? item?.registrationDeadline ?? null;
+
+  if (!deadlineValue) {
+    return true;
+  }
+
+  const deadline = new Date(deadlineValue);
+  return Number.isNaN(deadline.getTime()) || deadline >= new Date();
+}
+
+function matchesAdvancedSchedule(item, schedule) {
+  const normalizedSchedule = normalizeOptionValue(schedule);
+  const searchContent = [
+    item?.schedule,
+    translateWorkSchedule(item?.schedule),
+    item?.workSchedule,
+    item?.employmentSchedule,
+    item?.description,
+    item?.note,
+    item?.secondaryFact,
+    item?.tertiaryFact,
+    ...(Array.isArray(item?.tags) ? item.tags : []),
+  ].join(" ");
+
+  return normalizeOptionValue(searchContent).includes(normalizedSchedule);
+}
+
+function matchesAdvancedExtra(item, extra) {
+  const extraIndex = advancedSearchSections.extras.findIndex((value) => normalizeOptionValue(value) === normalizeOptionValue(extra));
+
+  switch (extraIndex) {
+    case 0:
+      return ["remote", "online", "удаленно", "онлайн"].includes(normalizeOptionValue(item?.employmentType))
+        || ["удаленно", "онлайн"].includes(normalizeOptionValue(item?.employmentLabel));
+    case 1:
+      return hasContactPayload(item?.contactsJson) || hasContactPayload(item?.contacts);
+    case 2:
+      return item?.quickApply === true
+        || item?.isQuickApply === true
+        || ["vacancy", "internship", "mentoring"].includes(normalizeOpportunityType(item?.opportunityTypeValue ?? item?.opportunityType));
+    case 3:
+      return isAdvancedItemActive(item);
+    default:
+      return true;
+  }
+}
+
+function matchesAdvancedSearchValues(item, values) {
+  if (!hasAdvancedSearchFilters(values)) {
+    return true;
+  }
+
+  const salaryFrom = parseAdvancedNumber(values.salaryFrom);
+  const salaryTo = parseAdvancedNumber(values.salaryTo);
+  const compensationRange = getAdvancedItemCompensationRange(item);
+
+  if (salaryFrom != null && (compensationRange.to == null || compensationRange.to < salaryFrom)) {
+    return false;
+  }
+
+  if (salaryTo != null && (compensationRange.from == null || compensationRange.from > salaryTo)) {
+    return false;
+  }
+
+  if (values.directions.length) {
+    const selectedTypes = values.directions
+      .map((direction) => ADVANCED_SEARCH_DIRECTION_TYPES[direction])
+      .filter(Boolean)
+      .map(normalizeOpportunityType);
+
+    if (!selectedTypes.includes(normalizeOpportunityType(item.opportunityTypeValue ?? item.opportunityType))) {
+      return false;
+    }
+  }
+
+  if (values.formats.length && !values.formats.some((format) => normalizeOptionValue(format) === normalizeOptionValue(item.employmentLabel))) {
+    return false;
+  }
+
+  if (values.schedules.length && !values.schedules.some((schedule) => matchesAdvancedSchedule(item, schedule))) {
+    return false;
+  }
+
+  if (values.extras.length && !values.extras.every((extra) => matchesAdvancedExtra(item, extra))) {
+    return false;
+  }
+
+  return true;
 }
 
 function SortIcon() {
@@ -1092,7 +1279,7 @@ function HubCard({ title, description, href }) {
   );
 }
 
-function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) {
+function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset, onApply }) {
   return (
     <Card className="home-advanced-search">
       <div className="home-advanced-search__header">
@@ -1191,7 +1378,7 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset }) 
       </div>
 
       <div className="home-advanced-search__footer">
-        <Button type="button" width="full" className="home-advanced-search__apply">
+        <Button type="button" width="full" className="home-advanced-search__apply" onClick={onApply}>
           Показать результаты
         </Button>
       </div>
@@ -1218,8 +1405,7 @@ export function HomeApp() {
   const [filterValues, setFilterValues] = useState(() => ({ ...defaultFilterValues }));
   const [openFilterKey, setOpenFilterKey] = useState(null);
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
-  const [isHeaderFloating, setIsHeaderFloating] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const { isHeaderFloating, isHeaderVisible } = useFloatingHeader();
   const [isHeroActionLoading, setIsHeroActionLoading] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
   const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
@@ -1231,23 +1417,21 @@ export function HomeApp() {
     recommendedItems: [],
     error: null,
   });
+  const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
   const newsletterInputRef = useRef(null);
   const resultsGridRef = useRef(null);
-  const [advancedSearchValues, setAdvancedSearchValues] = useState({
-    salaryFrom: "",
-    salaryTo: "",
-    directions: ["Вакансии"],
-    formats: ["Онлайн"],
-    schedules: [],
-    extras: ["Только активные"],
-  });
+  const [advancedSearchValues, setAdvancedSearchValues] = useState(() => createDefaultAdvancedSearchValues());
   const selectedCityCoordinates = useMemo(
     () => toCoordinatePair(selectedCityOption?.longitude, selectedCityOption?.latitude),
     [selectedCityOption?.latitude, selectedCityOption?.longitude]
   );
   const quickFilterOptions = useMemo(
-    () => createQuickFilterOptions(nearbyItemsState.items),
-    [nearbyItemsState.items]
+    () => createQuickFilterOptions(nearbyItemsState.items, referenceCategories),
+    [nearbyItemsState.items, referenceCategories]
+  );
+  const hasActiveAdvancedSearchFilters = useMemo(
+    () => hasAdvancedSearchFilters(advancedSearchValues),
+    [advancedSearchValues]
   );
 
   const toggleAdvancedValue = (field, item) => {
@@ -1269,14 +1453,7 @@ export function HomeApp() {
   };
 
   const resetAdvancedSearch = () => {
-    setAdvancedSearchValues({
-      salaryFrom: "",
-      salaryTo: "",
-      directions: ["Вакансии"],
-      formats: ["Онлайн"],
-      schedules: [],
-      extras: ["Только активные"],
-    });
+    setAdvancedSearchValues(createDefaultAdvancedSearchValues());
   };
 
   const closeNewsletterModal = () => {
@@ -1307,9 +1484,10 @@ export function HomeApp() {
 
     async function loadNearbyItems() {
       try {
-        const [opportunitiesResult, recommendationsResult] = await Promise.allSettled([
+        const [opportunitiesResult, recommendationsResult, referencesResult] = await Promise.allSettled([
           getOpportunities(controller.signal),
           getCandidateRecommendations(controller.signal),
+          getSystemReferences(controller.signal).then(normalizeReferenceCategories),
         ]);
 
         if (controller.signal.aborted) {
@@ -1335,6 +1513,9 @@ export function HomeApp() {
           recommendationItems.map(mapOpportunityToRecommendedCard).filter(Boolean),
           opportunityItems.map(mapOpportunityToRecommendedCard).filter(Boolean)
         );
+        if (referencesResult.status === "fulfilled") {
+          setReferenceCategories(referencesResult.value);
+        }
 
         setNearbyItemsState({
           status: "ready",
@@ -1400,10 +1581,11 @@ export function HomeApp() {
           const normalizedSkill = normalizeOptionValue(skill);
           return normalizedItemTags.includes(normalizedSkill) || normalizedSearchContent.includes(normalizedSkill);
         });
+      const matchesAdvancedSearch = matchesAdvancedSearchValues(item, advancedSearchValues);
 
-      return matchesQuery && matchesType && matchesFormat && matchesLevel && matchesSkills;
+      return matchesQuery && matchesType && matchesFormat && matchesLevel && matchesSkills && matchesAdvancedSearch;
     });
-  }, [filterValues.format, filterValues.level, filterValues.type, nearbyItemsState.items, query, selectedSkills]);
+  }, [advancedSearchValues, filterValues.format, filterValues.level, filterValues.type, nearbyItemsState.items, query, selectedSkills]);
 
   const sortedNearbyCards = useMemo(() => {
     const directionFactor = sortDirection === "asc" ? 1 : -1;
@@ -1517,8 +1699,6 @@ export function HomeApp() {
     resultsElement.scrollTop = 0;
   }, [selectedOpportunityId, view]);
 
-  const lastScrollYRef = useRef(0);
-
   const handleHeroDiscoverClick = async () => {
     if (isHeroActionLoading) {
       return;
@@ -1531,53 +1711,13 @@ export function HomeApp() {
       navigate(routes.opportunities.catalog);
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        navigate(routes.auth.registerCandidate);
+        navigate(routes.auth.login);
         return;
       }
 
       navigate(routes.opportunities.catalog);
     }
   };
-
-  useEffect(() => {
-    let ticking = false;
-
-    const updateHeaderVisibility = () => {
-      const currentScrollY = window.scrollY;
-      const delta = currentScrollY - lastScrollYRef.current;
-
-      setIsHeaderFloating(currentScrollY > 88);
-
-      if (currentScrollY <= 16) {
-        setIsHeaderVisible(true);
-      } else if (Math.abs(delta) > 6) {
-        if (delta < 0) {
-          setIsHeaderVisible(true);
-        } else if (currentScrollY > 140) {
-          setIsHeaderVisible(false);
-        }
-      }
-
-      lastScrollYRef.current = currentScrollY;
-      ticking = false;
-    };
-
-    const handleScroll = () => {
-      if (ticking) {
-        return;
-      }
-
-      ticking = true;
-      window.requestAnimationFrame(updateHeaderVisibility);
-    };
-
-    updateHeaderVisibility();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
 
   useEffect(() => {
     if (!location.hash) {
@@ -1810,10 +1950,10 @@ export function HomeApp() {
                 type="button"
                 variant="outline"
                 size="2xl"
-                className={`home-discovery__toolbar-icon home-discovery__toolbar-icon--outlined ${advancedSearchOpen ? "is-active" : ""}`.trim()}
+                className={`home-discovery__toolbar-icon home-discovery__toolbar-icon--outlined ${advancedSearchOpen || hasActiveAdvancedSearchFilters ? "is-active" : ""}`.trim()}
                 aria-label="Переключить расширенный поиск"
                 aria-pressed={advancedSearchOpen}
-                active={advancedSearchOpen}
+                active={advancedSearchOpen || hasActiveAdvancedSearchFilters}
                 onClick={() => setAdvancedSearchOpen((current) => !current)}
               >
                 <SlidersIcon />
@@ -1886,6 +2026,7 @@ export function HomeApp() {
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
                 onReset={resetAdvancedSearch}
+                onApply={() => setAdvancedSearchOpen(false)}
               />
             ) : view === "list" ? (
               <Card className="home-results-panel">
@@ -1953,6 +2094,7 @@ export function HomeApp() {
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
                 onReset={resetAdvancedSearch}
+                onApply={() => setAdvancedSearchOpen(false)}
               />
             ) : null}
           </div>
@@ -2114,9 +2256,7 @@ export function HomeApp() {
 
               {newsletterError ? (
                 <p className="home-news-modal__error">{newsletterError}</p>
-              ) : (
-                <p className="home-news-modal__caption">Можно подключить реальный submit или интеграцию с email-сервисом на этом действии.</p>
-              )}
+              ) : null}
             </div>
           )}
         </Modal>

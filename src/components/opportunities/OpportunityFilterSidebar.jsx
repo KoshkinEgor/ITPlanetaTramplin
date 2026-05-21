@@ -43,7 +43,7 @@ function OpportunityFilterSidebarContent({
   const specializationOptions = normalizeOptions(options?.specializations);
   const employmentOptions = normalizeOptions(options?.employmentTypes);
   const resolvedDisplayOptions = normalizeOptions(displayOptions);
-  const unsupportedHint = "Поле появится после подключения данных из backend.";
+  const unsupportedHint = "Поле появится после обновления данных каталога.";
 
   const updateCheckboxGroup = (field, nextValue, checked) => {
     const currentValues = Array.isArray(values?.[field]) ? values[field] : [];
@@ -159,7 +159,7 @@ export function OpportunityFilterSidebar({
   onResetSection,
   onResetAll,
   title = "Фильтры",
-  subtitle = "Используем только реальные поля каталога.",
+  subtitle = "Выберите параметры, которые важны для поиска.",
   headerActions = null,
   className,
   ...props

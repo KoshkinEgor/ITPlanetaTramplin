@@ -26,6 +26,10 @@ public partial class Opportunity
 
     public string EmploymentType { get; set; } = string.Empty;
 
+    public string? ExperienceLevel { get; set; }
+
+    public string? Schedule { get; set; }
+
     public string ModerationStatus { get; set; } = null!;
 
     public string? ModerationReason { get; set; }
@@ -63,6 +67,8 @@ public partial class Opportunity
     public NpgsqlTsVector? SearchVector { get; set; }
 
     public virtual ICollection<OpportunityApplication> Applications { get; set; } = new List<OpportunityApplication>();
+
+    public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 
     public virtual EmployerProfile Employer { get; set; } = null!;
 

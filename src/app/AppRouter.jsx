@@ -31,6 +31,7 @@ import {
   CompanyOpportunitiesPage,
   CompanyPublicPage,
   CompanyResponsesPage,
+  CompanySettingsPage,
 } from "../pages/company/index.jsx";
 import { HomePage } from "../pages/home/HomePage";
 import { FavoritesPage } from "../pages/favorites/FavoritesPage";
@@ -96,6 +97,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
           <Route index element={<CompanyDashboardPage />} />
           <Route path="opportunities" element={<CompanyOpportunitiesPage />} />
           <Route path="responses" element={<CompanyResponsesPage />} />
+          <Route path="settings" element={<CompanySettingsPage />} />
         </Route>
       </Route>
 

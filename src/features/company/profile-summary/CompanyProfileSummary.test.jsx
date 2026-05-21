@@ -49,7 +49,7 @@ describe("CompanyProfileSummary", () => {
     renderSummary();
 
     expect(screen.getByText("Можно редактировать")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Редактировать" })).toHaveAttribute("href", "/company/dashboard");
+    expect(screen.getByRole("link", { name: "Редактировать" })).toHaveAttribute("href", "/company/dashboard#company-profile-editor");
     expect(screen.getByText("Кабинет компании")).toBeInTheDocument();
   });
 

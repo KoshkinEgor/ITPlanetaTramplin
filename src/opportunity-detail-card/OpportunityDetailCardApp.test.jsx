@@ -9,8 +9,9 @@ import {
   createCandidateOpportunityShare,
 } from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
-import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
+import { applyToOpportunity, createOpportunityComplaint, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
 import { useAuthSession } from "../auth/api";
+import { routes } from "../app/routes";
 import { resetCandidateApplicationsStore, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
 import { FAVORITE_OPPORTUNITY_IDS_STORAGE_KEY } from "../features/favorites/storage";
 import { ApiError } from "../lib/http";
@@ -20,6 +21,7 @@ vi.mock("../api/opportunities", () => ({
   getOpportunity: vi.fn(),
   getOpportunities: vi.fn(() => Promise.resolve([])),
   applyToOpportunity: vi.fn(),
+  createOpportunityComplaint: vi.fn(),
   updateOpportunity: vi.fn(),
   deleteOpportunity: vi.fn(),
 }));
@@ -130,6 +132,7 @@ describe("OpportunityDetailCardApp", () => {
     getOpportunity.mockResolvedValue(apiOpportunity);
     getOpportunities.mockResolvedValue([]);
     applyToOpportunity.mockResolvedValue(appliedSummary);
+    createOpportunityComplaint.mockResolvedValue({});
     updateOpportunity.mockResolvedValue({});
     deleteOpportunity.mockResolvedValue({});
     getCandidateApplications.mockResolvedValue([]);
@@ -179,6 +182,12 @@ describe("OpportunityDetailCardApp", () => {
   });
 
   it("pushes a successful application into the shared candidate responses store", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+
     renderDetail("/opportunities/101");
 
     const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
@@ -192,6 +201,40 @@ describe("OpportunityDetailCardApp", () => {
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
       expect(screen.getByTestId("applications-title").textContent).toBe("Junior Security Analyst");
     });
+  });
+
+  it("shows login prompt instead of apply and share actions for guests", async () => {
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findAllByText("Войдите, чтобы откликнуться или поделиться возможностью.")).toHaveLength(2);
+    expect(document.querySelector(".opportunity-focus-card__apply")).toBeNull();
+    expect(document.querySelector(".opportunity-story-card__bottom-primary")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Поделиться возможностью" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Войти" })[0]).toHaveAttribute("href", routes.auth.login);
+
+    fireEvent.click(document.querySelector(".opportunity-focus-card__menu button"));
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+    expect(screen.queryByRole("menuitem", { name: "Поделиться" })).not.toBeInTheDocument();
+    expect(applyToOpportunity).not.toHaveBeenCalled();
+  });
+
+  it("shows candidate-only prompt for authenticated non-candidate viewers", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 9, role: "company", email: "hr@example.com" },
+      error: null,
+    });
+    getCompanyProfile.mockResolvedValue({ profileId: 999 });
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findAllByText("Отклик и шаринг возможности доступны кандидатам.")).toHaveLength(2);
+    expect(document.querySelector(".opportunity-focus-card__apply")).toBeNull();
+    expect(document.querySelector(".opportunity-story-card__bottom-primary")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Поделиться возможностью" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Войти" })).not.toBeInTheDocument();
+    expect(applyToOpportunity).not.toHaveBeenCalled();
   });
 
   it("blocks candidate application when the mandatory profile is incomplete", async () => {
@@ -232,6 +275,12 @@ describe("OpportunityDetailCardApp", () => {
   });
 
   it("opens complaint and share options from the more actions button", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+
     renderDetail("/opportunities/101");
 
     await screen.findByText("Junior Security Analyst");
@@ -241,6 +290,19 @@ describe("OpportunityDetailCardApp", () => {
     fireEvent.click(menuButton);
 
     expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Пожаловаться" }));
+
+    expect(await screen.findByRole("dialog", { name: "Пожаловаться на возможность" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Отправить жалобу" }));
+
+    await waitFor(() => {
+      expect(createOpportunityComplaint).toHaveBeenCalledWith(101, {
+        reason: "Недостоверная информация",
+        description: "",
+      });
+    });
+    expect(await screen.findByRole("dialog", { name: "Жалоба отправлена" })).toBeInTheDocument();
   });
 
   it("opens the share modal with contacts and triggers sharing for the selected contact", async () => {
@@ -333,6 +395,11 @@ describe("OpportunityDetailCardApp", () => {
   });
 
   it("treats a 409 application response as a synced success state instead of an error", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
     applyToOpportunity.mockRejectedValue(
       new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } })
     );

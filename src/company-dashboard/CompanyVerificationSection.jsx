@@ -144,7 +144,7 @@ function triggerBrowserDownload(blob, fileName) {
 
 function getVerificationSubmitErrorMessage(error) {
   if (error?.status === 404) {
-    return "Сервер еще не поддерживает отправку заявок. Перезапустите backend или обновите API.";
+    return "Отправка заявки временно недоступна. Попробуйте позже или обратитесь в поддержку.";
   }
 
   return error?.message ?? "Не удалось отправить заявку на проверку.";

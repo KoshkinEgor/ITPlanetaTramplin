@@ -71,6 +71,10 @@ export function mapApplicationTone(status) {
 }
 
 export function parseTags(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  }
+
   return String(value ?? "")
     .split(",")
     .map((item) => item.trim())
@@ -86,6 +90,7 @@ export function createOpportunityContactDraft(item = null) {
 
 export function createOpportunityMediaDraft(item = null) {
   return {
+    type: item?.type === "image" || item?.type === "video" ? item.type : "link",
     title: item?.title ?? item?.label ?? "",
     url: item?.url ?? item?.href ?? item?.value ?? "",
   };
@@ -192,12 +197,13 @@ export function normalizeOpportunityMedia(value) {
 
       const title = String(item.title ?? item.label ?? "").trim();
       const url = String(item.url ?? item.href ?? item.value ?? "").trim();
+      const type = item.type === "image" || item.type === "video" ? item.type : "link";
 
       if (!title && !url) {
         return null;
       }
 
-      return { title, url };
+      return { type, title, url };
     })
     .filter(Boolean);
 
@@ -207,6 +213,7 @@ export function normalizeOpportunityMedia(value) {
 export function serializeOpportunityMedia(value) {
   const normalized = normalizeOpportunityMedia(value)
     .map((item) => ({
+      type: item.type === "image" || item.type === "video" ? item.type : "link",
       title: String(item.title ?? "").trim(),
       url: String(item.url ?? "").trim(),
     }))

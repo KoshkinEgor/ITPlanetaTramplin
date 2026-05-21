@@ -10,7 +10,7 @@ const PORTFOLIO_COPY = {
     eyebrow: "Кейсы",
     title: "Портфолио компании",
     description:
-      "Тот же slider используется и в кабинете компании, и на публичной странице. Здесь он помогает быстро проверить, как выглядят кейсы после сохранения.",
+      "Проверьте, как кейсы будут выглядеть на публичной странице после сохранения.",
     showCreateAction: true,
   },
   viewer: {
@@ -131,7 +131,7 @@ export function CompanyPortfolioCarousel({
   testId = "company-profile-portfolio-slider",
   showCreateAction,
   emptyTitle = "Кейсы пока не добавлены",
-  emptyDescription = "После заполнения карточек здесь появится slider с проектами компании.",
+  emptyDescription = "После заполнения карточек здесь появится лента проектов компании.",
   eyebrow,
   title,
   description,

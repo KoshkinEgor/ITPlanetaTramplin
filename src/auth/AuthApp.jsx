@@ -52,6 +52,46 @@ function validateRegistrationPassword(password) {
   return "";
 }
 
+const passwordRequirementItems = [
+  {
+    key: "length",
+    label: "Пароль содержит минимум 8 символов",
+    test: (password) => password.length >= 8,
+  },
+  {
+    key: "uppercase",
+    label: "Пароль содержит заглавную букву",
+    test: (password) => /[A-Z]/.test(password),
+  },
+  {
+    key: "lowercase",
+    label: "Пароль содержит строчную букву",
+    test: (password) => /[a-z]/.test(password),
+  },
+  {
+    key: "digit",
+    label: "Пароль содержит цифру",
+    test: (password) => /\d/.test(password),
+  },
+];
+
+function PasswordChecklist({ password }) {
+  return (
+    <ul className="auth-password-checklist" aria-label="Требования к паролю">
+      {passwordRequirementItems.map((item) => {
+        const isMet = item.test(password);
+
+        return (
+          <li key={item.key} className={isMet ? "auth-password-checklist__item is-met" : "auth-password-checklist__item"}>
+            <span className="auth-password-checklist__mark" aria-hidden="true" />
+            <span>{item.label}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function getSearchParam(name) {
   if (typeof window === "undefined") {
     return null;
@@ -459,7 +499,7 @@ function LoginDetailsScreen() {
 
             {showCuratorHint ? (
               <Alert tone="info" showIcon title="Доступ куратора">
-                Учётную запись куратора выдаёт администратор. Для local dev можно использовать `demo-curator@tramplin.local` / `Curator1234`.
+                Учётную запись куратора выдаёт администратор. Если доступа нет, обратитесь к ответственному за платформу.
               </Alert>
             ) : null}
 
@@ -767,7 +807,6 @@ function RegisterScreen() {
               <FormField
                 label="Пароль"
                 error={errors.password}
-                hint="Минимум 8 символов, заглавная и строчная буква, цифра."
                 required
               >
                 <Input
@@ -782,6 +821,7 @@ function RegisterScreen() {
                   placeholder="Например, Password1"
                   onChange={(event) => updateActiveForm("password", event.target.value)}
                 />
+                <PasswordChecklist password={activeForm.password} />
               </FormField>
             </div>
 
@@ -1057,7 +1097,6 @@ function RegisterScreenRefined() {
               <FormField
                 label="Пароль"
                 error={errors.password}
-                hint="Минимум 8 символов, заглавная и строчная буква, цифра."
                 required
                 className="auth-register-field"
               >
@@ -1074,6 +1113,7 @@ function RegisterScreenRefined() {
                   placeholder="Например, Password1"
                   onChange={(event) => updateActiveForm("password", event.target.value)}
                 />
+                <PasswordChecklist password={activeForm.password} />
               </FormField>
             </div>
 
@@ -1280,7 +1320,6 @@ function CompanyQuickScreenLegacy() {
             <FormField
               label="Пароль"
               error={errors.password}
-              hint="Минимум 8 символов, заглавная и строчная буква, цифра."
               required
             >
               <Input
@@ -1291,6 +1330,7 @@ function CompanyQuickScreenLegacy() {
                 placeholder="Например, Password1"
                 onChange={(event) => updateField("password", event.target.value)}
               />
+              <PasswordChecklist password={form.password} />
             </FormField>
 
             <ChoiceGroup
@@ -1621,7 +1661,6 @@ function CompanyQuickScreenRefined() {
             <FormField
               label="Пароль"
               error={errors.password}
-              hint="Минимум 8 символов, заглавная и строчная буква, цифра."
               required
             >
               <Input
@@ -1632,6 +1671,7 @@ function CompanyQuickScreenRefined() {
                 placeholder="Например, Password1"
                 onChange={(event) => updateField("password", event.target.value)}
               />
+              <PasswordChecklist password={form.password} />
             </FormField>
 
             <FormField error={errors.terms} className="auth-screen__checkbox-field">
@@ -1945,7 +1985,6 @@ function CompanyExtendedScreen() {
             <FormField
               label="Пароль"
               error={errors.password}
-              hint="Минимум 8 символов, заглавная и строчная буква, цифра."
               required
             >
               <Input
@@ -1956,6 +1995,7 @@ function CompanyExtendedScreen() {
                 placeholder="Например, Password1"
                 onChange={(event) => updateField("password", event.target.value)}
               />
+              <PasswordChecklist password={form.password} />
             </FormField>
 
             <ChoiceGroup
@@ -2441,6 +2481,7 @@ function ResetPasswordScreen() {
                 placeholder="Введите новый пароль"
                 onChange={(event) => updateField("password", event.target.value)}
               />
+              <PasswordChecklist password={form.password} />
             </FormField>
 
             {message ? (
@@ -2719,7 +2760,6 @@ function CompanyQuickScreenCompact() {
               <FormField
                 label="Пароль"
                 error={errors.password}
-                hint="Минимум 8 символов, заглавная и строчная буква, цифра."
                 required
                 className="auth-register-field"
               >
@@ -2737,6 +2777,7 @@ function CompanyQuickScreenCompact() {
                   placeholder="Введите пароль"
                   onChange={(event) => updateField("password", event.target.value)}
                 />
+                <PasswordChecklist password={form.password} />
               </FormField>
             </div>
 

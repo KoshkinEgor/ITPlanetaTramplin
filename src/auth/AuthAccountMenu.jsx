@@ -96,9 +96,10 @@ export function AuthAccountMenu({
       >
         <Avatar
           name={displayName}
+          src={user?.avatarUrl}
+          alt={`Фото профиля ${displayName}`}
           size={avatarSize}
           className="auth-account-menu__avatar"
-          aria-hidden="true"
         />
         {showText ? (
           <span className="auth-account-menu__meta">

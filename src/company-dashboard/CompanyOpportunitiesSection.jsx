@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildOpportunityDetailRoute } from "../app/routes";
 import { getCompanyOpportunities } from "../api/company";
 import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
+import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
+import { getTags } from "../api/tags";
+import { uploadImage } from "../api/uploads";
 import { ApiError } from "../lib/http";
 import { OPPORTUNITY_TYPE_OPTIONS } from "../shared/lib/opportunityTypes";
 import {
@@ -10,10 +13,12 @@ import {
   createOpportunityDraft,
   getModerationStatusTone,
   getOpportunityCardPresentation,
+  translateExperienceLevel,
   translateModerationStatus,
+  translateWorkSchedule,
   validateOpportunityDraftForSubmit,
 } from "../shared/lib/opportunityPresentation";
-import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, TagSelector, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { createOpportunityContactDraft, createOpportunityMediaDraft } from "./utils";
 import { OpportunityLocationPicker } from "./OpportunityLocationPicker";
@@ -25,6 +30,21 @@ const EMPLOYMENT_TYPE_OPTIONS = [
   { value: "remote", label: "Удаленно" },
   { value: "online", label: "Онлайн" },
 ];
+
+const OPPORTUNITY_SORT_OPTIONS = [
+  { value: "newest", label: "Новые сначала" },
+  { value: "oldest", label: "Старые сначала" },
+  { value: "applications", label: "Больше откликов" },
+  { value: "deadline", label: "Скоро истекают" },
+  { value: "status", label: "По статусу" },
+];
+
+const ALL_FILTER_VALUE = "all";
+const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp";
+
+function normalizeSearchValue(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
 
 function formatDeadlineLabel(value) {
   if (!value) {
@@ -147,6 +167,16 @@ export function CompanyOpportunitiesSection() {
   const [editorMode, setEditorMode] = useState(null);
   const [saveState, setSaveState] = useState({ status: "idle", error: "", message: "" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
+  const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [filters, setFilters] = useState({
+    query: "",
+    status: ALL_FILTER_VALUE,
+    type: ALL_FILTER_VALUE,
+    experienceLevel: ALL_FILTER_VALUE,
+    schedule: ALL_FILTER_VALUE,
+    sort: "newest",
+  });
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -154,8 +184,12 @@ export function CompanyOpportunitiesSection() {
 
     async function load() {
       try {
-        const opportunities = await getCompanyOpportunities(controller.signal);
+        const [opportunities, references] = await Promise.all([
+          getCompanyOpportunities(controller.signal),
+          getSystemReferences(controller.signal).then(normalizeReferenceCategories).catch(() => FALLBACK_REFERENCE_CATEGORIES),
+        ]);
         setState({ status: "ready", opportunities: Array.isArray(opportunities) ? opportunities : [], error: null });
+        setReferenceCategories(references);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -172,6 +206,69 @@ export function CompanyOpportunitiesSection() {
     load();
     return () => controller.abort();
   }, [reloadKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getTags({ limit: 80 }, controller.signal)
+      .then((payload) => {
+        const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.Items) ? payload.Items : [];
+        setTagSuggestions(items.map((item) => item.name ?? item.Name ?? item.label ?? item.Label ?? item.value ?? item.Value).filter(Boolean));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setTagSuggestions([]);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const typeOptions = referenceCategories.opportunityTypes?.length ? referenceCategories.opportunityTypes : OPPORTUNITY_TYPE_OPTIONS;
+  const employmentOptions = referenceCategories.employmentTypes?.length ? referenceCategories.employmentTypes : EMPLOYMENT_TYPE_OPTIONS;
+  const experienceOptions = referenceCategories.experienceLevels?.length
+    ? referenceCategories.experienceLevels
+    : FALLBACK_REFERENCE_CATEGORIES.experienceLevels;
+  const scheduleOptions = referenceCategories.workSchedules?.length
+    ? referenceCategories.workSchedules
+    : FALLBACK_REFERENCE_CATEGORIES.workSchedules;
+
+  const filteredOpportunities = useMemo(() => {
+    const query = normalizeSearchValue(filters.query);
+
+    return [...state.opportunities]
+      .filter((item) => {
+        const presentation = getOpportunityCardPresentation(item);
+        const matchesQuery = !query || [
+          item.title,
+          item.description,
+          item.locationCity,
+          presentation.type,
+          ...(Array.isArray(item.tags) ? item.tags : []),
+        ].some((value) => normalizeSearchValue(value).includes(query));
+        const matchesStatus = filters.status === ALL_FILTER_VALUE || String(item.moderationStatus ?? "") === filters.status;
+        const matchesType = filters.type === ALL_FILTER_VALUE || String(item.opportunityType ?? "") === filters.type;
+        const matchesExperience = filters.experienceLevel === ALL_FILTER_VALUE || String(item.experienceLevel ?? "") === filters.experienceLevel;
+        const matchesSchedule = filters.schedule === ALL_FILTER_VALUE || String(item.schedule ?? "") === filters.schedule;
+
+        return matchesQuery && matchesStatus && matchesType && matchesExperience && matchesSchedule;
+      })
+      .sort((left, right) => {
+        switch (filters.sort) {
+          case "oldest":
+            return new Date(left.publishAt ?? left.expireAt ?? 0) - new Date(right.publishAt ?? right.expireAt ?? 0);
+          case "applications":
+            return Number(right.applicationsCount ?? 0) - Number(left.applicationsCount ?? 0);
+          case "deadline":
+            return new Date(left.expireAt ?? "2999-12-31") - new Date(right.expireAt ?? "2999-12-31");
+          case "status":
+            return translateModerationStatus(left.moderationStatus).localeCompare(translateModerationStatus(right.moderationStatus), "ru");
+          case "newest":
+          default:
+            return new Date(right.publishAt ?? right.expireAt ?? 0) - new Date(left.publishAt ?? left.expireAt ?? 0);
+        }
+      });
+  }, [filters, state.opportunities]);
 
   function scrollEditorIntoView() {
     setTimeout(() => {
@@ -199,6 +296,21 @@ export function CompanyOpportunitiesSection() {
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
     resetSuccessState();
+  }
+
+  function updateFilter(field, value) {
+    setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetFilters() {
+    setFilters({
+      query: "",
+      status: ALL_FILTER_VALUE,
+      type: ALL_FILTER_VALUE,
+      experienceLevel: ALL_FILTER_VALUE,
+      schedule: ALL_FILTER_VALUE,
+      sort: "newest",
+    });
   }
 
   function updateContact(index, value) {
@@ -235,6 +347,38 @@ export function CompanyOpportunitiesSection() {
       media: current.media.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
     }));
     resetSuccessState();
+  }
+
+  async function uploadMediaImage(index, file) {
+    if (!file) {
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setSaveState({ status: "error", error: "Загрузите изображение в формате JPG, PNG или WEBP.", message: "" });
+      return;
+    }
+
+    setSaveState({ status: "saving", error: "", message: "" });
+
+    try {
+      const result = await uploadImage(file);
+      if (!result.url) {
+        throw new Error("Сервер не вернул ссылку на изображение.");
+      }
+
+      setDraft((current) => ({
+        ...current,
+        media: current.media.map((item, itemIndex) => (
+          itemIndex === index
+            ? { ...item, type: "image", url: result.url, title: item.title || file.name }
+            : item
+        )),
+      }));
+      setSaveState({ status: "idle", error: "", message: "" });
+    } catch (error) {
+      setSaveState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение.", message: "" });
+    }
   }
 
   function addMedia() {
@@ -440,7 +584,17 @@ export function CompanyOpportunitiesSection() {
           >
             {state.opportunities.length ? (
               <div className="company-dashboard-stack">
-                {state.opportunities.map((item) => {
+                <div className="company-dashboard-opportunities-toolbar">
+                  <Input value={filters.query} onValueChange={(value) => updateFilter("query", value)} placeholder="Поиск по публикациям" />
+                  <Select value={filters.status} onValueChange={(value) => updateFilter("status", value)} options={[{ value: ALL_FILTER_VALUE, label: "Все статусы" }, ...["draft", "pending", "approved", "revision", "rejected", "archived"].map((value) => ({ value, label: translateModerationStatus(value) }))]} />
+                  <Select value={filters.type} onValueChange={(value) => updateFilter("type", value)} options={[{ value: ALL_FILTER_VALUE, label: "Все типы" }, ...typeOptions]} />
+                  <Select value={filters.sort} onValueChange={(value) => updateFilter("sort", value)} options={OPPORTUNITY_SORT_OPTIONS} />
+                  <Select value={filters.experienceLevel} onValueChange={(value) => updateFilter("experienceLevel", value)} options={[{ value: ALL_FILTER_VALUE, label: "Любой опыт" }, ...experienceOptions]} />
+                  <Select value={filters.schedule} onValueChange={(value) => updateFilter("schedule", value)} options={[{ value: ALL_FILTER_VALUE, label: "Любой график" }, ...scheduleOptions]} />
+                  <Button type="button" variant="ghost" onClick={resetFilters}>Сбросить</Button>
+                </div>
+
+                {filteredOpportunities.map((item) => {
                   const presentation = getOpportunityCardPresentation(item);
                   const canDelete = Number(item.applicationsCount ?? 0) === 0;
                   const canArchive = String(item.moderationStatus ?? "").toLowerCase() === "approved";
@@ -453,12 +607,14 @@ export function CompanyOpportunitiesSection() {
                           <p className="ui-type-caption">
                             {presentation.type}
                             {item.locationCity ? ` • ${item.locationCity}` : ""}
+                            {item.experienceLevel ? ` • ${translateExperienceLevel(item.experienceLevel)}` : ""}
+                            {item.schedule ? ` • ${translateWorkSchedule(item.schedule)}` : ""}
                           </p>
                         </div>
                         <Badge tone={presentation.statusTone}>{presentation.status}</Badge>
                       </div>
 
-                      <p className="ui-type-body">{item.description || "Описание пока не заполнено."}</p>
+                      <p className="ui-type-body company-dashboard-list-item__description">{item.description || "Описание пока не заполнено."}</p>
 
                       <div className="company-dashboard-list-item__meta-grid">
                         <div className="company-dashboard-list-item__meta-card">
@@ -466,8 +622,8 @@ export function CompanyOpportunitiesSection() {
                           <strong>{formatDeadlineLabel(item.expireAt)}</strong>
                         </div>
                         <div className="company-dashboard-list-item__meta-card">
-                          <span>Акцент</span>
-                          <strong>{presentation.accent}</strong>
+                          <span>Отклики</span>
+                          <strong>{Number(item.applicationsCount ?? 0)}</strong>
                         </div>
                       </div>
 
@@ -495,6 +651,9 @@ export function CompanyOpportunitiesSection() {
                     </article>
                   );
                 })}
+                {filteredOpportunities.length ? null : (
+                  <EmptyState title="Ничего не найдено" description="Измените запрос или сбросьте фильтры." tone="neutral" compact />
+                )}
               </div>
             ) : (
               <EmptyState
@@ -533,13 +692,34 @@ export function CompanyOpportunitiesSection() {
                     <Select
                       value={draft.opportunityType}
                       onValueChange={(value) => updateField("opportunityType", value)}
-                      options={OPPORTUNITY_TYPE_OPTIONS}
+                      options={typeOptions}
                       disabled={Number(draft.applicationsCount ?? 0) > 0}
                     />
                   </FormField>
                   <FormField label="Формат">
-                    <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={EMPLOYMENT_TYPE_OPTIONS} />
+                    <Select value={draft.employmentType} onValueChange={(value) => updateField("employmentType", value)} options={employmentOptions} />
                   </FormField>
+                </div>
+
+                <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                  <FormField label="Опыт кандидата">
+                    <Select
+                      value={draft.experienceLevel}
+                      onValueChange={(value) => updateField("experienceLevel", value)}
+                      placeholder="Выберите опыт"
+                      options={[{ value: "", label: "Не указан" }, ...experienceOptions]}
+                    />
+                  </FormField>
+                  {draft.opportunityType === "vacancy" || draft.opportunityType === "internship" ? (
+                    <FormField label="График" required>
+                      <Select
+                        value={draft.schedule}
+                        onValueChange={(value) => updateField("schedule", value)}
+                        placeholder="Выберите график"
+                        options={[{ value: "", label: "Не указан" }, ...scheduleOptions]}
+                      />
+                    </FormField>
+                  ) : null}
                 </div>
 
                 <FormField label="Срок или дата">
@@ -560,8 +740,16 @@ export function CompanyOpportunitiesSection() {
                   onFieldChange={updateField}
                 />
 
-                <FormField label="Теги через запятую">
-                  <Input value={draft.tags} onValueChange={(value) => updateField("tags", value)} />
+                <FormField label="Теги">
+                  <TagSelector
+                    value={Array.isArray(draft.tags) ? draft.tags : []}
+                    suggestions={tagSuggestions}
+                    suggestionsLabel="Доступные теги"
+                    searchPlaceholder="Найти или добавить тег"
+                    editLabel="Выбрать теги"
+                    saveLabel="Применить"
+                    onSave={(nextTags) => updateField("tags", nextTags)}
+                  />
                 </FormField>
 
                 <FormField label="Контакты / ссылки">
@@ -588,8 +776,33 @@ export function CompanyOpportunitiesSection() {
                   <div className="company-dashboard-social-links">
                     {draft.media.map((item, index) => (
                       <div className="company-dashboard-social-links__row" key={`opportunity-media-${index}`}>
+                        <Select
+                          value={item.type ?? "link"}
+                          onValueChange={(value) => updateMedia(index, "type", value)}
+                          options={[
+                            { value: "image", label: "Изображение" },
+                            { value: "video", label: "Видео по ссылке" },
+                            { value: "link", label: "Ссылка" },
+                          ]}
+                        />
                         <Input value={item.title} onValueChange={(value) => updateMedia(index, "title", value)} placeholder="Название медиа" />
-                        <Input value={item.url} onValueChange={(value) => updateMedia(index, "url", value)} placeholder="https://..." />
+                        <Input
+                          value={item.url}
+                          onValueChange={(value) => updateMedia(index, "url", value)}
+                          placeholder={item.type === "video" ? "https://youtube.com/..." : "https://..."}
+                        />
+                        {(item.type ?? "link") === "image" ? (
+                          <input
+                            type="file"
+                            accept={IMAGE_ACCEPT}
+                            aria-label="Загрузить изображение для медиа"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = "";
+                              void uploadMediaImage(index, file);
+                            }}
+                          />
+                        ) : null}
                         <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>
                           Удалить
                         </Button>

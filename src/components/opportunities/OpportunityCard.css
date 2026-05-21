@@ -178,6 +178,11 @@
   box-shadow: 0 12px 24px rgba(219, 39, 119, 0.18);
 }
 
+.ui-opportunity-card__save.ui-icon-button[aria-pressed="true"] svg,
+.ui-opportunity-card__save.ui-icon-button.is-active svg {
+  fill: currentColor;
+}
+
 .ui-opportunity-card--row .ui-opportunity-card__save {
   --ui-icon-button-size: 48px;
   --ui-icon-button-glyph-size: 20px;

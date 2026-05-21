@@ -1,6 +1,11 @@
+using Application.DBContext;
 using DTO;
+using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
+using ITPlanetaTramplin.Api.Infrastructure;
 using ITPlanetaTramplin.Api.Integrations;
+using Microsoft.EntityFrameworkCore;
+using Models;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
@@ -9,6 +14,9 @@ internal static class CommonEndpointRouteBuilderExtensions
     public static RouteGroupBuilder MapCommonEndpoints(this RouteGroupBuilder api)
     {
         api.MapGet("/professions", HandleProfessionSearchAsync);
+        api.MapGet("/tags", GetPublicTagsAsync);
+        api.MapGet("/system/references", GetPublicSystemReferencesAsync);
+        api.MapPost("/uploads/images", UploadImageAsync).RequireAuthorization().DisableAntiforgery();
         api.MapGet("/location/address-suggestions", HandleAddressSuggestionsAsync);
         api.MapGet("/location/reverse-geocode", HandleReverseGeocodeAsync);
 
@@ -19,6 +27,66 @@ internal static class CommonEndpointRouteBuilderExtensions
     {
         var items = CandidateProfessionCatalog.Search(query, count ?? 12);
         return Results.Ok(new { Items = items });
+    }
+
+    private static async Task<IResult> GetPublicSystemReferencesAsync(ApplicationDBContext db)
+    {
+        var items = await SystemReferenceSupport.GetReferenceItemsAsync(db, activeOnly: true);
+        return Results.Ok(SystemReferenceSupport.BuildReferencesResponse(items));
+    }
+
+    private static async Task<IResult> GetPublicTagsAsync(ApplicationDBContext db, string? query, int? limit)
+    {
+        var normalizedQuery = string.IsNullOrWhiteSpace(query) ? string.Empty : query.Trim().ToLowerInvariant();
+        var effectiveLimit = Math.Clamp(limit ?? 40, 1, 100);
+
+        var tags = await db.Tags
+            .AsNoTracking()
+            .Where(item => item.IsActive == true && item.MergedIntoTagId == null)
+            .Where(item => normalizedQuery == string.Empty || item.Name.ToLower().Contains(normalizedQuery))
+            .OrderBy(item => item.Name)
+            .Take(effectiveLimit)
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                Value = item.Name,
+                Label = item.Name,
+            })
+            .ToListAsync();
+
+        return Results.Ok(new { Items = tags });
+    }
+
+    private static async Task<IResult> UploadImageAsync(
+        HttpContext context,
+        IFormFile file,
+        UserMediaStorage storage,
+        CancellationToken cancellationToken)
+    {
+        var userId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (!userId.HasValue)
+        {
+            return Results.Unauthorized();
+        }
+
+        var validationError = storage.ValidateImage(file);
+        if (validationError is not null)
+        {
+            return Results.Json(new MessageResponseDTO { Message = validationError }, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var storedFile = await storage.SaveImageAsync(userId.Value, file, cancellationToken);
+        var url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}/uploads/{storedFile.StorageKey}";
+
+        return Results.Ok(new
+        {
+            Url = url,
+            storedFile.StorageKey,
+            storedFile.OriginalName,
+            storedFile.ContentType,
+            storedFile.SizeBytes,
+        });
     }
 
     private static async Task<IResult> HandleAddressSuggestionsAsync(

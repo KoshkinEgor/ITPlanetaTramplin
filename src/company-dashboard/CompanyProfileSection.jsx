@@ -4,6 +4,7 @@ import {
   getCompanyProfile,
   updateCompanyProfile,
 } from "../api/company";
+import { useLocation, useNavigate } from "react-router-dom";
 import { buildOpportunityDetailRoute, routes } from "../app/routes";
 import { OpportunityBlockRail } from "../components/opportunities";
 import { ApiError } from "../lib/http";
@@ -31,7 +32,7 @@ import {
   normalizeCompanyCaseStudies,
   normalizeCompanyGallery,
   normalizeCompanyHeroMedia,
-  readCompanyMediaFileAsDataUrl,
+  uploadCompanyMediaFile,
   serializeCompanyCaseStudies,
   serializeCompanyGallery,
   serializeCompanyHeroMedia,
@@ -39,7 +40,9 @@ import {
 import "./company-dashboard.css";
 
 const CASE_STUDY_MAX_SIZE_BYTES = 5 * 1024 * 1024;
-const CASE_STUDY_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
+const CASE_STUDY_ACCEPT = "image/png,image/jpeg,image/webp";
+const COMPANY_PROFILE_IMAGE_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const COMPANY_PROFILE_IMAGE_ACCEPT = "image/png,image/jpeg,image/webp";
 
 function translateEmploymentType(value) {
   switch (String(value ?? "").trim().toLowerCase()) {
@@ -144,6 +147,7 @@ function createProfileDraft(profile) {
     companyName: profile?.companyName ?? "",
     legalAddress: profile?.legalAddress ?? "",
     description: profile?.description ?? "",
+    profileImage: profile?.profileImage ?? "",
     heroMedia: createCompanyHeroMediaDraft(normalizeCompanyHeroMedia(profile?.heroMediaJson)),
     caseStudies: normalizeCompanyCaseStudies(profile?.caseStudiesJson).map((item) =>
       withStableId(item, "case")
@@ -159,6 +163,7 @@ function createBasicProfileDraft(profile) {
     companyName: profile?.companyName ?? "",
     legalAddress: profile?.legalAddress ?? "",
     description: profile?.description ?? "",
+    profileImage: profile?.profileImage ?? "",
   };
 }
 
@@ -232,6 +237,10 @@ function formatCaseStudyFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
+function getCompanyProfileImageInitial(value) {
+  return String(value ?? "").trim()[0]?.toUpperCase() ?? "К";
+}
+
 function createCaseStudyItemFromForm(form, index) {
   const description = form.description.trim();
 
@@ -247,7 +256,9 @@ function createCaseStudyItemFromForm(form, index) {
   );
 }
 
-export function CompanyProfileSection() {
+export function CompanyProfileSection({ onSummaryChange }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState({
     status: "loading",
     profile: null,
@@ -262,6 +273,9 @@ export function CompanyProfileSection() {
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [caseStudyForm, setCaseStudyForm] = useState(createCaseStudyForm());
   const [caseStudyFormError, setCaseStudyFormError] = useState("");
+  const [profileImageState, setProfileImageState] = useState({ status: "idle", error: "" });
+  const basicProfileSectionRef = useRef(null);
+  const profileImageInputRef = useRef(null);
   const caseStudyFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -329,6 +343,15 @@ export function CompanyProfileSection() {
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (state.status !== "ready" || location.hash !== "#company-profile-editor") {
+      return;
+    }
+
+    setIsBasicProfileEditing(true);
+    basicProfileSectionRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [location.hash, state.status]);
 
   const opportunityItems = useMemo(
     () => state.opportunities.map(createCompanyOpportunityCardItem),
@@ -442,7 +465,14 @@ export function CompanyProfileSection() {
   }
 
   function handleOpenBasicProfileEditor() {
+    setProfileImageState({ status: "idle", error: "" });
     setIsBasicProfileEditing(true);
+  }
+
+  function clearBasicProfileEditorHash() {
+    if (location.hash === "#company-profile-editor") {
+      navigate(`${location.pathname}${location.search}`, { replace: true });
+    }
   }
 
   function handleCancelBasicProfileEditor() {
@@ -454,7 +484,54 @@ export function CompanyProfileSection() {
     }));
     setSocialLinks(links.length > 0 ? links : [""]);
     setSaveState({ status: "idle", error: "" });
+    setProfileImageState({ status: "idle", error: "" });
     setIsBasicProfileEditing(false);
+    clearBasicProfileEditorHash();
+  }
+
+  async function handleProfileImageChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setProfileImageState({
+        status: "error",
+        error: "Загрузите изображение компании в формате JPG, PNG или WEBP.",
+      });
+      return;
+    }
+
+    if (file.size > COMPANY_PROFILE_IMAGE_MAX_SIZE_BYTES) {
+      setProfileImageState({
+        status: "error",
+        error: `Размер файла превышает ${formatCaseStudyFileSize(COMPANY_PROFILE_IMAGE_MAX_SIZE_BYTES)}.`,
+      });
+      return;
+    }
+
+    setProfileImageState({ status: "loading", error: "" });
+
+    try {
+      const profileImage = await uploadCompanyMediaFile(file);
+      setDraft((current) => ({ ...current, profileImage }));
+      markDirty();
+      setProfileImageState({ status: "idle", error: "" });
+    } catch (error) {
+      setProfileImageState({
+        status: "error",
+        error: error?.message ?? "Не удалось загрузить фото компании.",
+      });
+    }
+  }
+
+  function handleRemoveProfileImage() {
+    setDraft((current) => ({ ...current, profileImage: "" }));
+    markDirty();
+    setProfileImageState({ status: "idle", error: "" });
   }
 
   function resetCaseStudyForm() {
@@ -485,6 +562,11 @@ export function CompanyProfileSection() {
       return;
     }
 
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setCaseStudyFormError("Загрузите изображение в формате JPG, PNG или WEBP.");
+      return;
+    }
+
     if (file.size > CASE_STUDY_MAX_SIZE_BYTES) {
       setCaseStudyFormError(
         `Размер файла превышает ${formatCaseStudyFileSize(CASE_STUDY_MAX_SIZE_BYTES)}.`
@@ -493,7 +575,7 @@ export function CompanyProfileSection() {
     }
 
     try {
-      const previewUrl = await readCompanyMediaFileAsDataUrl(file);
+      const previewUrl = await uploadCompanyMediaFile(file);
       setCaseStudyForm((current) => ({ ...current, previewUrl }));
       setCaseStudyFormError("");
     } catch (error) {
@@ -538,12 +620,15 @@ export function CompanyProfileSection() {
         companyName: draft.companyName.trim(),
         legalAddress: draft.legalAddress.trim() || null,
         description: draft.description.trim() || null,
+        profileImage: draft.profileImage.trim(),
         socials: stringifySocialLinks(socialLinks) || null,
       });
 
       syncBasicProfile(profile);
+      onSummaryChange?.(profile);
       setSaveState({ status: "success", error: "" });
       setIsBasicProfileEditing(false);
+      clearBasicProfileEditorHash();
       return profile;
     } catch (error) {
       setSaveState({
@@ -562,6 +647,7 @@ export function CompanyProfileSection() {
         companyName: draft.companyName.trim(),
         legalAddress: draft.legalAddress.trim() || null,
         description: draft.description.trim() || null,
+        profileImage: draft.profileImage.trim(),
         socials: stringifySocialLinks(socialLinks) || null,
         heroMediaJson: serializeCompanyHeroMedia(draft.heroMedia),
         caseStudiesJson: serializeCompanyCaseStudies(draft.caseStudies),
@@ -569,6 +655,7 @@ export function CompanyProfileSection() {
       });
 
       syncFullProfile(profile);
+      onSummaryChange?.(profile);
       setSaveState({ status: "success", error: "" });
       return profile;
     } catch (error) {
@@ -624,7 +711,7 @@ export function CompanyProfileSection() {
 
         {saveState.status === "success" ? (
           <Alert tone="success" title="Страница компании обновлена" showIcon>
-            Основные данные, media, кейсы и галерея сохранены и уже готовы для публичной страницы.
+            Основные данные, медиа, кейсы и галерея сохранены и уже готовы для публичной страницы.
           </Alert>
         ) : null}
 
@@ -632,11 +719,16 @@ export function CompanyProfileSection() {
           <CompanyVerificationSection
             profile={state.profile}
             draft={draft}
-            onProfileUpdated={(profile) => setState((current) => ({ ...current, profile }))}
+            onProfileUpdated={(profile) => {
+              setState((current) => ({ ...current, profile }));
+              onSummaryChange?.(profile);
+            }}
           />
         </div>
 
         <CabinetContentSection
+          ref={basicProfileSectionRef}
+          id="company-profile-editor"
           className="company-dashboard-section company-dashboard-section--basic"
           eyebrow="Страница компании"
           title="Основная информация"
@@ -657,34 +749,95 @@ export function CompanyProfileSection() {
           )}
         >
           <div className="company-dashboard-stack">
-            <Card className="company-dashboard-profile-hero-card" tone="neutral">
-              <span className="company-dashboard-profile-hero-card__eyebrow">Публичный профиль</span>
-              <h3 className="company-dashboard-profile-hero-card__title">
-                {draft.companyName.trim() || "Название компании"}
-              </h3>
-              {draft.legalAddress.trim() ? (
-                <p className="company-dashboard-profile-hero-card__meta">{draft.legalAddress.trim()}</p>
-              ) : null}
-              <p className="company-dashboard-profile-hero-card__description">
-                {draft.description.trim() || "Краткое описание пока не заполнено."}
-              </p>
-              <div className="company-dashboard-profile-hero-card__facts">
-                <span>ИНН: {state.profile?.inn || "не указан"}</span>
-                <span>{visibleSocialLinks.length ? `${visibleSocialLinks.length} ссылок` : "Ссылки не добавлены"}</span>
-              </div>
-              {visibleSocialLinks.length ? (
-                <div className="company-dashboard-profile-hero-card__links">
-                  {visibleSocialLinks.map((link) => (
-                    <span key={link} className="company-dashboard-profile-hero-card__link">
-                      {link.replace(/^https?:\/\//i, "").replace(/^mailto:/i, "")}
-                    </span>
-                  ))}
+            {!isBasicProfileEditing ? (
+              <Card className="company-dashboard-profile-hero-card" tone="neutral">
+                <div className="company-dashboard-profile-hero-card__identity">
+                  <div className="company-dashboard-profile-hero-card__mark">
+                    {draft.profileImage.trim() ? (
+                      <img src={draft.profileImage.trim()} alt="" />
+                    ) : (
+                      <span aria-hidden="true">{getCompanyProfileImageInitial(draft.companyName)}</span>
+                    )}
+                  </div>
+                  <div className="company-dashboard-profile-hero-card__copy">
+                    <span className="company-dashboard-profile-hero-card__eyebrow">Публичный профиль</span>
+                    <h3 className="company-dashboard-profile-hero-card__title">
+                      {draft.companyName.trim() || "Название компании"}
+                    </h3>
+                    {draft.legalAddress.trim() ? (
+                      <p className="company-dashboard-profile-hero-card__meta">{draft.legalAddress.trim()}</p>
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
-            </Card>
+                <p className="company-dashboard-profile-hero-card__description">
+                  {draft.description.trim() || "Краткое описание пока не заполнено."}
+                </p>
+                <div className="company-dashboard-profile-hero-card__facts">
+                  <span>ИНН: {state.profile?.inn || "не указан"}</span>
+                  <span>{visibleSocialLinks.length ? `${visibleSocialLinks.length} ссылок` : "Ссылки не добавлены"}</span>
+                </div>
+                {visibleSocialLinks.length ? (
+                  <div className="company-dashboard-profile-hero-card__links">
+                    {visibleSocialLinks.map((link) => (
+                      <span key={link} className="company-dashboard-profile-hero-card__link">
+                        {link.replace(/^https?:\/\//i, "").replace(/^mailto:/i, "")}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </Card>
+            ) : null}
 
             {isBasicProfileEditing ? (
               <>
+                <div className="company-dashboard-company-photo">
+                  <span className="company-dashboard-company-photo__label">Фото компании</span>
+                  <div className="company-dashboard-company-photo__body">
+                    <div className="company-dashboard-company-photo__preview">
+                      {draft.profileImage.trim() ? (
+                        <img src={draft.profileImage.trim()} alt="Фото компании" />
+                      ) : (
+                        <span aria-hidden="true">{getCompanyProfileImageInitial(draft.companyName)}</span>
+                      )}
+                    </div>
+                    <div className="company-dashboard-company-photo__content">
+                      <input
+                        ref={profileImageInputRef}
+                        className="company-dashboard-company-photo__input"
+                        type="file"
+                        accept={COMPANY_PROFILE_IMAGE_ACCEPT}
+                        onChange={handleProfileImageChange}
+                        aria-label="Загрузить фото компании"
+                      />
+                      <div className="company-dashboard-panel__actions">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => profileImageInputRef.current?.click()}
+                          disabled={profileImageState.status === "loading"}
+                        >
+                          {profileImageState.status === "loading"
+                            ? "Загружаем..."
+                            : draft.profileImage.trim()
+                              ? "Заменить фото"
+                              : "Загрузить фото"}
+                        </Button>
+                        {draft.profileImage.trim() ? (
+                          <Button type="button" variant="ghost" onClick={handleRemoveProfileImage}>
+                            Удалить
+                          </Button>
+                        ) : null}
+                      </div>
+                      <p className="company-dashboard-company-photo__hint">
+                        PNG, JPG или WEBP до {formatCaseStudyFileSize(COMPANY_PROFILE_IMAGE_MAX_SIZE_BYTES)}.
+                      </p>
+                      {profileImageState.error ? (
+                        <p className="company-dashboard-company-photo__error" role="alert">{profileImageState.error}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
               <FormField label="Название компании" required>
                 <Input value={draft.companyName} onValueChange={(value) => handleDraftChange("companyName", value)} />
@@ -754,7 +907,7 @@ export function CompanyProfileSection() {
                 compact
                 eyebrow="Кейсы"
                 title="Портфолио компании"
-                description="Готовый slider уже показывает публичные карточки. Новые проекты добавляются через кнопку внутри блока."
+                description="Проверьте, как кейсы будут выглядеть на публичной странице. Новые проекты добавляются через кнопку внутри блока."
                 onCtaClick={handleOpenPortfolioModal}
               />
             </div>
@@ -893,7 +1046,7 @@ export function CompanyProfileSection() {
                   onClick={() => caseStudyFileInputRef.current?.click()}
                 >
                   <strong>Загрузить фото проекта</strong>
-                  <span>Поддерживаются PNG, JPG, WEBP и GIF.</span>
+                  <span>Поддерживаются PNG, JPG и WEBP.</span>
                 </button>
               )}
             </Card>

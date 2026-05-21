@@ -119,6 +119,41 @@ export function translateEmploymentType(value) {
   }
 }
 
+export function translateExperienceLevel(value) {
+  switch (normalize(value)) {
+    case "no_experience":
+    case "без опыта":
+      return "Без опыта";
+    case "junior":
+      return "Junior";
+    case "middle":
+      return "Middle";
+    case "senior":
+      return "Senior";
+    case "lead":
+      return "Lead";
+    default:
+      return String(value ?? "").trim();
+  }
+}
+
+export function translateWorkSchedule(value) {
+  switch (normalize(value)) {
+    case "full_time":
+      return "Полный день";
+    case "part_time":
+      return "Частичная занятость";
+    case "flexible":
+      return "Гибкий график";
+    case "weekends":
+      return "По выходным";
+    case "shift":
+      return "Сменный график";
+    default:
+      return String(value ?? "").trim();
+  }
+}
+
 export function translateModerationStatus(status) {
   switch (normalize(status)) {
     case "approved":
@@ -300,8 +335,15 @@ export function getOpportunityCardPresentation(item = {}) {
   const typeLabel = translateOpportunityType(item.opportunityType);
   const typeSummary = getOpportunityTypeSummary(item);
   const employmentLabel = translateEmploymentType(item.employmentType);
+  const experienceLabel = translateExperienceLevel(item.experienceLevel);
+  const scheduleLabel = translateWorkSchedule(item.schedule);
   const status = translateModerationStatus(item.moderationStatus);
-  const summaryFacts = [typeSummary.secondaryFact, typeSummary.tertiaryFact].filter(Boolean);
+  const summaryFacts = [
+    experienceLabel ? `Опыт: ${experienceLabel}` : "",
+    scheduleLabel ? `График: ${scheduleLabel}` : "",
+    typeSummary.secondaryFact,
+    typeSummary.tertiaryFact,
+  ].filter(Boolean);
 
   return {
     typeKey: normalizeOpportunityType(item.opportunityType),
@@ -310,6 +352,8 @@ export function getOpportunityCardPresentation(item = {}) {
     title: item.title ?? "",
     meta: [item.companyName, item.locationCity, employmentLabel].filter(Boolean).join(" • "),
     employmentLabel,
+    experienceLabel,
+    scheduleLabel,
     primaryFactLabel: typeSummary.primaryFactLabel,
     primaryFactValue: typeSummary.primaryFactValue,
     secondaryFact: typeSummary.secondaryFact,
@@ -431,6 +475,8 @@ export function createOpportunityDraft(item = null) {
     locationAddress: item?.locationAddress ?? "",
     opportunityType: item?.opportunityType ?? "vacancy",
     employmentType: item?.employmentType ?? "hybrid",
+    experienceLevel: item?.experienceLevel ?? "",
+    schedule: item?.schedule ?? "",
     latitude: item?.latitude ?? "",
     longitude: item?.longitude ?? "",
     expireAt: item?.expireAt ?? "",
@@ -446,7 +492,7 @@ export function createOpportunityDraft(item = null) {
     seatsCount: item?.seatsCount ?? "",
     contacts: normalizeOpportunityContacts(item?.contactsJson ?? null),
     media: normalizeOpportunityMedia(item?.mediaContentJson ?? null),
-    tags: Array.isArray(item?.tags) ? item.tags.join(", ") : "",
+    tags: Array.isArray(item?.tags) ? item.tags : parseTags(item?.tags),
     moderationStatus: item?.moderationStatus ?? "draft",
     moderationReason: item?.moderationReason ?? "",
     applicationsCount: item?.applicationsCount ?? 0,
@@ -461,6 +507,8 @@ export function buildOpportunityPayload(draft, { saveMode = "draft" } = {}) {
     locationAddress: String(draft?.locationAddress ?? "").trim() || null,
     opportunityType: draft?.opportunityType ?? "vacancy",
     employmentType: draft?.employmentType ?? "hybrid",
+    experienceLevel: String(draft?.experienceLevel ?? "").trim() || null,
+    schedule: String(draft?.schedule ?? "").trim() || null,
     latitude: parseOpportunityCoordinateInput(draft?.latitude),
     longitude: parseOpportunityCoordinateInput(draft?.longitude),
     expireAt: parseOpportunityDeadlineInput(draft?.expireAt),
@@ -495,6 +543,7 @@ export function validateOpportunityDraftForSubmit(draft) {
   const registrationDeadline = String(draft?.registrationDeadline ?? "").trim();
   const meetingFrequency = String(draft?.meetingFrequency ?? "").trim();
   const seatsCount = parseOpportunityCoordinateInput(draft?.seatsCount);
+  const schedule = String(draft?.schedule ?? "").trim();
 
   if (!title) {
     errors.push("Укажите название публикации.");
@@ -502,6 +551,10 @@ export function validateOpportunityDraftForSubmit(draft) {
 
   if (!description) {
     errors.push("Добавьте описание публикации.");
+  }
+
+  if ((type === "vacancy" || type === "internship") && !schedule) {
+    errors.push("Укажите график для вакансии или стажировки.");
   }
 
   if (type === "vacancy" && (salaryFrom === null || salaryTo === null)) {

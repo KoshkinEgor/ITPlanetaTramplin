@@ -61,6 +61,20 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         {
             return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
         }
+        if (normalizedOpportunityType is not null &&
+            !await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.OpportunityTypesCategory, normalizedOpportunityType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот тип возможности сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        if (!await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.EmploymentTypesCategory, request.EmploymentType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот формат работы сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        var referenceValidationResult = await ValidateOpportunityReferenceFieldsAsync(db, normalizedOpportunityType ?? OpportunityTypes.Vacancy, request.ExperienceLevel, request.Schedule);
+        if (referenceValidationResult is not null)
+        {
+            return referenceValidationResult;
+        }
 
         var saveMode = ResolveSaveMode(request.SaveMode, request);
         var opportunity = BuildOpportunityFromCreateRequest(employer.Id, request, normalizedOpportunityType, saveMode);
@@ -206,6 +220,21 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         {
             return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
         }
+        if (normalizedOpportunityType is not null &&
+            !await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.OpportunityTypesCategory, normalizedOpportunityType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот тип возможности сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        if (!await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.EmploymentTypesCategory, request.EmploymentType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот формат работы сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        var effectiveOpportunityType = normalizedOpportunityType ?? opportunity.OpportunityType;
+        var referenceValidationResult = await ValidateOpportunityReferenceFieldsAsync(db, effectiveOpportunityType, request.ExperienceLevel, request.Schedule);
+        if (referenceValidationResult is not null)
+        {
+            return referenceValidationResult;
+        }
 
         if (normalizedOpportunityType is not null &&
             normalizedOpportunityType != opportunity.OpportunityType &&
@@ -281,6 +310,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 item.ExpireAt,
                 item.PublishAt,
                 item.EmploymentType,
+                item.ExperienceLevel,
+                item.Schedule,
                 item.SalaryFrom,
                 item.SalaryTo,
                 item.IsPaid,
@@ -365,7 +396,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             .Include(item => item.User)
             .Include(item => item.ApplicantEducations)
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
-        var opportunity = await db.Opportunities.FirstOrDefaultAsync(item =>
+        var opportunity = await db.Opportunities
+            .Include(item => item.Employer)
+            .FirstOrDefaultAsync(item =>
             item.Id == request.opportunityId &&
             item.DeletedAt == null);
 
@@ -410,6 +443,18 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             .Include(item => item.Opportunity)
             .ThenInclude(item => item.Tags)
             .FirstAsync(item => item.OpportunityId == opportunity.Id && item.ApplicantId == applicant.Id);
+
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            createdApplication.Opportunity.Employer.UserId,
+            "application.created",
+            "Новый отклик на публикацию",
+            $"{BuildCandidateName(applicant)} откликнулся на «{createdApplication.Opportunity.Title}».",
+            $"/company/dashboard/responses",
+            actorUserId: userId.Value,
+            opportunityId: createdApplication.OpportunityId,
+            applicationId: createdApplication.Id);
+        await db.SaveChangesAsync();
 
         return Results.Ok(OpportunityApplicationMapping.ToCandidateSummary(createdApplication));
     }
@@ -494,8 +539,24 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
 
         var normalizedStatus = OpportunityApplicationStatuses.Normalize(request.Status);
+        var previousStatus = OpportunityApplicationStatuses.Normalize(application.Status);
+        var previousNote = application.EmployerNote;
         application.Status = normalizedStatus;
         application.EmployerNote = string.IsNullOrWhiteSpace(request.EmployerNote) ? null : request.EmployerNote.Trim();
+
+        if (previousStatus != normalizedStatus || !string.Equals(previousNote, application.EmployerNote, StringComparison.Ordinal))
+        {
+            NotificationEndpointRouteBuilderExtensions.CreateNotification(
+                db,
+                application.Applicant.UserId,
+                "application.status_changed",
+                "Статус отклика изменился",
+                BuildApplicationStatusNotificationMessage(application.Opportunity.Title, normalizedStatus, application.EmployerNote),
+                "/candidate/responses",
+                actorUserId: userId.Value,
+                opportunityId: application.OpportunityId,
+                applicationId: application.Id);
+        }
 
         await db.SaveChangesAsync();
 
@@ -513,6 +574,31 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         });
     }
 
+    private static string BuildCandidateName(ApplicantProfile applicant)
+    {
+        var name = string.Join(" ", new[] { applicant.Name, applicant.Surname, applicant.Thirdname }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim()));
+
+        return string.IsNullOrWhiteSpace(name) ? "Кандидат" : name;
+    }
+
+    private static string BuildApplicationStatusNotificationMessage(string opportunityTitle, string status, string? employerNote)
+    {
+        var statusText = status switch
+        {
+            OpportunityApplicationStatuses.Reviewing => "отклик взяли в работу",
+            OpportunityApplicationStatuses.Invited => "работодатель пригласил вас к следующему шагу",
+            OpportunityApplicationStatuses.Accepted => "отклик принят",
+            OpportunityApplicationStatuses.Rejected => "отклик отклонен",
+            OpportunityApplicationStatuses.Withdrawn => "отклик отменен",
+            _ => "статус отклика обновлен",
+        };
+
+        var note = string.IsNullOrWhiteSpace(employerNote) ? string.Empty : $" Комментарий: {employerNote.Trim()}";
+        return $"По возможности «{opportunityTitle}» {statusText}.{note}";
+    }
+
     internal static async Task<IResult?> ApplyOpportunityUpdateAsync(
         ApplicationDBContext db,
         Opportunity opportunity,
@@ -524,6 +610,24 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (!string.IsNullOrWhiteSpace(request.OpportunityType) && normalizedOpportunityType is null)
         {
             return AuthEndpointSupport.MessageResult("Opportunity type is invalid.", StatusCodes.Status400BadRequest);
+        }
+        if (normalizedOpportunityType is not null &&
+            !await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.OpportunityTypesCategory, normalizedOpportunityType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот тип возможности сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        if (!await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.EmploymentTypesCategory, request.EmploymentType))
+        {
+            return AuthEndpointSupport.MessageResult("Этот формат работы сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+        var referenceValidationResult = await ValidateOpportunityReferenceFieldsAsync(
+            db,
+            normalizedOpportunityType ?? opportunity.OpportunityType,
+            request.ExperienceLevel,
+            request.Schedule);
+        if (referenceValidationResult is not null)
+        {
+            return referenceValidationResult;
         }
 
         ApplyOpportunityUpdate(opportunity, request, allowTypedFields, normalizedOpportunityType);
@@ -547,6 +651,12 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
     internal static string NormalizeEmploymentType(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unspecified" : value.Trim();
+
+    internal static string? NormalizeExperienceLevel(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : SystemReferenceSupport.NormalizeReferenceKey(value);
+
+    internal static string? NormalizeSchedule(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : SystemReferenceSupport.NormalizeReferenceKey(value);
 
     internal static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -635,6 +745,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             Description = NormalizeRequiredText(request.Description),
             OpportunityType = normalizedOpportunityType ?? OpportunityTypes.Vacancy,
             EmploymentType = NormalizeEmploymentType(request.EmploymentType),
+            ExperienceLevel = NormalizeExperienceLevel(request.ExperienceLevel),
+            Schedule = ShouldKeepSchedule(normalizedOpportunityType ?? OpportunityTypes.Vacancy) ? NormalizeSchedule(request.Schedule) : null,
             LocationAddress = NormalizeOptionalText(request.LocationAddress),
             LocationCity = NormalizeOptionalText(request.LocationCity),
             Latitude = request.Latitude,
@@ -679,6 +791,16 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         if (request.EmploymentType is not null)
         {
             opportunity.EmploymentType = NormalizeEmploymentType(request.EmploymentType);
+        }
+
+        if (request.ExperienceLevel is not null)
+        {
+            opportunity.ExperienceLevel = NormalizeExperienceLevel(request.ExperienceLevel);
+        }
+
+        if (request.Schedule is not null || !ShouldKeepSchedule(opportunity.OpportunityType))
+        {
+            opportunity.Schedule = ShouldKeepSchedule(opportunity.OpportunityType) ? NormalizeSchedule(request.Schedule) : null;
         }
 
         opportunity.LocationAddress = NormalizeOptionalText(request.LocationAddress);
@@ -801,6 +923,11 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             return AuthEndpointSupport.MessageResult("Укажите хотя бы один контакт.", StatusCodes.Status400BadRequest);
         }
 
+        if (ShouldKeepSchedule(opportunity.OpportunityType) && string.IsNullOrWhiteSpace(opportunity.Schedule))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите график для вакансии или стажировки.", StatusCodes.Status400BadRequest);
+        }
+
         if (opportunity.OpportunityType == OpportunityTypes.Vacancy)
         {
             if (!opportunity.SalaryFrom.HasValue || !opportunity.SalaryTo.HasValue)
@@ -891,6 +1018,32 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         (employmentType.Contains("remote", StringComparison.OrdinalIgnoreCase) ||
          employmentType.Contains("online", StringComparison.OrdinalIgnoreCase));
 
+    private static bool ShouldKeepSchedule(string? opportunityType) =>
+        string.Equals(opportunityType, OpportunityTypes.Vacancy, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(opportunityType, OpportunityTypes.Internship, StringComparison.OrdinalIgnoreCase);
+
+    private static async Task<IResult?> ValidateOpportunityReferenceFieldsAsync(
+        ApplicationDBContext db,
+        string? opportunityType,
+        string? experienceLevel,
+        string? schedule)
+    {
+        if (!string.IsNullOrWhiteSpace(experienceLevel) &&
+            !await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.ExperienceLevelsCategory, experienceLevel))
+        {
+            return AuthEndpointSupport.MessageResult("Этот уровень опыта сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+
+        if (ShouldKeepSchedule(opportunityType) &&
+            !string.IsNullOrWhiteSpace(schedule) &&
+            !await SystemReferenceSupport.IsActiveValueAsync(db, SystemReferenceSupport.WorkSchedulesCategory, schedule))
+        {
+            return AuthEndpointSupport.MessageResult("Этот график сейчас отключен.", StatusCodes.Status400BadRequest);
+        }
+
+        return null;
+    }
+
     private static OpportunityGetDTO BuildOpportunityDetailResponse(Opportunity opportunity, OpportunityViewerCapabilitiesDTO viewer) =>
         new()
         {
@@ -906,6 +1059,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             ExpireAt = opportunity.ExpireAt,
             OpportunityType = opportunity.OpportunityType,
             EmploymentType = opportunity.EmploymentType,
+            ExperienceLevel = opportunity.ExperienceLevel,
+            Schedule = opportunity.Schedule,
             ModerationStatus = GetEffectiveModerationStatus(opportunity),
             ModerationReason = opportunity.ModerationReason,
             SalaryFrom = opportunity.SalaryFrom,
@@ -941,6 +1096,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             Longitude = source.Longitude,
             OpportunityType = source.OpportunityType,
             EmploymentType = source.EmploymentType,
+            ExperienceLevel = source.ExperienceLevel,
+            Schedule = source.Schedule,
             ModerationStatus = source.ModerationStatus,
             ModerationReason = source.ModerationReason,
             PublishAt = source.PublishAt,

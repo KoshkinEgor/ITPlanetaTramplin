@@ -553,7 +553,7 @@ export function ModeratorOpportunitiesApp() {
         open={Boolean(activeItem)}
         onClose={handleCloseOpportunityModal}
         title="Проверка публикации"
-        description="Форма использует moderation detail/update endpoints и не меняет статус автоматически."
+        description="Проверьте данные публикации и сохраните правки без автоматической смены статуса."
         size="lg"
         closeLabel="Закрыть окно проверки"
         className="moderator-opportunity-modal"

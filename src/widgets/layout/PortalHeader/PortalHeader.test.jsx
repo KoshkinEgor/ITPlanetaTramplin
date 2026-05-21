@@ -11,6 +11,7 @@ import {
   getCandidateFriendRequests,
   getCandidateProjectInvites,
 } from "../../../api/candidate";
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../../../api/notifications";
 import { PortalHeader } from "./PortalHeader";
 
 vi.mock("../../../auth/api", async (importOriginal) => {
@@ -32,6 +33,12 @@ vi.mock("../../../api/candidate", () => ({
   declineCandidateProjectInvite: vi.fn(),
 }));
 
+vi.mock("../../../api/notifications", () => ({
+  getNotifications: vi.fn(),
+  markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
+}));
+
 describe("PortalHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,6 +53,9 @@ describe("PortalHeader", () => {
       error: null,
     });
     logoutCurrentAuthUser.mockResolvedValue({});
+    getNotifications.mockResolvedValue([]);
+    markNotificationRead.mockResolvedValue({});
+    markAllNotificationsRead.mockResolvedValue({});
     getCandidateFriendRequests.mockResolvedValue([]);
     getCandidateProjectInvites.mockResolvedValue([]);
     acceptCandidateFriendRequest.mockResolvedValue({});
@@ -81,6 +91,43 @@ describe("PortalHeader", () => {
     });
   });
 
+  it("shows stored notifications for non-candidate users and marks them as read", async () => {
+    getNotifications.mockResolvedValue([
+      {
+        id: 91,
+        title: "Новая жалоба на возможность",
+        message: "Проверьте публикацию Junior Security Analyst",
+        link: routes.moderator.complaints,
+        isRead: false,
+        createdAt: "2026-03-20T10:00:00Z",
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <PortalHeader
+          navItems={[
+            { key: "home", label: "Главная", href: routes.home },
+          ]}
+          currentKey="home"
+        />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Уведомления" }));
+
+    expect(await screen.findByRole("dialog", { name: "Уведомления" })).toBeInTheDocument();
+    expect(await screen.findByText("Новая жалоба на возможность")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Открыть" })).toHaveAttribute("href", routes.moderator.complaints);
+
+    fireEvent.click(screen.getByRole("button", { name: "Прочитано" }));
+
+    await waitFor(() => {
+      expect(markNotificationRead).toHaveBeenCalledWith(91);
+    });
+  });
+
   it("shows candidate notifications in the bell panel and handles quick actions", async () => {
     useAuthSession.mockReturnValue({
       status: "authenticated",
@@ -93,6 +140,7 @@ describe("PortalHeader", () => {
       error: null,
     });
 
+    getNotifications.mockResolvedValue([]);
     getCandidateFriendRequests.mockResolvedValue([
       {
         id: 17,
@@ -140,7 +188,7 @@ describe("PortalHeader", () => {
 
     expect(await screen.findByRole("dialog", { name: "Уведомления" })).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Посмотреть все" })).toHaveAttribute("href", "/candidate/contacts?tab=incoming");
+    expect(screen.getByRole("link", { name: "Все действия" })).toHaveAttribute("href", "/candidate/contacts?tab=incoming");
 
     const friendItem = screen.getByText(/Мария Соколова/).closest("article");
     expect(friendItem).not.toBeNull();

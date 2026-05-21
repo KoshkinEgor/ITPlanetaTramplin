@@ -38,5 +38,7 @@ public partial class EmployerProfile
 
     public virtual ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
 
+    public virtual CompanySetting? Settings { get; set; }
+
     public virtual User User { get; set; } = null!;
 }

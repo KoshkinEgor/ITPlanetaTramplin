@@ -402,13 +402,13 @@ export function CompanyDashboardApp() {
                   {translateVerificationStatus(state.profile?.verificationStatus)}
                 </Badge>
                 <Badge kind="chip" tone="accent" active>
-                  Real Data
+                  Рабочий кабинет
                 </Badge>
               </div>
 
               <h1 className="ui-type-h2">{state.profile?.companyName || "Кабинет компании"}</h1>
               <p className="ui-type-body">
-                Кабинет работает поверх реальных company и opportunity endpoints: профиль компании, публикации и отклики больше не берутся из статических массивов.
+                Управляйте профилем компании, публикациями и откликами кандидатов в одном месте.
               </p>
             </div>
 
@@ -457,7 +457,7 @@ export function CompanyDashboardApp() {
 
               {profileSave.status === "success" || opportunitySave.status === "success" ? (
                 <Alert tone="success" title="Изменения сохранены" showIcon>
-                  Данные отправлены в backend. Для публикаций это означает новый цикл модерации.
+                  Изменения сохранены. Публикации после отправки снова проходят модерацию.
                 </Alert>
               ) : null}
 
@@ -466,7 +466,7 @@ export function CompanyDashboardApp() {
                   <SectionHeader
                     eyebrow="Профиль компании"
                     title="Данные компании"
-                    description="Изменения уходят в `/api/company/me`."
+                    description="Эти данные увидят кандидаты на публичной странице компании."
                     size="md"
                   />
 
@@ -505,7 +505,7 @@ export function CompanyDashboardApp() {
                   <SectionHeader
                     eyebrow="Публикации"
                     title={opportunityDraft.id ? "Редактирование публикации" : "Новая публикация"}
-                    description="Форма работает через `/api/opportunities`."
+                    description="Заполните карточку возможности и отправьте ее на модерацию."
                     size="md"
                   />
 
@@ -608,7 +608,7 @@ export function CompanyDashboardApp() {
                 <SectionHeader
                   eyebrow="Отклики"
                   title="Отклики кандидатов"
-                  description="Работодатель может обновлять статус и комментарий отклика через `/api/opportunities/{id}/applications/{applicationId}`."
+                  description="Обновляйте статус отклика и добавляйте комментарий для кандидата."
                   size="md"
                 />
 
@@ -660,7 +660,7 @@ export function CompanyDashboardApp() {
                 ) : (
                   <EmptyState
                     title="Нет новых откликов"
-                    description="Сводка заполнится автоматически после первых реальных откликов."
+                    description="Сводка появится автоматически после первых откликов кандидатов."
                     tone="neutral"
                     compact
                   />

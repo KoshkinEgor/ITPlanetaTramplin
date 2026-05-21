@@ -6,4 +6,5 @@ export const COMPANY_SIDEBAR_ITEMS = [
   { key: "profile", label: "Страница компании", href: routes.company.dashboard },
   { key: "opportunities", label: "Возможности", href: routes.company.opportunities },
   { key: "responses", label: "Отклики", href: routes.company.responses },
+  { key: "settings", label: "Настройки", href: routes.company.settings },
 ];

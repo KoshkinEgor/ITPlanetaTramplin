@@ -3,11 +3,11 @@ import { Button, Card, EmptyState, Input } from "../shared/ui";
 import {
   createCompanyGalleryItemDraft,
   normalizeCompanyGallery,
-  readCompanyMediaFileAsDataUrl,
+  uploadCompanyMediaFile,
 } from "./companyProfileMedia";
 import "./company-dashboard.css";
 
-const COMPANY_GALLERY_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
+const COMPANY_GALLERY_ACCEPT = "image/png,image/jpeg,image/webp";
 const COMPANY_GALLERY_MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
 function CompanyMediaUploadIcon() {
@@ -55,13 +55,18 @@ function CompanyGalleryEditorCard({ item, index, onChange, onRemove }) {
       return;
     }
 
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadError("Загрузите изображение в формате JPG, PNG или WEBP.");
+      return;
+    }
+
     if (file.size > COMPANY_GALLERY_MAX_SIZE_BYTES) {
       setUploadError(`Размер файла превышает ${formatFileSize(COMPANY_GALLERY_MAX_SIZE_BYTES)}.`);
       return;
     }
 
     try {
-      const nextImageUrl = await readCompanyMediaFileAsDataUrl(file);
+      const nextImageUrl = await uploadCompanyMediaFile(file);
       onChange?.(normalizedItem.id, "imageUrl", nextImageUrl);
       setUploadError("");
     } catch (error) {
