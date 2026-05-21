@@ -31,10 +31,13 @@ class MockYMap {
     this.container = container;
     this.props = props;
     this.listenerProps = null;
+    this.children = [];
     mapInstances.push(this);
   }
 
   addChild(child) {
+    this.children.push(child);
+
     if (child.kind === "listener") {
       this.listenerProps = child.props;
       return;
@@ -47,6 +50,11 @@ class MockYMap {
 
   destroy() {
     this.container.innerHTML = "";
+  }
+
+  removeChild(child) {
+    this.children = this.children.filter((item) => item !== child);
+    child.element?.remove();
   }
 }
 
@@ -63,13 +71,21 @@ class MockYMapMarker {
     this.config = config;
     this.element = element;
   }
+
+  update(config) {
+    this.config = { ...this.config, ...config };
+  }
 }
 
 const ymaps3Mock = {
   ready: Promise.resolve(),
   YMap: MockYMap,
   YMapDefaultSchemeLayer: class {},
-  YMapDefaultFeaturesLayer: class {},
+  YMapDefaultFeaturesLayer: class {
+    constructor() {
+      this.kind = "default-features-layer";
+    }
+  },
   YMapFeatureDataSource: class {},
   YMapLayer: class {},
   YMapListener: MockYMapListener,
@@ -156,6 +172,8 @@ describe("OpportunityLocationPicker", () => {
     });
 
     await waitFor(() => expect(screen.getByTestId("coordinates-state")).toHaveTextContent("56.14391|47.25195"));
+    expect(document.querySelector(".company-dashboard-location-picker__marker")).not.toBeNull();
+    expect(mapInstances[0].children.some((child) => child.kind === "default-features-layer")).toBe(true);
     expect(screen.getByDisplayValue("ул. Ленина, 1")).toBeInTheDocument();
     expect(reverseGeocodeAddressMock).toHaveBeenCalledWith({
       latitude: 56.14391,
