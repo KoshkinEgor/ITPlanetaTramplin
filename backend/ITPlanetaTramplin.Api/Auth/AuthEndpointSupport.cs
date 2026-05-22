@@ -29,6 +29,13 @@ internal static class AuthEndpointSupport
 
     public static string? BuildAvatarUrl(User user, string role)
     {
+        if (role == PublicRoles.Company)
+        {
+            return string.IsNullOrWhiteSpace(user.EmployerProfile?.ProfileImage)
+                ? null
+                : user.EmployerProfile.ProfileImage.Trim();
+        }
+
         if (role != PublicRoles.Candidate || string.IsNullOrWhiteSpace(user.ApplicantProfile?.Links))
         {
             return null;

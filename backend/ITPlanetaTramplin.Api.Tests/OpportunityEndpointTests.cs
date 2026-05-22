@@ -557,10 +557,13 @@ public class OpportunityEndpointTests
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
-            opportunityId = await db.Opportunities
-                .Where(item => item.Title == "Opportunity detail payload")
-                .Select(item => item.Id)
-                .SingleAsync();
+            var opportunity = await db.Opportunities
+                .Include(item => item.Employer)
+                .SingleAsync(item => item.Title == "Opportunity detail payload");
+
+            opportunity.Employer.ProfileImage = "https://cdn.example.com/company-logo.png";
+            await db.SaveChangesAsync();
+            opportunityId = opportunity.Id;
         }
 
         var detailResponse = await client.GetAsync($"/api/opportunities/{opportunityId}");
@@ -583,6 +586,7 @@ public class OpportunityEndpointTests
         Assert.Equal("Презентация", mediaPayload.RootElement[0].GetProperty("title").GetString());
         Assert.Equal("https://example.com/deck", mediaPayload.RootElement[0].GetProperty("url").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companyName").GetString()));
+        Assert.Equal("https://cdn.example.com/company-logo.png", root.GetProperty("companyProfileImage").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companyDescription").GetString()));
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companyLegalAddress").GetString()));
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("companySocials").GetString()));

@@ -161,6 +161,30 @@ public class CompanyEndpointTests
     }
 
     [Fact]
+    public async Task AuthMe_ReturnsCompanyProfileImageAsAvatar()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await LoginAsCompanyAsync(client);
+
+        var updateResponse = await client.PutAsJsonAsync("/api/company/me", new
+        {
+            profileImage = "https://cdn.example.com/company-photo.png",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        var meResponse = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+
+        var payload = await meResponse.Content.ReadFromJsonAsync<AuthUserDTO>();
+        Assert.NotNull(payload);
+        Assert.Equal("company", payload!.Role);
+        Assert.Equal("https://cdn.example.com/company-photo.png", payload.AvatarUrl);
+    }
+
+    [Fact]
     public async Task UpdateCompanyMe_PreservesApprovedStatusForContentEditsAndMovesToRevisionForIdentityChanges()
     {
         await using var factory = new TestApplicationFactory();

@@ -51,6 +51,7 @@ const apiOpportunity = {
   employerId: 404,
   title: "Junior Security Analyst",
   companyName: "ООО Компания",
+  companyProfileImage: "https://cdn.example.com/company-logo.png",
   locationCity: "Москва",
   locationAddress: "Москва",
   opportunityType: "vacancy",
@@ -270,6 +271,10 @@ describe("OpportunityDetailCardApp", () => {
     renderDetail("/opportunities/101");
 
     expect(await screen.findByRole("link", { name: "Открыть профиль компании" })).toHaveAttribute("href", "/companies/404");
+    expect(screen.getByRole("img", { name: "Фото компании ООО Компания" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/company-logo.png"
+    );
     expect(screen.getByText(/120/)).toBeInTheDocument();
     expect(screen.getByText("Формат: Онлайн")).toBeInTheDocument();
   });

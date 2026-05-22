@@ -6,6 +6,7 @@ import {
 } from "../api/company";
 import { useLocation, useNavigate } from "react-router-dom";
 import { buildOpportunityDetailRoute, routes } from "../app/routes";
+import { refreshAuthSession } from "../auth/api";
 import { OpportunityBlockRail } from "../components/opportunities";
 import { ApiError } from "../lib/http";
 import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
@@ -626,6 +627,7 @@ export function CompanyProfileSection({ onSummaryChange }) {
 
       syncBasicProfile(profile);
       onSummaryChange?.(profile);
+      await refreshAuthSession({ force: true }).catch(() => null);
       setSaveState({ status: "success", error: "" });
       setIsBasicProfileEditing(false);
       clearBasicProfileEditorHash();
@@ -656,6 +658,7 @@ export function CompanyProfileSection({ onSummaryChange }) {
 
       syncFullProfile(profile);
       onSummaryChange?.(profile);
+      await refreshAuthSession({ force: true }).catch(() => null);
       setSaveState({ status: "success", error: "" });
       return profile;
     } catch (error) {
