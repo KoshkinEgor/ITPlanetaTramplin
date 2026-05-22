@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "../../../lib/cn";
 import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
+import { AppLink } from "../../../app/AppLink";
 
 const DEFAULT_ARIA_LABEL = "Переключатель режимов";
 
@@ -55,7 +56,7 @@ export function SegmentedControl({
 
         if (item.href) {
           return (
-            <a
+            <AppLink
               key={item.value}
               href={item.href}
               className={commonClassName}
@@ -63,7 +64,7 @@ export function SegmentedControl({
               onClick={() => handleSelect(item.value)}
             >
               {item.label}
-            </a>
+            </AppLink>
           );
         }
 

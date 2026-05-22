@@ -118,7 +118,7 @@ function CandidateResumeMiniCardMenu({
         type="button"
         label={buttonLabel}
         variant="surface"
-        size="2xl"
+        size="md"
         className="candidate-resume-mini-card__menu"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -188,7 +188,7 @@ export function CandidateResumeProfileCard({
       </div>
 
       <div className="candidate-resume-panel__actions">
-        <Button href={actionHref}>{actionLabel}</Button>
+        <Button size="sm" href={actionHref}>{actionLabel}</Button>
       </div>
     </Card>
   );
@@ -414,7 +414,7 @@ export function CandidatePortfolioProjectCard({
           {item.coverImageUrl ? <img src={item.coverImageUrl} alt={coverAlt} loading="lazy" /> : null}
         </div>
 
-        <Button as="a" href={actionHref} variant="secondary" width="full" className="candidate-project-card__action candidate-project-card__action--media">
+        <Button size="sm" as="a" href={actionHref} variant="secondary" width="full" className="candidate-project-card__action candidate-project-card__action--media">
           {actionLabel}
         </Button>
       </Card>
@@ -461,7 +461,7 @@ export function CandidatePortfolioProjectCard({
         ))}
       </div>
 
-      <Button as="a" href={actionHref} variant="secondary" width="full" className="candidate-project-card__action">
+      <Button size="sm" as="a" href={actionHref} variant="secondary" width="full" className="candidate-project-card__action">
         {actionLabel}
       </Button>
     </Card>
