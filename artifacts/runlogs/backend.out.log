@@ -1,0 +1,702 @@
+Используются параметры запуска из backend\ITPlanetaTramplin.Api\Properties\launchSettings.json...
+Сборка…
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (33ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (48ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+          "MigrationId" character varying(150) NOT NULL,
+          "ProductVersion" character varying(32) NOT NULL,
+          CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
+      );
+info: Microsoft.EntityFrameworkCore.Migrations[20411]
+      Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      LOCK TABLE "__EFMigrationsHistory" IN ACCESS EXCLUSIVE MODE
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (30ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, c.id, c.name, c.surname, c.thirdname, c.user_id
+      FROM users AS u
+      LEFT JOIN curator_profiles AS c ON u.id = c.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p1='?' (DbType = Int32), @p0='?', @p3='?' (DbType = Int32), @p2='?'], CommandType='Text', CommandTimeout='30']
+      UPDATE users SET password_hash = @p0
+      WHERE id = @p1;
+      UPDATE users SET password_hash = @p2
+      WHERE id = @p3;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, a.id, a.description, a.links, a.name, a.privacy_settings, a.skills, a."Surname", a."Thirdname", a.user_id
+      FROM users AS u
+      LEFT JOIN applicant_profiles AS a ON u.id = a.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@p1='?' (DbType = Int32), @p0='?' (DbType = Object), @p3='?' (DbType = Int32), @p2='?' (DbType = Object), @p5='?' (DbType = Int32), @p4='?' (DbType = Object), @p7='?' (DbType = Int32), @p6='?', @p9='?' (DbType = Int32), @p8='?', @p11='?' (DbType = Int32), @p10='?'], CommandType='Text', CommandTimeout='30']
+      UPDATE applicant_profiles SET links = @p0
+      WHERE id = @p1;
+      UPDATE applicant_profiles SET links = @p2
+      WHERE id = @p3;
+      UPDATE applicant_profiles SET links = @p4
+      WHERE id = @p5;
+      UPDATE users SET password_hash = @p6
+      WHERE id = @p7;
+      UPDATE users SET password_hash = @p8
+      WHERE id = @p9;
+      UPDATE users SET password_hash = @p10
+      WHERE id = @p11;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__normalizedEmail_0='?', @__normalizedInn_1='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status
+      FROM users AS u
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0 OR (e.id IS NOT NULL AND e.inn = @__normalizedInn_1)
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?', @__normalizedInn_1='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status
+      FROM users AS u
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0 OR (e.id IS NOT NULL AND e.inn = @__normalizedInn_1)
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__normalizedEmail_0='?', @__normalizedInn_1='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status
+      FROM users AS u
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0 OR (e.id IS NOT NULL AND e.inn = @__normalizedInn_1)
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__normalizedEmail_0='?', @__normalizedInn_1='?'], CommandType='Text', CommandTimeout='30']
+      SELECT u.id, u.created_at, u.deleted_at, u.email, u.email_verification_attempt_count, u.email_verification_code_hash, u.email_verification_expires_at, u.email_verification_sent_at, u.is_verified, u.password_hash, u.password_reset_attempt_count, u.password_reset_code_hash, u.password_reset_expires_at, u.password_reset_sent_at, u.pre_verify, e.id, e.company_name, e.description, e.inn, e.legal_address, e.media_content, e.profile_image, e.socials, e.user_id, e.verification_data, e.verification_method, e.verification_status
+      FROM users AS u
+      LEFT JOIN employer_profiles AS e ON u.id = e.user_id
+      WHERE lower(u.email) = @__normalizedEmail_0 OR (e.id IS NOT NULL AND e.inn = @__normalizedInn_1)
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p1='?' (DbType = Int32), @p0='?' (DbType = Object), @p3='?' (DbType = Int32), @p2='?' (DbType = Object), @p5='?' (DbType = Int32), @p4='?' (DbType = Object), @p7='?' (DbType = Int32), @p6='?' (DbType = Object), @p9='?' (DbType = Int32), @p8='?', @p11='?' (DbType = Int32), @p10='?', @p13='?' (DbType = Int32), @p12='?', @p15='?' (DbType = Int32), @p14='?'], CommandType='Text', CommandTimeout='30']
+      UPDATE employer_profiles SET socials = @p0
+      WHERE id = @p1;
+      UPDATE employer_profiles SET socials = @p2
+      WHERE id = @p3;
+      UPDATE employer_profiles SET socials = @p4
+      WHERE id = @p5;
+      UPDATE employer_profiles SET socials = @p6
+      WHERE id = @p7;
+      UPDATE users SET password_hash = @p8
+      WHERE id = @p9;
+      UPDATE users SET password_hash = @p10
+      WHERE id = @p11;
+      UPDATE users SET password_hash = @p12
+      WHERE id = @p13;
+      UPDATE users SET password_hash = @p14
+      WHERE id = @p15;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (21ms) [Parameters=[@__requiredTagNames_0='?' (DbType = Object)], CommandType='Text', CommandTimeout='30']
+      SELECT t.id, t.created_by, t.is_active, t.name
+      FROM tags AS t
+      WHERE t.name = ANY (@__requiredTagNames_0)
+warn: Microsoft.EntityFrameworkCore.Query[20504]
+      Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[@__companyUser_EmployerProfile_Id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT o.id, o.contacts, o.deleted_at, o.description, o.employer_id, o.employment_type, o.expire_at, o.latitude, o.location_address, o.location_city, o.longitude, o.media_content, o.moderation_status, o.opportunity_type, o.publish_at, o.search_vector, o.title, a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status, r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id, s.opportunity_id, s.tag_id, s.id, s.created_by, s.is_active, s.name
+      FROM opportunities AS o
+      LEFT JOIN applications AS a ON o.id = a.opportunity_id
+      LEFT JOIN recommendations AS r ON o.id = r.opportunity_id
+      LEFT JOIN (
+          SELECT o0.opportunity_id, o0.tag_id, t.id, t.created_by, t.is_active, t.name
+          FROM opportunity_tags AS o0
+          INNER JOIN tags AS t ON o0.tag_id = t.id
+      ) AS s ON o.id = s.opportunity_id
+      WHERE o.employer_id = @__companyUser_EmployerProfile_Id_0
+      ORDER BY o.id, a.id, r.id, s.opportunity_id, s.tag_id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (DbType = Int32), @p7='?' (DbType = Int32), @p8='?' (DbType = Int32), @p9='?' (DbType = Int32), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (DbType = Int32), @p14='?' (DbType = Int32), @p15='?' (DbType = Int32), @p16='?' (DbType = Int32), @p17='?' (DbType = Int32), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = Int32), @p21='?' (DbType = Int32), @p22='?' (DbType = Int32), @p23='?' (DbType = Int32), @p24='?' (DbType = Int32), @p25='?' (DbType = Int32), @p26='?' (DbType = Int32), @p27='?' (DbType = Int32), @p28='?' (DbType = Int32), @p29='?' (DbType = Int32), @p30='?' (DbType = Int32), @p31='?' (DbType = Int32), @p32='?' (DbType = Int32), @p33='?' (DbType = Int32), @p34='?' (DbType = Int32), @p35='?' (DbType = Int32), @p36='?' (DbType = Int32), @p37='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM applications
+      WHERE id = @p0;
+      DELETE FROM applications
+      WHERE id = @p1;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p2 AND tag_id = @p3;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p4 AND tag_id = @p5;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p6 AND tag_id = @p7;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p8 AND tag_id = @p9;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p10 AND tag_id = @p11;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p12 AND tag_id = @p13;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p14 AND tag_id = @p15;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p16 AND tag_id = @p17;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p18 AND tag_id = @p19;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p20 AND tag_id = @p21;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p22 AND tag_id = @p23;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p24 AND tag_id = @p25;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p26 AND tag_id = @p27;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p28 AND tag_id = @p29;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p30 AND tag_id = @p31;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p32 AND tag_id = @p33;
+      DELETE FROM opportunities
+      WHERE id = @p34;
+      DELETE FROM opportunities
+      WHERE id = @p35;
+      DELETE FROM opportunities
+      WHERE id = @p36;
+      DELETE FROM opportunities
+      WHERE id = @p37;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__companyUser_EmployerProfile_Id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT o.id, o.contacts, o.deleted_at, o.description, o.employer_id, o.employment_type, o.expire_at, o.latitude, o.location_address, o.location_city, o.longitude, o.media_content, o.moderation_status, o.opportunity_type, o.publish_at, o.search_vector, o.title, a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status, r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id, s.opportunity_id, s.tag_id, s.id, s.created_by, s.is_active, s.name
+      FROM opportunities AS o
+      LEFT JOIN applications AS a ON o.id = a.opportunity_id
+      LEFT JOIN recommendations AS r ON o.id = r.opportunity_id
+      LEFT JOIN (
+          SELECT o0.opportunity_id, o0.tag_id, t.id, t.created_by, t.is_active, t.name
+          FROM opportunity_tags AS o0
+          INNER JOIN tags AS t ON o0.tag_id = t.id
+      ) AS s ON o.id = s.opportunity_id
+      WHERE o.employer_id = @__companyUser_EmployerProfile_Id_0
+      ORDER BY o.id, a.id, r.id, s.opportunity_id, s.tag_id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (DbType = Int32), @p7='?' (DbType = Int32), @p8='?' (DbType = Int32), @p9='?' (DbType = Int32), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (DbType = Int32), @p14='?' (DbType = Int32), @p15='?' (DbType = Int32), @p16='?' (DbType = Int32), @p17='?' (DbType = Int32), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = Int32), @p21='?' (DbType = Int32), @p22='?' (DbType = Int32), @p23='?' (DbType = Int32), @p24='?' (DbType = Int32), @p25='?' (DbType = Int32), @p26='?' (DbType = Int32), @p27='?' (DbType = Int32), @p28='?' (DbType = Int32), @p29='?' (DbType = Int32), @p30='?' (DbType = Int32), @p31='?' (DbType = Int32), @p32='?' (DbType = Int32), @p33='?' (DbType = Int32), @p34='?' (DbType = Int32), @p35='?' (DbType = Int32), @p36='?' (DbType = Int32), @p37='?' (DbType = Int32), @p38='?' (DbType = Int32), @p39='?' (DbType = Int32), @p40='?' (DbType = Int32), @p41='?' (DbType = Int32), @p42='?' (DbType = Int32), @p43='?' (DbType = Int32), @p44='?' (DbType = Int32), @p45='?' (DbType = Int32), @p46='?' (DbType = Int32), @p47='?' (DbType = Int32), @p48='?' (DbType = Object), @p49='?' (DbType = Date), @p50='?', @p51='?' (DbType = Int32), @p52='?', @p53='?' (DbType = Date), @p54='?' (DbType = Decimal), @p55='?', @p56='?', @p57='?' (DbType = Decimal), @p58='?' (DbType = Object), @p59='?', @p60='?', @p61='?' (DbType = Date), @p62='?' (DbType = Object), @p63='?', @p64='?' (DbType = Object), @p65='?' (DbType = Date), @p66='?', @p67='?' (DbType = Int32), @p68='?', @p69='?' (DbType = Date), @p70='?' (DbType = Decimal), @p71='?', @p72='?', @p73='?' (DbType = Decimal), @p74='?' (DbType = Object), @p75='?', @p76='?', @p77='?' (DbType = Date), @p78='?' (DbType = Object), @p79='?', @p80='?' (DbType = Object), @p81='?' (DbType = Date), @p82='?', @p83='?' (DbType = Int32), @p84='?', @p85='?' (DbType = Date), @p86='?' (DbType = Decimal), @p87='?', @p88='?', @p89='?' (DbType = Decimal), @p90='?' (DbType = Object), @p91='?', @p92='?', @p93='?' (DbType = Date), @p94='?' (DbType = Object), @p95='?', @p96='?' (DbType = Object), @p97='?' (DbType = Date), @p98='?', @p99='?' (DbType = Int32), @p100='?', @p101='?' (DbType = Date), @p102='?' (DbType = Decimal), @p103='?', @p104='?', @p105='?' (DbType = Decimal), @p106='?' (DbType = Object), @p107='?', @p108='?', @p109='?' (DbType = Date), @p110='?' (DbType = Object), @p111='?'], CommandType='Text', CommandTimeout='30']
+      DELETE FROM applications
+      WHERE id = @p0;
+      DELETE FROM applications
+      WHERE id = @p1;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p2 AND tag_id = @p3;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p4 AND tag_id = @p5;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p6 AND tag_id = @p7;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p8 AND tag_id = @p9;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p10 AND tag_id = @p11;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p12 AND tag_id = @p13;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p14 AND tag_id = @p15;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p16 AND tag_id = @p17;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p18 AND tag_id = @p19;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p20 AND tag_id = @p21;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p22 AND tag_id = @p23;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p24 AND tag_id = @p25;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p26 AND tag_id = @p27;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p28 AND tag_id = @p29;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p30 AND tag_id = @p31;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p32 AND tag_id = @p33;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p34 AND tag_id = @p35;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p36 AND tag_id = @p37;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p38 AND tag_id = @p39;
+      DELETE FROM recommendations
+      WHERE id = @p40;
+      DELETE FROM opportunities
+      WHERE id = @p41;
+      DELETE FROM opportunities
+      WHERE id = @p42;
+      DELETE FROM opportunities
+      WHERE id = @p43;
+      DELETE FROM opportunities
+      WHERE id = @p44;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p45 AND tag_id = @p46;
+      DELETE FROM opportunities
+      WHERE id = @p47;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p64, @p65, @p66, @p67, @p68, @p69, @p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p80, @p81, @p82, @p83, @p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p96, @p97, @p98, @p99, @p100, @p101, @p102, @p103, @p104, @p105, @p106, @p107, @p108, @p109, @p110, @p111)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@p112='?' (DbType = Int32), @p113='?' (DbType = Int32), @p114='?' (DbType = Int32), @p115='?' (DbType = Int32), @p116='?' (DbType = Int32), @p117='?' (DbType = Int32), @p118='?' (DbType = Int32), @p119='?' (DbType = Int32), @p120='?' (DbType = Int32), @p121='?' (DbType = Int32), @p122='?' (DbType = Int32), @p123='?' (DbType = Int32), @p124='?' (DbType = Int32), @p125='?' (DbType = Int32), @p126='?' (DbType = Int32), @p127='?' (DbType = Int32), @p128='?' (DbType = Int32), @p129='?' (DbType = Int32), @p130='?' (DbType = Int32), @p131='?' (DbType = Int32), @p132='?' (DbType = Int32), @p133='?' (DbType = Int32), @p134='?' (DbType = Int32), @p135='?' (DbType = Int32), @p136='?' (DbType = Int32), @p137='?' (DbType = Int32), @p138='?' (DbType = Int32), @p139='?' (DbType = Int32), @p140='?' (DbType = Int32), @p141='?' (DbType = Int32), @p142='?' (DbType = Int32), @p143='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p112, @p113);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p114, @p115);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p116, @p117);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p118, @p119);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p120, @p121);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p122, @p123);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p124, @p125);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p126, @p127);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p128, @p129);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p130, @p131);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p132, @p133);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p134, @p135);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p136, @p137);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p138, @p139);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p140, @p141);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p142, @p143);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__companyUser_EmployerProfile_Id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT o.id, o.contacts, o.deleted_at, o.description, o.employer_id, o.employment_type, o.expire_at, o.latitude, o.location_address, o.location_city, o.longitude, o.media_content, o.moderation_status, o.opportunity_type, o.publish_at, o.search_vector, o.title, a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status, r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id, s.opportunity_id, s.tag_id, s.id, s.created_by, s.is_active, s.name
+      FROM opportunities AS o
+      LEFT JOIN applications AS a ON o.id = a.opportunity_id
+      LEFT JOIN recommendations AS r ON o.id = r.opportunity_id
+      LEFT JOIN (
+          SELECT o0.opportunity_id, o0.tag_id, t.id, t.created_by, t.is_active, t.name
+          FROM opportunity_tags AS o0
+          INNER JOIN tags AS t ON o0.tag_id = t.id
+      ) AS s ON o.id = s.opportunity_id
+      WHERE o.employer_id = @__companyUser_EmployerProfile_Id_0
+      ORDER BY o.id, a.id, r.id, s.opportunity_id, s.tag_id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (DbType = Int32), @p7='?' (DbType = Int32), @p8='?' (DbType = Int32), @p9='?' (DbType = Int32), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (DbType = Int32), @p14='?' (DbType = Int32), @p15='?' (DbType = Int32), @p16='?' (DbType = Int32), @p17='?' (DbType = Int32), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = Int32), @p21='?' (DbType = Int32), @p22='?' (DbType = Int32), @p23='?' (DbType = Int32), @p24='?' (DbType = Int32), @p25='?' (DbType = Int32), @p26='?' (DbType = Int32), @p27='?' (DbType = Int32), @p28='?' (DbType = Int32), @p29='?' (DbType = Int32), @p30='?' (DbType = Int32), @p31='?' (DbType = Int32), @p32='?' (DbType = Int32), @p33='?' (DbType = Int32), @p34='?' (DbType = Int32), @p35='?' (DbType = Int32), @p36='?' (DbType = Int32), @p37='?' (DbType = Int32), @p38='?' (DbType = Int32), @p39='?' (DbType = Int32), @p40='?' (DbType = Int32), @p41='?' (DbType = Int32), @p42='?' (DbType = Int32), @p43='?' (DbType = Int32), @p44='?' (DbType = Int32), @p45='?' (DbType = Int32), @p46='?' (DbType = Int32), @p47='?' (DbType = Int32), @p48='?' (DbType = Object), @p49='?' (DbType = Date), @p50='?', @p51='?' (DbType = Int32), @p52='?', @p53='?' (DbType = Date), @p54='?' (DbType = Decimal), @p55='?', @p56='?', @p57='?' (DbType = Decimal), @p58='?' (DbType = Object), @p59='?', @p60='?', @p61='?' (DbType = Date), @p62='?' (DbType = Object), @p63='?', @p64='?' (DbType = Object), @p65='?' (DbType = Date), @p66='?', @p67='?' (DbType = Int32), @p68='?', @p69='?' (DbType = Date), @p70='?' (DbType = Decimal), @p71='?', @p72='?', @p73='?' (DbType = Decimal), @p74='?' (DbType = Object), @p75='?', @p76='?', @p77='?' (DbType = Date), @p78='?' (DbType = Object), @p79='?', @p80='?' (DbType = Object), @p81='?' (DbType = Date), @p82='?', @p83='?' (DbType = Int32), @p84='?', @p85='?' (DbType = Date), @p86='?' (DbType = Decimal), @p87='?', @p88='?', @p89='?' (DbType = Decimal), @p90='?' (DbType = Object), @p91='?', @p92='?', @p93='?' (DbType = Date), @p94='?' (DbType = Object), @p95='?', @p96='?' (DbType = Object), @p97='?' (DbType = Date), @p98='?', @p99='?' (DbType = Int32), @p100='?', @p101='?' (DbType = Date), @p102='?' (DbType = Decimal), @p103='?', @p104='?', @p105='?' (DbType = Decimal), @p106='?' (DbType = Object), @p107='?', @p108='?', @p109='?' (DbType = Date), @p110='?' (DbType = Object), @p111='?', @p112='?' (DbType = Object), @p113='?' (DbType = Date), @p114='?', @p115='?' (DbType = Int32), @p116='?', @p117='?' (DbType = Date), @p118='?' (DbType = Decimal), @p119='?', @p120='?', @p121='?' (DbType = Decimal), @p122='?' (DbType = Object), @p123='?', @p124='?', @p125='?' (DbType = Date), @p126='?' (DbType = Object), @p127='?'], CommandType='Text', CommandTimeout='30']
+      DELETE FROM applications
+      WHERE id = @p0;
+      DELETE FROM applications
+      WHERE id = @p1;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p2 AND tag_id = @p3;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p4 AND tag_id = @p5;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p6 AND tag_id = @p7;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p8 AND tag_id = @p9;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p10 AND tag_id = @p11;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p12 AND tag_id = @p13;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p14 AND tag_id = @p15;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p16 AND tag_id = @p17;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p18 AND tag_id = @p19;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p20 AND tag_id = @p21;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p22 AND tag_id = @p23;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p24 AND tag_id = @p25;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p26 AND tag_id = @p27;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p28 AND tag_id = @p29;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p30 AND tag_id = @p31;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p32 AND tag_id = @p33;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p34 AND tag_id = @p35;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p36 AND tag_id = @p37;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p38 AND tag_id = @p39;
+      DELETE FROM recommendations
+      WHERE id = @p40;
+      DELETE FROM opportunities
+      WHERE id = @p41;
+      DELETE FROM opportunities
+      WHERE id = @p42;
+      DELETE FROM opportunities
+      WHERE id = @p43;
+      DELETE FROM opportunities
+      WHERE id = @p44;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p45 AND tag_id = @p46;
+      DELETE FROM opportunities
+      WHERE id = @p47;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p64, @p65, @p66, @p67, @p68, @p69, @p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p80, @p81, @p82, @p83, @p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p96, @p97, @p98, @p99, @p100, @p101, @p102, @p103, @p104, @p105, @p106, @p107, @p108, @p109, @p110, @p111)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p112, @p113, @p114, @p115, @p116, @p117, @p118, @p119, @p120, @p121, @p122, @p123, @p124, @p125, @p126, @p127)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@p128='?' (DbType = Int32), @p129='?' (DbType = Int32), @p130='?' (DbType = Int32), @p131='?' (DbType = Int32), @p132='?' (DbType = Int32), @p133='?' (DbType = Int32), @p134='?' (DbType = Int32), @p135='?' (DbType = Int32), @p136='?' (DbType = Int32), @p137='?' (DbType = Int32), @p138='?' (DbType = Int32), @p139='?' (DbType = Int32), @p140='?' (DbType = Int32), @p141='?' (DbType = Int32), @p142='?' (DbType = Int32), @p143='?' (DbType = Int32), @p144='?' (DbType = Int32), @p145='?' (DbType = Int32), @p146='?' (DbType = Int32), @p147='?' (DbType = Int32), @p148='?' (DbType = Int32), @p149='?' (DbType = Int32), @p150='?' (DbType = Int32), @p151='?' (DbType = Int32), @p152='?' (DbType = Int32), @p153='?' (DbType = Int32), @p154='?' (DbType = Int32), @p155='?' (DbType = Int32), @p156='?' (DbType = Int32), @p157='?' (DbType = Int32), @p158='?' (DbType = Int32), @p159='?' (DbType = Int32), @p160='?' (DbType = Int32), @p161='?' (DbType = Int32), @p162='?' (DbType = Int32), @p163='?' (DbType = Int32), @p164='?' (DbType = Int32), @p165='?' (DbType = Int32), @p166='?' (DbType = Int32), @p167='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p128, @p129);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p130, @p131);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p132, @p133);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p134, @p135);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p136, @p137);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p138, @p139);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p140, @p141);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p142, @p143);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p144, @p145);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p146, @p147);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p148, @p149);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p150, @p151);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p152, @p153);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p154, @p155);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p156, @p157);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p158, @p159);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p160, @p161);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p162, @p163);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p164, @p165);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p166, @p167);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__companyUser_EmployerProfile_Id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT o.id, o.contacts, o.deleted_at, o.description, o.employer_id, o.employment_type, o.expire_at, o.latitude, o.location_address, o.location_city, o.longitude, o.media_content, o.moderation_status, o.opportunity_type, o.publish_at, o.search_vector, o.title, a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status, r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id, s.opportunity_id, s.tag_id, s.id, s.created_by, s.is_active, s.name
+      FROM opportunities AS o
+      LEFT JOIN applications AS a ON o.id = a.opportunity_id
+      LEFT JOIN recommendations AS r ON o.id = r.opportunity_id
+      LEFT JOIN (
+          SELECT o0.opportunity_id, o0.tag_id, t.id, t.created_by, t.is_active, t.name
+          FROM opportunity_tags AS o0
+          INNER JOIN tags AS t ON o0.tag_id = t.id
+      ) AS s ON o.id = s.opportunity_id
+      WHERE o.employer_id = @__companyUser_EmployerProfile_Id_0
+      ORDER BY o.id, a.id, r.id, s.opportunity_id, s.tag_id
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (34ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = Int32), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (DbType = Int32), @p7='?' (DbType = Int32), @p8='?' (DbType = Int32), @p9='?' (DbType = Int32), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (DbType = Int32), @p14='?' (DbType = Int32), @p15='?' (DbType = Int32), @p16='?' (DbType = Int32), @p17='?' (DbType = Int32), @p18='?' (DbType = Int32), @p19='?' (DbType = Int32), @p20='?' (DbType = Int32), @p21='?' (DbType = Int32), @p22='?' (DbType = Int32), @p23='?' (DbType = Int32), @p24='?' (DbType = Int32), @p25='?' (DbType = Int32), @p26='?' (DbType = Int32), @p27='?' (DbType = Int32), @p28='?' (DbType = Int32), @p29='?' (DbType = Int32), @p30='?' (DbType = Int32), @p31='?' (DbType = Int32), @p32='?' (DbType = Int32), @p33='?' (DbType = Int32), @p34='?' (DbType = Int32), @p35='?' (DbType = Int32), @p36='?' (DbType = Object), @p37='?' (DbType = Date), @p38='?', @p39='?' (DbType = Int32), @p40='?', @p41='?' (DbType = Date), @p42='?' (DbType = Decimal), @p43='?', @p44='?', @p45='?' (DbType = Decimal), @p46='?' (DbType = Object), @p47='?', @p48='?', @p49='?' (DbType = Date), @p50='?' (DbType = Object), @p51='?', @p52='?' (DbType = Object), @p53='?' (DbType = Date), @p54='?', @p55='?' (DbType = Int32), @p56='?', @p57='?' (DbType = Date), @p58='?' (DbType = Decimal), @p59='?', @p60='?', @p61='?' (DbType = Decimal), @p62='?' (DbType = Object), @p63='?', @p64='?', @p65='?' (DbType = Date), @p66='?' (DbType = Object), @p67='?', @p68='?' (DbType = Object), @p69='?' (DbType = Date), @p70='?', @p71='?' (DbType = Int32), @p72='?', @p73='?' (DbType = Date), @p74='?' (DbType = Decimal), @p75='?', @p76='?', @p77='?' (DbType = Decimal), @p78='?' (DbType = Object), @p79='?', @p80='?', @p81='?' (DbType = Date), @p82='?' (DbType = Object), @p83='?', @p84='?' (DbType = Object), @p85='?' (DbType = Date), @p86='?', @p87='?' (DbType = Int32), @p88='?', @p89='?' (DbType = Date), @p90='?' (DbType = Decimal), @p91='?', @p92='?', @p93='?' (DbType = Decimal), @p94='?' (DbType = Object), @p95='?', @p96='?', @p97='?' (DbType = Date), @p98='?' (DbType = Object), @p99='?', @p100='?' (DbType = Object), @p101='?' (DbType = Date), @p102='?', @p103='?' (DbType = Int32), @p104='?', @p105='?' (DbType = Date), @p106='?' (DbType = Decimal), @p107='?', @p108='?', @p109='?' (DbType = Decimal), @p110='?' (DbType = Object), @p111='?', @p112='?', @p113='?' (DbType = Date), @p114='?' (DbType = Object), @p115='?'], CommandType='Text', CommandTimeout='30']
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p0 AND tag_id = @p1;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p2 AND tag_id = @p3;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p4 AND tag_id = @p5;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p6 AND tag_id = @p7;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p8 AND tag_id = @p9;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p10 AND tag_id = @p11;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p12 AND tag_id = @p13;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p14 AND tag_id = @p15;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p16 AND tag_id = @p17;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p18 AND tag_id = @p19;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p20 AND tag_id = @p21;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p22 AND tag_id = @p23;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p24 AND tag_id = @p25;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p26 AND tag_id = @p27;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p28 AND tag_id = @p29;
+      DELETE FROM opportunities
+      WHERE id = @p30;
+      DELETE FROM opportunities
+      WHERE id = @p31;
+      DELETE FROM opportunities
+      WHERE id = @p32;
+      DELETE FROM opportunity_tags
+      WHERE opportunity_id = @p33 AND tag_id = @p34;
+      DELETE FROM opportunities
+      WHERE id = @p35;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p36, @p37, @p38, @p39, @p40, @p41, @p42, @p43, @p44, @p45, @p46, @p47, @p48, @p49, @p50, @p51)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63, @p64, @p65, @p66, @p67)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p68, @p69, @p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79, @p80, @p81, @p82, @p83)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95, @p96, @p97, @p98, @p99)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p100, @p101, @p102, @p103, @p104, @p105, @p106, @p107, @p108, @p109, @p110, @p111, @p112, @p113, @p114, @p115)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@p116='?' (DbType = Int32), @p117='?' (DbType = Int32), @p118='?' (DbType = Int32), @p119='?' (DbType = Int32), @p120='?' (DbType = Int32), @p121='?' (DbType = Int32), @p122='?' (DbType = Int32), @p123='?' (DbType = Int32), @p124='?' (DbType = Int32), @p125='?' (DbType = Int32), @p126='?' (DbType = Int32), @p127='?' (DbType = Int32), @p128='?' (DbType = Int32), @p129='?' (DbType = Int32), @p130='?' (DbType = Int32), @p131='?' (DbType = Int32), @p132='?' (DbType = Int32), @p133='?' (DbType = Int32), @p134='?' (DbType = Int32), @p135='?' (DbType = Int32), @p136='?' (DbType = Int32), @p137='?' (DbType = Int32), @p138='?' (DbType = Int32), @p139='?' (DbType = Int32), @p140='?' (DbType = Int32), @p141='?' (DbType = Int32), @p142='?' (DbType = Int32), @p143='?' (DbType = Int32), @p144='?' (DbType = Int32), @p145='?' (DbType = Int32), @p146='?' (DbType = Int32), @p147='?' (DbType = Int32), @p148='?' (DbType = Int32), @p149='?' (DbType = Int32), @p150='?' (DbType = Int32), @p151='?' (DbType = Int32), @p152='?' (DbType = Int32), @p153='?' (DbType = Int32), @p154='?' (DbType = Int32), @p155='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p116, @p117);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p118, @p119);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p120, @p121);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p122, @p123);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p124, @p125);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p126, @p127);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p128, @p129);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p130, @p131);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p132, @p133);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p134, @p135);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p136, @p137);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p138, @p139);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p140, @p141);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p142, @p143);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p144, @p145);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p146, @p147);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p148, @p149);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p150, @p151);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p152, @p153);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p154, @p155);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p0='?' (DbType = Object), @p1='?' (DbType = Date), @p2='?', @p3='?' (DbType = Int32), @p4='?', @p5='?' (DbType = Date), @p6='?' (DbType = Decimal), @p7='?', @p8='?', @p9='?' (DbType = Decimal), @p10='?' (DbType = Object), @p11='?', @p12='?', @p13='?' (DbType = Date), @p14='?' (DbType = Object), @p15='?', @p16='?' (DbType = Object), @p17='?' (DbType = Date), @p18='?', @p19='?' (DbType = Int32), @p20='?', @p21='?' (DbType = Date), @p22='?' (DbType = Decimal), @p23='?', @p24='?', @p25='?' (DbType = Decimal), @p26='?' (DbType = Object), @p27='?', @p28='?', @p29='?' (DbType = Date), @p30='?' (DbType = Object), @p31='?', @p32='?' (DbType = Object), @p33='?' (DbType = Date), @p34='?', @p35='?' (DbType = Int32), @p36='?', @p37='?' (DbType = Date), @p38='?' (DbType = Decimal), @p39='?', @p40='?', @p41='?' (DbType = Decimal), @p42='?' (DbType = Object), @p43='?', @p44='?', @p45='?' (DbType = Date), @p46='?' (DbType = Object), @p47='?', @p48='?' (DbType = Object), @p49='?' (DbType = Date), @p50='?', @p51='?' (DbType = Int32), @p52='?', @p53='?' (DbType = Date), @p54='?' (DbType = Decimal), @p55='?', @p56='?', @p57='?' (DbType = Decimal), @p58='?' (DbType = Object), @p59='?', @p60='?', @p61='?' (DbType = Date), @p62='?' (DbType = Object), @p63='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p32, @p33, @p34, @p35, @p36, @p37, @p38, @p39, @p40, @p41, @p42, @p43, @p44, @p45, @p46, @p47)
+      RETURNING id;
+      INSERT INTO opportunities (contacts, deleted_at, description, employer_id, employment_type, expire_at, latitude, location_address, location_city, longitude, media_content, moderation_status, opportunity_type, publish_at, search_vector, title)
+      VALUES (@p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@p64='?' (DbType = Int32), @p65='?' (DbType = Int32), @p66='?' (DbType = Int32), @p67='?' (DbType = Int32), @p68='?' (DbType = Int32), @p69='?' (DbType = Int32), @p70='?' (DbType = Int32), @p71='?' (DbType = Int32), @p72='?' (DbType = Int32), @p73='?' (DbType = Int32), @p74='?' (DbType = Int32), @p75='?' (DbType = Int32), @p76='?' (DbType = Int32), @p77='?' (DbType = Int32), @p78='?' (DbType = Int32), @p79='?' (DbType = Int32), @p80='?' (DbType = Int32), @p81='?' (DbType = Int32), @p82='?' (DbType = Int32), @p83='?' (DbType = Int32), @p84='?' (DbType = Int32), @p85='?' (DbType = Int32), @p86='?' (DbType = Int32), @p87='?' (DbType = Int32), @p88='?' (DbType = Int32), @p89='?' (DbType = Int32), @p90='?' (DbType = Int32), @p91='?' (DbType = Int32), @p92='?' (DbType = Int32), @p93='?' (DbType = Int32), @p94='?' (DbType = Int32), @p95='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p64, @p65);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p66, @p67);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p68, @p69);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p70, @p71);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p72, @p73);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p74, @p75);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p76, @p77);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p78, @p79);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p80, @p81);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p82, @p83);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p84, @p85);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p86, @p87);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p88, @p89);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p90, @p91);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p92, @p93);
+      INSERT INTO opportunity_tags (opportunity_id, tag_id)
+      VALUES (@p94, @p95);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__owner_Id_0='?' (DbType = Int32), @__contact_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM contacts AS c
+          WHERE c.user_id = @__owner_Id_0 AND c.contact_id = @__contact_Id_1)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__owner_Id_0='?' (DbType = Int32), @__contact_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM contacts AS c
+          WHERE c.user_id = @__owner_Id_0 AND c.contact_id = @__contact_Id_1)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__owner_Id_0='?' (DbType = Int32), @__contact_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM contacts AS c
+          WHERE c.user_id = @__owner_Id_0 AND c.contact_id = @__contact_Id_1)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__candidateProfile_Id_0='?' (DbType = Int32), @__opportunity_Id_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a.id, a.applicant_id, a.applied_at, a.employer_note, a.opportunity_id, a.status
+      FROM applications AS a
+      WHERE a.applicant_id = @__candidateProfile_Id_0 AND a.opportunity_id = @__opportunity_Id_1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = DateTime), @p2='?', @p3='?' (DbType = Int32), @p4='?', @p5='?' (DbType = Int32), @p6='?' (DbType = DateTime), @p7='?', @p8='?' (DbType = Int32), @p9='?', @p10='?' (DbType = Int32), @p11='?' (DbType = DateTime), @p12='?', @p13='?' (DbType = Int32), @p14='?', @p15='?' (DbType = Int32), @p16='?' (DbType = DateTime), @p17='?', @p18='?' (DbType = Int32), @p19='?', @p20='?' (DbType = Int32), @p21='?' (DbType = DateTime), @p22='?', @p23='?' (DbType = Int32), @p24='?', @p25='?' (DbType = Int32), @p26='?' (DbType = DateTime), @p27='?', @p28='?' (DbType = Int32), @p29='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p0, @p1, @p2, @p3, @p4)
+      RETURNING id;
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p5, @p6, @p7, @p8, @p9)
+      RETURNING id;
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p10, @p11, @p12, @p13, @p14)
+      RETURNING id;
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p15, @p16, @p17, @p18, @p19)
+      RETURNING id;
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p20, @p21, @p22, @p23, @p24)
+      RETURNING id;
+      INSERT INTO applications (applicant_id, applied_at, employer_note, opportunity_id, status)
+      VALUES (@p25, @p26, @p27, @p28, @p29)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__recommender_Id_0='?' (DbType = Int32), @__candidate_Id_1='?' (DbType = Int32), @__opportunity_Id_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id
+      FROM recommendations AS r
+      WHERE r.recommender_id = @__recommender_Id_0 AND r.candidate_id = @__candidate_Id_1 AND r.opportunity_id = @__opportunity_Id_2
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__recommender_Id_0='?' (DbType = Int32), @__candidate_Id_1='?' (DbType = Int32), @__opportunity_Id_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT r.id, r.candidate_id, r.created_at, r.message, r.opportunity_id, r.recommender_id
+      FROM recommendations AS r
+      WHERE r.recommender_id = @__recommender_Id_0 AND r.candidate_id = @__candidate_Id_1 AND r.opportunity_id = @__opportunity_Id_2
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = DateTime), @p2='?', @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (DbType = DateTime), @p7='?', @p8='?' (DbType = Int32), @p9='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO recommendations (candidate_id, created_at, message, opportunity_id, recommender_id)
+      VALUES (@p0, @p1, @p2, @p3, @p4)
+      RETURNING id;
+      INSERT INTO recommendations (candidate_id, created_at, message, opportunity_id, recommender_id)
+      VALUES (@p5, @p6, @p7, @p8, @p9)
+      RETURNING id;
+info: DevelopmentDataSeeder[0]
+      Development seed ensured 2 curators, 3 candidates, 4 companies, and 18 opportunities.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5234
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\projects\ITPlanetaTramplinEfimof\backend\ITPlanetaTramplin.Api

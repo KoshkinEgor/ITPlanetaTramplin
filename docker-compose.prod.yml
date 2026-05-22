@@ -8,6 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -24,6 +26,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      PORT: 8080
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: ${API_CONNECTION_STRING}
       Database__ApplyMigrationsOnStartup: ${API_APPLY_MIGRATIONS_ON_STARTUP:-false}
@@ -52,6 +55,9 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    environment:
+      PORT: 80
+      INTERNAL_API_HOSTPORT: api:8080
     expose:
       - "80"
 
@@ -62,13 +68,12 @@ services:
       - frontend
       - api
     environment:
-      CADDY_SITE: ${CADDY_SITE:-localhost}
-      CADDY_EMAIL: ${CADDY_EMAIL:-}
+      CADDY_SITE: ${CADDY_SITE:-:80}
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
 

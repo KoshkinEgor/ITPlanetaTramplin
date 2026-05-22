@@ -60,6 +60,16 @@ function GuestProfileIcon() {
   );
 }
 
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 6h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M4 14h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const DEFAULT_ICON_BUTTONS = [
   { key: "favorites", label: "Избранное", href: routes.favorites, icon: <HeartIcon /> },
   { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
@@ -455,12 +465,40 @@ export function PortalHeader({
   visible = true,
   variant = "default",
 }) {
+  const mobileMenuRef = useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const isPublicProfileVariant = variant === "public-profile";
   const showActionButton = Boolean(actionHref && actionLabel && (!authUser || actionHref !== routes.auth.login));
   const showAccountMenu = Boolean(authUser) && !isPublicProfileVariant;
   const isLoginAction = actionHref === routes.auth.login;
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return undefined;
+    }
+
+    function handlePointerDown(event) {
+      if (!mobileMenuRef.current?.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   return (
     <div className={cn("portal-header-shell", floating && "is-floating", visible ? "is-visible" : "is-hidden", shellClassName)}>
@@ -484,6 +522,35 @@ export function PortalHeader({
         </nav>
 
         <div className="portal-header__actions">
+          <div ref={mobileMenuRef} className="portal-header__mobile-menu-shell">
+            <button
+              type="button"
+              className={cn("portal-header__mobile-menu-button", mobileMenuOpen && "is-open")}
+              aria-label="Открыть меню навигации"
+              aria-expanded={mobileMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setMobileMenuOpen((current) => !current)}
+            >
+              <MenuIcon />
+            </button>
+
+            {mobileMenuOpen ? (
+              <nav className="portal-header__mobile-menu" aria-label="Мобильная навигация">
+                {navItems.map((item) => (
+                  <AppLink
+                    key={`mobile-${item.key ?? item.label}`}
+                    href={item.href}
+                    className={cn("portal-header__mobile-menu-link", item.key === currentKey && "is-active")}
+                    aria-current={item.key === currentKey ? "page" : undefined}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </AppLink>
+                ))}
+              </nav>
+            ) : null}
+          </div>
+
           {iconButtons.map((item) => {
             if (item.key === "notifications" && authUser) {
               return <PortalHeaderNotifications key={item.key} authUser={authUser} />;
