@@ -45,6 +45,10 @@ public partial class User
 
     public virtual ICollection<CandidateProjectInvite> OutgoingProjectInvites { get; set; } = new List<CandidateProjectInvite>();
 
+    public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
+
+    public virtual ICollection<UserNotification> Notifications { get; set; } = new List<UserNotification>();
+
     public virtual ApplicantProfile? ApplicantProfile { get; set; }
 
     public virtual CuratorProfile? CuratorProfile { get; set; }

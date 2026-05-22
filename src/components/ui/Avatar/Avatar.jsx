@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "../../../lib/cn";
 
 const sizeClassMap = {
@@ -51,7 +52,13 @@ export function Avatar({
   className,
   ...props
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const resolvedInitials = initials || getInitials(name);
+  const resolvedSrc = src && !imageFailed ? src : "";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [src]);
 
   return (
     <span
@@ -65,7 +72,16 @@ export function Avatar({
       )}
       {...props}
     >
-      {src ? <img className="ui-avatar__image" src={src} alt={alt || name || "Avatar"} /> : <span className="ui-avatar__initials">{resolvedInitials}</span>}
+      {resolvedSrc ? (
+        <img
+          className="ui-avatar__image"
+          src={resolvedSrc}
+          alt={alt || name || "Avatar"}
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <span className="ui-avatar__initials">{resolvedInitials}</span>
+      )}
       {status ? <span className="ui-avatar__status" aria-hidden="true" title={statusLabel || status} /> : null}
     </span>
   );

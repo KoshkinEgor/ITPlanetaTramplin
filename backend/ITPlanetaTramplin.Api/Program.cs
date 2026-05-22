@@ -5,6 +5,7 @@ using ITPlanetaTramplin.Api.Infrastructure;
 using ITPlanetaTramplin.Api.Integrations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
@@ -49,12 +50,14 @@ builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp")
 builder.Services.Configure<DadataOptions>(builder.Configuration.GetSection("Dadata"));
 builder.Services.AddSingleton(Options.Create(BuildYandexGeocoderOptions(builder.Configuration, builder.Environment)));
 builder.Services.Configure<CompanyVerificationOptions>(builder.Configuration.GetSection("CompanyVerification"));
+builder.Services.Configure<UserMediaOptions>(builder.Configuration.GetSection("UserMedia"));
 builder.Services.AddSingleton(new AuthRuntimeOptions(authCookieName, keyBytes, accessTokenLifetime));
 builder.Services.AddSingleton<EmailVerificationService>();
 builder.Services.AddSingleton<PendingRegistrationStore>();
 builder.Services.AddSingleton<ModeratorInvitationService>();
 builder.Services.AddSingleton<PasswordResetService>();
 builder.Services.AddSingleton<CompanyVerificationStorage>();
+builder.Services.AddSingleton<UserMediaStorage>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();
 builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
@@ -144,6 +147,15 @@ if (seedDemoDataOnStartup)
 }
 
 app.UseCors("AllowFrontend");
+
+var userMediaStorage = app.Services.GetRequiredService<UserMediaStorage>();
+Directory.CreateDirectory(userMediaStorage.StorageRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(userMediaStorage.StorageRoot),
+    RequestPath = "/uploads",
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -156,6 +168,8 @@ api.MapCandidateEndpoints();
 api.MapCompanyEndpoints();
 api.MapOpportunityEndpoints();
 api.MapModerationEndpoints();
+api.MapComplaintEndpoints();
+api.MapNotificationEndpoints();
 
 app.Run();
 

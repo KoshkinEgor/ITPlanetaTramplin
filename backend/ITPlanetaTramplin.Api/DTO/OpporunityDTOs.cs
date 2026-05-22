@@ -22,6 +22,10 @@ namespace DTO
 
         public string? EmploymentType { get; set; }
 
+        public string? ExperienceLevel { get; set; }
+
+        public string? Schedule { get; set; }
+
         public string? ContactsJson { get; set; }
 
         public string? MediaContentJson { get; set; }
@@ -75,6 +79,10 @@ namespace DTO
 
         public string? EmploymentType { get; set; }
 
+        public string? ExperienceLevel { get; set; }
+
+        public string? Schedule { get; set; }
+
         public string? ModerationStatus { get; set; }
 
         public string? ModerationReason { get; set; }
@@ -105,6 +113,8 @@ namespace DTO
 
         public string? CompanyName { get; set; }
 
+        public string? CompanyProfileImage { get; set; }
+
         public string? CompanyDescription { get; set; }
 
         public string? CompanyLegalAddress { get; set; }
@@ -129,6 +139,10 @@ namespace DTO
         public string? OpportunityType { get; set; }
 
         public string? EmploymentType { get; set; }
+
+        public string? ExperienceLevel { get; set; }
+
+        public string? Schedule { get; set; }
 
         public string? LocationAddress { get; set; }
 

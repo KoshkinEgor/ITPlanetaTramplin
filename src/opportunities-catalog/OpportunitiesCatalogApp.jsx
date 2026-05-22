@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { useLocation } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCandidateProfile } from "../api/candidate";
 import { getPublicCompany } from "../api/company";
 import { getOpportunities } from "../api/opportunities";
+import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
 import { OpportunityBlockSlider, OpportunityFilterSidebar, OpportunityRowCard } from "../components/opportunities";
 import { parseSocialLinks } from "../features/company/socialLinks";
 import {
@@ -15,15 +16,17 @@ import {
   toggleFavoriteCompany,
 } from "../features/favorites/storage";
 import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
+import { useFloatingHeader } from "../shared/lib/useFloatingHeader";
 import { scheduleHashScroll } from "../shared/lib/scrollToHashTarget";
 import { getOpportunityApplyLabel, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
-import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
+import { getOpportunityCardPresentation, translateExperienceLevel, translateWorkSchedule } from "../shared/lib/opportunityPresentation";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import {
   Alert,
   Avatar,
   Button,
   Card,
+  CityAutocomplete,
   EmptyState,
   IconButton,
   Loader,
@@ -31,6 +34,7 @@ import {
   SearchInput,
   SectionHeader,
   SegmentedControl,
+  SortControl,
   Tag,
 } from "../shared/ui";
 import "../ui-kit/ui-kit.css";
@@ -49,11 +53,6 @@ const TYPE_FILTERS = [
   { value: "mentoring", label: "Менторские программы" },
 ];
 
-const VIEW_ITEMS = [
-  { value: "list", label: "Список" },
-  { value: "map", label: "Карта" },
-];
-
 const MAP_LEGEND_ITEMS = [
   { tone: "blue", label: "Вакансия" },
   { tone: "green", label: "Стажировка" },
@@ -67,15 +66,25 @@ const MAP_DISPLAY_ITEMS = [
   { value: "non-favorites", label: "\u041d\u0435 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435" },
 ];
 
-function FilterIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4 6h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M7 10h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M9 14h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
+const FILTER_ALL_VALUE = "all";
+const FILTER_ALL_LABEL = "Все";
+
+const QUICK_FILTERS = [
+  { key: "type", label: "Тип" },
+  { key: "format", label: "Формат" },
+  { key: "level", label: "Опыт" },
+  { key: "schedule", label: "График" },
+  { key: "skills", label: "Навыки" },
+];
+
+const LEVEL_FILTER_ORDER = ["Без опыта", "Junior", "Middle", "Senior"];
+
+const SORT_OPTIONS = [
+  { key: "popularity", label: "По популярности" },
+  { key: "date", label: "По дате публикации" },
+  { key: "salary", label: "По зарплате" },
+  { key: "title", label: "По названию" },
+];
 
 function HeartIcon() {
   return (
@@ -87,6 +96,48 @@ function HeartIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 6h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 10h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M11 14h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M5 10v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="m3.3 13.4 1.7 1.7 1.7-1.7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DirectionIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 4v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="m6 12 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SlidersIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M10 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M15 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="5" cy="8" r="2.1" fill="currentColor" />
+      <circle cx="10" cy="13" r="2.1" fill="currentColor" />
+      <circle cx="15" cy="6" r="2.1" fill="currentColor" />
     </svg>
   );
 }
@@ -106,6 +157,141 @@ function uniqueOptions(values) {
   return [...new Set(values.filter(Boolean).map((value) => String(value).trim()).filter(Boolean))].sort((left, right) =>
     left.localeCompare(right, "ru")
   );
+}
+
+function orderByKnownSequence(values, sequence) {
+  const normalizedOrder = new Map(sequence.map((value, index) => [normalize(value), index]));
+
+  return [...values].sort((left, right) => {
+    const leftOrder = normalizedOrder.get(normalize(left));
+    const rightOrder = normalizedOrder.get(normalize(right));
+
+    if (leftOrder != null && rightOrder != null) {
+      return leftOrder - rightOrder;
+    }
+
+    if (leftOrder != null) {
+      return -1;
+    }
+
+    if (rightOrder != null) {
+      return 1;
+    }
+
+    return left.localeCompare(right, "ru");
+  });
+}
+
+function createFilterTriggerLabel(label, currentLabel) {
+  return `${label} : ${currentLabel}`;
+}
+
+function getOpportunityLevelLabel(item) {
+  if (item?.experienceLevel) {
+    return translateExperienceLevel(item.experienceLevel);
+  }
+
+  const content = normalize([
+    item?.title,
+    item?.description,
+    item?.opportunityType,
+    item?.duration,
+    ...(Array.isArray(item?.tags) ? item.tags : []),
+  ].join(" "));
+
+  if (/(senior|старш|ведущ)/.test(content)) {
+    return "Senior";
+  }
+
+  if (/(middle|мидл)/.test(content)) {
+    return "Middle";
+  }
+
+  if (/(junior|младш|стажер|стажёр)/.test(content)) {
+    return "Junior";
+  }
+
+  if (/(internship|стажиров|без опыта|старт)/.test(content)) {
+    return "Без опыта";
+  }
+
+  return "";
+}
+
+function createQuickFilterOptions(items, references = FALLBACK_REFERENCE_CATEGORIES) {
+  const typeFilters = [
+    { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
+    ...references.opportunityTypes.map((item) => ({ value: item.value, label: item.label })),
+  ];
+  const referenceEmploymentTypes = references.employmentTypes?.length
+    ? references.employmentTypes.map((item) => ({ value: item.value, label: item.label }))
+    : [];
+
+  return {
+    type: typeFilters.length > 1 ? typeFilters : TYPE_FILTERS,
+    format: [
+      { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
+      ...(referenceEmploymentTypes.length
+        ? referenceEmploymentTypes
+        : uniqueOptions(items.map((item) => translateEmploymentType(item.employmentType)))
+          .filter(Boolean)
+          .map((value) => ({ value, label: value }))),
+    ],
+    level: [
+      { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
+      ...(references.experienceLevels?.length
+        ? references.experienceLevels
+        : orderByKnownSequence(uniqueOptions(items.map(getOpportunityLevelLabel)), LEVEL_FILTER_ORDER).map((value) => ({ value, label: value }))),
+    ],
+    schedule: [
+      { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
+      ...(references.workSchedules?.length
+        ? references.workSchedules
+        : uniqueOptions(items.map((item) => translateWorkSchedule(item.schedule)).filter(Boolean)).map((value) => ({ value, label: value }))),
+    ],
+    skills: [
+      { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
+      ...uniqueOptions(items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
+    ],
+  };
+}
+
+function getSortValue(item, sortKey) {
+  switch (sortKey) {
+    case "salary":
+      return Number(item?.salaryTo ?? item?.salaryFrom ?? item?.stipendTo ?? item?.stipendFrom ?? 0);
+    case "date":
+      return new Date(item?.publishAt ?? item?.eventStartAt ?? item?.registrationDeadline ?? 0).getTime() || 0;
+    case "title":
+      return String(item?.title ?? "");
+    case "popularity":
+    default:
+      return Number(item?.salaryTo ?? item?.salaryFrom ?? item?.stipendTo ?? item?.stipendFrom ?? 0)
+        + (Array.isArray(item?.tags) ? item.tags.length : 0);
+  }
+}
+
+function sortOpportunities(items, sortKey, sortDirection) {
+  if (sortKey === "popularity") {
+    return sortDirection === "asc" ? [...items].reverse() : [...items];
+  }
+
+  const directionFactor = sortDirection === "asc" ? 1 : -1;
+
+  return [...items].sort((left, right) => {
+    const leftValue = getSortValue(left, sortKey);
+    const rightValue = getSortValue(right, sortKey);
+
+    if (typeof leftValue === "string" || typeof rightValue === "string") {
+      return String(leftValue).localeCompare(String(rightValue), "ru") * directionFactor;
+    }
+
+    if (leftValue !== rightValue) {
+      return (leftValue - rightValue) * directionFactor;
+    }
+
+    return String(left.title ?? "").localeCompare(String(right.title ?? ""), "ru");
+  });
 }
 
 function clamp(value, min, max) {
@@ -283,6 +469,57 @@ function createRecommendationSliderCardProps(item) {
   };
 }
 
+function CatalogFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
+  const resolvedOptions = options.length ? options : [{ value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL }];
+  const selectedOption = resolvedOptions.find((option) => String(option.value) === String(value)) ?? resolvedOptions[0];
+  const triggerLabel = createFilterTriggerLabel(label, selectedOption?.label ?? FILTER_ALL_LABEL);
+
+  return (
+    <SortControl
+      label={triggerLabel}
+      value={selectedOption.value}
+      options={resolvedOptions}
+      open={isOpen}
+      onOpenChange={onToggle}
+      onSelect={onSelect}
+      className="opportunities-browser-filter-dropdown"
+      triggerClassName="opportunities-browser-filter-dropdown__trigger"
+      menuClassName="opportunities-browser-filter-dropdown__menu"
+      optionClassName="opportunities-browser-filter-dropdown__option"
+      triggerLabel={triggerLabel}
+      endIcon={<ChevronDownIcon />}
+    />
+  );
+}
+
+function CatalogSortControl({ value, direction, onSelect, onToggleDirection }) {
+  return (
+    <SortControl
+      label="Выбрать способ сортировки"
+      value={value}
+      onSelect={onSelect}
+      options={SORT_OPTIONS.map((option) => ({ value: option.key, label: option.label }))}
+      className="opportunities-browser-sort-control"
+      triggerClassName="opportunities-browser-sort-control__trigger"
+      menuClassName="opportunities-browser-sort-control__menu"
+      optionClassName="opportunities-browser-sort-control__option"
+      startIcon={<SortIcon />}
+      endIcon={<ChevronDownIcon />}
+      action={(
+        <IconButton
+          type="button"
+          className="opportunities-browser-sort-control__direction"
+          size="2xl"
+          aria-label={direction === "asc" ? "Порядок: по возрастанию" : "Порядок: по убыванию"}
+          onClick={onToggleDirection}
+        >
+          <DirectionIcon />
+        </IconButton>
+      )}
+    />
+  );
+}
+
 function getCompanyInitial(name) {
   return String(name ?? "").trim().slice(0, 1).toUpperCase() || "C";
 }
@@ -452,6 +689,7 @@ function buildCompanyGroups(items) {
 export function OpportunitiesCatalogApp() {
   const location = useLocation();
   const filtersAnchorRef = useRef(null);
+  const { isHeaderFloating, isHeaderVisible } = useFloatingHeader();
   const [state, setState] = useState({
     status: "loading",
     items: [],
@@ -464,11 +702,17 @@ export function OpportunitiesCatalogApp() {
     city: DEFAULT_CITY_NAME,
     specialization: "",
     employmentTypes: [],
+    level: FILTER_ALL_VALUE,
+    schedule: FILTER_ALL_VALUE,
     incomeFrom: "",
     payoutPeriod: "",
     education: [],
   });
   const [view, setView] = useState("list");
+  const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].key);
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [cityInputValue, setCityInputValue] = useState(() => getFallbackCityOption(DEFAULT_CITY_NAME)?.name ?? DEFAULT_CITY_NAME);
+  const [openQuickFilterKey, setOpenQuickFilterKey] = useState(null);
   const [favoritesDisplay, setFavoritesDisplay] = useState("all");
   const [filtersDropdownOpen, setFiltersDropdownOpen] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
@@ -478,6 +722,7 @@ export function OpportunitiesCatalogApp() {
   const [visibleCount, setVisibleCount] = useState(3);
   const [companyCity, setCompanyCity] = useState("");
   const [companyProfiles, setCompanyProfiles] = useState({});
+  const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
 
   useEffect(() => {
     document.body.classList.add(BODY_CLASS);
@@ -506,7 +751,7 @@ export function OpportunitiesCatalogApp() {
 
     async function load() {
       try {
-        const [items, candidate] = await Promise.all([
+        const [items, candidate, references] = await Promise.all([
           getOpportunities(controller.signal),
           getCandidateProfile(controller.signal).catch((error) => {
             if (error?.status === 401 || error?.status === 403) {
@@ -515,6 +760,7 @@ export function OpportunitiesCatalogApp() {
 
             return null;
           }),
+          getSystemReferences(controller.signal).then(normalizeReferenceCategories).catch(() => FALLBACK_REFERENCE_CATEGORIES),
         ]);
 
         if (controller.signal.aborted) {
@@ -527,6 +773,7 @@ export function OpportunitiesCatalogApp() {
           candidate,
           error: null,
         });
+        setReferenceCategories(references);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -548,7 +795,7 @@ export function OpportunitiesCatalogApp() {
 
   useEffect(() => {
     setVisibleCount(3);
-  }, [filters.query, filters.activeType, filters.city, filters.specialization, filters.employmentTypes]);
+  }, [filters.query, filters.activeType, filters.city, filters.specialization, filters.employmentTypes, filters.level, filters.schedule]);
 
   useEffect(() => {
     if (view === "map") {
@@ -563,10 +810,20 @@ export function OpportunitiesCatalogApp() {
     () => ({
       cities: FALLBACK_CITY_OPTIONS,
       specializations: uniqueOptions(state.items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
-      employmentTypes: uniqueOptions(state.items.map((item) => translateEmploymentType(item.employmentType)))
-        .filter(Boolean)
-        .map((value) => ({ value, label: value })),
+      employmentTypes: referenceCategories.employmentTypes?.length
+        ? referenceCategories.employmentTypes
+        : uniqueOptions(state.items.map((item) => translateEmploymentType(item.employmentType)))
+          .filter(Boolean)
+          .map((value) => ({ value, label: value })),
     }),
+    [referenceCategories.employmentTypes, state.items]
+  );
+  const quickFilterOptions = useMemo(() => createQuickFilterOptions(state.items, referenceCategories), [referenceCategories, state.items]);
+  const visibleQuickFilters = useMemo(
+    () => QUICK_FILTERS.filter((filter) => (
+      filter.key !== "schedule"
+      || state.items.some((item) => String(item?.schedule ?? "").trim())
+    )),
     [state.items]
   );
 
@@ -574,6 +831,8 @@ export function OpportunitiesCatalogApp() {
     const normalizedQuery = normalize(filters.query);
     const normalizedSpecialization = normalize(filters.specialization);
     const selectedEmploymentTypes = filters.employmentTypes.map((value) => normalize(value));
+    const normalizedLevel = normalize(filters.level);
+    const normalizedSchedule = normalize(filters.schedule);
 
     return state.items.filter((item) => {
       const matchesType = filters.activeType === "all" || item.opportunityType === filters.activeType;
@@ -581,11 +840,17 @@ export function OpportunitiesCatalogApp() {
       const matchesSpecialization =
         !normalizedSpecialization || (Array.isArray(item.tags) ? item.tags.some((tag) => normalize(tag) === normalizedSpecialization) : false);
       const matchesEmployment =
-        selectedEmploymentTypes.length === 0 || selectedEmploymentTypes.includes(normalize(translateEmploymentType(item.employmentType)));
+        selectedEmploymentTypes.length === 0 ||
+        selectedEmploymentTypes.includes(normalize(item.employmentType)) ||
+        selectedEmploymentTypes.includes(normalize(translateEmploymentType(item.employmentType)));
+      const matchesLevel = filters.level === FILTER_ALL_VALUE || normalize(getOpportunityLevelLabel(item)) === normalizedLevel;
+      const matchesSchedule = filters.schedule === FILTER_ALL_VALUE ||
+        normalize(item.schedule) === normalizedSchedule ||
+        normalize(translateWorkSchedule(item.schedule)) === normalizedSchedule;
       const haystack = normalize([item.title, item.companyName, item.locationCity, item.description, ...(item.tags ?? [])].join(" "));
       const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
 
-      return matchesType && matchesCity && matchesSpecialization && matchesEmployment && matchesQuery;
+      return matchesType && matchesCity && matchesSpecialization && matchesEmployment && matchesLevel && matchesSchedule && matchesQuery;
     });
   }, [filters, state.items]);
 
@@ -610,7 +875,11 @@ export function OpportunitiesCatalogApp() {
   const recommendedItems = scoredRecommendations.slice(0, 4);
   const personalizedItems = scoredRecommendations.filter((entry) => entry.matchedSkillsCount > 0);
   const hasPersonalization = candidateSkills.length > 0;
-  const visibleResults = filteredItems.slice(0, visibleCount);
+  const sortedFilteredItems = useMemo(
+    () => sortOpportunities(filteredItems, sortKey, sortDirection),
+    [filteredItems, sortDirection, sortKey]
+  );
+  const visibleResults = sortedFilteredItems.slice(0, visibleCount);
   const companyGroups = useMemo(() => buildCompanyGroups(recommendationSource), [recommendationSource]);
   const favoriteOpportunityIdSet = useMemo(
     () => new Set(favoriteOpportunityIds.map((id) => String(id))),
@@ -622,7 +891,7 @@ export function OpportunitiesCatalogApp() {
   );
   const mapFilteredItems = useMemo(
     () =>
-      filteredItems
+      sortedFilteredItems
         .map((item) => ({
           ...item,
           isFavoriteOpportunity: favoriteOpportunityIdSet.has(String(item.id)),
@@ -645,7 +914,7 @@ export function OpportunitiesCatalogApp() {
 
           return true;
         }),
-    [favoriteCompanyIdSet, favoriteOpportunityIdSet, favoritesDisplay, filteredItems]
+    [favoriteCompanyIdSet, favoriteOpportunityIdSet, favoritesDisplay, sortedFilteredItems]
   );
   const mapItems = useMemo(() => mapFilteredItems.filter(hasValidCoordinates).map(createMapCardItem), [mapFilteredItems]);
   const mapResultsDescription = useMemo(
@@ -787,6 +1056,10 @@ export function OpportunitiesCatalogApp() {
   const sectionCityPills = companyGroups;
 
   const handleFilterChange = (field, value) => {
+    if (field === "city") {
+      setCityInputValue(value);
+    }
+
     setFilters((current) => ({
       ...current,
       [field]: value,
@@ -797,6 +1070,7 @@ export function OpportunitiesCatalogApp() {
     setFilters((current) => {
       switch (section) {
         case "city":
+          setCityInputValue(getFallbackCityOption(DEFAULT_CITY_NAME)?.name ?? DEFAULT_CITY_NAME);
           return { ...current, city: DEFAULT_CITY_NAME };
         case "income":
           return { ...current, incomeFrom: "", payoutPeriod: "" };
@@ -804,6 +1078,8 @@ export function OpportunitiesCatalogApp() {
           return { ...current, specialization: "" };
         case "employmentTypes":
           return { ...current, employmentTypes: [] };
+        case "level":
+          return { ...current, level: FILTER_ALL_VALUE };
         case "education":
           return { ...current, education: [] };
         default:
@@ -819,11 +1095,15 @@ export function OpportunitiesCatalogApp() {
       city: DEFAULT_CITY_NAME,
       specialization: "",
       employmentTypes: [],
+      level: FILTER_ALL_VALUE,
+      schedule: FILTER_ALL_VALUE,
       incomeFrom: "",
       payoutPeriod: "",
       education: [],
     });
+    setCityInputValue(getFallbackCityOption(DEFAULT_CITY_NAME)?.name ?? DEFAULT_CITY_NAME);
     setFavoritesDisplay("all");
+    setOpenQuickFilterKey(null);
   };
 
   const handleResetMapDisplay = () => {
@@ -841,30 +1121,57 @@ export function OpportunitiesCatalogApp() {
     setFiltersDrawerOpen(false);
   };
 
-  const renderTypeFilters = (className) => (
-    <div className={className}>
-      {TYPE_FILTERS.map((filter) => (
-        <PillButton
-          key={filter.value}
-          size="lg"
-          active={filter.value === filters.activeType}
-          onClick={() => handleFilterChange("activeType", filter.value)}
-        >
-          {filter.label}
-        </PillButton>
-      ))}
-    </div>
-  );
+  const getQuickFilterValue = (key) => {
+    switch (key) {
+      case "type":
+        return filters.activeType;
+      case "format":
+        return filters.employmentTypes[0] ?? FILTER_ALL_VALUE;
+      case "level":
+        return filters.level ?? FILTER_ALL_VALUE;
+      case "schedule":
+        return filters.schedule ?? FILTER_ALL_VALUE;
+      case "skills":
+        return filters.specialization || FILTER_ALL_VALUE;
+      default:
+        return FILTER_ALL_VALUE;
+    }
+  };
+
+  const handleQuickFilterSelect = (key, nextValue) => {
+    switch (key) {
+      case "type":
+        handleFilterChange("activeType", nextValue);
+        break;
+      case "format":
+        handleFilterChange("employmentTypes", nextValue === FILTER_ALL_VALUE ? [] : [nextValue]);
+        break;
+      case "level":
+        handleFilterChange("level", nextValue);
+        break;
+      case "schedule":
+        handleFilterChange("schedule", nextValue);
+        break;
+      case "skills":
+        handleFilterChange("specialization", nextValue === FILTER_ALL_VALUE ? "" : nextValue);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <main className="opportunities-browser">
       <div className="opportunities-browser__shell ui-page-shell">
         <PortalHeader
           navItems={NAV_ITEMS}
-          currentKey="opportunities"
-          actionHref="/candidate/profile"
-          actionLabel="Профиль"
+          brandLabel="рамплин"
+          actionHref={routes.auth.login}
+          actionLabel="Войти / Регистрация"
+          shellClassName="opportunities-browser__header-shell"
           className="opportunities-browser__header"
+          floating={isHeaderFloating}
+          visible={isHeaderVisible}
         />
 
         <section className="opportunities-browser__hero">
@@ -897,39 +1204,77 @@ export function OpportunitiesCatalogApp() {
           <>
             <section className="opportunities-browser__layout" id="catalog-results">
               <div className="opportunities-browser__main">
-                <div className="opportunities-browser__section-head">
-                  <Tag tone="accent">Возможности</Tag>
-                  <SectionHeader
-                    size="md"
-                    title="Возможности"
-                    description="Находи стажировки, вакансии, компании и мероприятия по своим предпочтениям."
-                  />
-                </div>
+                <div className="opportunities-browser__discovery">
+                  <div className="opportunities-browser__discovery-header">
+                    <div className="opportunities-browser__title-row">
+                      <h2 className="ui-type-h1">Возможности рядом</h2>
+                      <CityAutocomplete
+                        value={cityInputValue}
+                        selectedOption={selectedCityOption}
+                        selectedOptionId={selectedCityOption?.id}
+                        onValueChange={setCityInputValue}
+                        onSelectOption={(option) => {
+                          const nextCity = option?.name ?? "";
+                          setCityInputValue(nextCity);
+                          handleFilterChange("city", nextCity);
+                        }}
+                        fallbackOptions={FALLBACK_CITY_OPTIONS}
+                        className="opportunities-browser__city-picker"
+                      />
+                    </div>
 
-                {view === "list" ? (
-                  <>
-                    <div className="opportunities-browser__controls">
-                      <div className="opportunities-browser__controls-main">
-                        <SegmentedControl
-                          items={VIEW_ITEMS}
-                          value={view}
-                          onChange={handleViewChange}
-                          stretch
-                          ariaLabel="Режим каталога возможностей"
-                          className="opportunities-browser__view-switch"
-                        />
+                    <SegmentedControl
+                      items={[
+                        { value: "map", label: "Карта возможностей" },
+                        { value: "list", label: "Список возможностей" },
+                      ]}
+                      value={view}
+                      onChange={handleViewChange}
+                      stretch
+                      ariaLabel="Режим каталога возможностей"
+                      size="md"
+                      className="opportunities-browser__view-switch"
+                    />
+                  </div>
 
-                        <div ref={filtersAnchorRef} className="opportunities-browser__filters-anchor">
-                          <Button
-                            variant="secondary"
-                            size="lg"
-                            iconStart={<FilterIcon />}
-                            className="opportunities-browser__filter-button"
-                            onClick={() => setFiltersDropdownOpen((current) => !current)}
-                          >
-                            {"Фильтры"}
-                          </Button>
+                  <div className="opportunities-browser__discovery-toolbar">
+                    <SearchInput
+                      value={filters.query}
+                      onValueChange={(value) => handleFilterChange("query", value)}
+                      placeholder="Поиск возможностей"
+                      clearLabel="Очистить поиск"
+                      className="opportunities-browser__search"
+                    />
 
+                    <div className="opportunities-browser__toolbar-icons">
+                      <CatalogSortControl
+                        value={sortKey}
+                        direction={sortDirection}
+                        onSelect={setSortKey}
+                        onToggleDirection={() => setSortDirection((current) => (current === "asc" ? "desc" : "asc"))}
+                      />
+                      <div ref={filtersAnchorRef} className="opportunities-browser__filters-anchor">
+                        <IconButton
+                          type="button"
+                          variant="outline"
+                          size="2xl"
+                          className="opportunities-browser__toolbar-icon opportunities-browser__toolbar-icon--outlined"
+                          aria-label={view === "map" ? "Фильтры карты" : "Фильтры"}
+                          aria-pressed={view === "map" ? filtersDrawerOpen : filtersDropdownOpen}
+                          active={view === "map" ? filtersDrawerOpen : filtersDropdownOpen}
+                          onClick={() => {
+                            if (view === "map") {
+                              setFiltersDrawerOpen((current) => !current);
+                              return;
+                            }
+
+                            setFiltersDropdownOpen((current) => !current);
+                          }}
+                        >
+                          <SlidersIcon />
+                        </IconButton>
+
+                        {view === "list" ? (
                           <OpportunityFilterSidebar
                             mode="dropdown"
                             open={filtersDropdownOpen}
@@ -942,32 +1287,29 @@ export function OpportunitiesCatalogApp() {
                             onResetSection={handleResetSection}
                             onResetAll={handleResetAll}
                           />
-                        </div>
-                      </div>
-
-                      <SearchInput
-                        value={filters.query}
-                        onValueChange={(value) => handleFilterChange("query", value)}
-                        placeholder="Поиск по названию, действию или дате"
-                        clearLabel="Очистить поиск"
-                        appearance="elevated"
-                        size="lg"
-                        width="full"
-                        className="opportunities-browser__search"
-                      />
-
-                      <div className="opportunities-browser__toolbar">
-                        {renderTypeFilters("opportunities-browser__type-filters")}
-
-                        <div className="opportunities-browser__sort">
-                          <button type="button" disabled className="opportunities-browser__sort-button">
-                            {"По возрастанию зарплат"}
-                          </button>
-                          <p>{"Сортировка появится после подключения зарплатных данных."}</p>
-                        </div>
+                        ) : null}
                       </div>
                     </div>
+                  </div>
 
+                  <div className="opportunities-browser__quick-filters" aria-label="Быстрые фильтры">
+                    {visibleQuickFilters.map((filter) => (
+                      <div key={filter.key} className="opportunities-browser__quick-filter">
+                        <CatalogFilterDropdown
+                          label={filter.label}
+                          value={getQuickFilterValue(filter.key)}
+                          options={quickFilterOptions[filter.key] ?? []}
+                          isOpen={openQuickFilterKey === filter.key}
+                          onToggle={(nextState) => setOpenQuickFilterKey(nextState ? filter.key : null)}
+                          onSelect={(nextValue) => handleQuickFilterSelect(filter.key, nextValue)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {view === "list" ? (
+                  <>
                     <p className="opportunities-browser__results-caption">
                       {"Найдено"} {formatCount(filteredItems.length, ["возможность", "возможности", "возможностей"])}
                     </p>
@@ -1017,61 +1359,16 @@ export function OpportunitiesCatalogApp() {
                 ) : (
                   <section className="opportunities-browser__map-panel" aria-label="Карта возможностей">
                     <div className="opportunities-browser__map-shell">
-                      <div className="opportunities-browser__map-header">
-                        <div className="opportunities-browser__map-copy">
-                          <Tag tone="accent">{"Карта возможностей"}</Tag>
-                          <SectionHeader
-                            size="md"
-                            title="Большая карта каталога"
-                            description={mapResultsDescription}
-                          />
-                        </div>
+                      <div className="opportunities-browser__map-meta opportunities-browser__map-meta--compact">
+                        <p className="opportunities-browser__map-description">{mapResultsDescription}</p>
 
-                        <div className="opportunities-browser__map-actions">
-                          <Button
-                            variant="secondary"
-                            size="lg"
-                            iconStart={<FilterIcon />}
-                            className="opportunities-browser__map-filter-button"
-                            onClick={() => setFiltersDrawerOpen(true)}
-                          >
-                            {"Фильтры карты"}
-                          </Button>
-
-                          <SegmentedControl
-                            items={VIEW_ITEMS}
-                            value={view}
-                            onChange={handleViewChange}
-                            stretch
-                            ariaLabel="Режим карты возможностей"
-                            className="opportunities-browser__map-view-switch"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="opportunities-browser__map-toolbar">
-                        <SearchInput
-                          value={filters.query}
-                          onValueChange={(value) => handleFilterChange("query", value)}
-                          placeholder="Поиск по названию, действию или дате"
-                          clearLabel="Очистить поиск"
-                          appearance="elevated"
-                          size="lg"
-                          width="full"
-                          className="opportunities-browser__map-search"
-                        />
-
-                        <div className="opportunities-browser__map-meta">
-                          {renderTypeFilters("opportunities-browser__type-filters opportunities-browser__type-filters--map")}
-
-                          <div className="opportunities-browser__map-legend" aria-label="Легенда карты">
-                            {MAP_LEGEND_ITEMS.map((item) => (
-                              <span key={item.tone} className="opportunities-browser__map-legend-chip">
-                                <span className={`opportunities-browser__map-dot opportunities-browser__map-dot--${item.tone}`} aria-hidden="true" />
-                                {item.label}
-                              </span>
-                            ))}
-                          </div>
+                        <div className="opportunities-browser__map-legend" aria-label="Легенда карты">
+                          {MAP_LEGEND_ITEMS.map((item) => (
+                            <span key={item.tone} className="opportunities-browser__map-legend-chip">
+                              <span className={`opportunities-browser__map-dot opportunities-browser__map-dot--${item.tone}`} aria-hidden="true" />
+                              {item.label}
+                            </span>
+                          ))}
                         </div>
                       </div>
 

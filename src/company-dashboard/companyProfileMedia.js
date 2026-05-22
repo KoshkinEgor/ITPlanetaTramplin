@@ -1,3 +1,5 @@
+import { uploadImage } from "../api/uploads";
+
 const IMAGE_FILE_PATTERN = /\.(png|jpe?g|webp|gif|bmp|svg)(?:[?#].*)?$/i;
 const VIDEO_FILE_PATTERN = /\.(mp4|webm|mov|m4v|m3u8)(?:[?#].*)?$/i;
 const VIDEO_HOST_PATTERN = /(youtube\.com|youtu\.be|rutube\.ru|vimeo\.com|vkvideo\.ru|tiktok\.com)/i;
@@ -85,24 +87,13 @@ export function createCompanyGalleryItemDraft(value = {}) {
   };
 }
 
-export function readCompanyMediaFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+export function uploadCompanyMediaFile(file) {
+  return uploadImage(file).then((result) => {
+    if (!result.url) {
+      throw new Error("Сервер не вернул ссылку на изображение.");
+    }
 
-    reader.onload = () => {
-      if (typeof reader.result === "string" && reader.result) {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.onerror = () => {
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.readAsDataURL(file);
+    return result.url;
   });
 }
 

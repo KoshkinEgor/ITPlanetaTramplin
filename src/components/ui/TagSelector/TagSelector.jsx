@@ -68,6 +68,7 @@ export function TagSelector({
     const normalized = query.trim().toLowerCase();
     return suggestions.filter((item) => !normalized || item.toLowerCase().includes(normalized));
   }, [query, suggestions]);
+  const canCreateTag = query.trim() && !draft.some((item) => item.toLowerCase() === query.trim().toLowerCase());
 
   const handleCancel = () => {
     setDraft(value);
@@ -116,6 +117,15 @@ export function TagSelector({
           <div className="ui-tag-selector__recommendations">
             <div className="ui-tag-selector__subtitle">{suggestionsLabel}</div>
             <div className="ui-tag-selector__list">
+              {canCreateTag ? (
+                <SuggestionChip
+                  label={`Добавить «${query.trim()}»`}
+                  onClick={() => {
+                    setDraft((current) => [...current, query.trim()]);
+                    setQuery("");
+                  }}
+                />
+              ) : null}
               {visibleSuggestions.map((item) => (
                 <SuggestionChip
                   key={item}

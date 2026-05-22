@@ -461,6 +461,55 @@ body.auth-react-body {
   font-weight: 700;
 }
 
+.auth-password-checklist {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-password-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c778e;
+  font-size: var(--ui-font-size-small);
+  font-weight: 700;
+  line-height: var(--ui-line-height-small);
+}
+
+.auth-password-checklist__mark {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(108, 119, 142, 0.28);
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.auth-password-checklist__item.is-met {
+  color: #1f7a4d;
+}
+
+.auth-password-checklist__item.is-met .auth-password-checklist__mark {
+  border-color: rgba(31, 122, 77, 0.34);
+  background: rgba(46, 168, 93, 0.12);
+}
+
+.auth-password-checklist__item.is-met .auth-password-checklist__mark::after {
+  content: "";
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
 .auth-register-actions {
   margin-top: var(--ui-space-1);
 }

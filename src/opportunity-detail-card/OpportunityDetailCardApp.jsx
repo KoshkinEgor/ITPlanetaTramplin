@@ -4,7 +4,10 @@ import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { createCandidateOpportunityShare, getCandidateEducation, getCandidateOpportunitySocialContext, getCandidateProfile } from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
-import { applyToOpportunity, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
+import { applyToOpportunity, createOpportunityComplaint, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
+import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
+import { getTags } from "../api/tags";
+import { uploadImage } from "../api/uploads";
 import { useAuthSession } from "../auth/api";
 import { refreshCandidateApplications, upsertCandidateApplication } from "../candidate-portal/candidate-applications-store";
 import { getCandidateOnboardingState } from "../candidate-portal/onboarding";
@@ -15,13 +18,19 @@ import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
 import { buildOpportunityPayload, buildOpportunityPreviewRoute, createOpportunityDraft, formatOpportunityDateTime, getOpportunityDetailPresentation, getOpportunityMiniCardPresentation, getOpportunityOwnerCapabilities, translateModerationStatus, validateOpportunityDraftForSubmit } from "../shared/lib/opportunityPresentation";
 import { getOpportunityApplyLabel, isEventOpportunity } from "../shared/lib/opportunityTypes";
-import { Alert, Avatar, Button, Card, Checkbox, EmptyState, FormField, IconButton, Input, Loader, Modal, OpportunityMiniCard, Select, Tag, Textarea } from "../shared/ui";
+import { Alert, Avatar, Button, Card, Checkbox, EmptyState, FormField, IconButton, Input, Loader, Modal, OpportunityMiniCard, Select, Tag, TagSelector, Textarea } from "../shared/ui";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { OpportunityLocationPicker } from "../company-dashboard/OpportunityLocationPicker";
 import "./opportunity-detail-card.css";
 
 const BODY_CLASS = "opportunity-card-react-body";
 const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
+const COMPLAINT_REASON_OPTIONS = [
+  { value: "Недостоверная информация", label: "Недостоверная информация" },
+  { value: "Спам или мошенничество", label: "Спам или мошенничество" },
+  { value: "Некорректные условия", label: "Некорректные условия" },
+  { value: "Другое", label: "Другое" },
+];
 
 const DEMO = {
   "design-ui-ux": {
@@ -83,7 +92,85 @@ function contacts(value) {
   }).filter(Boolean);
   return [];
 }
-function media(value) {const parsed = json(value, []);return Array.isArray(parsed) ? parsed.map((item) => ({ title: String(item?.title ?? item?.label ?? "").trim(), url: String(item?.url ?? item?.href ?? item?.value ?? "").trim() })).filter((item) => item.title || item.url) : [];}
+function normalizeMediaType(value) {return value === "image" || value === "video" ? value : "link";}
+function media(value) {const parsed = json(value, []);return Array.isArray(parsed) ? parsed.map((item) => ({ type: normalizeMediaType(item?.type), title: String(item?.title ?? item?.label ?? "").trim(), url: String(item?.url ?? item?.href ?? item?.value ?? "").trim() })).filter((item) => item.title || item.url) : [];}
+function getVideoEmbedUrl(value) {
+  try {
+    const url = new URL(String(value ?? "").trim());
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+
+    if (host === "youtu.be") {
+      return url.pathname.slice(1) ? `https://www.youtube.com/embed/${url.pathname.slice(1)}` : "";
+    }
+
+    if (host.endsWith("youtube.com")) {
+      const videoId = url.searchParams.get("v") || url.pathname.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+    }
+
+    if (host.endsWith("vimeo.com")) {
+      const videoId = url.pathname.match(/\/(?:video\/)?(\d+)/)?.[1];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : "";
+    }
+
+    if (host.endsWith("rutube.ru")) {
+      const videoId = url.pathname.match(/\/(?:video|play\/embed)\/([^/?#]+)/)?.[1];
+      return videoId ? `https://rutube.ru/play/embed/${videoId}` : "";
+    }
+
+    if (host.endsWith("vkvideo.ru") || host.endsWith("vk.com")) {
+      if (url.pathname.includes("video_ext.php")) {
+        return url.toString();
+      }
+
+      const videoMatch = url.pathname.match(/video(-?\d+)_(\d+)/);
+      return videoMatch ? `https://vkvideo.ru/video_ext.php?oid=${videoMatch[1]}&id=${videoMatch[2]}` : "";
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+function OpportunityMediaEntry({ entry, index }) {
+  const title = entry.title || `Материал ${index + 1}`;
+  const embedUrl = entry.type === "video" ? getVideoEmbedUrl(entry.url) : "";
+
+  if (entry.type === "image" && entry.url) {
+    return (
+      <figure className="opportunity-media-entry opportunity-media-entry--image">
+        <img src={entry.url} alt={title} loading="lazy" />
+        <figcaption>{title}</figcaption>
+      </figure>
+    );
+  }
+
+  if (entry.type === "video" && embedUrl) {
+    return (
+      <figure className="opportunity-media-entry opportunity-media-entry--video">
+        <iframe
+          src={embedUrl}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+        <figcaption>{title}</figcaption>
+      </figure>
+    );
+  }
+
+  if (entry.url) {
+    return (
+      <AppLink href={entry.url} className="opportunity-media-entry opportunity-media-entry--link">
+        <strong>{title}</strong>
+        <span>{entry.type === "video" ? "Открыть видео" : "Открыть материал"}</span>
+      </AppLink>
+    );
+  }
+
+  return <p className="opportunity-media-entry opportunity-media-entry--text">{title}</p>;
+}
 function socials(value) {const parsed = json(value, null);return Array.isArray(parsed) ? parsed.map((item, index) => ({ id: `social-${index}`, label: String(item?.type ?? item?.label ?? item ?? "").trim() || `social-${index}`, url: String(item?.url ?? item?.href ?? item?.value ?? item ?? "").trim() })).filter((item) => item.url) : [];}
 function desc(value) {return String(value ?? "").split(/\r?\n\r?\n|\r?\n/).map((item) => item.trim()).filter(Boolean);}
 function initials(name) {return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((item) => item[0] || "").join("").toLowerCase() || "it";}
@@ -93,6 +180,15 @@ function demoRelated(id) {return Object.values(DEMO).filter((item) => String(ite
 function numericId(value) {return /^\d+$/.test(String(value ?? "").trim());}
 function applyLabel(type, status) {if (status === "saving") return "Отправляем...";if (status === "success") return isEventOpportunity(type) ? "Заявка отправлена" : "Отклик отправлен";return getOpportunityApplyLabel(type);}
 function applyState(status = "idle", overrides = {}) {return { status, error: "", successTitle: "", successMessage: "", ...overrides };}
+function actionAccessCopy(type, mode) {
+  const applyAction = isEventOpportunity(type) ? "подать заявку" : "откликнуться";
+
+  if (mode === "guest") {
+    return `Войдите, чтобы ${applyAction} или поделиться возможностью.`;
+  }
+
+  return "Отклик и шаринг возможности доступны кандидатам.";
+}
 function createShareContactsState(status = "idle", overrides = {}) {return { status, items: [], error: "", ...overrides };}
 function getPeerVisibilityDefaultFromProfile(profile) {
   const links = profile?.links && typeof profile.links === "object" ? profile.links : {};
@@ -113,6 +209,248 @@ function TypeFields({ draft, onChange }) {
 function OwnerEditor({ draft, onChange, onSaveDraft, onSubmit, onPreview, onClose, onArchive, onDelete, saving }) {
   const cap = getOpportunityOwnerCapabilities(draft, { isOwner: true });
   return <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(draft.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(draft.moderationStatus)}</Tag></div>{draft.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{draft.moderationReason}</Alert> : null}<FormField label="Название" required><Input value={draft.title} onValueChange={(value) => onChange("title", value)} /></FormField><FormField label="Описание" required><Textarea value={draft.description} onValueChange={(value) => onChange("description", value)} rows={5} autoResize /></FormField><div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two"><FormField label="Тип публикации"><Select value={draft.opportunityType} onValueChange={(value) => onChange("opportunityType", value)} options={[{ value: "vacancy", label: "Вакансия" }, { value: "internship", label: "Стажировка" }, { value: "event", label: "Мероприятие" }, { value: "mentoring", label: "Менторская программа" }]} disabled={Number(draft.applicationsCount ?? 0) > 0} /></FormField><FormField label="Формат"><Select value={draft.employmentType} onValueChange={(value) => onChange("employmentType", value)} options={[{ value: "office", label: "Офис" }, { value: "hybrid", label: "Гибрид" }, { value: "remote", label: "Удаленно" }, { value: "online", label: "Онлайн" }]} /></FormField></div><FormField label="Срок или дата"><Input type="date" value={draft.expireAt} onValueChange={(value) => onChange("expireAt", value)} /></FormField><TypeFields draft={draft} onChange={onChange} /><OpportunityLocationPicker locationCity={draft.locationCity} locationAddress={draft.locationAddress} latitude={draft.latitude} longitude={draft.longitude} onFieldChange={onChange} /><FormField label="Теги через запятую"><Input value={draft.tags} onValueChange={(value) => onChange("tags", value)} /></FormField><FormField label="Контакты / ссылки"><div className="company-dashboard-social-links">{draft.contacts.map((item, index) => <div className="company-dashboard-social-links__row" key={`contact-${index}`}><Input value={item.value} onValueChange={(value) => {const next = draft.contacts.map((entry, entryIndex) => entryIndex === index ? { ...entry, value } : entry);onChange("contacts", next);}} placeholder="team@company.ru или https://..." /><Button type="button" variant="ghost" onClick={() => onChange("contacts", draft.contacts.filter((_, entryIndex) => entryIndex !== index).length ? draft.contacts.filter((_, entryIndex) => entryIndex !== index) : [{ type: "link", value: "" }])}>Удалить</Button></div>)}<Button type="button" variant="secondary" onClick={() => onChange("contacts", [...draft.contacts, { type: "link", value: "" }])}>Добавить</Button></div></FormField><FormField label="Медиа / вложения"><div className="company-dashboard-social-links">{draft.media.map((item, index) => <div className="company-dashboard-social-links__row" key={`media-${index}`}><Input value={item.title} onValueChange={(value) => onChange("media", draft.media.map((entry, entryIndex) => entryIndex === index ? { ...entry, title: value } : entry))} placeholder="Название медиа" /><Input value={item.url} onValueChange={(value) => onChange("media", draft.media.map((entry, entryIndex) => entryIndex === index ? { ...entry, url: value } : entry))} placeholder="https://..." /><Button type="button" variant="ghost" onClick={() => onChange("media", draft.media.filter((_, entryIndex) => entryIndex !== index).length ? draft.media.filter((_, entryIndex) => entryIndex !== index) : [{ title: "", url: "" }])}>Удалить</Button></div>)}<Button type="button" variant="secondary" onClick={() => onChange("media", [...draft.media, { title: "", url: "" }])}>Добавить</Button></div></FormField><div className="company-dashboard-panel__actions"><Button type="button" onClick={onSaveDraft} disabled={saving}>Сохранить как черновик</Button>{cap.canSubmit ? <Button type="button" variant="secondary" onClick={onSubmit} disabled={saving}>Отправить на модерацию</Button> : null}{cap.canArchive ? <Button type="button" variant="secondary" onClick={onArchive} disabled={saving}>Снять с публикации/архивировать</Button> : null}<Button type="button" variant="secondary" href={onPreview} disabled={!draft.id}>Просмотр публичной версии</Button>{cap.canDelete ? <Button type="button" variant="ghost" onClick={onDelete} disabled={saving}>Удалить</Button> : null}<Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Отмена</Button></div></div></Card>;
+}
+
+function OwnerEditorV2({
+  draft,
+  onChange,
+  onSaveDraft,
+  onSubmit,
+  onPreview,
+  onClose,
+  onArchive,
+  onDelete,
+  saving,
+  referenceCategories = FALLBACK_REFERENCE_CATEGORIES,
+}) {
+  const cap = getOpportunityOwnerCapabilities(draft, { isOwner: true });
+  const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [mediaError, setMediaError] = useState("");
+  const [uploadingMediaIndex, setUploadingMediaIndex] = useState(-1);
+  const experienceOptions = referenceCategories.experienceLevels?.length
+    ? referenceCategories.experienceLevels
+    : FALLBACK_REFERENCE_CATEGORIES.experienceLevels;
+  const scheduleOptions = referenceCategories.workSchedules?.length
+    ? referenceCategories.workSchedules
+    : FALLBACK_REFERENCE_CATEGORIES.workSchedules;
+  const typeOptions = referenceCategories.opportunityTypes?.length
+    ? referenceCategories.opportunityTypes
+    : FALLBACK_REFERENCE_CATEGORIES.opportunityTypes;
+  const employmentOptions = referenceCategories.employmentTypes?.length
+    ? referenceCategories.employmentTypes
+    : FALLBACK_REFERENCE_CATEGORIES.employmentTypes;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getTags({ limit: 80 }, controller.signal)
+      .then((payload) => {
+        const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.Items) ? payload.Items : [];
+        setTagSuggestions(items.map((item) => item.name ?? item.Name ?? item.label ?? item.Label ?? item.value ?? item.Value).filter(Boolean));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setTagSuggestions([]);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  function updateContacts(index, value) {
+    onChange("contacts", draft.contacts.map((entry, entryIndex) => (
+      entryIndex === index ? { ...entry, value } : entry
+    )));
+  }
+
+  function removeContact(index) {
+    const next = draft.contacts.filter((_, entryIndex) => entryIndex !== index);
+    onChange("contacts", next.length ? next : [{ type: "link", value: "" }]);
+  }
+
+  function updateMedia(index, field, value) {
+    setMediaError("");
+    onChange("media", draft.media.map((entry, entryIndex) => (
+      entryIndex === index ? { ...entry, [field]: value } : entry
+    )));
+  }
+
+  function removeMedia(index) {
+    const next = draft.media.filter((_, entryIndex) => entryIndex !== index);
+    onChange("media", next.length ? next : [{ type: "link", title: "", url: "" }]);
+  }
+
+  async function handleImageUpload(index, file) {
+    if (!file) {
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMediaError("Загрузите изображение в формате JPG, PNG или WEBP.");
+      return;
+    }
+
+    setUploadingMediaIndex(index);
+    setMediaError("");
+
+    try {
+      const result = await uploadImage(file);
+      if (!result.url) {
+        throw new Error("Сервер не вернул ссылку на изображение.");
+      }
+
+      onChange("media", draft.media.map((entry, entryIndex) => (
+        entryIndex === index
+          ? { ...entry, type: "image", title: entry.title || file.name, url: result.url }
+          : entry
+      )));
+    } catch (error) {
+      setMediaError(error?.message ?? "Не удалось загрузить изображение.");
+    } finally {
+      setUploadingMediaIndex(-1);
+    }
+  }
+
+  return (
+    <Card className="opportunity-owner-panel">
+      <div className="company-dashboard-stack">
+        <div className="company-dashboard-list-item__top">
+          <div>
+            <h2 className="ui-type-h3">Управление публикацией</h2>
+            <p className="ui-type-caption">{translateModerationStatus(draft.moderationStatus)}</p>
+          </div>
+          <Tag tone="accent">{translateModerationStatus(draft.moderationStatus)}</Tag>
+        </div>
+
+        {draft.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{draft.moderationReason}</Alert> : null}
+
+        <FormField label="Название" required>
+          <Input value={draft.title} onValueChange={(value) => onChange("title", value)} />
+        </FormField>
+        <FormField label="Описание" required>
+          <Textarea value={draft.description} onValueChange={(value) => onChange("description", value)} rows={5} autoResize />
+        </FormField>
+
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+          <FormField label="Тип публикации">
+            <Select
+              value={draft.opportunityType}
+              onValueChange={(value) => onChange("opportunityType", value)}
+              options={typeOptions}
+              disabled={Number(draft.applicationsCount ?? 0) > 0}
+            />
+          </FormField>
+          <FormField label="Формат">
+            <Select value={draft.employmentType} onValueChange={(value) => onChange("employmentType", value)} options={employmentOptions} />
+          </FormField>
+        </div>
+
+        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+          <FormField label="Опыт кандидата">
+            <Select
+              value={draft.experienceLevel}
+              onValueChange={(value) => onChange("experienceLevel", value)}
+              options={[{ value: "", label: "Не указан" }, ...experienceOptions]}
+            />
+          </FormField>
+          {draft.opportunityType === "vacancy" || draft.opportunityType === "internship" ? (
+            <FormField label="График" required>
+              <Select
+                value={draft.schedule}
+                onValueChange={(value) => onChange("schedule", value)}
+                options={[{ value: "", label: "Не указан" }, ...scheduleOptions]}
+              />
+            </FormField>
+          ) : null}
+        </div>
+
+        <FormField label="Срок или дата">
+          <Input type="date" value={draft.expireAt} onValueChange={(value) => onChange("expireAt", value)} />
+        </FormField>
+
+        <TypeFields draft={draft} onChange={onChange} />
+        <OpportunityLocationPicker locationCity={draft.locationCity} locationAddress={draft.locationAddress} latitude={draft.latitude} longitude={draft.longitude} onFieldChange={onChange} />
+
+        <FormField label="Теги">
+          <TagSelector
+            value={Array.isArray(draft.tags) ? draft.tags : []}
+            suggestions={tagSuggestions}
+            suggestionsLabel="Доступные теги"
+            searchPlaceholder="Найти или добавить тег"
+            editLabel="Выбрать теги"
+            saveLabel="Применить"
+            onSave={(nextTags) => onChange("tags", nextTags)}
+          />
+        </FormField>
+
+        <FormField label="Контакты / ссылки">
+          <div className="company-dashboard-social-links">
+            {draft.contacts.map((item, index) => (
+              <div className="company-dashboard-social-links__row" key={`contact-${index}`}>
+                <Input value={item.value} onValueChange={(value) => updateContacts(index, value)} placeholder="team@company.ru или https://..." />
+                <Button type="button" variant="ghost" onClick={() => removeContact(index)}>Удалить</Button>
+              </div>
+            ))}
+            <Button type="button" variant="secondary" onClick={() => onChange("contacts", [...draft.contacts, { type: "link", value: "" }])}>
+              Добавить
+            </Button>
+          </div>
+        </FormField>
+
+        <FormField label="Медиа / вложения">
+          <div className="company-dashboard-social-links">
+            {draft.media.map((item, index) => (
+              <div className="company-dashboard-social-links__row" key={`media-${index}`}>
+                <Select
+                  value={normalizeMediaType(item.type)}
+                  onValueChange={(value) => updateMedia(index, "type", value)}
+                  options={[
+                    { value: "image", label: "Изображение" },
+                    { value: "video", label: "Видео по ссылке" },
+                    { value: "link", label: "Ссылка" },
+                  ]}
+                />
+                <Input value={item.title} onValueChange={(value) => updateMedia(index, "title", value)} placeholder="Название медиа" />
+                <Input
+                  value={item.url}
+                  onValueChange={(value) => updateMedia(index, "url", value)}
+                  placeholder={normalizeMediaType(item.type) === "video" ? "https://youtube.com/..." : "https://..."}
+                />
+                {normalizeMediaType(item.type) === "image" ? (
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    aria-label="Загрузить изображение для медиа"
+                    disabled={uploadingMediaIndex === index}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      void handleImageUpload(index, file);
+                    }}
+                  />
+                ) : null}
+                <Button type="button" variant="ghost" onClick={() => removeMedia(index)}>Удалить</Button>
+              </div>
+            ))}
+            <Button type="button" variant="secondary" onClick={() => onChange("media", [...draft.media, { type: "link", title: "", url: "" }])}>
+              Добавить
+            </Button>
+          </div>
+        </FormField>
+
+        {mediaError ? <Alert tone="error" title="Медиа не обновлено" showIcon>{mediaError}</Alert> : null}
+
+        <div className="company-dashboard-panel__actions">
+          <Button type="button" onClick={onSaveDraft} disabled={saving}>Сохранить как черновик</Button>
+          {cap.canSubmit ? <Button type="button" variant="secondary" onClick={onSubmit} disabled={saving}>Отправить на модерацию</Button> : null}
+          {cap.canArchive ? <Button type="button" variant="secondary" onClick={onArchive} disabled={saving}>Снять с публикации/архивировать</Button> : null}
+          <Button type="button" variant="secondary" href={onPreview} disabled={!draft.id}>Просмотр публичной версии</Button>
+          {cap.canDelete ? <Button type="button" variant="ghost" onClick={onDelete} disabled={saving}>Удалить</Button> : null}
+          <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Отмена</Button>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 const EMPTY_SOCIAL_CONTEXT = Object.freeze({
@@ -350,6 +688,8 @@ function DetailLayout({
   onShareCandidate = null,
   shareBusyKey = "",
   showAuthHint = false,
+  actionAccessMode = null,
+  showPeerVisibilityControl = true,
   hidePublicActions = false,
   ownerPanel = null,
   menuOpen = false,
@@ -372,6 +712,7 @@ function DetailLayout({
   const publicCompanyHref = item?.employerId ? buildCompanyPublicRoute(item.employerId) : "";
   const { opportunityId: favoriteOpportunityId, isFavorite, toggleFavorite } = useFavoriteOpportunity(item?.id);
   const summaryFacts = vm.summaryFacts.length ? vm.summaryFacts : [vm.compactFact].filter(Boolean);
+  const actionAccessMessage = actionAccessMode ? actionAccessCopy(item.opportunityType, actionAccessMode) : "";
 
   return (
     <div className={cn("opportunity-card-page__grid", embedded && "opportunity-card-page__grid--embedded")}>
@@ -419,9 +760,12 @@ function DetailLayout({
                       <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onComplaint}>
                         Пожаловаться
                       </button>
+                      {!actionAccessMode ?
                       <button type="button" className="opportunity-focus-card__menu-action" role="menuitem" onClick={onShare}>
                         Поделиться
                       </button>
+                      :
+                      null}
                     </div> :
                 null}
                 </div>
@@ -491,6 +835,18 @@ function DetailLayout({
 
           {!hidePublicActions ?
           <div className="opportunity-focus-card__footer">
+              {actionAccessMode ?
+              <div className="opportunity-apply-auth-prompt">
+                <p>{actionAccessMessage}</p>
+                {actionAccessMode === "guest" ?
+                <Button href={routes.auth.login} className="opportunity-apply-auth-prompt__login">
+                  Войти
+                </Button> :
+                null}
+              </div> :
+              null}
+
+              {showPeerVisibilityControl && !actionAccessMode ?
               <Checkbox
               checked={allowPeerVisibility}
               onChange={(event) => onAllowPeerVisibilityChange(event.target.checked)}
@@ -498,11 +854,14 @@ function DetailLayout({
               label="Показывать меня среди других откликнувшихся по этой возможности"
               hint="Другие кандидаты увидят вас только если эта опция включена."
               className="opportunity-focus-card__peer-visibility" />
+              :
+              null}
             
               <div className="opportunity-focus-card__watchers">
                 {item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}
               </div>
               <div className="opportunity-focus-card__actions">
+                {!actionAccessMode ?
                 <Button
                 type="button"
                 className="opportunity-focus-card__apply"
@@ -511,9 +870,14 @@ function DetailLayout({
                 
                   {applyButtonLabel}
                 </Button>
+                :
+                null}
+                {!actionAccessMode ?
                 <Button type="button" variant="secondary" onClick={onShare}>
                   Поделиться возможностью
                 </Button>
+                :
+                null}
               </div>
             </div> :
           null}
@@ -540,17 +904,9 @@ function DetailLayout({
           </div>
 
           {m.length ?
-          <div className="opportunity-story-card__intro">
+          <div className="opportunity-media-panel__items">
               {m.map((entry, index) =>
-            entry.url ?
-            <AppLink key={`${entry.title}-${index}`} href={entry.url} className="opportunity-card-page__more-link">
-                    {entry.title}
-                  </AppLink> :
-
-            <p key={`${entry.title}-${index}`} className="ui-type-body">
-                    {entry.title}
-                  </p>
-
+            <OpportunityMediaEntry key={`${entry.title}-${entry.url}-${index}`} entry={entry} index={index} />
             )}
             </div> :
 
@@ -617,7 +973,18 @@ function DetailLayout({
           {hidePublicActions ? null :
           <>
               <p className="ui-type-caption">{formatOpportunityDateTime(item.publishAt)}</p>
+              {actionAccessMode ?
+              <div className="opportunity-apply-auth-prompt opportunity-apply-auth-prompt--bottom">
+                <p>{actionAccessMessage}</p>
+                {actionAccessMode === "guest" ?
+                <Button href={routes.auth.login} className="opportunity-apply-auth-prompt__login">
+                  Войти
+                </Button> :
+                null}
+              </div> :
+              null}
               <div className="opportunity-story-card__bottom-actions">
+                {!actionAccessMode ?
                 <Button
                 type="button"
                 className="opportunity-story-card__bottom-primary"
@@ -626,6 +993,9 @@ function DetailLayout({
                 
                   {applyButtonLabel}
                 </Button>
+                :
+                null}
+                {!actionAccessMode ?
                 <Button
                 type="button"
                 variant="secondary"
@@ -634,6 +1004,8 @@ function DetailLayout({
                 
                   Поделиться возможностью
                 </Button>
+                :
+                null}
                 <Button
                 type="button"
                 variant="ghost"
@@ -663,7 +1035,14 @@ function DetailLayout({
       <aside className="opportunity-card-page__side">
         <Card className={cn("company-spotlight", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
           <div className="company-spotlight__company">
-            <Avatar size="lg" initials={initials(item.companyName)} className="company-spotlight__avatar company-spotlight__avatar--brand" />
+            <Avatar
+              size="lg"
+              src={item.companyProfileImage}
+              name={item.companyName}
+              initials={initials(item.companyName)}
+              alt={`Фото компании ${item.companyName || ""}`.trim()}
+              className="company-spotlight__avatar company-spotlight__avatar--brand"
+            />
             <div className="company-spotlight__copy">
               {publicCompanyHref ?
               <AppLink href={publicCompanyHref} className="opportunity-card-page__more-link">
@@ -778,6 +1157,15 @@ export function OpportunityDetailCardApp() {
   const [shareBusyKey, setShareBusyKey] = useState("");
   const [allowPeerVisibility, setAllowPeerVisibility] = useState(false);
   const [postApplyModalOpen, setPostApplyModalOpen] = useState(false);
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
+  const [complaintForm, setComplaintForm] = useState({
+    reason: COMPLAINT_REASON_OPTIONS[0].value,
+    description: "",
+    status: "idle",
+    error: "",
+    sent: false,
+  });
   const [socialContextState, setSocialContextState] = useState({
     status: "idle",
     data: createEmptySocialContext(),
@@ -814,7 +1202,12 @@ export function OpportunityDetailCardApp() {
         return;
       }
       try {
-        const [item, all] = await Promise.all([getOpportunity(opportunityId, controller.signal), getOpportunities(controller.signal)]);
+        const [item, all, references] = await Promise.all([
+          getOpportunity(opportunityId, controller.signal),
+          getOpportunities(controller.signal),
+          getSystemReferences(controller.signal).then(normalizeReferenceCategories).catch(() => FALLBACK_REFERENCE_CATEGORIES),
+        ]);
+        setReferenceCategories(references);
         setState({ status: "ready", item, related: (Array.isArray(all) ? all : []).filter((entry) => String(entry.id) !== String(opportunityId)).slice(0, 2), error: null, source: "api" });
       } catch (error) {
         if (!controller.signal.aborted) setState({ status: "error", item: null, related: [], error, source: "api" });
@@ -829,6 +1222,14 @@ export function OpportunityDetailCardApp() {
     setShareBusyKey("");
     setAllowPeerVisibility(false);
     setPostApplyModalOpen(false);
+    setComplaintModalOpen(false);
+    setComplaintForm({
+      reason: COMPLAINT_REASON_OPTIONS[0].value,
+      description: "",
+      status: "idle",
+      error: "",
+      sent: false,
+    });
     setSocialContextState({
       status: "idle",
       data: createEmptySocialContext(),
@@ -862,6 +1263,7 @@ export function OpportunityDetailCardApp() {
 
   const item = state.item;
   const isCandidateViewer = authSession.status === "authenticated" && authSession.user?.role === "candidate";
+  const actionAccessMode = authSession.status === "authenticated" ? (isCandidateViewer ? null : "candidate-only") : "guest";
   const isOwner = Boolean(item && authSession.status === "authenticated" && authSession.user?.role === "company" && companyProfile && String(companyProfile.profileId ?? companyProfile.id ?? "") === String(item.employerId ?? ""));
   const previewMode = isOwner && searchParams.get("preview") === "public";
   const capabilities = useMemo(() => item ? getOpportunityOwnerCapabilities(item, { isOwner }) : null, [item, isOwner]);
@@ -939,6 +1341,16 @@ export function OpportunityDetailCardApp() {
   }
 
   async function handleApply() {
+    if (authSession.status !== "authenticated") {
+      navigate(routes.auth.login);
+      return;
+    }
+
+    if (authSession.user?.role !== "candidate") {
+      setApply(applyState());
+      return;
+    }
+
     if (authSession.status === "authenticated" && authSession.user?.role === "candidate") {
       try {
         const access = await ensureCandidateApplyAccess();
@@ -991,12 +1403,15 @@ export function OpportunityDetailCardApp() {
   }
 
   async function openShareModal() {
-    setShareModalOpen(true);
-    setShareBusyKey("");
     if (!isCandidateViewer) {
-      setShareContactsState(createShareContactsState("error", { error: "Шаринг возможностей доступен только кандидатам." }));
+      if (authSession.status !== "authenticated") {
+        navigate(routes.auth.login);
+      }
       return;
     }
+
+    setShareModalOpen(true);
+    setShareBusyKey("");
     if (shareContactsState.status === "ready" || shareContactsState.status === "loading") {
       setShareContactsState((current) => ({ ...current, error: "" }));
       return;
@@ -1060,7 +1475,44 @@ ${currentUrl}`;
     }
   }
 
-  function handleComplaint() {}
+  function handleComplaint() {
+    if (authSession.status !== "authenticated") {
+      navigate(routes.auth.login);
+      return;
+    }
+
+    setComplaintForm({
+      reason: COMPLAINT_REASON_OPTIONS[0].value,
+      description: "",
+      status: "idle",
+      error: "",
+      sent: false,
+    });
+    setComplaintModalOpen(true);
+  }
+
+  async function submitComplaint() {
+    if (!item?.id || complaintForm.status === "saving") {
+      return;
+    }
+
+    setComplaintForm((current) => ({ ...current, status: "saving", error: "" }));
+
+    try {
+      await createOpportunityComplaint(item.id, {
+        reason: complaintForm.reason,
+        description: complaintForm.description,
+      });
+      setComplaintForm((current) => ({ ...current, status: "success", error: "", sent: true }));
+    } catch (error) {
+      setComplaintForm((current) => ({
+        ...current,
+        status: "error",
+        error: error?.message ?? "Не удалось отправить жалобу.",
+      }));
+    }
+  }
+
   function changeDraft(field, value) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), [field]: value } }));}
   function changeDraftContacts(next) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), contacts: next } }));}
   function changeDraftMedia(next) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), media: next } }));}
@@ -1085,7 +1537,7 @@ ${currentUrl}`;
   async function archiveOwner() {if (!item) return;await updateOpportunity(item.id, { saveMode: "archive", moderationStatus: "archived" });const refreshed = await getOpportunity(item.id);setState((current) => ({ ...current, item: refreshed }));}
   async function deleteOwner() {if (!item) return;await deleteOpportunity(item.id);setState((current) => ({ ...current, status: "ready", item: null, related: [] }));}
 
-  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditor draft={ownerState.draft} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="РР·РјРµРЅРµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
+  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditorV2 draft={ownerState.draft} referenceCategories={referenceCategories} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="РР·РјРµРЅРµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
 
   return (
     <main className="opportunity-card-page" data-testid="opportunity-detail-page">
@@ -1134,6 +1586,7 @@ ${currentUrl}`;
             await openShareModal();
           }}
           showAuthHint={!isCandidateViewer}
+          actionAccessMode={actionAccessMode}
           hidePublicActions={isOwner && !previewMode}
           ownerPanel={ownerPanel}
           menuOpen={menuOpen}
@@ -1157,6 +1610,56 @@ ${currentUrl}`;
             navigate(routes.candidate.career);
           }} />
         
+
+        <Modal
+          open={complaintModalOpen}
+          onClose={() => {
+            setComplaintModalOpen(false);
+          }}
+          title={complaintForm.sent ? "Жалоба отправлена" : "Пожаловаться на возможность"}
+          description={complaintForm.sent ? "Модератор проверит публикацию и примет решение." : "Опишите проблему, чтобы модератор быстрее понял контекст."}
+          size="md"
+          className="opportunity-complaint-modal">
+          {complaintForm.sent ? (
+            <div className="opportunity-card-page__modal-actions">
+              <Button type="button" onClick={() => setComplaintModalOpen(false)}>
+                Закрыть
+              </Button>
+            </div>
+          ) : (
+            <div className="company-dashboard-stack">
+              <FormField label="Причина">
+                <Select
+                  value={complaintForm.reason}
+                  options={referenceCategories.complaintReasons?.length ? referenceCategories.complaintReasons : COMPLAINT_REASON_OPTIONS}
+                  onValueChange={(value) => setComplaintForm((current) => ({ ...current, reason: value, error: "" }))}
+                />
+              </FormField>
+              <FormField label="Комментарий">
+                <Textarea
+                  value={complaintForm.description}
+                  rows={5}
+                  autoResize
+                  placeholder="Что именно не так с публикацией?"
+                  onValueChange={(value) => setComplaintForm((current) => ({ ...current, description: value, error: "" }))}
+                />
+              </FormField>
+              {complaintForm.error ? (
+                <Alert tone="error" title="Жалоба не отправлена" showIcon>
+                  {complaintForm.error}
+                </Alert>
+              ) : null}
+              <div className="opportunity-card-page__modal-actions">
+                <Button type="button" variant="ghost" onClick={() => setComplaintModalOpen(false)}>
+                  Отмена
+                </Button>
+                <Button type="button" loading={complaintForm.status === "saving"} onClick={submitComplaint}>
+                  Отправить жалобу
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
 
         <Modal
           open={shareModalOpen}

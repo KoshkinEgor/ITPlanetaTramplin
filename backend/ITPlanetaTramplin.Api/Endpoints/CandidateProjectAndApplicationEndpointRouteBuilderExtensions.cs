@@ -253,10 +253,28 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         }
 
         application.Status = nextStatus;
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            application.Opportunity.Employer.UserId,
+            "application.candidate_updated",
+            "Кандидат обновил отклик",
+            BuildCandidateApplicationChangeMessage(application.Opportunity.Title, nextStatus),
+            "/company/dashboard/responses",
+            actorUserId: profile.UserId,
+            opportunityId: application.OpportunityId,
+            applicationId: application.Id);
         await db.SaveChangesAsync();
 
         return Results.Ok(OpportunityApplicationMapping.ToCandidateSummary(application));
     }
+
+    private static string BuildCandidateApplicationChangeMessage(string opportunityTitle, string status) =>
+        status switch
+        {
+            OpportunityApplicationStatuses.Withdrawn => $"Кандидат отменил отклик на «{opportunityTitle}».",
+            OpportunityApplicationStatuses.Accepted => $"Кандидат подтвердил приглашение по «{opportunityTitle}».",
+            _ => $"Кандидат обновил отклик на «{opportunityTitle}».",
+        };
 
     private static void ApplyCandidateProject(CandidateProject project, CandidateProjectInput normalizedProject)
     {

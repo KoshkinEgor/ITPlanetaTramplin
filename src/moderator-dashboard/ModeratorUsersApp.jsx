@@ -450,7 +450,7 @@ export function ModeratorUsersApp() {
     <>
       <DashboardPageHeader
         title="Пользователи платформы"
-        description="Обзор состава платформы, ролей и moderation-статусов без локальных заглушек."
+        description="Обзор состава платформы, ролей и статусов пользователей."
       />
 
       <div className="moderator-toolbar-stack">

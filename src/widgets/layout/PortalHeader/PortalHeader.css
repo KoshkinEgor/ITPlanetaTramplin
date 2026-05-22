@@ -296,10 +296,31 @@
   gap: 12px;
 }
 
+.portal-header__notification-head-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .portal-header__notification-head a {
   color: var(--ui-color-accent);
   text-decoration: none;
   font-weight: var(--ui-font-weight-strong);
+}
+
+.portal-header__notification-section {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-header__notification-section-title {
+  margin: 0;
+  color: #5f6e8d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .portal-header__notification-item {
@@ -309,6 +330,11 @@
   border: 1px solid rgba(24, 29, 45, 0.08);
   border-radius: 22px;
   background: rgba(244, 248, 255, 0.7);
+}
+
+.portal-header__notification-item.is-unread {
+  border-color: rgba(56, 122, 245, 0.26);
+  background: rgba(235, 242, 255, 0.96);
 }
 
 .portal-header__notification-copy {

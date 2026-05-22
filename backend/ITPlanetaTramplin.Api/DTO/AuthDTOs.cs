@@ -14,6 +14,8 @@ public class AuthUserDTO
 
     public string? DisplayName { get; set; }
 
+    public string? AvatarUrl { get; set; }
+
     public bool IsAdministrator { get; set; }
 }
 

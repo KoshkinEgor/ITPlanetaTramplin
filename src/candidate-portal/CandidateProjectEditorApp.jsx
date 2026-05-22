@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject } from "../api/candidate";
+import { uploadImage } from "../api/uploads";
 import { Alert, Button, Card, FormField, Input, Loader, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
 import { CandidatePortfolioProjectCard } from "./portfolio-kit";
@@ -12,8 +13,8 @@ import {
   validateProjectDraft,
 } from "./project-storage";
 
-const PROJECT_COVER_MAX_SIZE_BYTES = 3 * 1024 * 1024;
-const PROJECT_COVER_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+const PROJECT_COVER_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const PROJECT_COVER_ACCEPT = "image/png,image/jpeg,image/webp";
 
 function ImageUploadIcon() {
   return (
@@ -48,27 +49,6 @@ function formatFileSize(bytes) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string" && reader.result) {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.onerror = () => {
-      reject(new Error("Не удалось прочитать изображение."));
-    };
-
-    reader.readAsDataURL(file);
-  });
 }
 
 function normalizeString(value) {
@@ -260,7 +240,7 @@ function ProjectCoverUploader({
       />
 
       <span className="candidate-project-editor-upload__caption">
-        Поддерживаются PNG, JPG, WEBP, GIF и SVG. Максимальный размер файла: {formatFileSize(PROJECT_COVER_MAX_SIZE_BYTES)}.
+        Поддерживаются PNG, JPG и WEBP. Максимальный размер файла: {formatFileSize(PROJECT_COVER_MAX_SIZE_BYTES)}.
       </span>
     </div>
   );
@@ -297,7 +277,7 @@ function ProjectParticipantsEditor({ participants, error, onAdd, onChange, onRem
                   <Input
                     value={participant.role}
                     onValueChange={(value) => onChange(participant.draftKey, "role", value)}
-                    placeholder="Дизайн, backend, аналитика..."
+                    placeholder="Дизайн, серверная разработка, аналитика..."
                   />
                 </FormField>
               </div>
@@ -453,8 +433,8 @@ export function CandidateProjectEditorApp() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setFieldError("coverImageUrl", "Загрузите изображение в формате PNG, JPG, WEBP, GIF или SVG.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setFieldError("coverImageUrl", "Загрузите изображение в формате PNG, JPG или WEBP.");
       return;
     }
 
@@ -465,8 +445,12 @@ export function CandidateProjectEditorApp() {
 
     try {
       setIsPreparingCoverImage(true);
-      const dataUrl = await readFileAsDataUrl(file);
-      updateField("coverImageUrl", dataUrl);
+      const upload = await uploadImage(file);
+      if (!upload.url) {
+        throw new Error("Сервер не вернул ссылку на изображение.");
+      }
+
+      updateField("coverImageUrl", upload.url);
     } catch (error) {
       setFieldError("coverImageUrl", error?.message ?? "Не удалось загрузить изображение.");
     } finally {

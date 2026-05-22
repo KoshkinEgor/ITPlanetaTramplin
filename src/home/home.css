@@ -1018,6 +1018,9 @@ body.home-react-body {
 .home-skills-filter__list {
   display: grid;
   gap: 8px;
+  max-height: min(320px, 45vh);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .home-skills-filter__option {

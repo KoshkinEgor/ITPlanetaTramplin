@@ -8,6 +8,8 @@ import {
   submitCompanyVerificationRequest,
   updateCompanyProfile,
 } from "../api/company";
+import { refreshAuthSession } from "../auth/api";
+import { uploadImage } from "../api/uploads";
 import { CompanyProfileSection } from "./CompanyProfileSection";
 
 vi.mock("../api/company", () => ({
@@ -16,6 +18,14 @@ vi.mock("../api/company", () => ({
   getCompanyProfile: vi.fn(),
   submitCompanyVerificationRequest: vi.fn(),
   updateCompanyProfile: vi.fn(),
+}));
+
+vi.mock("../api/uploads", () => ({
+  uploadImage: vi.fn(),
+}));
+
+vi.mock("../auth/api", () => ({
+  refreshAuthSession: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("./CompanyHeroMediaPanel", () => ({
@@ -47,9 +57,9 @@ const baseProfile = {
   verificationStatus: "pending",
 };
 
-function renderSection() {
+function renderSection(initialEntries = ["/company/dashboard"]) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <CompanyProfileSection />
     </MemoryRouter>
   );
@@ -61,6 +71,7 @@ describe("CompanyProfileSection", () => {
     getCompanyProfile.mockResolvedValue(baseProfile);
     getCompanyOpportunities.mockResolvedValue([]);
     updateCompanyProfile.mockResolvedValue(baseProfile);
+    uploadImage.mockResolvedValue({ url: "https://cdn.example.com/company-photo.png" });
     downloadCompanyVerificationDocument.mockResolvedValue({
       blob: new Blob(["pdf"], { type: "application/pdf" }),
       fileName: "egrul.pdf",
@@ -89,6 +100,46 @@ describe("CompanyProfileSection", () => {
 
     expect(await screen.findByDisplayValue("Northwind")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Moscow")).toBeInTheDocument();
+  });
+
+  it("opens the basic company editor from the cabinet edit hash", async () => {
+    renderSection(["/company/dashboard#company-profile-editor"]);
+
+    expect(await screen.findByDisplayValue("Northwind")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Moscow")).toBeInTheDocument();
+  });
+
+  it("uploads and saves the company photo from the basic profile editor", async () => {
+    updateCompanyProfile.mockResolvedValue({
+      ...baseProfile,
+      profileImage: "https://cdn.example.com/company-photo.png",
+    });
+
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Редактировать" }));
+
+    const file = new File(["image"], "company-photo.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Загрузить фото компании"), { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(uploadImage).toHaveBeenCalledWith(expect.objectContaining({ name: "company-photo.png" }));
+    });
+
+    expect(await screen.findByRole("img", { name: "Фото компании" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/company-photo.png"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(updateCompanyProfile).toHaveBeenCalledWith(expect.objectContaining({
+        profileImage: "https://cdn.example.com/company-photo.png",
+      }));
+    });
+
+    expect(refreshAuthSession).toHaveBeenCalledWith({ force: true });
   });
 
   it("submits a multipart verification request from the company cabinet", async () => {
@@ -171,7 +222,7 @@ describe("CompanyProfileSection", () => {
     expect(contactNameInput).toHaveFocus();
   });
 
-  it("shows a backend update hint when the verification endpoint returns 404", async () => {
+  it("shows a temporary unavailable hint when verification submit returns 404", async () => {
     submitCompanyVerificationRequest.mockRejectedValue(
       Object.assign(new Error("Request failed with status 404"), { status: 404 })
     );
@@ -194,7 +245,7 @@ describe("CompanyProfileSection", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Отправить модератору" }));
 
-    expect(await screen.findByText(/Перезапустите backend|обновите API/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Отправка заявки временно недоступна/i)).toBeInTheDocument();
   });
 
   it("renders read-only pending verification details and allows document download", async () => {
@@ -230,6 +281,11 @@ describe("CompanyProfileSection", () => {
 
     expect(await screen.findByText("Irina Smirnova")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Отправить документы" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Редактировать" }));
+
+    expect(await screen.findByDisplayValue("Northwind")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Moscow")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Скачать" }));
 

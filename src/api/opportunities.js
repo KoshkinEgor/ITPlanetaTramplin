@@ -34,3 +34,10 @@ export function applyToOpportunity(opportunityId, body = {}) {
     body,
   });
 }
+
+export function createOpportunityComplaint(opportunityId, body) {
+  return apiRequest(`/opportunities/${opportunityId}/complaints`, {
+    method: "POST",
+    body,
+  });
+}

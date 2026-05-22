@@ -150,7 +150,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
                 <strong className="company-profile-summary__panel-value">{verificationStatusText}</strong>
                 {verificationNote ? <p>{verificationNote}</p> : null}
                 {!isPublicMode ? (
-                  <AppLink className="company-profile-summary__panel-link" href={routes.company.dashboard}>
+                  <AppLink className="company-profile-summary__panel-link" href={`${routes.company.dashboard}#company-profile-editor`}>
                     {verificationActionLabel}
                   </AppLink>
                 ) : null}

@@ -129,6 +129,27 @@ namespace DTO
         public string? VerificationMethod { get; set; }
     }
 
+    public class CompanySettingsDTO
+    {
+        public int? Id { get; set; }
+
+        public int? EmployerId { get; set; }
+
+        public string? NotificationEmail { get; set; }
+
+        public bool NotifyNewApplications { get; set; } = true;
+
+        public bool NotifyModerationUpdates { get; set; } = true;
+
+        public bool NotifyComplaintsAndSystem { get; set; } = true;
+
+        public string DefaultStartSection { get; set; } = "profile";
+
+        public string DefaultResponsesSort { get; set; } = "newest";
+
+        public bool ShowArchivedOpportunities { get; set; }
+    }
+
     public class CompanyVerificationRequestDTO
     {
         public string? ContactName { get; set; }

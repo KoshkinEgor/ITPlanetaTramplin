@@ -53,7 +53,7 @@ export const hiringFocusOptions = [
   {
     value: "juniors",
     title: "Junior+",
-    description: "Быстрый набор в продукт, backend, frontend и analytics.",
+    description: "Быстрый набор в продукт, разработку интерфейсов, серверную часть и аналитику.",
   },
   {
     value: "events",

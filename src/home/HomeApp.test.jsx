@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/http";
+import { routes } from "../app/routes";
+import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
 import { getOpportunities } from "../api/opportunities";
 import { writeFavoriteCompanyIds, writeFavoriteOpportunityIds } from "../features/favorites/storage";
@@ -51,8 +53,15 @@ function renderApp(initialEntries = ["/"]) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <HomeApp />
+      <LocationProbe />
     </MemoryRouter>
   );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+
+  return <div data-testid="location-path">{location.pathname}</div>;
 }
 
 describe("HomeApp", () => {
@@ -135,6 +144,88 @@ describe("HomeApp", () => {
 
     expect(await screen.findByText("Personal Recommendation")).toBeInTheDocument();
     await waitFor(() => expect(getCandidateRecommendations).toHaveBeenCalledTimes(1));
+  });
+
+  it("sends guests from the hero discovery action to login", async () => {
+    getCurrentAuthUser.mockRejectedValue(new ApiError("Unauthorized", { status: 401 }));
+
+    const { container } = renderApp();
+
+    fireEvent.click(container.querySelector(".home-hero__primary"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location-path")).toHaveTextContent(routes.auth.login);
+    });
+  });
+
+  it("applies advanced search dynamically and keeps it active until reset", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "advanced-vacancy",
+        employerId: 1,
+        opportunityType: "vacancy",
+        title: "Advanced Filter Vacancy",
+        companyName: "Search Lab",
+        locationCity: "Москва",
+        locationAddress: "Онлайн",
+        employmentType: "online",
+        salaryFrom: 100000,
+        salaryTo: 150000,
+        description: "Vacancy matching the advanced salary filter.",
+        tags: ["React"],
+        moderationStatus: "approved",
+      },
+      {
+        id: "advanced-internship",
+        employerId: 2,
+        opportunityType: "internship",
+        title: "Advanced Filter Internship",
+        companyName: "Design Lab",
+        locationCity: "Москва",
+        locationAddress: "Офис",
+        employmentType: "office",
+        stipendFrom: 20000,
+        stipendTo: 30000,
+        description: "Internship below the advanced salary filter.",
+        tags: ["UI/UX"],
+        moderationStatus: "approved",
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await screen.findAllByText("Advanced Filter Vacancy");
+    fireEvent.click(screen.getByRole("button", { name: /Список возможностей/i }));
+    fireEvent.click(container.querySelector(".home-discovery__toolbar-icon--outlined"));
+
+    const salaryFromInput = container.querySelector(".home-advanced-search__input");
+    fireEvent.change(salaryFromInput, { target: { value: "90000" } });
+
+    await waitFor(() => {
+      const resultsPanel = container.querySelector(".home-results-panel");
+      expect(within(resultsPanel).getByText("Advanced Filter Vacancy")).toBeInTheDocument();
+      expect(within(resultsPanel).queryByText("Advanced Filter Internship")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(container.querySelector(".home-advanced-search__apply"));
+
+    await waitFor(() => {
+      expect(container.querySelector(".home-advanced-search")).toBeNull();
+      const resultsPanel = container.querySelector(".home-results-panel");
+      expect(within(resultsPanel).getByText("Advanced Filter Vacancy")).toBeInTheDocument();
+      expect(within(resultsPanel).queryByText("Advanced Filter Internship")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(container.querySelector(".home-discovery__toolbar-icon--outlined"));
+    expect(container.querySelector(".home-advanced-search__input")).toHaveValue("90000");
+
+    fireEvent.click(container.querySelector(".home-advanced-search__reset"));
+
+    await waitFor(() => {
+      const resultsPanel = container.querySelector(".home-results-panel");
+      expect(within(resultsPanel).getByText("Advanced Filter Vacancy")).toBeInTheDocument();
+      expect(within(resultsPanel).getByText("Advanced Filter Internship")).toBeInTheDocument();
+    });
   });
 
   it("falls back to public opportunities when recommendations are unavailable", async () => {

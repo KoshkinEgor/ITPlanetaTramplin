@@ -27,6 +27,36 @@ internal static class AuthEndpointSupport
             _ => null,
         };
 
+    public static string? BuildAvatarUrl(User user, string role)
+    {
+        if (role == PublicRoles.Company)
+        {
+            return string.IsNullOrWhiteSpace(user.EmployerProfile?.ProfileImage)
+                ? null
+                : user.EmployerProfile.ProfileImage.Trim();
+        }
+
+        if (role != PublicRoles.Candidate || string.IsNullOrWhiteSpace(user.ApplicantProfile?.Links))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(user.ApplicantProfile.Links);
+            var root = document.RootElement;
+
+            return TryGetString(root, "avatarUrl")
+                ?? TryGetString(root, "profileImage")
+                ?? TryGetNestedString(root, "media", "avatarUrl")
+                ?? TryGetNestedString(root, "media", "profileImage");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static string? GetPublicRole(User user)
     {
         if (user.ApplicantProfile is not null)
@@ -56,6 +86,7 @@ internal static class AuthEndpointSupport
             IsVerified = user.IsVerified ?? false,
             PreVerify = user.PreVerify ?? false,
             DisplayName = BuildDisplayName(user, role),
+            AvatarUrl = BuildAvatarUrl(user, role),
             IsAdministrator = role == PublicRoles.Moderator && user.CuratorProfile?.IsAdministrator == true,
         };
 
@@ -287,6 +318,27 @@ internal static class AuthEndpointSupport
     {
         var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private static string? TryGetString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = property.GetString()?.Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static string? TryGetNestedString(JsonElement root, string objectPropertyName, string propertyName)
+    {
+        if (!root.TryGetProperty(objectPropertyName, out var nested) || nested.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return TryGetString(nested, propertyName);
     }
 
     private static async Task TrySendVerificationEmailAsync(
