@@ -35,9 +35,6 @@ public partial class User
 
     public DateTime? DeletedAt { get; set; }
 
-
-    //public virtual ICollection<Contact> ContactContactNavigations { get; set; } = new List<Contact>();
-
     public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
 
     public virtual ICollection<FriendRequest> IncomingFriendRequests { get; set; } = new List<FriendRequest>();

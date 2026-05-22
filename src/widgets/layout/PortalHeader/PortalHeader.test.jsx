@@ -58,9 +58,7 @@ describe("PortalHeader", () => {
     render(
       <MemoryRouter>
         <PortalHeader
-          navItems={[
-            { key: "home", label: "Главная", href: routes.home },
-          ]}
+          navItems={[{ key: "home", label: "Главная", href: routes.home }]}
           currentKey="home"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
@@ -68,9 +66,9 @@ describe("PortalHeader", () => {
       </MemoryRouter>
     );
 
-    expect(screen.queryByText("Войти / Регистрация")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Войти / Регистрация" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /меню аккаунта/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Меню аккаунта/i }));
 
     expect(screen.getByRole("menuitem", { name: "Мой кабинет" })).toBeInTheDocument();
 
@@ -126,9 +124,7 @@ describe("PortalHeader", () => {
     render(
       <MemoryRouter>
         <PortalHeader
-          navItems={[
-            { key: "home", label: "Главная", href: routes.home },
-          ]}
+          navItems={[{ key: "home", label: "Главная", href: routes.home }]}
           currentKey="home"
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
@@ -167,9 +163,7 @@ describe("PortalHeader", () => {
     render(
       <MemoryRouter>
         <PortalHeader
-          navItems={[
-            { key: "home", label: "Главная", href: routes.home },
-          ]}
+          navItems={[{ key: "home", label: "Главная", href: routes.home }]}
           currentKey="home"
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
@@ -180,6 +174,33 @@ describe("PortalHeader", () => {
 
     expect(screen.getByRole("link", { name: "Профиль" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Уведомления" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /меню аккаунта/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Меню аккаунта/i })).not.toBeInTheDocument();
+  });
+
+  it("opens and closes the mobile navigation menu", () => {
+    render(
+      <MemoryRouter>
+        <PortalHeader
+          navItems={[
+            { key: "home", label: "Главная", href: routes.home },
+            { key: "about", label: "О платформе", href: routes.homeAbout },
+          ]}
+          currentKey="home"
+          actionHref={routes.auth.login}
+          actionLabel="Войти / Регистрация"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("navigation", { name: "Мобильная навигация" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Открыть меню навигации" }));
+
+    expect(screen.getByRole("navigation", { name: "Мобильная навигация" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "О платформе" }).length).toBeGreaterThan(0);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("navigation", { name: "Мобильная навигация" })).not.toBeInTheDocument();
   });
 });

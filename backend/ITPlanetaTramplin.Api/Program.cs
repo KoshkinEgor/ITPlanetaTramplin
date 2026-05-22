@@ -103,7 +103,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("requireCompanyRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Company));
     options.AddPolicy("requireModeratorRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Moderator));
     options.AddPolicy("requireCandidateRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Candidate));
-
     options.AddPolicy("requireEmployerRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Company));
     options.AddPolicy("requireCuratorRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Moderator));
     options.AddPolicy("requireApplicantRole", policy => policy.RequireClaim(ClaimTypes.Role, PublicRoles.Candidate));

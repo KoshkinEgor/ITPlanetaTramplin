@@ -10,10 +10,10 @@ RUN dotnet publish backend/ITPlanetaTramplin.Api/ITPlanetaTramplin.Api.csproj -c
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
-ENV PORT=10000
+ENV PORT=8080
 
 COPY --from=build /app/publish .
 
-EXPOSE 10000
+EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "ASPNETCORE_URLS=http://0.0.0.0:${PORT} dotnet ITPlanetaTramplin.Api.dll"]
+ENTRYPOINT ["sh", "-c", "export ASPNETCORE_URLS=\"${ASPNETCORE_URLS:-http://0.0.0.0:${PORT}}\"; exec dotnet ITPlanetaTramplin.Api.dll"]
