@@ -113,6 +113,8 @@ namespace DTO
 
         public string? CompanyName { get; set; }
 
+        public string? CompanyProfileImage { get; set; }
+
         public string? CompanyDescription { get; set; }
 
         public string? CompanyLegalAddress { get; set; }

@@ -8,6 +8,7 @@ import {
   submitCompanyVerificationRequest,
   updateCompanyProfile,
 } from "../api/company";
+import { refreshAuthSession } from "../auth/api";
 import { uploadImage } from "../api/uploads";
 import { CompanyProfileSection } from "./CompanyProfileSection";
 
@@ -21,6 +22,10 @@ vi.mock("../api/company", () => ({
 
 vi.mock("../api/uploads", () => ({
   uploadImage: vi.fn(),
+}));
+
+vi.mock("../auth/api", () => ({
+  refreshAuthSession: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("./CompanyHeroMediaPanel", () => ({
@@ -133,6 +138,8 @@ describe("CompanyProfileSection", () => {
         profileImage: "https://cdn.example.com/company-photo.png",
       }));
     });
+
+    expect(refreshAuthSession).toHaveBeenCalledWith({ force: true });
   });
 
   it("submits a multipart verification request from the company cabinet", async () => {

@@ -1057,6 +1057,11 @@
   min-height: 320px;
 }
 
+.company-dashboard-location-picker__marker {
+  pointer-events: none;
+  transform: translate(-50%, calc(var(--ui-map-marker-size) * -1));
+}
+
 .company-dashboard-location-picker__map-overlay {
   position: absolute;
   inset: 0;

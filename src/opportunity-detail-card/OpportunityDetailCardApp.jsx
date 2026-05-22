@@ -1035,7 +1035,14 @@ function DetailLayout({
       <aside className="opportunity-card-page__side">
         <Card className={cn("company-spotlight", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-1")}>
           <div className="company-spotlight__company">
-            <Avatar size="lg" initials={initials(item.companyName)} className="company-spotlight__avatar company-spotlight__avatar--brand" />
+            <Avatar
+              size="lg"
+              src={item.companyProfileImage}
+              name={item.companyName}
+              initials={initials(item.companyName)}
+              alt={`Фото компании ${item.companyName || ""}`.trim()}
+              className="company-spotlight__avatar company-spotlight__avatar--brand"
+            />
             <div className="company-spotlight__copy">
               {publicCompanyHref ?
               <AppLink href={publicCompanyHref} className="opportunity-card-page__more-link">

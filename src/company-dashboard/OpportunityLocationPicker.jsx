@@ -5,7 +5,6 @@ import { loadYandexMapsApi } from "../shared/lib/loadYandexMapsApi";
 import { AddressAutocomplete, Button, FormField } from "../shared/ui";
 
 const mapScriptId = "yandex-maps-js-api-v3";
-const markerSourceId = "company-location-picker-marker-source";
 const defaultCenter = [37.617635, 55.755814];
 const selectionDeduplicationWindowMs = 250;
 
@@ -237,7 +236,6 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
     if (markerRef.current && typeof markerRef.current.update === "function") {
       markerRef.current.update({
         coordinates: resolvedMarkerCoordinates,
-        source: markerSourceId,
       });
       return;
     }
@@ -249,7 +247,6 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
     const nextMarker = new MarkerConstructor(
       {
         coordinates: resolvedMarkerCoordinates,
-        source: markerSourceId,
       },
       createMarkerElement()
     );
@@ -279,9 +276,8 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
         const ymaps3 = await loadYandexMaps();
         const {
           YMap,
+          YMapDefaultFeaturesLayer,
           YMapDefaultSchemeLayer,
-          YMapFeatureDataSource,
-          YMapLayer,
           YMapListener,
           YMapMarker,
         } = ymaps3;
@@ -321,9 +317,8 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
         mapRef.current = mapInstance;
         markerConstructorRef.current = YMapMarker;
 
-        mapInstance.addChild(new YMapDefaultSchemeLayer({ type: "ground" }));
-        mapInstance.addChild(new YMapFeatureDataSource({ id: markerSourceId }));
-        mapInstance.addChild(new YMapLayer({ source: markerSourceId, type: "markers", zIndex: 1200 }));
+        mapInstance.addChild(new YMapDefaultSchemeLayer());
+        mapInstance.addChild(new YMapDefaultFeaturesLayer());
         mapInstance.addChild(
           new YMapListener({
             layer: "any",
@@ -336,7 +331,6 @@ function LocationSelectionMap({ centerCoordinates, markerCoordinates, onSelectCo
           const initialMarker = new YMapMarker(
             {
               coordinates: markerCoordinatesRef.current,
-              source: markerSourceId,
             },
             createMarkerElement()
           );

@@ -1076,6 +1076,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             ContactsJson = opportunity.ContactsJson,
             MediaContentJson = opportunity.MediaContentJson,
             CompanyName = opportunity.Employer.CompanyName,
+            CompanyProfileImage = opportunity.Employer.ProfileImage,
             CompanyDescription = opportunity.Employer.Description,
             CompanyLegalAddress = opportunity.Employer.LegalAddress,
             CompanySocials = opportunity.Employer.Socials,
