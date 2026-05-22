@@ -334,7 +334,7 @@ export function CandidateOverviewApp({ profile = null }) {
                 recentActions.length ? (
                   <div className="candidate-overview-spotlight__stack">
                     {recentActions.map((item) => (
-                      <DashboardActivityCard key={item.id} item={item} className="candidate-overview-activity-card" />
+                      <DashboardActivityCard key={item.id} item={item} size="sm" className="candidate-overview-activity-card" />
                     ))}
                   </div>
                 ) : (

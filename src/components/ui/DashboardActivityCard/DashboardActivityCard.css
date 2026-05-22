@@ -37,3 +37,13 @@
 .ui-dashboard-activity-card__copy p {
   margin: 0;
 }
+
+.ui-dashboard-activity-card--sm {
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 22px;
+}
+
+.ui-dashboard-activity-card--sm .ui-dashboard-activity-card__badge {
+  min-height: 32px;
+}

@@ -203,7 +203,7 @@ export function CandidateResumeApp() {
               eyebrow="Резюме"
               title="Мое резюме"
               description="Собери свой портфолио и резюме для точных рекомендаций."
-              actions={<Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
+              actions={<Button size="sm" href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
             />
 
             {visibleResumeItems.length ? (
@@ -237,7 +237,7 @@ export function CandidateResumeApp() {
                   title="Карточка резюме пока не собрана"
                   description="Добавьте первое резюме, чтобы его можно было показывать работодателям отдельно от профиля."
                   tone="neutral"
-                  actions={<Button href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
+                  actions={<Button size="sm" href={CANDIDATE_PAGE_ROUTES.resumeEditor}>Создать резюме</Button>}
                 />
               </Card>
             )}
@@ -343,7 +343,7 @@ export function CandidateProjectsApp() {
           <CandidateSectionHeader
             title="Портфолио"
             description="Выложи кейсы, которые могут показать твои текущие навыки."
-            actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
+            actions={<Button size="sm" href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
           />
 
           {projectItems.length ? (
@@ -363,7 +363,7 @@ export function CandidateProjectsApp() {
                 title="Проекты еще не добавлены"
                 description="Добавьте первый кейс через редактор, и он сразу появится здесь."
                 tone="neutral"
-                actions={<Button href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
+                actions={<Button size="sm" href={CANDIDATE_PAGE_ROUTES.projectEditor}>Добавить проект</Button>}
               />
             </Card>
           )}
