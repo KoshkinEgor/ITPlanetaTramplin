@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthSession } from "../auth/api";
-import { getModerationCompanies, getModerationOpportunities, getModerationUsers } from "../api/moderation";
+import { getModerationCompanies, getModerationComplaints, getModerationOpportunities, getModerationUsers } from "../api/moderation";
 import { ApiError } from "../lib/http";
 import { ModeratorDashboardApp } from "./ModeratorDashboardApp";
 
@@ -14,6 +14,7 @@ vi.mock("../api/moderation", () => ({
   getModerationCompanies: vi.fn(),
   getModerationOpportunities: vi.fn(),
   getModerationUsers: vi.fn(),
+  getModerationComplaints: vi.fn(),
 }));
 
 function renderDashboard() {
@@ -30,6 +31,7 @@ describe("ModeratorDashboardApp", () => {
     getModerationCompanies.mockResolvedValue([]);
     getModerationOpportunities.mockResolvedValue([]);
     getModerationUsers.mockResolvedValue([]);
+    getModerationComplaints.mockResolvedValue([]);
   });
 
   it("waits for an authenticated moderator session before loading dashboard data", async () => {
@@ -46,6 +48,7 @@ describe("ModeratorDashboardApp", () => {
     expect(getModerationCompanies).not.toHaveBeenCalled();
     expect(getModerationOpportunities).not.toHaveBeenCalled();
     expect(getModerationUsers).not.toHaveBeenCalled();
+    expect(getModerationComplaints).not.toHaveBeenCalled();
 
     authSession = {
       status: "authenticated",
@@ -67,6 +70,7 @@ describe("ModeratorDashboardApp", () => {
       expect(getModerationCompanies).toHaveBeenCalledTimes(1);
       expect(getModerationOpportunities).toHaveBeenCalledTimes(1);
       expect(getModerationUsers).toHaveBeenCalledTimes(1);
+      expect(getModerationComplaints).toHaveBeenCalledTimes(1);
     });
   });
 

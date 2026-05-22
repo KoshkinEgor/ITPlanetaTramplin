@@ -119,6 +119,20 @@ vi.mock("../api/moderation", () => ({
   getModerationCompanies: vi.fn(() => Promise.resolve([])),
   getModerationOpportunities: vi.fn(() => Promise.resolve([])),
   getModerationUsers: vi.fn(() => Promise.resolve([])),
+  getModerationComplaints: vi.fn(() => Promise.resolve([])),
+  getModerationAuditLog: vi.fn(() => Promise.resolve([
+    {
+      id: "log-1",
+      entityType: "opportunity",
+      title: "Создана вакансия Signal Hub",
+      description: "Signal Hub HR",
+      createdAt: "2026-05-22T20:00:00Z",
+    }
+  ])),
+  getModeratorSettings: vi.fn(() => Promise.resolve({})),
+  getModeratorInvitations: vi.fn(() => Promise.resolve([])),
+  getModerationTags: vi.fn(() => Promise.resolve([])),
+  getModerationReferences: vi.fn(() => Promise.resolve([])),
   decideCompanyModeration: vi.fn(() => Promise.resolve({})),
   decideOpportunityModeration: vi.fn(() => Promise.resolve({})),
 }));
