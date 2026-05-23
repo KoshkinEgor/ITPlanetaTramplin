@@ -6,6 +6,7 @@ test-results/
 coverage/
 .codex-build/
 artifacts/logs/*.log
+.env
 .env.local
 .env.*.local
 .vs/
