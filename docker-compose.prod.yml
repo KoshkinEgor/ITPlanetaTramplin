@@ -29,7 +29,7 @@ services:
       PORT: 8080
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: ${API_CONNECTION_STRING}
-      Database__ApplyMigrationsOnStartup: ${API_APPLY_MIGRATIONS_ON_STARTUP:-false}
+      Database__ApplyMigrationsOnStartup: ${API_APPLY_MIGRATIONS_ON_STARTUP:-true}
       Jwt__Key: ${API_JWT_KEY}
       EmailVerification__HashKey: ${API_EMAIL_VERIFICATION_HASH_KEY}
       PasswordReset__HashKey: ${API_PASSWORD_RESET_HASH_KEY}
