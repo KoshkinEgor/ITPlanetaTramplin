@@ -8,6 +8,7 @@ export const CANDIDATE_PAGE_ROUTES = {
   projectEditor: routes.candidate.projectEdit,
   responses: routes.candidate.responses,
   contacts: routes.candidate.contacts,
+  messages: routes.candidate.messages,
   settings: routes.candidate.settings,
 };
 
@@ -16,6 +17,7 @@ export const CANDIDATE_SIDEBAR_ITEMS = [
   { key: "portfolio", label: "Портфолио / Резюме", href: CANDIDATE_PAGE_ROUTES.resume },
   { key: "responses", label: "Мои отклики", href: CANDIDATE_PAGE_ROUTES.responses },
   { key: "contacts", label: "Контакты", href: CANDIDATE_PAGE_ROUTES.contacts },
+  { key: "messages", label: "Сообщения", href: CANDIDATE_PAGE_ROUTES.messages },
   { key: "settings", label: "Настройки профиля", href: CANDIDATE_PAGE_ROUTES.settings },
 ];
 

@@ -9,6 +9,7 @@ import { ModeratorOpportunitiesApp } from "../../moderator-dashboard/ModeratorOp
 import { ModeratorSettingsApp } from "../../moderator-dashboard/ModeratorSettingsApp";
 import { ModeratorTagsSystemApp } from "../../moderator-dashboard/ModeratorTagsSystemApp";
 import { ModeratorUsersApp } from "../../moderator-dashboard/ModeratorUsersApp";
+import { ChatApp } from "../../chat";
 
 export { ModeratorAccessGuard, ModeratorCabinetPage };
 
@@ -34,6 +35,10 @@ export function ModeratorUsersPage() {
 
 export function ModeratorComplaintsPage() {
   return <ModeratorComplaintsApp />;
+}
+
+export function ModeratorMessagesPage() {
+  return <ChatApp />;
 }
 
 export function ModeratorTagsSystemPage() {

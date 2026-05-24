@@ -839,6 +839,7 @@ internal static class DevelopmentDataSeeder
         {
             opportunity.SalaryFrom = 80000;
             opportunity.SalaryTo = 150000;
+            opportunity.Schedule = "full_time";
             return;
         }
 
@@ -848,6 +849,7 @@ internal static class DevelopmentDataSeeder
             opportunity.Duration = "3 months";
             opportunity.StipendFrom = 30000;
             opportunity.StipendTo = 50000;
+            opportunity.Schedule = "part_time";
             return;
         }
 

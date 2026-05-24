@@ -34,6 +34,10 @@ function resolveCandidateActiveKey(pathname) {
     return "contacts";
   }
 
+  if (pathname.startsWith(routes.candidate.messages)) {
+    return "messages";
+  }
+
   if (pathname.startsWith(routes.candidate.settings)) {
     return "settings";
   }

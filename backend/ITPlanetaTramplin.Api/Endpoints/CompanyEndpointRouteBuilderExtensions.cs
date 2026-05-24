@@ -369,6 +369,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
             DefaultStartSection = NormalizeStartSection(settings.DefaultStartSection),
             DefaultResponsesSort = NormalizeResponsesSort(settings.DefaultResponsesSort),
             ShowArchivedOpportunities = settings.ShowArchivedOpportunities,
+            AllowCompanyMessages = settings.AllowCompanyMessages,
         };
 
     private static void ApplyCompanySettings(CompanySetting settings, CompanySettingsDTO request, string fallbackEmail)
@@ -382,6 +383,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
         settings.DefaultStartSection = NormalizeStartSection(request.DefaultStartSection);
         settings.DefaultResponsesSort = NormalizeResponsesSort(request.DefaultResponsesSort);
         settings.ShowArchivedOpportunities = request.ShowArchivedOpportunities;
+        settings.AllowCompanyMessages = request.AllowCompanyMessages;
     }
 
     private static string NormalizeStartSection(string? value) =>

@@ -148,6 +148,8 @@ namespace DTO
         public string DefaultResponsesSort { get; set; } = "newest";
 
         public bool ShowArchivedOpportunities { get; set; }
+
+        public bool AllowCompanyMessages { get; set; }
     }
 
     public class CompanyVerificationRequestDTO

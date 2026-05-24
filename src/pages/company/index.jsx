@@ -6,6 +6,7 @@ import { CompanyOpportunitiesSection } from "../../company-dashboard/CompanyOppo
 import { CompanyProfileSection } from "../../company-dashboard/CompanyProfileSection";
 import { CompanyResponsesSection } from "../../company-dashboard/CompanyResponsesSection";
 import { CompanySettingsSection } from "../../company-dashboard/CompanySettingsSection";
+import { ChatApp } from "../../chat";
 
 export { CompanyAccessGuard, CompanyCabinetPage, CompanyPublicPage };
 
@@ -20,6 +21,10 @@ export function CompanyOpportunitiesPage() {
 
 export function CompanyResponsesPage() {
   return <CompanyResponsesSection />;
+}
+
+export function CompanyMessagesPage() {
+  return <ChatApp />;
 }
 
 export function CompanySettingsPage() {

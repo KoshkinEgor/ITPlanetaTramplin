@@ -19,6 +19,7 @@ import {
   CandidatePublicProfilePage,
   CandidateProjectEditPage,
   CandidateProjectsPage,
+  CandidateMessagesPage,
   CandidateResponsesPage,
   CandidateResumeEditPage,
   CandidateResumePage,
@@ -31,6 +32,7 @@ import {
   CompanyOpportunitiesPage,
   CompanyPublicPage,
   CompanyResponsesPage,
+  CompanyMessagesPage,
   CompanySettingsPage,
 } from "../pages/company/index.jsx";
 import { HomePage } from "../pages/home/HomePage";
@@ -43,6 +45,7 @@ import {
   ModeratorDashboardPage,
   ModeratorInvitationsPage,
   ModeratorLogsPage,
+  ModeratorMessagesPage,
   ModeratorOpportunitiesPage,
   ModeratorSettingsPage,
   ModeratorTagsSystemPage,
@@ -88,6 +91,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
           <Route path="projects" element={<CandidateProjectsPage />} />
           <Route path="responses" element={<CandidateResponsesPage />} />
           <Route path="contacts" element={<CandidateContactsPage />} />
+          <Route path="messages" element={<CandidateMessagesPage />} />
           <Route path="settings" element={<CandidateSettingsPage />} />
         </Route>
       </Route>
@@ -97,6 +101,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
           <Route index element={<CompanyDashboardPage />} />
           <Route path="opportunities" element={<CompanyOpportunitiesPage />} />
           <Route path="responses" element={<CompanyResponsesPage />} />
+          <Route path="messages" element={<CompanyMessagesPage />} />
           <Route path="settings" element={<CompanySettingsPage />} />
         </Route>
       </Route>
@@ -110,6 +115,7 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
           <Route path="companies" element={<ModeratorCompaniesPage />} />
           <Route path="users" element={<ModeratorUsersPage />} />
           <Route path="complaints" element={<ModeratorComplaintsPage />} />
+          <Route path="messages" element={<ModeratorMessagesPage />} />
           <Route path="tags-system" element={<ModeratorTagsSystemPage />} />
           <Route path="logs" element={<ModeratorLogsPage />} />
           <Route path="settings" element={<ModeratorSettingsPage />} />

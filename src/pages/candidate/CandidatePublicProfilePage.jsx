@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { startChat } from "../../api/chats";
 import {
   acceptCandidateFriendRequest,
   acceptCandidateProjectInvite,
@@ -1099,6 +1100,26 @@ export function CandidatePublicProfilePage() {
     }
   }
 
+  async function handleStartChat() {
+    if (!publicUserId || busyAction) {
+      return;
+    }
+
+    try {
+      setBusyAction("chat");
+      const thread = await startChat({ recipientUserId: publicUserId });
+      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+    } catch (error) {
+      setFeedback({
+        status: "error",
+        title: "Не удалось открыть чат",
+        message: error?.message ?? "Проверьте настройки приватности пользователя и попробуйте позже.",
+      });
+    } finally {
+      setBusyAction("");
+    }
+  }
+
   function handleOpenInviteModal() {
     setInviteModalOpen(true);
     void ensureInviteProjectsLoaded();
@@ -1366,6 +1387,9 @@ export function CandidatePublicProfilePage() {
     if (relationship.friendState === "friends") {
       return shouldShowInviteButton ?
       <div className="candidate-public-profile__action-group">
+          <Button variant="secondary" size="lg" loading={busyAction === "chat"} onClick={handleStartChat}>
+            Написать
+          </Button>
           <Button size="lg" onClick={handleOpenInviteModal}>
             Пригласить в проект
           </Button>
@@ -1376,6 +1400,9 @@ export function CandidatePublicProfilePage() {
     if (relationship.contactState === "saved") {
       return (
         <div className="candidate-public-profile__action-group">
+          <Button variant="secondary" size="lg" loading={busyAction === "chat"} onClick={handleStartChat}>
+            Написать
+          </Button>
           {shouldShowInviteButton ?
           <Button size="lg" onClick={handleOpenInviteModal}>
               Пригласить в проект
@@ -1390,6 +1417,9 @@ export function CandidatePublicProfilePage() {
 
     return (
       <div className="candidate-public-profile__action-group">
+        <Button variant="secondary" size="lg" loading={busyAction === "chat"} onClick={handleStartChat}>
+          Написать
+        </Button>
         <Button size="lg" loading={busyAction === "contact"} onClick={handleAddToContacts}>
           Добавить в контакты
         </Button>

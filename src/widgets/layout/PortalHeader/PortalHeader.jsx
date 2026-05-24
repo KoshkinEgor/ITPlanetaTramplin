@@ -18,6 +18,7 @@ import {
   getPendingNotificationCount,
 } from "../../../candidate-portal/social";
 import { AuthAccountMenu } from "../../../auth/AuthAccountMenu";
+import { ChatDrawerTrigger } from "../../../chat";
 import { cn } from "../../../shared/lib/cn";
 import { Button, IconButton } from "../../../shared/ui";
 import "./PortalHeader.css";
@@ -51,6 +52,20 @@ function BellIcon() {
   );
 }
 
+function MessageIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M4.2 5.4c0-1 0.8-1.8 1.8-1.8h8c1 0 1.8.8 1.8 1.8v5.3c0 1-.8 1.8-1.8 1.8H9.2L5 16v-3.5H6c-1 0-1.8-.8-1.8-1.8V5.4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M7.4 7.4h5.2M7.4 9.8h3.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function GuestProfileIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -72,6 +87,7 @@ function MenuIcon() {
 
 const DEFAULT_ICON_BUTTONS = [
   { key: "favorites", label: "Избранное", href: routes.favorites, icon: <HeartIcon /> },
+  { key: "messages", label: "Сообщения", icon: <MessageIcon /> },
   { key: "notifications", label: "Уведомления", icon: <BellIcon /> },
 ];
 
@@ -552,6 +568,14 @@ export function PortalHeader({
           </div>
 
           {iconButtons.map((item) => {
+            if (item.key === "messages" && authUser) {
+              return (
+                <ChatDrawerTrigger key={item.key} className="portal-header__notification-button">
+                  <MessageIcon />
+                </ChatDrawerTrigger>
+              );
+            }
+
             if (item.key === "notifications" && authUser) {
               return <PortalHeaderNotifications key={item.key} authUser={authUser} />;
             }

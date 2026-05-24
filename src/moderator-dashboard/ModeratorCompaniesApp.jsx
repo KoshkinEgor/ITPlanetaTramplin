@@ -6,6 +6,8 @@ import {
   getModerationCompany,
   updateModerationCompany,
 } from "../api/moderation";
+import { startChat } from "../api/chats";
+import { routes } from "../app/routes";
 import { formatCompanyVerificationDate, formatCompanyVerificationFileSize, parseCompanyVerificationData } from "../company-dashboard/companyVerification";
 import { ApiError } from "../lib/http";
 import {
@@ -251,6 +253,7 @@ export function ModeratorCompaniesApp() {
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [decisionState, setDecisionState] = useState({ status: "idle", error: "" });
   const [documentState, setDocumentState] = useState({ status: "idle", error: "" });
+  const [chatState, setChatState] = useState({ status: "idle", error: "" });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -456,6 +459,29 @@ export function ModeratorCompaniesApp() {
     }
   }
 
+  async function handleStartCompanyChat() {
+    const recipientUserId = activeItem?.userId ?? detailState.detail?.userId;
+    if (!recipientUserId || chatState.status === "loading") {
+      return;
+    }
+
+    try {
+      setChatState({ status: "loading", error: "" });
+      const thread = await startChat({
+        recipientUserId,
+        contextType: "company_moderation",
+        contextId: activeItem?.id ?? selectedId,
+        subject: activeItem?.companyName ? `Проверка: ${activeItem.companyName}` : "Проверка компании",
+      });
+      window.location.href = `${routes.moderator.messages}?thread=${thread.id}`;
+    } catch (error) {
+      setChatState({
+        status: "error",
+        error: error?.message ?? "Не удалось открыть чат с компанией.",
+      });
+    }
+  }
+
   const decisionDialogContent = getCompanyDecisionDialogContent(decision);
 
   return (
@@ -547,6 +573,16 @@ export function ModeratorCompaniesApp() {
               <Tag tone="accent">Компания</Tag>
               <ModeratorStatusBadge label={translateCompanyStatus(activeItem.verificationStatus)} tone={activeItem.verificationStatus} />
             </div>
+            <div className="company-dashboard-panel__actions">
+              <Button type="button" variant="secondary" loading={chatState.status === "loading"} onClick={handleStartCompanyChat}>
+                Написать компании
+              </Button>
+            </div>
+            {chatState.status === "error" ? (
+              <Alert tone="error" title="Чат недоступен" showIcon>
+                {chatState.error}
+              </Alert>
+            ) : null}
 
             <div className="moderator-detail-surface__copy">
               <h3 className="ui-type-h3">{activeItem.companyName}</h3>

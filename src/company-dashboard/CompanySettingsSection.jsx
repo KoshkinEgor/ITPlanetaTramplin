@@ -28,6 +28,7 @@ function createSettingsDraft(settings = {}) {
     defaultStartSection: settings.defaultStartSection ?? "profile",
     defaultResponsesSort: settings.defaultResponsesSort ?? "newest",
     showArchivedOpportunities: settings.showArchivedOpportunities ?? false,
+    allowCompanyMessages: settings.allowCompanyMessages ?? false,
   };
 }
 
@@ -173,6 +174,15 @@ export function CompanySettingsSection() {
             label="Показывать архивные возможности в кабинете"
             checked={draft.showArchivedOpportunities}
             onChange={(event) => updateField("showArchivedOpportunities", event.target.checked)}
+          />
+        </section>
+
+        <section className="company-dashboard-panel">
+          <h3 className="ui-type-h3">Сообщения</h3>
+          <Checkbox
+            label="Разрешить другим верифицированным компаниям начинать диалог"
+            checked={draft.allowCompanyMessages}
+            onChange={(event) => updateField("allowCompanyMessages", event.target.checked)}
           />
         </section>
 

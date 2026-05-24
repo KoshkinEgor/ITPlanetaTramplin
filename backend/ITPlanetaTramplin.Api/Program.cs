@@ -1,8 +1,10 @@
 using Application.DBContext;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Endpoints;
+using ITPlanetaTramplin.Api.Hubs;
 using ITPlanetaTramplin.Api.Infrastructure;
 using ITPlanetaTramplin.Api.Integrations;
+using ITPlanetaTramplin.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -69,6 +71,8 @@ builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
 });
 builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddHealthChecks();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ChatService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -88,6 +92,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         {
             if (!string.IsNullOrWhiteSpace(context.Token))
             {
+                return Task.CompletedTask;
+            }
+
+            var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(accessToken) &&
+                context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+            {
+                context.Token = accessToken;
                 return Task.CompletedTask;
             }
 
@@ -170,6 +182,9 @@ api.MapOpportunityEndpoints();
 api.MapModerationEndpoints();
 api.MapComplaintEndpoints();
 api.MapNotificationEndpoints();
+api.MapChatEndpoints();
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
 
