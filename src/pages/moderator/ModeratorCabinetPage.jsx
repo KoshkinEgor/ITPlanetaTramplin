@@ -28,6 +28,10 @@ function resolveModeratorActiveKey(pathname) {
     return "complaints";
   }
 
+  if (pathname.startsWith(routes.moderator.messages)) {
+    return "messages";
+  }
+
   if (pathname.startsWith(routes.moderator.tagsSystem)) {
     return "tags-system";
   }

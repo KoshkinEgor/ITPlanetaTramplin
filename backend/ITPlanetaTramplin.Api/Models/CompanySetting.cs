@@ -22,6 +22,8 @@ public partial class CompanySetting
 
     public bool ShowArchivedOpportunities { get; set; }
 
+    public bool AllowCompanyMessages { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

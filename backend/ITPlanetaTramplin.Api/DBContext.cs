@@ -23,6 +23,12 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<CandidateProjectInvite> CandidateProjectInvites { get; set; }
 
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public virtual DbSet<ChatParticipant> ChatParticipants { get; set; }
+
+    public virtual DbSet<ChatThread> ChatThreads { get; set; }
+
     public virtual DbSet<OpportunityApplication> Applications { get; set; }
 
     public virtual DbSet<Complaint> Complaints { get; set; }
@@ -246,6 +252,109 @@ public partial class ApplicationDBContext : DbContext
             entity.HasOne(d => d.Applicant).WithMany(p => p.CandidateProjects)
                 .HasForeignKey(d => d.ApplicantId)
                 .HasConstraintName("candidate_projects_applicant_id_fkey");
+        });
+
+        modelBuilder.Entity<ChatThread>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("chat_threads_pkey");
+
+            entity.ToTable("chat_threads");
+
+            entity.HasIndex(e => e.CreatedByUserId, "idx_chat_threads_created_by_user_id");
+            entity.HasIndex(e => e.LastMessageAt, "idx_chat_threads_last_message_at");
+            entity.HasIndex(e => new { e.ContextType, e.ContextId }, "idx_chat_threads_context");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Subject)
+                .HasMaxLength(160)
+                .HasColumnName("subject");
+            entity.Property(e => e.ContextType)
+                .HasMaxLength(80)
+                .HasDefaultValue(ChatContextTypes.Direct)
+                .HasColumnName("context_type");
+            entity.Property(e => e.ContextId).HasColumnName("context_id");
+            entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.LastMessageAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("last_message_at");
+
+            entity.HasOne(d => d.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("chat_threads_created_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<ChatParticipant>(entity =>
+        {
+            entity.HasKey(e => new { e.ThreadId, e.UserId }).HasName("chat_participants_pkey");
+
+            entity.ToTable("chat_participants");
+
+            entity.HasIndex(e => e.UserId, "idx_chat_participants_user_id");
+            entity.HasIndex(e => new { e.UserId, e.LastReadAt }, "idx_chat_participants_user_last_read_at");
+
+            entity.Property(e => e.ThreadId).HasColumnName("thread_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Role)
+                .HasMaxLength(40)
+                .HasColumnName("role");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.LastReadAt).HasColumnName("last_read_at");
+            entity.Property(e => e.IsMuted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_muted");
+
+            entity.HasOne(d => d.Thread)
+                .WithMany(p => p.Participants)
+                .HasForeignKey(d => d.ThreadId)
+                .HasConstraintName("chat_participants_thread_id_fkey");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("chat_participants_user_id_fkey");
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("chat_messages_pkey");
+
+            entity.ToTable("chat_messages");
+
+            entity.HasIndex(e => new { e.ThreadId, e.CreatedAt }, "idx_chat_messages_thread_created_at");
+            entity.HasIndex(e => e.SenderUserId, "idx_chat_messages_sender_user_id");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ThreadId).HasColumnName("thread_id");
+            entity.Property(e => e.SenderUserId).HasColumnName("sender_user_id");
+            entity.Property(e => e.Body).HasColumnName("body");
+            entity.Property(e => e.IsSystem)
+                .HasDefaultValue(false)
+                .HasColumnName("is_system");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.Thread)
+                .WithMany(p => p.Messages)
+                .HasForeignKey(d => d.ThreadId)
+                .HasConstraintName("chat_messages_thread_id_fkey");
+
+            entity.HasOne(d => d.SenderUser)
+                .WithMany()
+                .HasForeignKey(d => d.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("chat_messages_sender_user_id_fkey");
         });
 
         modelBuilder.Entity<OpportunityApplication>(entity =>
@@ -594,6 +703,9 @@ public partial class ApplicationDBContext : DbContext
             entity.Property(e => e.ShowArchivedOpportunities)
                 .HasDefaultValue(false)
                 .HasColumnName("show_archived_opportunities");
+            entity.Property(e => e.AllowCompanyMessages)
+                .HasDefaultValue(false)
+                .HasColumnName("allow_company_messages");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");

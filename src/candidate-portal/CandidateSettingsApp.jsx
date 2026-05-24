@@ -94,6 +94,13 @@ const AUDIENCE_OPTIONS = [
   { value: "employers", label: "Только работодатели" },
 ];
 
+const CHAT_AUDIENCE_OPTIONS = [
+  { value: "everyone", label: "Все пользователи" },
+  { value: "contacts", label: "Только контакты" },
+  { value: "friends", label: "Только друзья" },
+  { value: "nobody", label: "Никому" },
+];
+
 function createIdleSaveState() {
   return { status: "idle", error: "" };
 }
@@ -564,7 +571,7 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three">
           <FormField label="Профиль"><Select value={draft.privacy.profileAudience} onValueChange={(value) => onChange("profileAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
           <FormField label="Контакты"><Select value={draft.privacy.contactsAudience} onValueChange={(value) => onChange("contactsAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
-          <FormField label="Сообщения"><Select value={draft.privacy.messagesAudience} onValueChange={(value) => onChange("messagesAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
+          <FormField label="Сообщения"><Select value={draft.privacy.messagesAudience} onValueChange={(value) => onChange("messagesAudience", value)} options={CHAT_AUDIENCE_OPTIONS} /></FormField>
         </div>
       </section>
 

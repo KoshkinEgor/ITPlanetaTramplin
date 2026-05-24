@@ -33,7 +33,8 @@ public class OpportunityEndpointTests
             title = "Backend opportunity",
             description = "Created from test",
             opportunityType = "internship",
-            employmentType = "part-time",
+            employmentType = "hybrid",
+            schedule = "full_time",
         });
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
@@ -44,7 +45,7 @@ public class OpportunityEndpointTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
             var opportunity = await db.Opportunities.SingleAsync(item => item.Title == "Backend opportunity");
             opportunityId = opportunity.Id;
-            Assert.Equal("part-time", opportunity.EmploymentType);
+            Assert.Equal("hybrid", opportunity.EmploymentType);
         }
 
         var updateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}", new
@@ -92,6 +93,7 @@ public class OpportunityEndpointTests
             description = "Submitted from test",
             opportunityType = "vacancy",
             employmentType = "office",
+            schedule = "full_time",
             locationCity = "Москва",
             contactsJson = """{"email":"jobs@test.local"}""",
             salaryFrom = 100000m,
@@ -136,6 +138,7 @@ public class OpportunityEndpointTests
             description = "Submitted from test",
             opportunityType = "vacancy",
             employmentType = "office",
+            schedule = "full_time",
             locationCity = "Москва",
             contactsJson = """{"email":"apply@test.local"}""",
             salaryFrom = 100000m,
@@ -199,6 +202,7 @@ public class OpportunityEndpointTests
             description = "Submitted from test",
             opportunityType = "vacancy",
             employmentType = "office",
+            schedule = "full_time",
             locationCity = "Москва",
             contactsJson = """{"email":"archive@test.local"}""",
             salaryFrom = 120000m,
@@ -254,6 +258,7 @@ public class OpportunityEndpointTests
             description = "Submitted from test",
             opportunityType = "vacancy",
             employmentType = "office",
+            schedule = "full_time",
             locationCity = "Москва",
             contactsJson = """{"email":"owner@test.local"}""",
             salaryFrom = 110000m,
@@ -311,7 +316,8 @@ public class OpportunityEndpointTests
             title = "Verification required opportunity",
             description = "Created from test",
             opportunityType = "internship",
-            employmentType = "part-time",
+            employmentType = "hybrid",
+            schedule = "full_time",
             locationCity = "Москва",
             contactsJson = """{"email":"verification@test.local"}""",
             isPaid = false,

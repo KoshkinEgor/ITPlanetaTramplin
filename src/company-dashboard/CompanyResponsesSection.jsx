@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildCandidatePublicProfileRoute } from "../app/routes";
+import { startChat } from "../api/chats";
+import { buildCandidatePublicProfileRoute, routes } from "../app/routes";
 import { getCompanyOpportunities, updateOpportunityApplicationStatus } from "../api/company";
 import { cn } from "../lib/cn";
 import { ApiError } from "../lib/http";
@@ -75,8 +76,9 @@ function buildApplicationLinks(item) {
   };
 }
 
-function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, onSave, busyId }) {
+function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, onSave, onStartChat, busyId, chatBusyId }) {
   const isSaving = busyId === item.id;
+  const isStartingChat = chatBusyId === item.id;
   const contentId = `company-dashboard-response-${item.id}`;
   const skills = normalizeApplicationSkills(item.candidateSkills).slice(0, 4);
   const { profileHref, resumeHref } = buildApplicationLinks(item);
@@ -135,6 +137,16 @@ function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, on
           <Button href={resumeHref} variant="secondary" size="sm" className="company-dashboard-response__action">
             Резюме
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            loading={isStartingChat}
+            className="company-dashboard-response__action"
+            onClick={() => onStartChat(item)}
+          >
+            Написать
+          </Button>
         </div>
       </div>
 
@@ -177,6 +189,7 @@ export function CompanyResponsesSection() {
   const [state, setState] = useState({ status: "loading", applications: [], error: null });
   const [applicationEdits, setApplicationEdits] = useState({});
   const [busyApplicationId, setBusyApplicationId] = useState(0);
+  const [chatBusyApplicationId, setChatBusyApplicationId] = useState(0);
   const [expandedApplicationId, setExpandedApplicationId] = useState(null);
   const [filters, setFilters] = useState({
     query: "",
@@ -343,6 +356,31 @@ export function CompanyResponsesSection() {
     }
   }
 
+  async function handleStartChat(item) {
+    const recipientUserId = item?.candidateUserId ?? item?.applicantUserId;
+    if (!recipientUserId || chatBusyApplicationId) {
+      return;
+    }
+
+    try {
+      setChatBusyApplicationId(item.id);
+      const thread = await startChat({
+        recipientUserId,
+        contextType: "application",
+        contextId: item.id,
+        subject: item.opportunityTitle ? `Отклик: ${item.opportunityTitle}` : "Отклик кандидата",
+      });
+      window.location.href = `${routes.company.messages}?thread=${thread.id}`;
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "Не удалось открыть чат с кандидатом.",
+      });
+    } finally {
+      setChatBusyApplicationId(0);
+    }
+  }
+
   return (
     <>
       {state.status === "loading" ? <Loader label="Загружаем отклики компании" surface /> : null}
@@ -419,7 +457,9 @@ export function CompanyResponsesSection() {
                     onToggle={handleApplicationToggle}
                     onEditChange={handleApplicationEditChange}
                     onSave={handleApplicationSave}
+                    onStartChat={handleStartChat}
                     busyId={busyApplicationId}
+                    chatBusyId={chatBusyApplicationId}
                   />
                 ))}
               </div>

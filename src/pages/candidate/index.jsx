@@ -11,6 +11,7 @@ import { CandidateProjectEditorApp } from "../../candidate-portal/CandidateProje
 import { CandidateResponsesApp } from "../../candidate-portal/CandidateResponsesApp";
 import { CandidateResumeEditorApp } from "../../candidate-portal/CandidateResumeEditorApp";
 import { CandidateSettingsApp } from "../../candidate-portal/CandidateSettingsApp";
+import { ChatApp } from "../../chat";
 
 export { CandidateAccessGuard, CandidateCabinetPage, CandidateCareerPage, CandidatePublicProfilePage };
 
@@ -49,6 +50,10 @@ export function CandidateResponsesPage() {
 
 export function CandidateContactsPage() {
   return <CandidateContactsApp />;
+}
+
+export function CandidateMessagesPage() {
+  return <ChatApp />;
 }
 
 export function CandidateSettingsPage() {

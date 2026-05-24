@@ -18,6 +18,10 @@ function resolveCompanyActiveKey(pathname) {
     return "responses";
   }
 
+  if (pathname.startsWith(routes.company.messages)) {
+    return "messages";
+  }
+
   if (pathname.startsWith(routes.company.settings)) {
     return "settings";
   }

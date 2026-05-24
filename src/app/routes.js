@@ -32,6 +32,7 @@ export const routes = {
     projectEdit: "/candidate/projects/edit",
     responses: "/candidate/responses",
     contacts: "/candidate/contacts",
+    messages: "/candidate/messages",
     settings: "/candidate/settings",
   },
   company: {
@@ -39,6 +40,7 @@ export const routes = {
     dashboard: "/company/dashboard",
     opportunities: "/company/dashboard/opportunities",
     responses: "/company/dashboard/responses",
+    messages: "/company/dashboard/messages",
     settings: "/company/dashboard/settings",
   },
   companies: {
@@ -52,6 +54,7 @@ export const routes = {
     companies: "/moderator/companies",
     users: "/moderator/users",
     complaints: "/moderator/complaints",
+    messages: "/moderator/messages",
     tagsSystem: "/moderator/tags-system",
     logs: "/moderator/logs",
     settings: "/moderator/settings",
