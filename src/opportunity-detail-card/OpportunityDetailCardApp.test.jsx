@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -303,7 +303,7 @@ describe("OpportunityDetailCardApp", () => {
 
     await waitFor(() => {
       expect(createOpportunityComplaint).toHaveBeenCalledWith(101, {
-        reason: "Недостоверная информация",
+        reason: "spam",
         description: "",
       });
     });

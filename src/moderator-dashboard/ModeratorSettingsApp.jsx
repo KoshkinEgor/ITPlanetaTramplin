@@ -37,7 +37,7 @@ export function ModeratorSettingsApp() {
   const [draft, setDraft] = useState({
     startPage: "/moderator",
     notifications: { complaints: true, opportunities: true, companies: true, candidates: true, system: true },
-    queue: { defaultSort: "newest", pageSize: 20, includeClosedComplaints: false },
+    queue: { defaultSort: "newest", pageSize: 20, includeClosedComplaints: false, includeDismissedComplaints: false },
   });
   const [saveState, setSaveState] = useState({ status: "idle", error: null });
 
@@ -50,7 +50,7 @@ export function ModeratorSettingsApp() {
         setDraft({
           startPage: payload.startPage,
           notifications: { complaints: true, opportunities: true, companies: true, candidates: true, system: true, ...payload.notificationSettings },
-          queue: { defaultSort: "newest", pageSize: 20, includeClosedComplaints: false, ...payload.queueSettings },
+          queue: { defaultSort: "newest", pageSize: 20, includeClosedComplaints: false, includeDismissedComplaints: false, ...payload.queueSettings },
         });
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -124,7 +124,8 @@ export function ModeratorSettingsApp() {
           <FormField label="Размер страницы">
             <Select value={String(draft.queue.pageSize)} onValueChange={(value) => updateQueue("pageSize", Number(value))} options={PAGE_SIZE_OPTIONS} />
           </FormField>
-          <Switch checked={draft.queue.includeClosedComplaints} onChange={(event) => updateQueue("includeClosedComplaints", event.target.checked)}><span className="ui-check__label">Показывать закрытые жалобы</span></Switch>
+          <Switch checked={draft.queue.includeClosedComplaints} onChange={(event) => updateQueue("includeClosedComplaints", event.target.checked)}><span className="ui-check__label">Показывать заблокированные жалобы</span></Switch>
+          <Switch checked={draft.queue.includeDismissedComplaints} onChange={(event) => updateQueue("includeDismissedComplaints", event.target.checked)}><span className="ui-check__label">Показывать снятые жалобы</span></Switch>
         </Card>
 
         <Card className="moderator-setting-card">

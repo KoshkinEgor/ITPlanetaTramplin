@@ -16,7 +16,6 @@ import {
   normalizeCompanyGallery,
   normalizeCompanyHeroMedia,
 } from "../../company-dashboard/companyProfileMedia";
-import { translateVerificationStatus } from "../../company-dashboard/utils";
 import { CompanyProfileSummary } from "../../features/company";
 import { ApiError } from "../../lib/http";
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
@@ -50,17 +49,6 @@ function createOpportunityRailItem(item) {
     note: presentation.note || shortenText(item?.description),
     chips: Array.isArray(item?.tags) ? item.tags.slice(0, 4) : [],
     detailHref: buildOpportunityDetailRoute(item.id),
-  };
-}
-
-function buildPublicVerification(profile) {
-  const tone = String(profile?.verificationStatus ?? "approved").trim().toLowerCase() || "approved";
-
-  return {
-    label: "Верификация",
-    tone,
-    statusText: translateVerificationStatus(tone),
-    note: "Профиль подтвержден и уже доступен кандидатам в публичном каталоге.",
   };
 }
 
@@ -182,7 +170,6 @@ export function CompanyPublicPage() {
             <CompanyProfileSummary
               profile={state.profile}
               stats={stats}
-              verification={buildPublicVerification(state.profile)}
               mode="public"
             />
 

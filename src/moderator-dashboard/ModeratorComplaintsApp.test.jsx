@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { decideComplaintModeration, getModerationComplaints } from "../api/moderation";
+import { decideComplaintModeration, getModerationComplaints, getModeratorSettings } from "../api/moderation";
 import { ModeratorComplaintsApp } from "./ModeratorComplaintsApp";
 
 vi.mock("../api/moderation", () => ({
   getModerationComplaints: vi.fn(),
   decideComplaintModeration: vi.fn(),
+  getModeratorSettings: vi.fn(),
 }));
 
 const complaintItems = [
@@ -44,6 +45,14 @@ describe("ModeratorComplaintsApp", () => {
     vi.clearAllMocks();
     getModerationComplaints.mockResolvedValue(complaintItems);
     decideComplaintModeration.mockResolvedValue({});
+    getModeratorSettings.mockResolvedValue({
+      settings: {
+        queueSettings: {
+          includeClosedComplaints: false,
+          includeDismissedComplaints: false,
+        },
+      },
+    });
   });
 
   it("renders the complaint queue sorted by count by default", async () => {
@@ -79,5 +88,121 @@ describe("ModeratorComplaintsApp", () => {
     await waitFor(() => {
       expect(decideComplaintModeration).toHaveBeenCalledWith("orbit-lab-contacts", { status: "review" });
     });
+  });
+
+  it("removes the complaint card from the UI immediately when resolved (dismissed or blocked)", async () => {
+    render(<ModeratorComplaintsApp />);
+
+    await screen.findByText("Отсортировано 3 карточек жалоб.");
+
+    const card = screen.getByTestId("moderator-complaint-card-orbit-lab-contacts");
+    
+    // Select "Снять жалобу" (dismiss) and confirm
+    fireEvent.click(within(card).getByRole("button", { name: "Открыть список действий" }));
+    fireEvent.click(screen.getByRole("option", { name: "Снять жалобу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Снять жалобу" }));
+
+    await waitFor(() => {
+      expect(decideComplaintModeration).toHaveBeenCalledWith("orbit-lab-contacts", { status: "dismiss" });
+    });
+
+    // Check that it disappeared
+    await waitFor(() => {
+      expect(screen.queryByTestId("moderator-complaint-card-orbit-lab-contacts")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Отсортировано 2 карточек жалоб.")).toBeInTheDocument();
+  });
+
+  it("polls complaints in the background and updates the UI silently", async () => {
+    vi.useFakeTimers();
+    getModerationComplaints.mockResolvedValueOnce(complaintItems);
+    
+    render(<ModeratorComplaintsApp />);
+    
+    // Flush microtasks for initial API load
+    await vi.advanceTimersByTimeAsync(0);
+    
+    expect(screen.getByText("Отсортировано 3 карточек жалоб.")).toBeInTheDocument();
+    
+    const newItems = [
+      ...complaintItems,
+      {
+        id: "new-spam-complaint",
+        opportunityTitle: "New Spam Opportunity",
+        companyName: "Spammer Inc",
+        reason: "Спам",
+        createdAt: "2026-03-21",
+        count: 10,
+        status: "pending",
+      }
+    ];
+    getModerationComplaints.mockResolvedValueOnce(newItems);
+    
+    await vi.advanceTimersByTimeAsync(5000);
+    
+    expect(screen.getByText("Отсортировано 4 карточек жалоб.")).toBeInTheDocument();
+    expect(screen.getByText("New Spam Opportunity")).toBeInTheDocument();
+    
+    vi.useRealTimers();
+  });
+
+  it("keeps resolved complaints in the UI when includeClosedComplaints is true", async () => {
+    getModeratorSettings.mockResolvedValue({
+      settings: {
+        queueSettings: {
+          includeClosedComplaints: true,
+          includeDismissedComplaints: false,
+        },
+      },
+    });
+
+    render(<ModeratorComplaintsApp />);
+
+    expect(await screen.findByText("Отсортировано 3 карточек жалоб.")).toBeInTheDocument();
+
+    const card = screen.getByTestId("moderator-complaint-card-orbit-lab-contacts");
+
+    // Select "Заблокировать" (block) and confirm
+    fireEvent.click(within(card).getByRole("button", { name: "Открыть список действий" }));
+    fireEvent.click(screen.getByRole("option", { name: "Заблокировать" }));
+    fireEvent.click(screen.getByRole("button", { name: "Заблокировать" }));
+
+    await waitFor(() => {
+      expect(decideComplaintModeration).toHaveBeenCalledWith("orbit-lab-contacts", { status: "block" });
+    });
+
+    // Check that it remains in the document
+    expect(screen.getByTestId("moderator-complaint-card-orbit-lab-contacts")).toBeInTheDocument();
+    expect(screen.getByText("Отсортировано 3 карточек жалоб.")).toBeInTheDocument();
+  });
+
+  it("keeps resolved complaints in the UI when includeDismissedComplaints is true", async () => {
+    getModeratorSettings.mockResolvedValue({
+      settings: {
+        queueSettings: {
+          includeClosedComplaints: false,
+          includeDismissedComplaints: true,
+        },
+      },
+    });
+
+    render(<ModeratorComplaintsApp />);
+
+    expect(await screen.findByText("Отсортировано 3 карточек жалоб.")).toBeInTheDocument();
+
+    const card = screen.getByTestId("moderator-complaint-card-orbit-lab-contacts");
+
+    // Select "Снять жалобу" (dismiss) and confirm
+    fireEvent.click(within(card).getByRole("button", { name: "Открыть список действий" }));
+    fireEvent.click(screen.getByRole("option", { name: "Снять жалобу" }));
+    fireEvent.click(screen.getByRole("button", { name: "Снять жалобу" }));
+
+    await waitFor(() => {
+      expect(decideComplaintModeration).toHaveBeenCalledWith("orbit-lab-contacts", { status: "dismiss" });
+    });
+
+    // Check that it remains in the document
+    expect(screen.getByTestId("moderator-complaint-card-orbit-lab-contacts")).toBeInTheDocument();
+    expect(screen.getByText("Отсортировано 3 карточек жалоб.")).toBeInTheDocument();
   });
 });

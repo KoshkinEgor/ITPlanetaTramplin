@@ -501,4 +501,17 @@ describe("cabinet shell routes", () => {
     expect(await screen.findByTestId("moderator-cabinet-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("auth-page")).not.toBeInTheDocument();
   });
+
+  it("allows authenticated users to open the password reset flow", async () => {
+    setSession({
+      id: 1,
+      role: "candidate",
+      email: "anna@example.com",
+    });
+
+    const { container } = renderRoute(routes.auth.forgotPassword);
+
+    expect(await waitFor(() => container.querySelector(".auth-confirm-card"))).toBeInTheDocument();
+    expect(screen.queryByTestId("candidate-cabinet-shell")).not.toBeInTheDocument();
+  });
 });

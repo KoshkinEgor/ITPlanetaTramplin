@@ -67,10 +67,10 @@ export function AppRoutes({ uiKitEnabled = import.meta.env.DEV }) {
         <Route path={routes.auth.registerCompany} element={<CompanyQuickRegistrationPage />} />
         <Route path={routes.auth.registerCompanyExtended} element={<CompanyExtendedRegistrationPage />} />
         <Route path={routes.auth.confirmEmail} element={<ConfirmEmailPage />} />
-        <Route path={routes.auth.forgotPassword} element={<ForgotPasswordPage />} />
-        <Route path={routes.auth.resetPassword} element={<ResetPasswordPage />} />
       </Route>
 
+      <Route path={routes.auth.forgotPassword} element={<ForgotPasswordPage />} />
+      <Route path={routes.auth.resetPassword} element={<ResetPasswordPage />} />
       <Route path={routes.auth.moderatorInvite} element={<ModeratorInvitationAcceptPage />} />
 
       <Route path={routes.opportunities.catalog} element={<OpportunitiesCatalogPage />} />

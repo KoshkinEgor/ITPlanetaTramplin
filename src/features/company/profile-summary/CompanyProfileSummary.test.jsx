@@ -53,8 +53,11 @@ describe("CompanyProfileSummary", () => {
     expect(screen.getByText("Кабинет компании")).toBeInTheDocument();
   });
 
-  it("hides the edit call to action in public mode", () => {
+  it("hides cabinet status chrome in public mode", () => {
     renderSummary({ mode: "public" });
+
+    expect(screen.queryByLabelText((content) => content.includes("Статусы"))).not.toBeInTheDocument();
+    expect(screen.queryByText((content) => content.includes("Можно редактировать"))).not.toBeInTheDocument();
 
     expect(screen.getAllByText("Компания").length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Редактировать" })).not.toBeInTheDocument();

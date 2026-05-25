@@ -78,6 +78,15 @@ describe("CompanyPublicPage", () => {
     expect(screen.queryByRole("button", { name: "Добавить проект" })).not.toBeInTheDocument();
   });
 
+  it("hides company verification preview copy when opened from opportunities", async () => {
+    renderPage("/companies/101?from=opportunities");
+
+    expect(await screen.findByRole("heading", { name: "Northwind" })).toBeInTheDocument();
+    expect(screen.queryByLabelText((content) => content.includes("Статусы"))).not.toBeInTheDocument();
+    expect(screen.queryByText((content) => content.includes("На проверке"))).not.toBeInTheDocument();
+    expect(screen.queryByText((content) => content.includes("публичном каталоге"))).not.toBeInTheDocument();
+  });
+
   it("shows the not found state for an unavailable company", async () => {
     getPublicCompany.mockRejectedValue(new ApiError("Not found", { status: 404 }));
     getPublicCompanyOpportunities.mockRejectedValue(new ApiError("Not found", { status: 404 }));

@@ -70,14 +70,14 @@ export function ModeratorLogsApp() {
   return (
     <>
       <DashboardPageHeader
-        title="Логи платформы"
+        title="Журнал действий"
         description="Реальные события модерации, изменения справочников, тегов и системных настроек."
         className="moderator-fade-up"
       />
 
-      {state.status === "loading" ? <Loader label="Загружаем логи" surface /> : null}
+      {state.status === "loading" ? <Loader label="Загружаем журнал" surface /> : null}
       {state.status === "error" ? (
-        <Alert tone="error" title="Не удалось загрузить логи" showIcon>{state.error?.message ?? "Попробуйте повторить позже."}</Alert>
+        <Alert tone="error" title="Не удалось загрузить журнал" showIcon>{state.error?.message ?? "Попробуйте повторить позже."}</Alert>
       ) : null}
 
       <ActivityLog

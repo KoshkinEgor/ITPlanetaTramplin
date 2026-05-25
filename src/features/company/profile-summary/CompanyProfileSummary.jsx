@@ -60,7 +60,14 @@ function getVerificationPanelTone(status) {
   }
 }
 
-export function CompanyProfileSummary({ profile, stats = [], verification, variant = "default", mode = "cabinet" }) {
+export function CompanyProfileSummary({
+  profile,
+  stats = [],
+  verification,
+  variant = "default",
+  mode = "cabinet",
+  showStatusPills = mode !== "public",
+}) {
   const companyName = getCompanyName(profile);
   const description = getDescription(profile);
   const verificationTone = verification?.tone || "pending";
@@ -68,6 +75,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
   const verificationPanelTone = getVerificationPanelTone(verificationTone);
   const socialLinks = parseSocialLinks(profile?.socials);
   const isPublicMode = mode === "public";
+  const showVerificationPanel = Boolean(verification) && !isPublicMode;
   const verificationStatusText = String(verification?.statusText ?? "").trim() || presenceBadge.label;
   const verificationNote = String(verification?.note ?? "").trim();
   const verificationActionLabel = String(verification?.actionLabel ?? "").trim() || "Редактировать";
@@ -75,16 +83,18 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
   return (
     <Card className={`company-profile-summary ${variant === "default" ? "company-profile-summary--default" : ""}`.trim()}>
       <div className="company-profile-summary__body">
-        <div className="company-profile-summary__pills" aria-label="Статусы профиля компании">
-          <span className="company-profile-summary__pill company-profile-summary__pill--accent">
-            {isPublicMode ? "Компания" : "Кабинет компании"}
-          </span>
-          <span className={`company-profile-summary__pill company-profile-summary__pill--${presenceBadge.tone}`}>
-            {presenceBadge.label}
-          </span>
-        </div>
+        {showStatusPills ? (
+          <div className="company-profile-summary__pills" aria-label="Статусы профиля компании">
+            <span className="company-profile-summary__pill company-profile-summary__pill--accent">
+              {isPublicMode ? "Компания" : "Кабинет компании"}
+            </span>
+            <span className={`company-profile-summary__pill company-profile-summary__pill--${presenceBadge.tone}`}>
+              {presenceBadge.label}
+            </span>
+          </div>
+        ) : null}
 
-        <div className="company-profile-summary__layout">
+        <div className={`company-profile-summary__layout ${showVerificationPanel ? "" : "company-profile-summary__layout--single"}`.trim()}>
           <div className="company-profile-summary__main">
             <div className="company-profile-summary__hero">
               <div className="company-profile-summary__avatar" aria-hidden={profile?.profileImage ? undefined : "true"}>
@@ -143,7 +153,7 @@ export function CompanyProfileSummary({ profile, stats = [], verification, varia
             </div>
           </div>
 
-          {verification ? (
+          {showVerificationPanel ? (
             <aside className="company-profile-summary__aside">
               <div className={`company-profile-summary__panel company-profile-summary__panel--${verificationPanelTone}`.trim()}>
                 <span className="company-profile-summary__panel-label">{verification.label || "Статус профиля"}</span>

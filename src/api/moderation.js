@@ -42,8 +42,12 @@ export function getModerationUsers(signal) {
   return apiRequest("/moderation/users", { signal });
 }
 
-export function getModerationComplaints(signal) {
-  return apiRequest("/moderation/complaints", { signal });
+export function getModerationComplaints(params = {}, signal) {
+  const search = new URLSearchParams();
+  if (params.includeClosed !== undefined) search.set("includeClosed", params.includeClosed);
+  if (params.includeDismissed !== undefined) search.set("includeDismissed", params.includeDismissed);
+  const suffix = search.toString() ? `?${search}` : "";
+  return apiRequest(`/moderation/complaints${suffix}`, { signal });
 }
 
 export function getModerationUser(userId, signal) {

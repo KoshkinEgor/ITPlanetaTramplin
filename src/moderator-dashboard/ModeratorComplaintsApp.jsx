@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { decideComplaintModeration, getModerationComplaints } from "../api/moderation";
-import { Alert, Card, ComplaintCard, DashboardPageHeader, EmptyState, Loader, SegmentedControl } from "../shared/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { decideComplaintModeration, getModerationComplaints, getModeratorSettings } from "../api/moderation";
+import { Alert, Card, ComplaintCard, DashboardPageHeader, EmptyState, Loader, SegmentedControl, Switch } from "../shared/ui";
 import { formatComplaintDate, getComplaintTimestamp, moderatorComplaintActionOptions } from "./complaints.mock";
 
 const SORT_OPTIONS = [
@@ -12,10 +12,22 @@ function readValue(item, key, fallback = "") {
   return item?.[key] ?? item?.[`${key[0].toUpperCase()}${key.slice(1)}`] ?? fallback;
 }
 
+const COMPLAINT_REASON_LABELS = {
+  spam: "Спам или мошенничество",
+  incorrect_data: "Некорректная информация",
+  contacts: "Проблема с контактами",
+  other: "Другое",
+};
+
+function getLocalizedReason(reason) {
+  return COMPLAINT_REASON_LABELS[reason] || reason;
+}
+
 function mapComplaint(item) {
   const opportunityTitle = readValue(item, "opportunityTitle", readValue(item, "title", "Жалоба"));
   const companyName = readValue(item, "companyName", "");
-  const reason = readValue(item, "reason", "Жалоба");
+  const reasonKey = readValue(item, "reason", "other");
+  const reason = getLocalizedReason(reasonKey);
 
   return {
     id: readValue(item, "id"),
@@ -58,33 +70,110 @@ export function ModeratorComplaintsApp() {
   const [state, setState] = useState({ status: "loading", items: [], error: null });
   const [actionById, setActionById] = useState({});
   const [busyId, setBusyId] = useState(null);
+  const [showClosed, setShowClosed] = useState(false);
+  const [showDismissed, setShowDismissed] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const decidedIdsRef = useRef(new Set());
+  const includeClosedRef = useRef(false);
+  const includeDismissedRef = useRef(false);
 
+  // Load moderator settings once on mount
   useEffect(() => {
+    let active = true;
     const controller = new AbortController();
 
-    async function load() {
+    async function loadSettings() {
       try {
+        const settingsPayload = await getModeratorSettings(controller.signal);
+        if (!active) return;
+        const settings = settingsPayload?.settings ?? settingsPayload?.Settings ?? {};
+        const queueSettings = settings.queueSettings ?? settings.QueueSettings ?? {};
+        setShowClosed(!!(queueSettings.includeClosedComplaints ?? queueSettings.IncludeClosedComplaints));
+        setShowDismissed(!!(queueSettings.includeDismissedComplaints ?? queueSettings.IncludeDismissedComplaints));
+      } catch (e) {
+        // default fallback
+      } finally {
+        if (active) {
+          setSettingsLoaded(true);
+        }
+      }
+    }
+
+    loadSettings();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!settingsLoaded) {
+      return;
+    }
+
+    let active = true;
+    let controller = new AbortController();
+
+    includeClosedRef.current = showClosed;
+    includeDismissedRef.current = showDismissed;
+
+    async function load(isInitial = false) {
+      if (isInitial) {
         setState((current) => ({ ...current, status: "loading", error: null }));
-        const items = await getModerationComplaints(controller.signal);
-        if (controller.signal.aborted) {
+      }
+      try {
+        const items = await getModerationComplaints(
+          { includeClosed: showClosed, includeDismissed: showDismissed },
+          controller.signal
+        );
+        if (!active) {
           return;
         }
 
         const mappedItems = (Array.isArray(items) ? items : []).map(mapComplaint);
-        setState({ status: "ready", items: mappedItems, error: null });
-        setActionById(Object.fromEntries(mappedItems.map((item) => [item.id, getDefaultAction(item.status)])));
+        const filteredItems = mappedItems.filter((item) => {
+          if (decidedIdsRef.current.has(item.id)) {
+            if (item.status === "upheld" && showClosed) {
+              return true;
+            }
+            if (item.status === "dismissed" && showDismissed) {
+              return true;
+            }
+            return false;
+          }
+          return true;
+        });
+
+        setState({ status: "ready", items: filteredItems, error: null });
+        setActionById((prev) => {
+          const next = {};
+          for (const item of filteredItems) {
+            next[item.id] = prev[item.id] ?? getDefaultAction(item.status);
+          }
+          return next;
+        });
       } catch (error) {
-        if (controller.signal.aborted) {
+        if (!active) {
           return;
         }
-
-        setState({ status: "error", items: [], error });
+        if (isInitial) {
+          setState({ status: "error", items: [], error });
+        }
       }
     }
 
-    load();
-    return () => controller.abort();
-  }, []);
+    load(true);
+
+    const intervalId = setInterval(() => {
+      load(false);
+    }, 5000);
+
+    return () => {
+      active = false;
+      controller.abort();
+      clearInterval(intervalId);
+    };
+  }, [showClosed, showDismissed, settingsLoaded]);
 
   const complaints = useMemo(() => sortComplaints(state.items, sortMode), [sortMode, state.items]);
 
@@ -94,12 +183,33 @@ export function ModeratorComplaintsApp() {
 
     try {
       await decideComplaintModeration(item.id, { status: nextValue });
-      setState((current) => ({
-        ...current,
-        items: current.items.map((entry) =>
-          entry.id === item.id ? { ...entry, status: nextValue === "dismiss" ? "dismissed" : nextValue === "block" ? "upheld" : "in_review" } : entry
-        ),
-      }));
+      if (nextValue === "dismiss" || nextValue === "block") {
+        const isDismiss = nextValue === "dismiss";
+        const isAllowed = isDismiss ? includeDismissedRef.current : includeClosedRef.current;
+
+        if (!isAllowed) {
+          decidedIdsRef.current.add(item.id);
+          setState((current) => ({
+            ...current,
+            items: current.items.filter((entry) => entry.id !== item.id),
+          }));
+        } else {
+          const nextStatus = isDismiss ? "dismissed" : "upheld";
+          setState((current) => ({
+            ...current,
+            items: current.items.map((entry) =>
+              entry.id === item.id ? { ...entry, status: nextStatus } : entry
+            ),
+          }));
+        }
+      } else {
+        setState((current) => ({
+          ...current,
+          items: current.items.map((entry) =>
+            entry.id === item.id ? { ...entry, status: "in_review" } : entry
+          ),
+        }));
+      }
     } catch (error) {
       setState((current) => ({ ...current, status: "error", error }));
     } finally {
@@ -123,7 +233,7 @@ export function ModeratorComplaintsApp() {
           <span className="moderator-panel__counter moderator-panel__counter--wide">{complaints.length}</span>
         </div>
 
-        <div className="moderator-complaints-summary__controls">
+        <div className="moderator-complaints-summary__controls" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <SegmentedControl
             items={SORT_OPTIONS}
             value={sortMode}
@@ -132,6 +242,20 @@ export function ModeratorComplaintsApp() {
             className="moderator-complaints-summary__segmented"
             ariaLabel="Сортировка очереди жалоб"
           />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", marginTop: "4px" }}>
+            <Switch
+              checked={showClosed}
+              onChange={(event) => setShowClosed(event.target.checked)}
+            >
+              <span className="ui-check__label">Показывать заблокированные</span>
+            </Switch>
+            <Switch
+              checked={showDismissed}
+              onChange={(event) => setShowDismissed(event.target.checked)}
+            >
+              <span className="ui-check__label">Показывать снятые</span>
+            </Switch>
+          </div>
         </div>
       </Card>
 

@@ -13,3 +13,4 @@ artifacts/logs/*.log
 *.user
 **/bin/
 **/obj/
+**/artifacts/

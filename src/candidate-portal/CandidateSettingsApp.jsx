@@ -450,16 +450,16 @@ function CandidateContactsSettingsForm({ draft, saveState, onChange, onSocialCha
 
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
           <FormField label="ВКонтакте">
-            <Input value={draft.socials.vk} onValueChange={(value) => onSocialChange("vk", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">vk.com/</span>} />
+            <Input value={draft.socials.vk} onValueChange={(value) => onSocialChange("vk", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">vk.com/</span>} shellClassName="candidate-settings-contact-shell candidate-settings-contact-shell--vk" />
           </FormField>
           <FormField label="Telegram">
-            <Input value={draft.socials.telegram} onValueChange={(value) => onSocialChange("telegram", value.replace(/^@/, ""))} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">t.me/</span>} />
+            <Input value={draft.socials.telegram} onValueChange={(value) => onSocialChange("telegram", value.replace(/^@/, ""))} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">t.me/</span>} shellClassName="candidate-settings-contact-shell candidate-settings-contact-shell--telegram" />
           </FormField>
         </div>
 
         <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two">
           <FormField label="Behance">
-            <Input value={draft.socials.behance} onValueChange={(value) => onSocialChange("behance", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">behance.net/</span>} />
+            <Input value={draft.socials.behance} onValueChange={(value) => onSocialChange("behance", value)} placeholder="username" addonStart={<span className="candidate-settings-contact-prefix">behance.net/</span>} shellClassName="candidate-settings-contact-shell candidate-settings-contact-shell--behance" />
           </FormField>
           <FormField label="Портфолио">
             <Input value={draft.socials.portfolio} onValueChange={(value) => onSocialChange("portfolio", value)} placeholder="https://portfolio.example" />

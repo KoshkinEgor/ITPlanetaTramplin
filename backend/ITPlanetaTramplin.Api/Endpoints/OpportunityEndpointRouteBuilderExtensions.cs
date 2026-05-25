@@ -323,6 +323,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 item.MeetingFrequency,
                 item.SeatsCount,
                 CompanyName = item.Employer.CompanyName,
+                CompanyProfileImage = item.Employer.ProfileImage,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),
                 item.OpportunityType,
                 ModerationStatus = GetEffectiveModerationStatus(item),

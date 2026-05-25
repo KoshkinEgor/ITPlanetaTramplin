@@ -413,6 +413,107 @@ public class ModerationEndpointTests
         Assert.DoesNotContain(publicFeedPayload.RootElement.EnumerateArray(), item => item.GetProperty("title").GetString() == mentoringTitle);
     }
 
+    [Fact]
+    public async Task ComplaintsQuery_SupportsClosedAndDismissedFilters()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        int opportunityId;
+        int candidateId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+
+            var opportunity = await db.Opportunities.FirstAsync();
+            opportunityId = opportunity.Id;
+
+            var candidate = await db.Users.FirstAsync(u => u.CuratorProfile == null && u.EmployerProfile == null);
+            candidateId = candidate.Id;
+
+            // Clear all existing complaints to make test deterministic
+            var existing = await db.Complaints.ToListAsync();
+            db.Complaints.RemoveRange(existing);
+            await db.SaveChangesAsync();
+
+            // Seed complaints
+            db.Complaints.Add(new Models.Complaint
+            {
+                OpportunityId = opportunityId,
+                ReporterUserId = candidateId,
+                Reason = "spam",
+                Description = "Pending spam",
+                Status = "pending"
+            });
+            db.Complaints.Add(new Models.Complaint
+            {
+                OpportunityId = opportunityId,
+                ReporterUserId = candidateId,
+                Reason = "contacts",
+                Description = "Closed contact issue",
+                Status = "upheld",
+                ResolvedAt = DateTime.UtcNow
+            });
+            db.Complaints.Add(new Models.Complaint
+            {
+                OpportunityId = opportunityId,
+                ReporterUserId = candidateId,
+                Reason = "other",
+                Description = "Dismissed other issue",
+                Status = "dismissed",
+                ResolvedAt = DateTime.UtcNow
+            });
+
+            await db.SaveChangesAsync();
+        }
+
+        await LoginAsModeratorAsync(client, "administrator@tramplin.local", "Administrator1234");
+
+        // 1. Fetch default (no query params) -> should only return "pending"
+        {
+            var response = await client.GetAsync("/api/moderation/complaints");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var items = await response.Content.ReadFromJsonAsync<List<ComplaintReadDTO>>();
+            Assert.NotNull(items);
+            Assert.Single(items);
+            Assert.Equal("pending", items[0].Status);
+        }
+
+        // 2. Fetch with includeClosed=true -> should return "pending" and "upheld"
+        {
+            var response = await client.GetAsync("/api/moderation/complaints?includeClosed=true");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var items = await response.Content.ReadFromJsonAsync<List<ComplaintReadDTO>>();
+            Assert.NotNull(items);
+            Assert.Equal(2, items.Count);
+            Assert.Contains(items, i => i.Status == "pending");
+            Assert.Contains(items, i => i.Status == "upheld");
+        }
+
+        // 3. Fetch with includeDismissed=true -> should return "pending" and "dismissed"
+        {
+            var response = await client.GetAsync("/api/moderation/complaints?includeDismissed=true");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var items = await response.Content.ReadFromJsonAsync<List<ComplaintReadDTO>>();
+            Assert.NotNull(items);
+            Assert.Equal(2, items.Count);
+            Assert.Contains(items, i => i.Status == "pending");
+            Assert.Contains(items, i => i.Status == "dismissed");
+        }
+
+        // 4. Fetch with both true -> should return all 3
+        {
+            var response = await client.GetAsync("/api/moderation/complaints?includeClosed=true&includeDismissed=true");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var items = await response.Content.ReadFromJsonAsync<List<ComplaintReadDTO>>();
+            Assert.NotNull(items);
+            Assert.Equal(3, items.Count);
+            Assert.Contains(items, i => i.Status == "pending");
+            Assert.Contains(items, i => i.Status == "upheld");
+            Assert.Contains(items, i => i.Status == "dismissed");
+        }
+    }
+
     private static async Task LoginAsModeratorAsync(HttpClient client, string login, string password)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
