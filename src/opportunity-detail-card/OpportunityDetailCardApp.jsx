@@ -26,10 +26,10 @@ import "./opportunity-detail-card.css";
 const BODY_CLASS = "opportunity-card-react-body";
 const NAV_ITEMS = PUBLIC_HEADER_NAV_ITEMS;
 const COMPLAINT_REASON_OPTIONS = [
-  { value: "Недостоверная информация", label: "Недостоверная информация" },
-  { value: "Спам или мошенничество", label: "Спам или мошенничество" },
-  { value: "Некорректные условия", label: "Некорректные условия" },
-  { value: "Другое", label: "Другое" },
+  { value: "incorrect_data", label: "Недостоверная информация" },
+  { value: "spam", label: "Спам или мошенничество" },
+  { value: "contacts", label: "Проблема с контактами" },
+  { value: "other", label: "Другое" },
 ];
 
 const DEMO = {
@@ -1482,7 +1482,7 @@ ${currentUrl}`;
     }
 
     setComplaintForm({
-      reason: COMPLAINT_REASON_OPTIONS[0].value,
+      reason: referenceCategories.complaintReasons?.[0]?.value ?? COMPLAINT_REASON_OPTIONS[0].value,
       description: "",
       status: "idle",
       error: "",

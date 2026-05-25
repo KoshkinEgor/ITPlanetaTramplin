@@ -550,6 +550,13 @@ function getCompanyAddress(company, profile) {
   );
 }
 
+function getCompanyLogoUrl(company, profile) {
+  return (
+    String(profile?.profileImage ?? profile?.ProfileImage ?? "").trim()
+    || String(company.profileImage ?? company.companyProfileImage ?? company.logoUrl ?? "").trim()
+  );
+}
+
 function isTelegramSocialLink(link) {
   const href = String(link?.href ?? "").trim().toLowerCase();
   const type = normalize(link?.type);
@@ -581,18 +588,21 @@ function getCompanyLinks(profile) {
 
 function CompanySpotlightSlide({ company, profileState, isFavorite, onToggleFavorite }) {
   const profile = profileState?.status === "ready" ? profileState.profile : null;
-  const companyHref = company.employerId ? buildCompanyPublicRoute(company.employerId) : "";
+  const companyHref = company.employerId ? buildCompanyPublicRoute(company.employerId, { from: "opportunities" }) : "";
   const links = getCompanyLinks(profile);
   const description = getCompanyDescription(company, profile);
   const address = getCompanyAddress(company, profile);
+  const logoUrl = getCompanyLogoUrl(company, profile);
 
   return (
     <Card className="company-spotlight opportunities-browser__company-spotlight">
       <div className="company-spotlight__company">
         <Avatar
           size="lg"
+          src={logoUrl || undefined}
           name={company.name}
           initials={getCompanyInitial(company.name)}
+          alt={`Логотип компании ${company.name || ""}`.trim()}
           className="company-spotlight__avatar company-spotlight__avatar--brand"
         />
         <div className="company-spotlight__copy">
@@ -667,11 +677,13 @@ function buildCompanyGroups(items) {
       locationCity: city,
       sampleAddress: "",
       sampleDescription: "",
+      profileImage: "",
     };
 
     companyEntry.count += 1;
     companyEntry.sampleAddress ||= String(item.locationAddress ?? "").trim();
     companyEntry.sampleDescription ||= String(item.description ?? "").trim();
+    companyEntry.profileImage ||= String(item.companyProfileImage ?? item.profileImage ?? "").trim();
     cityEntry.count += 1;
     cityEntry.companies.set(companyKey, companyEntry);
     cityMap.set(city, cityEntry);

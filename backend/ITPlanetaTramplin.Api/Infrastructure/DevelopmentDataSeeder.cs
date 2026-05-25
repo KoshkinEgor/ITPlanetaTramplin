@@ -339,6 +339,28 @@ internal static class DevelopmentDataSeeder
             "Анна уже мыслит компонентами и токенами и умеет превращать дизайн-спеки в устойчивые frontend-паттерны."),
     ];
 
+    private static readonly SeedComplaint[] SeedComplaints =
+    [
+        new("anna.petrova@tramplin.local", "Стажировка по продуктовой аналитике", "spam",
+            "Публикация содержит ссылки на сторонний ресурс, не связанный с компанией.",
+            "pending", null),
+        new("polina.sokolova@tramplin.local", "Карьерный frontend-митап VK", "incorrect_data",
+            "Указана неверная дата проведения мероприятия.",
+            "in_review", null),
+        new("ivan.smirnov@tramplin.local", "Младший frontend-разработчик", "contacts",
+            "Контакты не принадлежат указанной компании.",
+            "upheld", "Модератор подтвердил нарушение: контакты не соответствуют юр. лицу."),
+        new("anna.petrova@tramplin.local", "Стажировка VK Mini Apps Frontend", "spam",
+            "Дублирующаяся публикация, уже есть аналогичная стажировка.",
+            "upheld", "Заблокирована как дубликат."),
+        new("polina.sokolova@tramplin.local", "Специалист по QA контентных сценариев VK", "other",
+            "Описание вакансии не соответствует действительности.",
+            "dismissed", "Модератор проверил — описание корректно."),
+        new("ivan.smirnov@tramplin.local", "Стажировка ML-продуктового аналитика", "incorrect_data",
+            "Формат стажировки указан как Hybrid, но компания работает только Office.",
+            "dismissed", "Компания подтвердила гибридный формат."),
+    ];
+
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
@@ -354,6 +376,7 @@ internal static class DevelopmentDataSeeder
         await EnsureContactsAsync(db, candidateUsers, cancellationToken);
         await EnsureApplicationsAsync(db, candidateUsers, opportunitiesByTitle, cancellationToken);
         await EnsureRecommendationsAsync(db, candidateUsers, opportunitiesByTitle, cancellationToken);
+        await EnsureComplaintsAsync(db, candidateUsers, curatorUsers, opportunitiesByTitle, cancellationToken);
 
         logger.LogInformation(
             "Development seed ensured {Curators} curators, {Candidates} candidates, {Companies} companies, and {Opportunities} opportunities.",
@@ -873,4 +896,56 @@ internal static class DevelopmentDataSeeder
     private sealed record SeedContact(string OwnerEmail, string ContactEmail);
 
     private sealed record SeedRecommendation(string RecommenderEmail, string CandidateEmail, string OpportunityTitle, string Message);
+
+    private sealed record SeedComplaint(
+        string ReporterEmail,
+        string OpportunityTitle,
+        string Reason,
+        string? Description,
+        string Status,
+        string? ModeratorNote);
+
+    private static async Task EnsureComplaintsAsync(
+        ApplicationDBContext db,
+        IReadOnlyCollection<User> candidateUsers,
+        IReadOnlyCollection<User> curatorUsers,
+        IReadOnlyDictionary<string, Opportunity> opportunitiesByTitle,
+        CancellationToken cancellationToken)
+    {
+        if (await db.Complaints.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var usersByEmail = candidateUsers.ToDictionary(item => item.Email, StringComparer.OrdinalIgnoreCase);
+        var moderatorUserId = curatorUsers.FirstOrDefault(item => item.CuratorProfile?.IsAdministrator == true)?.Id;
+
+        foreach (var seedComplaint in SeedComplaints)
+        {
+            if (!usersByEmail.TryGetValue(seedComplaint.ReporterEmail, out var reporter) ||
+                !opportunitiesByTitle.TryGetValue(seedComplaint.OpportunityTitle, out var opportunity))
+            {
+                continue;
+            }
+
+            var isResolved = seedComplaint.Status is "upheld" or "dismissed";
+
+            var complaint = new Complaint
+            {
+                OpportunityId = opportunity.Id,
+                ReporterUserId = reporter.Id,
+                Reason = seedComplaint.Reason,
+                Description = seedComplaint.Description,
+                Status = seedComplaint.Status,
+                ModeratorNote = seedComplaint.ModeratorNote,
+                CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 14)),
+                ResolvedAt = isResolved ? DateTime.UtcNow.AddDays(-Random.Shared.Next(0, 3)) : null,
+                ResolvedByUserId = isResolved ? moderatorUserId : null,
+            };
+
+            db.Complaints.Add(complaint);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
 }

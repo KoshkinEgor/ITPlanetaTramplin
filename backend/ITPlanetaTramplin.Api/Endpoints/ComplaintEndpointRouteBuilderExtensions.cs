@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Application.DBContext;
 using DTO;
 using ITPlanetaTramplin.Api.Auth;
@@ -76,6 +77,7 @@ internal static class ComplaintEndpointRouteBuilderExtensions
         db.Complaints.Add(complaint);
         await db.SaveChangesAsync();
 
+        var localizedReason = GetLocalizedReason(reason);
         var moderatorUserIds = await db.CuratorProfiles.Select(item => item.UserId).ToListAsync();
         foreach (var moderatorUserId in moderatorUserIds)
         {
@@ -84,25 +86,87 @@ internal static class ComplaintEndpointRouteBuilderExtensions
                 moderatorUserId,
                 "complaint.created",
                 "Новая жалоба на возможность",
-                $"{opportunity.Title}: {reason}",
+                $"{opportunity.Title}: {localizedReason}",
                 "/moderator/complaints",
                 actorUserId: userId.Value,
                 opportunityId: opportunity.Id,
                 complaintId: complaint.Id);
         }
 
-        if (moderatorUserIds.Count > 0)
-        {
-            await db.SaveChangesAsync();
-        }
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            userId.Value,
+            "complaint.created",
+            "Жалоба отправлена",
+            $"Вы успешно отправили жалобу на публикацию «{opportunity.Title}» по причине: {localizedReason}",
+            $"/opportunities/{opportunity.Id}",
+            actorUserId: userId.Value,
+            opportunityId: opportunity.Id,
+            complaintId: complaint.Id);
+
+        await db.SaveChangesAsync();
 
         return Results.Created($"/api/moderation/complaints/{complaint.Id}", MapComplaint(complaint, opportunity, reporterEmail: null, count: 1));
     }
 
-    private static async Task<IResult> GetModerationComplaintsAsync(ApplicationDBContext db)
+    private static async Task<IResult> GetModerationComplaintsAsync(
+        [FromQuery] bool? includeClosed,
+        [FromQuery] bool? includeDismissed,
+        HttpContext context,
+        ApplicationDBContext db)
     {
+        var includeClosedVal = includeClosed ?? false;
+        var includeDismissedVal = includeDismissed ?? false;
+
+        if (includeClosed == null || includeDismissed == null)
+        {
+            var userId = AuthEndpointSupport.GetCurrentUserId(context);
+            if (userId is not null)
+            {
+                var settings = await db.ModeratorSettings.FirstOrDefaultAsync(item => item.UserId == userId.Value);
+                if (settings?.QueueSettingsJson is not null)
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(settings.QueueSettingsJson);
+                        foreach (var property in doc.RootElement.EnumerateObject())
+                        {
+                            if (property.Name.Equals("includeClosedComplaints", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (includeClosed == null)
+                                {
+                                    includeClosedVal = property.Value.GetBoolean();
+                                }
+                            }
+                            else if (property.Name.Equals("includeDismissedComplaints", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (includeDismissed == null)
+                                {
+                                    includeDismissedVal = property.Value.GetBoolean();
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore JSON parsing errors
+                    }
+                }
+            }
+        }
+
+        var allowedStatuses = new List<string> { StatusPending, StatusInReview };
+        if (includeClosedVal)
+        {
+            allowedStatuses.Add(StatusUpheld);
+        }
+        if (includeDismissedVal)
+        {
+            allowedStatuses.Add(StatusDismissed);
+        }
+
         var groupedCounts = await db.Complaints
-            .Where(item => item.Status == StatusPending || item.Status == StatusInReview)
+            .Where(item => allowedStatuses.Contains(item.Status))
             .GroupBy(item => new { item.OpportunityId, item.Reason })
             .Select(group => new
             {
@@ -113,7 +177,7 @@ internal static class ComplaintEndpointRouteBuilderExtensions
             .ToListAsync();
 
         var complaints = await db.Complaints
-            .Where(item => item.Status == StatusPending || item.Status == StatusInReview)
+            .Where(item => allowedStatuses.Contains(item.Status))
             .Include(item => item.Opportunity)
             .ThenInclude(item => item.Employer)
             .Include(item => item.ReporterUser)
@@ -268,4 +332,16 @@ internal static class ComplaintEndpointRouteBuilderExtensions
             CreatedAt = complaint.CreatedAt,
             ResolvedAt = complaint.ResolvedAt,
         };
+
+    private static string GetLocalizedReason(string reason)
+    {
+        return reason switch
+        {
+            "spam" => "Спам или мошенничество",
+            "incorrect_data" => "Некорректная информация",
+            "contacts" => "Проблема с контактами",
+            "other" => "Другое",
+            _ => reason
+        };
+    }
 }

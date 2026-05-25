@@ -173,6 +173,7 @@ const publicCompanies = {
     companyName: "Case Systems",
     description: "Команда продуктового дизайна и QA для B2B-сервисов.",
     legalAddress: "Чебоксары, Президентский бульвар, 1",
+    profileImage: "https://cdn.example.com/case-logo.png",
     socials: '[{"type":"website","url":"case.systems"}]',
     verificationStatus: "approved",
   },
@@ -482,10 +483,14 @@ describe("OpportunitiesCatalogApp", () => {
 
     expect(screen.getByRole("heading", { name: "Компании в Чебоксары" })).toBeInTheDocument();
     expect(caseCard).not.toBeNull();
-    expect(caseSystems.closest("a")).toHaveAttribute("href", "/companies/404");
+    expect(caseSystems.closest("a")).toHaveAttribute("href", "/companies/404?from=opportunities");
     expect(screen.getByRole("button", { name: "Чебоксары" })).toBeInTheDocument();
     expect(within(caseCard).getByText("Команда продуктового дизайна и QA для B2B-сервисов.")).toBeInTheDocument();
     expect(within(caseCard).getByText("Чебоксары, Президентский бульвар, 1")).toBeInTheDocument();
+    expect(within(caseCard).getByRole("img", { name: "Логотип компании Case Systems" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/case-logo.png"
+    );
     expect(within(caseCard).getByRole("link", { name: "website" })).toHaveAttribute("href", "https://case.systems");
     expect(within(caseCard).queryByRole("button", { name: "Написать компании" })).not.toBeInTheDocument();
   });

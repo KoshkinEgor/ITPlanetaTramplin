@@ -850,6 +850,11 @@ body.candidate-portal-react-body {
   gap: 12px;
 }
 
+.candidate-page-panel.ui-card {
+  padding: 20px;
+  gap: 16px;
+}
+
 .candidate-switcher-card .ui-type-h2 {
   font-size: var(--ui-font-size-h5);
   line-height: var(--ui-line-height-h5);
@@ -1557,7 +1562,8 @@ body.candidate-portal-react-body {
 }
 
 .candidate-application-card__action {
-  min-width: min(100%, 280px);
+  width: auto;
+  min-width: 0;
 }
 
 .candidate-application-card__action--warning.ui-button--secondary {
@@ -2574,6 +2580,7 @@ body.candidate-portal-react-body {
 .candidate-project-editor-form-grid {
   display: grid;
   gap: 16px;
+  align-items: start;
 }
 
 .candidate-project-editor-form-grid--two {

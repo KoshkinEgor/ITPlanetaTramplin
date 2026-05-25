@@ -95,7 +95,6 @@ function EducationCard({ item, busyKey, onChange, onSave, onDelete }) {
 
   return (
     <Card className="candidate-page-panel">
-      <div className="candidate-page-stack">
         <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
           <FormField label="Учебное заведение" required>
             <Input value={item.institutionName} onValueChange={(value) => onChange(item.draftKey, "institutionName", value)} />
@@ -141,7 +140,6 @@ function EducationCard({ item, busyKey, onChange, onSave, onDelete }) {
             </Button>
           ) : null}
         </div>
-      </div>
     </Card>
   );
 }
@@ -151,7 +149,6 @@ function AchievementCard({ item, busyKey, onChange, onSave, onDelete }) {
 
   return (
     <Card className="candidate-page-panel">
-      <div className="candidate-page-stack">
         <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
           <FormField label="Заголовок">
             <Input value={item.title} onValueChange={(value) => onChange(item.draftKey, "title", value)} />
@@ -180,7 +177,6 @@ function AchievementCard({ item, busyKey, onChange, onSave, onDelete }) {
             </Button>
           ) : null}
         </div>
-      </div>
     </Card>
   );
 }

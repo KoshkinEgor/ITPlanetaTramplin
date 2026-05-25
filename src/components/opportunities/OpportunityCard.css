@@ -381,16 +381,18 @@
 }
 
 .ui-opportunity-card--row .ui-opportunity-card__actions {
-  width: min(100%, 520px);
+  width: fit-content;
+  max-width: min(100%, 520px);
+  justify-content: flex-end;
 }
 
 .ui-opportunity-card--row .ui-opportunity-card__actions.is-multiple {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
 }
 
 .ui-opportunity-card--row.ui-opportunity-card--sm .ui-opportunity-card__actions {
-  width: min(100%, 520px);
+  width: fit-content;
+  max-width: min(100%, 520px);
 }
 
 .ui-opportunity-card--row.ui-opportunity-card--sm .ui-opportunity-card__action.ui-button {

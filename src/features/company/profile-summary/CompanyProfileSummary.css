@@ -68,6 +68,10 @@
   align-items: start;
 }
 
+.company-profile-summary__layout--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .company-profile-summary__main,
 .company-profile-summary__aside {
   display: grid;

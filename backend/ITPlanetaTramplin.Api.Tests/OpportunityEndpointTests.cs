@@ -673,4 +673,58 @@ public class OpportunityEndpointTests
         Assert.True(firstOpportunity.TryGetProperty("employerId", out var employerIdElement));
         Assert.True(employerIdElement.GetInt32() > 0);
     }
+
+    [Fact]
+    public async Task GetOpportunities_ReturnsCompanyProfileImageInPublicPayload()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Logo payload opportunity",
+            description = "Public feed logo payload check",
+            opportunityType = "vacancy",
+            employmentType = "remote",
+            schedule = "full_time",
+            locationCity = "Москва",
+            contactsJson = """{"email":"logo@test.local"}""",
+            salaryFrom = 100000m,
+            salaryTo = 150000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities
+                .Include(item => item.Employer)
+                .SingleAsync(item => item.Title == "Logo payload opportunity");
+
+            opportunity.ModerationStatus = OpportunityModerationStatuses.Approved;
+            opportunity.Employer.ProfileImage = "https://cdn.example.com/feed-company-logo.png";
+            await db.SaveChangesAsync();
+        }
+
+        var response = await client.GetAsync("/api/opportunities");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var opportunityPayload = payload.RootElement
+            .EnumerateArray()
+            .Single(item => item.GetProperty("title").GetString() == "Logo payload opportunity");
+
+        Assert.Equal("https://cdn.example.com/feed-company-logo.png", opportunityPayload.GetProperty("companyProfileImage").GetString());
+    }
 }

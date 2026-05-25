@@ -18,7 +18,7 @@ const BASE_SIDEBAR_ITEMS = [
   { key: "complaints", label: "Жалобы", href: routes.moderator.complaints },
   { key: "messages", label: "Сообщения", href: routes.moderator.messages },
   { key: "tags-system", label: "Теги и система", href: routes.moderator.tagsSystem },
-  { key: "logs", label: "Логи", href: routes.moderator.logs },
+  { key: "logs", label: "Журнал действий", href: routes.moderator.logs },
   { key: "settings", label: "Настройки", href: routes.moderator.settings },
 ];
 

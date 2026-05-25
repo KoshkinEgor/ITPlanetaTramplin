@@ -223,28 +223,46 @@ function PortalHeaderNotifications({ authUser }) {
   });
 
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
+    let controller = new AbortController();
 
-    async function load() {
+    async function load(isInitial = false) {
+      if (isInitial) {
+        setState((current) => ({ ...current, status: "loading", error: null }));
+      }
       try {
-        setState(await loadNotificationCollections(authUser?.role, controller.signal));
-      } catch (error) {
-        if (controller.signal.aborted) {
+        const collections = await loadNotificationCollections(authUser?.role, controller.signal);
+        if (!active) {
           return;
         }
-
-        setState({
-          status: "error",
-          notifications: [],
-          friendRequests: [],
-          projectInvites: [],
-          error,
-        });
+        setState(collections);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        if (isInitial) {
+          setState({
+            status: "error",
+            notifications: [],
+            friendRequests: [],
+            projectInvites: [],
+            error,
+          });
+        }
       }
     }
 
-    load();
-    return () => controller.abort();
+    load(true);
+
+    const intervalId = setInterval(() => {
+      load(false);
+    }, 10000);
+
+    return () => {
+      active = false;
+      controller.abort();
+      clearInterval(intervalId);
+    };
   }, [authUser?.id, authUser?.role]);
 
   useEffect(() => {
