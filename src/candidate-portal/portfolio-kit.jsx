@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AppLink } from "../app/AppLink";
-import { Button, Card, EmptyState, IconButton, SegmentedControl, StatusBadge, Tag } from "../shared/ui";
+import { Button, Card, EmptyState, IconButton, SegmentedControl, StatusBadge, Tag, MoreIcon } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_PORTFOLIO_TABS } from "./config";
 import { CandidateSectionHeader, CandidateSegmentNav } from "./shared";
 
@@ -26,14 +26,6 @@ const DEFAULT_RESUME_MINI_PRIVATE_LABEL = "\u041D\u0435 \u0432\u0438\u0434\u043D
 const DEFAULT_RESUME_MINI_EMPLOYERS_LABEL = "\u0412\u0438\u0434\u043D\u043E \u0440\u0430\u0431\u043E\u0442\u043E\u0434\u0430\u0442\u0435\u043B\u044F\u043C";
 const DEFAULT_RESUME_MINI_EDIT_LABEL = "\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C";
 const DEFAULT_RESUME_MINI_DELETE_LABEL = "\u0423\u0434\u0430\u043B\u0438\u0442\u044C";
-
-function MoreHorizontalIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.5 10a1.5 1.5 0 1 0 0-.001V10Zm5.5 0a1.5 1.5 0 1 0 0-.001V10Zm5.5 0a1.5 1.5 0 1 0 0-.001V10Z" fill="currentColor" />
-    </svg>
-  );
-}
 
 function formatResumeMiniCardDate(value) {
   if (!value) {
@@ -125,7 +117,7 @@ function CandidateResumeMiniCardMenu({
         aria-controls={open ? menuId : undefined}
         onClick={handleToggle}
       >
-        <MoreHorizontalIcon />
+        <MoreIcon />
       </IconButton>
 
       {open ? (

@@ -4,15 +4,7 @@ import { EmptyState } from "../EmptyState/EmptyState";
 import { PillButton } from "../PillButton/PillButton";
 import { SearchInput } from "../SearchInput/SearchInput";
 import { Tag } from "../Tag/Tag";
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" strokeWidth="1.9" />
-      <path d="m13 13 4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { SearchIcon } from "../../../shared/ui";
 
 function ActivityLogItem({ item }) {
   return (

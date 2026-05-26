@@ -3,18 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
 import { routes } from "../app/routes";
 import { cn } from "../shared/lib/cn";
-import { Avatar } from "../shared/ui";
+import { Avatar, ChevronDownIcon } from "../shared/ui";
 import { logoutCurrentAuthUser } from "./api";
 import { getCabinetRouteForRole, getRoleLabel, getUserDisplayName } from "./session-utils";
 import "./auth-account-menu.css";
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 export function AuthAccountMenu({
   user,
@@ -108,7 +100,7 @@ export function AuthAccountMenu({
           </span>
         ) : null}
         <span className="auth-account-menu__chevron" aria-hidden="true">
-          <ChevronIcon />
+          <ChevronDownIcon />
         </span>
         <span className="ui-visually-hidden">Меню аккаунта</span>
       </button>

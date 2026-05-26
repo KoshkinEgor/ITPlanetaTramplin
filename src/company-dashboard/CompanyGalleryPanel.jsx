@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, Card, EmptyState, Input } from "../shared/ui";
+import { Button, Card, EmptyState, Input, MediaUploadIcon } from "../shared/ui";
 import {
   createCompanyGalleryItemDraft,
   normalizeCompanyGallery,
@@ -9,30 +9,6 @@ import "./company-dashboard.css";
 
 const COMPANY_GALLERY_ACCEPT = "image/png,image/jpeg,image/webp";
 const COMPANY_GALLERY_MAX_SIZE_BYTES = 5 * 1024 * 1024;
-
-function CompanyMediaUploadIcon() {
-  return (
-    <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-      <path
-        d="M19 19.5c0-4.694 3.806-8.5 8.5-8.5h25.86c1.262 0 2.467.53 3.317 1.46l8.14 8.9A4.9 4.9 0 0 1 66 24.64V52.5c0 4.694-3.806 8.5-8.5 8.5h-30c-4.694 0-8.5-3.806-8.5-8.5v-33Z"
-        stroke="currentColor"
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-      />
-      <path d="M57 11v13h13" stroke="currentColor" strokeWidth="4.5" strokeLinejoin="round" />
-      <circle cx="36" cy="33" r="4.5" fill="currentColor" />
-      <path
-        d="m24 52 11.2-12a3.2 3.2 0 0 1 4.6-.14L45 45l5.6-5.6a3.2 3.2 0 0 1 4.53 0L61 45.3"
-        stroke="currentColor"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="58" cy="58" r="13" fill="currentColor" opacity="0.14" />
-      <path d="M58 50.5v15M50.5 58h15" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function formatFileSize(bytes) {
   if (bytes < 1024 * 1024) {
@@ -99,7 +75,7 @@ function CompanyGalleryEditorCard({ item, index, onChange, onRemove }) {
             className="company-dashboard-gallery-card__upload"
             onClick={() => fileInputRef.current?.click()}
           >
-            <CompanyMediaUploadIcon />
+            <MediaUploadIcon />
             <span>Загрузить фото</span>
           </button>
         )}
@@ -210,7 +186,7 @@ export function CompanyGalleryPanel({
       {isEditor ? (
         <Card className="company-dashboard-gallery-card company-dashboard-gallery-card--add" role="listitem" tone="neutral">
           <button type="button" className="company-dashboard-gallery-card__add" onClick={onAddItem}>
-            <CompanyMediaUploadIcon />
+            <MediaUploadIcon />
             <strong>Добавить фото</strong>
             <span>Новая карточка появится справа и сразу попадет в общую ленту.</span>
           </button>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject } from "../api/candidate";
 import { uploadImage } from "../api/uploads";
-import { Alert, Button, Card, FormField, Input, Loader, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
+import { Alert, Button, Card, FormField, Input, Loader, MediaUploadIcon, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
 import { CandidatePortfolioProjectCard } from "./portfolio-kit";
 import {
@@ -15,24 +15,6 @@ import {
 
 const PROJECT_COVER_MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const PROJECT_COVER_ACCEPT = "image/png,image/jpeg,image/webp";
-
-function ImageUploadIcon() {
-  return (
-    <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-      <path
-        d="M19 19.5c0-4.694 3.806-8.5 8.5-8.5h25.86c1.262 0 2.467.53 3.317 1.46l8.14 8.9A4.9 4.9 0 0 1 66 24.64V52.5c0 4.694-3.806 8.5-8.5 8.5h-30c-4.694 0-8.5-3.806-8.5-8.5v-33Z"
-        stroke="currentColor"
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-      />
-      <path d="M57 11v13h13" stroke="currentColor" strokeWidth="4.5" strokeLinejoin="round" />
-      <circle cx="36" cy="33" r="4.5" fill="currentColor" />
-      <path d="m24 52 11.2-12a3.2 3.2 0 0 1 4.6-.14L45 45l5.6-5.6a3.2 3.2 0 0 1 4.53 0L61 45.3" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="58" cy="58" r="13" fill="currentColor" opacity="0.14" />
-      <path d="M58 50.5v15M50.5 58h15" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function ProjectEditorSection({ eyebrow, title, description, children }) {
   return (
@@ -209,7 +191,7 @@ function ProjectCoverUploader({
         ) : (
           <>
             <span className="candidate-project-editor-upload__icon">
-              <ImageUploadIcon />
+              <MediaUploadIcon />
             </span>
             <span className="candidate-project-editor-upload__copy">
               <strong>Добавить изображение</strong>

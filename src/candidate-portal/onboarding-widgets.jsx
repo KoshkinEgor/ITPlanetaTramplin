@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProfessionOptions } from "../api/professions";
-import { Button, Checkbox, FormField, Input, Modal, SearchInput, Textarea } from "../shared/ui";
+import { Button, Checkbox, FormField, Input, Modal, SearchInput, Textarea, CloseIcon } from "../shared/ui";
 import { cn } from "../shared/lib/cn";
 import { createEmptyCandidateExperienceDraft } from "./onboarding";
 import "./onboarding-widgets.css";
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4 12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 4 4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function dedupeProfessionOptions(options = []) {
   const uniqueOptions = new Map();

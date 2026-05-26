@@ -5,14 +5,7 @@ import { Button } from "../../components/ui/Button/Button";
 import { Card } from "../../components/ui/Card/Card";
 import { PillButton } from "../../components/ui/PillButton/PillButton";
 import { SearchInput } from "../../components/ui/SearchInput/SearchInput";
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "./icons";
 
 export function SearchBar({ onChange, onValueChange, className, clearLabel = "Очистить поиск", ...props }) {
   return (

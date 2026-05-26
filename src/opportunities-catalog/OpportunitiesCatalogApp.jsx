@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { useLocation } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
@@ -36,6 +36,17 @@ import {
   SegmentedControl,
   SortControl,
   Tag,
+  HeartIcon,
+  ChevronDownIcon,
+  SortIcon,
+  DirectionIcon,
+  SlidersIcon,
+  TelegramIcon,
+  GlobeIcon,
+  VkIcon,
+  YoutubeIcon,
+  GithubIcon,
+  LinkIcon,
 } from "../shared/ui";
 import "../ui-kit/ui-kit.css";
 import "./opportunities-catalog.css";
@@ -86,61 +97,10 @@ const SORT_OPTIONS = [
   { key: "title", label: "По названию" },
 ];
 
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function SortIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 6h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8 10h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M11 14h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M5 10v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m3.3 13.4 1.7 1.7 1.7-1.7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function DirectionIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 4v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m6 12 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function SlidersIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M10 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M15 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="5" cy="8" r="2.1" fill="currentColor" />
-      <circle cx="10" cy="13" r="2.1" fill="currentColor" />
-      <circle cx="15" cy="6" r="2.1" fill="currentColor" />
-    </svg>
-  );
-}
 
 function normalize(value) {
   return String(value ?? "").trim().toLowerCase();
@@ -620,12 +580,23 @@ function CompanySpotlightSlide({ company, profileState, isFavorite, onToggleFavo
       {address ? <p className="ui-type-body">{address}</p> : null}
 
       {links.length ? (
-        <div className="opportunity-story-card__intro">
-          {links.map((link) => (
-            <AppLink key={link.id} href={link.href} className="opportunity-card-page__more-link">
-              {link.label}
-            </AppLink>
-          ))}
+        <div className="opportunity-company-socials">
+          {links.map((link) => {
+            const type = resolveSocialType(link.label, link.href);
+            return (
+              <IconButton
+                key={link.id}
+                href={link.href}
+                label={link.label}
+                size="lg"
+                target="_blank"
+                rel="noreferrer"
+                className="opportunity-company-socials__item"
+              >
+                {getSocialIcon(type)}
+              </IconButton>
+            );
+          })}
         </div>
       ) : null}
 
@@ -1333,7 +1304,7 @@ export function OpportunitiesCatalogApp() {
                             key={item.id}
                             item={createRowCardItem(item)}
                             primaryAction={{
-                              href: buildOpportunityDetailRoute(item.id),
+                              href: item.employerId ? buildCompanyPublicRoute(item.employerId) : buildOpportunityDetailRoute(item.id),
                               label: "Связаться",
                               variant: "secondary",
                             }}
@@ -1510,6 +1481,69 @@ export function OpportunitiesCatalogApp() {
     </main>
   );
 }
+
+
+
+
+
+
+
+function resolveSocialType(label, url) {
+  const normLabel = String(label ?? "").trim().toLowerCase();
+  const normUrl = String(url ?? "").trim().toLowerCase();
+
+  if (normLabel === "telegram" || normLabel === "tg" || normUrl.includes("t.me/")) {
+    return "telegram";
+  }
+  if (normLabel === "vk" || normLabel === "vkontakte" || normUrl.includes("vk.com/")) {
+    return "vk";
+  }
+  if (normLabel === "youtube" || normLabel === "yt" || normUrl.includes("youtube.com/") || normUrl.includes("youtu.be/")) {
+    return "youtube";
+  }
+  if (normLabel === "github" || normUrl.includes("github.com/")) {
+    return "github";
+  }
+  if (normLabel === "website" || normLabel === "site" || normLabel === "web" || normUrl.startsWith("http")) {
+    return "website";
+  }
+  return "link";
+}
+
+function getSocialIcon(type) {
+  switch (type) {
+    case "telegram":
+      return <TelegramIcon />;
+    case "vk":
+      return <VkIcon />;
+    case "youtube":
+      return <YoutubeIcon />;
+    case "github":
+      return <GithubIcon />;
+    case "website":
+      return <GlobeIcon />;
+    default:
+      return <LinkIcon />;
+  }
+}
+
+function getSocialLabel(type) {
+  switch (type) {
+    case "telegram":
+      return "Telegram";
+    case "vk":
+      return "ВКонтакте";
+    case "youtube":
+      return "YouTube";
+    case "github":
+      return "GitHub";
+    case "website":
+      return "Веб-сайт";
+    default:
+      return "Ссылка";
+  }
+}
+
 
 
 

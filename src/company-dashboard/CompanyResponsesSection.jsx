@@ -4,7 +4,7 @@ import { buildCandidatePublicProfileRoute, routes } from "../app/routes";
 import { getCompanyOpportunities, updateOpportunityApplicationStatus } from "../api/company";
 import { cn } from "../lib/cn";
 import { ApiError } from "../lib/http";
-import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Input, Loader, Select, Tag, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Input, Loader, Select, Tag, Textarea, ChevronDownIcon } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { loadCompanyApplications, translateApplicationStatus } from "./utils";
 import "./company-dashboard.css";
@@ -41,15 +41,6 @@ function getApplicationDateValue(item) {
   const parsed = value ? new Date(value) : null;
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed.getTime() : 0;
 }
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function normalizeApplicationSkills(skills) {
   return Array.isArray(skills)
     ? skills.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)

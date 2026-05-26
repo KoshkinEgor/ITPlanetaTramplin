@@ -697,6 +697,13 @@ body.opportunities-browser-react-body {
   gap: 10px;
 }
 
+.opportunity-company-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .opportunity-card-page__more-link {
   color: var(--ui-color-accent);
   font-weight: 700;

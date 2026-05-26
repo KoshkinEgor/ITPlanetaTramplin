@@ -18,7 +18,32 @@ import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
 import { buildOpportunityPayload, buildOpportunityPreviewRoute, createOpportunityDraft, formatOpportunityDateTime, getOpportunityDetailPresentation, getOpportunityMiniCardPresentation, getOpportunityOwnerCapabilities, translateModerationStatus, validateOpportunityDraftForSubmit } from "../shared/lib/opportunityPresentation";
 import { getOpportunityApplyLabel, isEventOpportunity } from "../shared/lib/opportunityTypes";
-import { Alert, Avatar, Button, Card, Checkbox, EmptyState, FormField, IconButton, Input, Loader, Modal, OpportunityMiniCard, Select, Tag, TagSelector, Textarea } from "../shared/ui";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  FormField,
+  IconButton,
+  Input,
+  Loader,
+  Modal,
+  OpportunityMiniCard,
+  Select,
+  Tag,
+  TagSelector,
+  Textarea,
+  HeartIcon,
+  MoreIcon,
+  TelegramIcon,
+  GlobeIcon,
+  VkIcon,
+  YoutubeIcon,
+  GithubIcon,
+  LinkIcon,
+} from "../shared/ui";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { OpportunityLocationPicker } from "../company-dashboard/OpportunityLocationPicker";
 import "./opportunity-detail-card.css";
@@ -74,8 +99,6 @@ const DEMO = {
   }
 };
 
-function HeartIcon() {return <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;}
-function MoreIcon() {return <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="4.5" cy="10" r="1.7" /><circle cx="10" cy="10" r="1.7" /><circle cx="15.5" cy="10" r="1.7" /></svg>;}
 function uniq(items) {return [...new Set((Array.isArray(items) ? items : []).map((item) => String(item).trim()).filter(Boolean))];}
 function json(value, fallback) {if (!value || typeof value !== "string") return fallback;try {return JSON.parse(value);} catch {return fallback;}}
 function contacts(value) {
@@ -923,38 +946,6 @@ function DetailLayout({
             )}
           </div>
 
-          <section className="opportunity-story-section">
-            <div className="opportunity-story-section__header">
-              <h2 className="ui-type-h3">О публикации</h2>
-            </div>
-            <ul className="opportunity-story-list">
-              <li>{formatOpportunityDateTime(item.publishAt) || "Дата не указана"}</li>
-              <li>{locationLine(item) || "Локация не указана."}</li>
-              <li>{item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}</li>
-            </ul>
-          </section>
-
-          {c.length ?
-          <section className="opportunity-story-section">
-              <div className="opportunity-story-section__header">
-                <h2 className="ui-type-h3">Контакты</h2>
-              </div>
-              <ul className="opportunity-story-list">
-                {c.map((entry) =>
-              <li key={`${entry.type}-${entry.value}`}>
-                    {entry.type === "email" ?
-                <AppLink href={`mailto:${entry.value}`}>{entry.value}</AppLink> :
-                entry.type === "phone" ?
-                <AppLink href={`tel:${entry.value.replace(/\s+/g, "")}`}>{entry.value}</AppLink> :
-
-                <AppLink href={entry.value}>{entry.value}</AppLink>
-                }
-                  </li>
-              )}
-              </ul>
-            </section> :
-          null}
-
           {uniq(item.tags).length ?
           <section className="opportunity-story-section">
               <div className="opportunity-story-section__header">
@@ -969,54 +960,6 @@ function DetailLayout({
               </div>
             </section> :
           null}
-
-          {hidePublicActions ? null :
-          <>
-              <p className="ui-type-caption">{formatOpportunityDateTime(item.publishAt)}</p>
-              {actionAccessMode ?
-              <div className="opportunity-apply-auth-prompt opportunity-apply-auth-prompt--bottom">
-                <p>{actionAccessMessage}</p>
-                {actionAccessMode === "guest" ?
-                <Button href={routes.auth.login} className="opportunity-apply-auth-prompt__login">
-                  Войти
-                </Button> :
-                null}
-              </div> :
-              null}
-              <div className="opportunity-story-card__bottom-actions">
-                {!actionAccessMode ?
-                <Button
-                type="button"
-                className="opportunity-story-card__bottom-primary"
-                onClick={onApply}
-                disabled={applyState.status === "saving" || applyState.status === "success"}>
-                
-                  {applyButtonLabel}
-                </Button>
-                :
-                null}
-                {!actionAccessMode ?
-                <Button
-                type="button"
-                variant="secondary"
-                className="opportunity-story-card__bottom-secondary"
-                onClick={onShare}>
-                
-                  Поделиться возможностью
-                </Button>
-                :
-                null}
-                <Button
-                type="button"
-                variant="ghost"
-                className="opportunity-story-card__bottom-secondary"
-                onClick={onComplaint}>
-                
-                  {item.opportunityType === "event" ? "Пожаловаться на событие" : "Пожаловаться на возможность"}
-                </Button>
-              </div>
-            </>
-          }
         </Card>
 
         <Card className={cn("opportunity-social-context-card", animated && "opportunity-card-fade-up opportunity-card-fade-up--delay-3")}>
@@ -1058,12 +1001,23 @@ function DetailLayout({
           {item.companyLegalAddress ? <p className="ui-type-body">{item.companyLegalAddress}</p> : null}
 
           {s.length ?
-          <div className="opportunity-story-card__intro">
-              {s.map((entry) =>
-            <AppLink key={entry.id} href={entry.url} className="opportunity-card-page__more-link">
-                  {entry.label}
-                </AppLink>
-            )}
+          <div className="opportunity-company-socials">
+              {s.map((entry) => {
+                const type = resolveSocialType(entry.label, entry.url);
+                return (
+                  <IconButton
+                    key={entry.id}
+                    href={entry.url}
+                    label={entry.label}
+                    size="lg"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="opportunity-company-socials__item"
+                  >
+                    {getSocialIcon(type)}
+                  </IconButton>
+                );
+              })}
             </div> :
           null}
 
@@ -1751,3 +1705,60 @@ ${currentUrl}`;
     </main>);
 
 }
+
+function resolveSocialType(label, url) {
+  const normLabel = String(label ?? "").trim().toLowerCase();
+  const normUrl = String(url ?? "").trim().toLowerCase();
+
+  if (normLabel === "telegram" || normLabel === "tg" || normUrl.includes("t.me/")) {
+    return "telegram";
+  }
+  if (normLabel === "vk" || normLabel === "vkontakte" || normUrl.includes("vk.com/")) {
+    return "vk";
+  }
+  if (normLabel === "youtube" || normLabel === "yt" || normUrl.includes("youtube.com/") || normUrl.includes("youtu.be/")) {
+    return "youtube";
+  }
+  if (normLabel === "github" || normUrl.includes("github.com/")) {
+    return "github";
+  }
+  if (normLabel === "website" || normLabel === "site" || normLabel === "web" || normUrl.startsWith("http")) {
+    return "website";
+  }
+  return "link";
+}
+
+function getSocialIcon(type) {
+  switch (type) {
+    case "telegram":
+      return <TelegramIcon />;
+    case "vk":
+      return <VkIcon />;
+    case "youtube":
+      return <YoutubeIcon />;
+    case "github":
+      return <GithubIcon />;
+    case "website":
+      return <GlobeIcon />;
+    default:
+      return <LinkIcon />;
+  }
+}
+
+function getSocialLabel(type) {
+  switch (type) {
+    case "telegram":
+      return "Telegram";
+    case "vk":
+      return "ВКонтакте";
+    case "youtube":
+      return "YouTube";
+    case "github":
+      return "GitHub";
+    case "website":
+      return "Веб-сайт";
+    default:
+      return "Ссылка";
+  }
+}
+
