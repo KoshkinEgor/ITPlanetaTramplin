@@ -601,6 +601,13 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
     onSelectItemRef.current?.(String(activeIdRef.current) === String(pointId) ? null : pointId);
   }
 
+  function handleDismissPreview() {
+    clearPendingPreviewClose();
+    setHoveredId(null);
+    setPreviewLayout(null);
+    onSelectItemRef.current?.(null);
+  }
+
   useEffect(() => {
     activeIdRef.current = activeId;
     clearPendingPreviewClose();
@@ -623,7 +630,7 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
       zoom: mapLocation.zoom,
       revision: previousState.revision + 1,
     }));
-  }, [mapLocation.center[0], mapLocation.center[1], mapLocation.zoom]);
+  }, [fallbackCenter[0], fallbackCenter[1]]);
 
   useEffect(() => {
     if (!activeId) {
@@ -753,12 +760,14 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
         containerRef.current.innerHTML = "";
         markerElementsRef.current = new Map();
 
+        const initialLocation = mapViewportRef.current ?? mapLocation;
+
         mapInstance = new YMap(containerRef.current, {
-          location: mapLocation,
+          location: initialLocation,
           mode: "vector",
         });
         mapInstanceRef.current = mapInstance;
-        mapViewportRef.current = { ...mapLocation };
+        mapViewportRef.current = { ...initialLocation };
 
         mapInstance.addChild(new YMapDefaultSchemeLayer());
         mapInstance.addChild(new YMapFeatureDataSource({ id: markerSourceId }));
@@ -998,7 +1007,10 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
             className="home-yandex-map__preview-card"
             dismissAction={{
               label: "Закрыть карточку",
-              onClick: () => onSelectItemRef.current?.(null),
+              onClick: (event) => {
+                event?.stopPropagation?.();
+                handleDismissPreview();
+              },
             }}
             detailAction={{
               href: activeItem.detailHref ?? activeItem.href ?? buildOpportunityDetailRoute(activeItem.id),

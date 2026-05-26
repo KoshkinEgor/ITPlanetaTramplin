@@ -18,7 +18,7 @@ import {
 } from "../shared/lib/opportunityTypes";
 import { getOpportunityCardPresentation, translateExperienceLevel, translateWorkSchedule } from "../shared/lib/opportunityPresentation";
 import { scheduleHashScroll, scrollToHashTarget as scrollToHashTargetShared } from "../shared/lib/scrollToHashTarget";
-import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SegmentedControl, SortControl, Tag } from "../shared/ui";
+import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SortControl, Tag } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { useFloatingHeader } from "../shared/lib/useFloatingHeader";
 import { PortalHeader } from "../widgets/layout";
@@ -86,7 +86,8 @@ const defaultFilterValues = {
 
 const advancedSearchSections = {
   directions: ["Вакансии", "Стажировки", "Мероприятия", "Менторские программы"],
-  formats: ["Офис", "Гибрид", "Онлайн"],
+  formats: EMPLOYMENT_FILTER_ORDER,
+  levels: LEVEL_FILTER_ORDER,
   schedules: ["Полный день", "Частичная", "По выходным"],
   extras: ["Можно удаленно", "С контактами", "Быстрый отклик", "Только активные"],
 };
@@ -98,13 +99,36 @@ const ADVANCED_SEARCH_DIRECTION_TYPES = {
   [advancedSearchSections.directions[3]]: "mentoring",
 };
 
+function getAdvancedDirectionByType(typeValue) {
+  const normalizedType = normalizeOpportunityType(typeValue);
+  return Object.entries(ADVANCED_SEARCH_DIRECTION_TYPES).find(([, value]) => value === normalizedType)?.[0] ?? null;
+}
+
+function getQuickTypeByAdvancedDirections(directions) {
+  if (!Array.isArray(directions) || directions.length !== 1) {
+    return FILTER_ALL_VALUE;
+  }
+
+  return ADVANCED_SEARCH_DIRECTION_TYPES[directions[0]] ?? FILTER_ALL_VALUE;
+}
+
+function getQuickValueBySingleAdvancedValue(values) {
+  return Array.isArray(values) && values.length === 1 ? values[0] : FILTER_ALL_VALUE;
+}
+
 function createDefaultAdvancedSearchValues() {
   return {
     salaryFrom: "",
     salaryTo: "",
+    company: "",
+    city: "",
+    keywords: "",
+    companies: [],
     directions: [],
     formats: [],
+    levels: [],
     schedules: [],
+    skills: [],
     extras: [],
   };
 }
@@ -601,6 +625,9 @@ function createHomeOpportunityCardBase(item, fallbackId, { status, statusTone, c
     summaryFacts: presentation.summaryFacts,
     accent: presentation.accent,
     note: presentation.note,
+    companyName: item?.companyName ?? "",
+    locationCity: item?.locationCity ?? "",
+    locationAddress: item?.locationAddress ?? "",
     chips: tags.slice(0, chipsLimit),
     tags,
     description: item?.description ?? "",
@@ -713,6 +740,34 @@ function mapOpportunityToRecommendedCard(item, index) {
   };
 }
 
+function getPopularVacancyScore(item, index = 0) {
+  const meta = item?.sortMeta ?? createSortMeta(item, index);
+  const activeBoost = isAdvancedItemActive(item) ? 1000 : 0;
+
+  return activeBoost + (meta.popularity ?? 0) * 6 + (meta.responses ?? 0) * 2 + (meta.salary ?? 0) / 1000;
+}
+
+function sortPopularVacancySourceItems(items) {
+  return [...items]
+    .filter(isVacancyOpportunity)
+    .sort((left, right) => getPopularVacancyScore(right) - getPopularVacancyScore(left));
+}
+
+function getRecommendedOpportunityScore(item, index = 0) {
+  const type = normalizeOpportunityType(item?.opportunityType);
+  const meta = item?.sortMeta ?? createSortMeta(item, index);
+  const typeBoost = type === "vacancy" ? 60 : type === "internship" ? 54 : type === "mentoring" ? 48 : type === "event" ? 42 : 0;
+  const activeBoost = isAdvancedItemActive(item) ? 120 : 0;
+  const coordinateBoost = hasCoordinatePair(toCoordinatePair(item?.longitude, item?.latitude)) ? 12 : 0;
+  const contactBoost = hasContactPayload(item?.contactsJson) || hasContactPayload(item?.contacts) ? 8 : 0;
+
+  return activeBoost + typeBoost + coordinateBoost + contactBoost + (meta.popularity ?? 0) + (meta.rating ?? 0) * 2;
+}
+
+function sortRecommendedSourceItems(items) {
+  return [...items].sort((left, right) => getRecommendedOpportunityScore(right) - getRecommendedOpportunityScore(left));
+}
+
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -745,9 +800,15 @@ function hasAdvancedSearchFilters(values) {
   return Boolean(
     String(values?.salaryFrom ?? "").trim()
       || String(values?.salaryTo ?? "").trim()
+      || String(values?.company ?? "").trim()
+      || String(values?.city ?? "").trim()
+      || String(values?.keywords ?? "").trim()
+      || values?.companies?.length
       || values?.directions?.length
       || values?.formats?.length
+      || values?.levels?.length
       || values?.schedules?.length
+      || values?.skills?.length
       || values?.extras?.length
   );
 }
@@ -830,6 +891,21 @@ function matchesAdvancedExtra(item, extra) {
   }
 }
 
+function matchesAdvancedTextQuery(item, query, fields) {
+  const normalizedQuery = normalizeOptionValue(query);
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const searchContent = fields.map((field) => {
+    const value = typeof field === "function" ? field(item) : item?.[field];
+    return Array.isArray(value) ? value.join(" ") : value;
+  }).join(" ");
+
+  return normalizeOptionValue(searchContent).includes(normalizedQuery);
+}
+
 function matchesAdvancedSearchValues(item, values) {
   if (!hasAdvancedSearchFilters(values)) {
     return true;
@@ -847,6 +923,35 @@ function matchesAdvancedSearchValues(item, values) {
     return false;
   }
 
+  if (!matchesAdvancedTextQuery(item, values.company, ["companyName", "meta"])) {
+    return false;
+  }
+
+  if (values.companies.length && !values.companies.some((company) => (
+    matchesAdvancedTextQuery(item, company, ["companyName", "meta"])
+  ))) {
+    return false;
+  }
+
+  if (!matchesAdvancedTextQuery(item, values.city, ["city", "locationCity", "meta"])) {
+    return false;
+  }
+
+  if (!matchesAdvancedTextQuery(item, values.keywords, [
+    "title",
+    "description",
+    "tags",
+    "chips",
+    "primaryFactLabel",
+    "primaryFactValue",
+    "secondaryFact",
+    "tertiaryFact",
+    "compactFact",
+    "note",
+  ])) {
+    return false;
+  }
+
   if (values.directions.length) {
     const selectedTypes = values.directions
       .map((direction) => ADVANCED_SEARCH_DIRECTION_TYPES[direction])
@@ -859,6 +964,20 @@ function matchesAdvancedSearchValues(item, values) {
   }
 
   if (values.formats.length && !values.formats.some((format) => normalizeOptionValue(format) === normalizeOptionValue(item.employmentLabel))) {
+    return false;
+  }
+
+  if (values.levels.length && !values.levels.some((level) => {
+    const normalizedLevel = normalizeOptionValue(level);
+    const normalizedTags = Array.isArray(item.tags) ? item.tags.map(normalizeOptionValue) : [];
+    return normalizeOptionValue(item.levelLabel) === normalizedLevel || normalizedTags.includes(normalizedLevel);
+  })) {
+    return false;
+  }
+
+  if (values.skills.length && !values.skills.every((skill) => (
+    matchesAdvancedTextQuery(item, skill, ["tags", "chips", "title", "description", "note"])
+  ))) {
     return false;
   }
 
@@ -957,7 +1076,19 @@ function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect 
   );
 }
 
-function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange }) {
+function HomeSkillsFilter({
+  label,
+  value,
+  options,
+  isOpen,
+  onToggle,
+  onChange,
+  placeholder = "Поиск навыков",
+  clearLabel = "Очистить поиск",
+  emptyLabel = "Выберите навыки из списка или добавьте свой",
+  createLabel = "Добавить",
+  selectedLabel = "Выбрано",
+}) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -1101,7 +1232,7 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
                 </span>
               ))
             ) : (
-              <span className="home-skills-filter__empty">Выберите навыки из списка или добавьте свой</span>
+              <span className="home-skills-filter__empty">{emptyLabel}</span>
             )}
           </div>
 
@@ -1110,8 +1241,8 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
             value={query}
             onValueChange={setQuery}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Поиск навыков"
-            clearLabel="Очистить поиск"
+            placeholder={placeholder}
+            clearLabel={clearLabel}
             className="home-skills-filter__search"
           />
 
@@ -1122,7 +1253,7 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
                 className="home-skills-filter__option home-skills-filter__option--create"
                 onClick={() => addSkill(trimmedQuery)}
               >
-                <span>Добавить "{trimmedQuery}"</span>
+                <span>{createLabel} "{trimmedQuery}"</span>
               </button>
             ) : null}
 
@@ -1140,7 +1271,7 @@ function HomeSkillsFilter({ label, value, options, isOpen, onToggle, onChange })
                     onClick={() => toggleSkill(option)}
                   >
                     <span>{option}</span>
-                    {isSelected ? <span className="home-skills-filter__option-mark">Выбрано</span> : null}
+                    {isSelected ? <span className="home-skills-filter__option-mark">{selectedLabel}</span> : null}
                   </button>
                 );
               })
@@ -1279,7 +1410,9 @@ function HubCard({ title, description, href }) {
   );
 }
 
-function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset, onApply }) {
+function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleValue, onChangeField, onReset, onApply }) {
+  const [openAdvancedPicker, setOpenAdvancedPicker] = useState(null);
+
   return (
     <Card className="home-advanced-search">
       <div className="home-advanced-search__header">
@@ -1329,6 +1462,33 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset, on
         </div>
       </div>
 
+      <div className="home-advanced-search__grid">
+        <div className="home-advanced-search__field">
+          <span className="home-advanced-search__label">Компания</span>
+          <HomeSkillsFilter
+            label="Компания"
+            value={values.companies}
+            options={companyOptions}
+            isOpen={openAdvancedPicker === "companies"}
+            onToggle={(nextState) => setOpenAdvancedPicker(nextState ? "companies" : null)}
+            onChange={(nextValue) => onChangeField("companies", nextValue)}
+            placeholder="Поиск компаний"
+            clearLabel="Очистить поиск компаний"
+            emptyLabel="Выберите компании из списка или добавьте свою"
+            createLabel="Добавить компанию"
+          />
+        </div>
+        <div className="home-advanced-search__field">
+          <span className="home-advanced-search__label">Город</span>
+          <Input
+            value={values.city}
+            onValueChange={(nextValue) => onChangeField("city", nextValue)}
+            placeholder="Москва"
+            className="home-advanced-search__input"
+          />
+        </div>
+      </div>
+
       <div className="home-advanced-search__section">
         <span className="home-advanced-search__label">Формат</span>
         <div className="home-advanced-search__chips">
@@ -1338,6 +1498,22 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset, on
               type="button"
               className={`home-advanced-search__chip ${values.formats.includes(item) ? "is-active" : ""}`.trim()}
               onClick={() => onToggleValue("formats", item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="home-advanced-search__section">
+        <span className="home-advanced-search__label">Опыт</span>
+        <div className="home-advanced-search__chips">
+          {advancedSearchSections.levels.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`home-advanced-search__chip ${values.levels.includes(item) ? "is-active" : ""}`.trim()}
+              onClick={() => onToggleValue("levels", item)}
             >
               {item}
             </button>
@@ -1359,6 +1535,22 @@ function AdvancedSearchPanel({ values, onToggleValue, onChangeField, onReset, on
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="home-advanced-search__section">
+        <span className="home-advanced-search__label">Навыки и ключевые слова</span>
+        <HomeSkillsFilter
+          label="Навыки"
+          value={values.skills}
+          options={skillOptions}
+          isOpen={openAdvancedPicker === "skills"}
+          onToggle={(nextState) => setOpenAdvancedPicker(nextState ? "skills" : null)}
+          onChange={(nextValue) => onChangeField("skills", nextValue)}
+          placeholder="Поиск навыков"
+          clearLabel="Очистить поиск навыков"
+          emptyLabel="Выберите навыки из списка или добавьте свой"
+          createLabel="Добавить навык"
+        />
       </div>
 
       <div className="home-advanced-search__section">
@@ -1429,23 +1621,95 @@ export function HomeApp() {
     () => createQuickFilterOptions(nearbyItemsState.items, referenceCategories),
     [nearbyItemsState.items, referenceCategories]
   );
+  const advancedCompanyOptions = useMemo(
+    () => uniqueOptions(nearbyItemsState.items.map((item) => item.companyName)),
+    [nearbyItemsState.items]
+  );
+  const advancedSkillOptions = quickFilterOptions.skills;
   const hasActiveAdvancedSearchFilters = useMemo(
     () => hasAdvancedSearchFilters(advancedSearchValues),
     [advancedSearchValues]
   );
 
-  const toggleAdvancedValue = (field, item) => {
-    setAdvancedSearchValues((current) => {
-      const currentItems = current[field];
+  const updateQuickFilter = (key, nextValue) => {
+    setFilterValues((current) => ({
+      ...current,
+      [key]: nextValue,
+    }));
 
+    setAdvancedSearchValues((current) => {
+      if (key === "type") {
+        const nextDirection = nextValue === FILTER_ALL_VALUE ? null : getAdvancedDirectionByType(nextValue);
+        return {
+          ...current,
+          directions: nextDirection ? [nextDirection] : [],
+        };
+      }
+
+      if (key === "format") {
+        return {
+          ...current,
+          formats: nextValue === FILTER_ALL_VALUE ? [] : [nextValue],
+        };
+      }
+
+      if (key === "level") {
+        return {
+          ...current,
+          levels: nextValue === FILTER_ALL_VALUE ? [] : [nextValue],
+        };
+      }
+
+      return current;
+    });
+  };
+
+  const updateQuickSkills = (nextSkills) => {
+    setSelectedSkills(nextSkills);
+    setAdvancedSearchValues((current) => ({
+      ...current,
+      skills: nextSkills,
+    }));
+  };
+
+  const toggleAdvancedValue = (field, item) => {
+    const currentItems = advancedSearchValues[field] ?? [];
+    const nextItems = currentItems.includes(item) ? currentItems.filter((value) => value !== item) : [...currentItems, item];
+
+    if (field === "directions") {
+      setFilterValues((filters) => ({
+        ...filters,
+        type: getQuickTypeByAdvancedDirections(nextItems),
+      }));
+    }
+
+    if (field === "formats") {
+      setFilterValues((filters) => ({
+        ...filters,
+        format: getQuickValueBySingleAdvancedValue(nextItems),
+      }));
+    }
+
+    if (field === "levels") {
+      setFilterValues((filters) => ({
+        ...filters,
+        level: getQuickValueBySingleAdvancedValue(nextItems),
+      }));
+    }
+
+    setAdvancedSearchValues((current) => {
       return {
         ...current,
-        [field]: currentItems.includes(item) ? currentItems.filter((value) => value !== item) : [...currentItems, item],
+        [field]: nextItems,
       };
     });
   };
 
   const updateAdvancedField = (field, nextValue) => {
+    if (field === "skills") {
+      setSelectedSkills(nextValue);
+    }
+
     setAdvancedSearchValues((current) => ({
       ...current,
       [field]: nextValue,
@@ -1454,6 +1718,8 @@ export function HomeApp() {
 
   const resetAdvancedSearch = () => {
     setAdvancedSearchValues(createDefaultAdvancedSearchValues());
+    setFilterValues({ ...defaultFilterValues });
+    setSelectedSkills([]);
   };
 
   const closeNewsletterModal = () => {
@@ -1506,12 +1772,12 @@ export function HomeApp() {
         const mappedItems = opportunityItems
           .map(mapOpportunityToHomeCard)
           .filter(Boolean);
-        const mappedPopularVacancyItems = opportunityItems
+        const mappedPopularVacancyItems = sortPopularVacancySourceItems(opportunityItems)
           .map(mapOpportunityToPopularVacancyCard)
           .filter(Boolean);
         const mappedRecommendedItems = mergeUniqueOpportunityCards(
           recommendationItems.map(mapOpportunityToRecommendedCard).filter(Boolean),
-          opportunityItems.map(mapOpportunityToRecommendedCard).filter(Boolean)
+          sortRecommendedSourceItems(opportunityItems).map(mapOpportunityToRecommendedCard).filter(Boolean)
         );
         if (referencesResult.status === "fulfilled") {
           setReferenceCategories(referencesResult.value);
@@ -1658,6 +1924,18 @@ export function HomeApp() {
       })),
     [favoriteCompanyIdSet, favoriteOpportunityIdSet, prioritizedNearbyCards]
   );
+  const selectedCityName = String(selectedCityOption?.name ?? cityInputValue ?? "").trim();
+  const selectedCityHasDisplayedCards = useMemo(() => {
+    const normalizedSelectedCityName = normalizeOptionValue(selectedCityName);
+
+    return Boolean(normalizedSelectedCityName)
+      && displayedNearbyCards.some((item) => normalizeOptionValue(item.city) === normalizedSelectedCityName);
+  }, [displayedNearbyCards, selectedCityName]);
+  const shouldShowNearbyFallbackNotice =
+    nearbyItemsState.status === "ready"
+    && Boolean(selectedCityName)
+    && displayedNearbyCards.length > 0
+    && !selectedCityHasDisplayedCards;
   const mapNearbyCards = useMemo(
     () => displayedNearbyCards.filter((item) => hasCoordinatePair(item.coordinates)),
     [displayedNearbyCards]
@@ -1730,6 +2008,15 @@ export function HomeApp() {
     });
   }, [location.hash, location.pathname]);
 
+  const renderNearbyFallbackNotice = () => (
+    shouldShowNearbyFallbackNotice ? (
+      <Card className="home-results-nearby-notice">
+        <strong>В этом населенном пункте пока нет вакансий</strong>
+        <p>Показываем ближайшие возможности рядом с городом {selectedCityName}.</p>
+      </Card>
+    ) : null
+  );
+
   const renderDiscoveryResults = () => (
     <div
       ref={resultsGridRef}
@@ -1741,6 +2028,7 @@ export function HomeApp() {
         .filter(Boolean)
         .join(" ")}
     >
+      {renderNearbyFallbackNotice()}
       {displayedNearbyCards.length ? (
         displayedNearbyCards.map((item) => {
           const isSelected = selectedOpportunityId === String(item.id);
@@ -1918,18 +2206,13 @@ export function HomeApp() {
               </button>
             </div>
 
-            <SegmentedControl
+            <Checkbox
               className="home-discovery__view-switch"
-              items={[
-                { value: "map", label: "Карта возможностей" },
-                { value: "list", label: "Список возможностей" },
-              ]}
-              value={view}
-              onChange={setView}
-              ariaLabel="Режим просмотра возможностей"
-              size="md"
-              stretch
-            />
+              checked={view === "map"}
+              onChange={(event) => setView(event.target.checked ? "map" : "list")}
+            >
+              <span className="home-discovery__view-switch-label">Просмотр на карте</span>
+            </Checkbox>
           </div>
 
           <div className="home-discovery__toolbar">
@@ -1973,7 +2256,7 @@ export function HomeApp() {
                     onToggle={(nextState) => {
                       setOpenFilterKey(nextState ? filter.key : null);
                     }}
-                    onChange={setSelectedSkills}
+                    onChange={updateQuickSkills}
                   />
                 ) : (
                   <HomeFilterDropdown
@@ -1984,12 +2267,7 @@ export function HomeApp() {
                     onToggle={(nextState) => {
                       setOpenFilterKey(nextState ? filter.key : null);
                     }}
-                    onSelect={(nextValue) => {
-                      setFilterValues((current) => ({
-                        ...current,
-                        [filter.key]: nextValue,
-                      }));
-                    }}
+                    onSelect={(nextValue) => updateQuickFilter(filter.key, nextValue)}
                   />
                 )}
               </div>
@@ -2023,6 +2301,8 @@ export function HomeApp() {
             {view === "map" && advancedSearchOpen ? (
               <AdvancedSearchPanel
                 values={advancedSearchValues}
+                companyOptions={advancedCompanyOptions}
+                skillOptions={advancedSkillOptions}
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
                 onReset={resetAdvancedSearch}
@@ -2034,6 +2314,7 @@ export function HomeApp() {
               </Card>
             ) : (
               <div ref={resultsGridRef} className={`home-results-grid ${view === "list" ? "home-results-grid--list" : ""}`.trim()}>
+                {renderNearbyFallbackNotice()}
                 {displayedNearbyCards.length ? (
                   displayedNearbyCards.map((item) => (
                     view === "map" ? (
@@ -2091,6 +2372,8 @@ export function HomeApp() {
             {view === "list" && advancedSearchOpen ? (
               <AdvancedSearchPanel
                 values={advancedSearchValues}
+                companyOptions={advancedCompanyOptions}
+                skillOptions={advancedSkillOptions}
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
                 onReset={resetAdvancedSearch}

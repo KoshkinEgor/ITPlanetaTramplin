@@ -401,6 +401,30 @@ describe("HomeOpportunityMap", () => {
     expect(mapInstances).toHaveLength(1);
   });
 
+  it("keeps the current viewport when the filtered marker set changes", async () => {
+    const { rerender } = render(
+      <HomeOpportunityMap items={baseItems} selectedCity="РњРѕСЃРєРІР°" activeId={null} onSelectItem={vi.fn()} />
+    );
+
+    await waitFor(() => expect(mapInstances).toHaveLength(1));
+
+    mapInstances[0].update({
+      location: {
+        center: [37.7, 55.8],
+        zoom: 14.7,
+      },
+    });
+
+    rerender(
+      <HomeOpportunityMap items={[baseItems[1]]} selectedCity="РњРѕСЃРєРІР°" activeId={null} onSelectItem={vi.fn()} />
+    );
+
+    await waitFor(() => expect(mapInstances).toHaveLength(2));
+    expect(mapInstances[1].props.location.center).toEqual([37.7, 55.8]);
+    expect(mapInstances[1].props.location.zoom).toBe(14.7);
+    expect(screen.getByLabelText("Beta Point")).toBeInTheDocument();
+  });
+
   it("anchors the preview to the marker instead of docking it to the map bottom", async () => {
     render(<HomeOpportunityMap items={baseItems} selectedCity="РњРѕСЃРєРІР°" activeId="1" onSelectItem={vi.fn()} />);
 
@@ -491,5 +515,25 @@ describe("HomeOpportunityMap", () => {
     fireEvent.mouseLeave(preview, { relatedTarget: document.body });
 
     await waitFor(() => expect(document.querySelector(".home-yandex-map__preview")).toBeNull());
+  });
+
+  it("closes a hover preview when the dismiss action is clicked", async () => {
+    const onSelectItem = vi.fn();
+    render(<HomeOpportunityMap items={baseItems} selectedCity="РњРѕСЃРєРІР°" activeId={null} onSelectItem={onSelectItem} />);
+
+    const marker = await screen.findByLabelText("Alpha Point");
+
+    fireEvent.mouseEnter(marker);
+
+    const preview = await waitFor(() => {
+      const node = document.querySelector(".home-yandex-map__preview");
+      expect(node).not.toBeNull();
+      return node;
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть карточку" }));
+
+    await waitFor(() => expect(preview).not.toBeInTheDocument());
+    expect(onSelectItem).toHaveBeenCalledWith(null);
   });
 });
