@@ -3,13 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { createCandidateOpportunityShare, getCandidateEducation, getCandidateOpportunitySocialContext, getCandidateProfile } from "../api/candidate";
-import { getCompanyProfile } from "../api/company";
+import { getCompanyProfile, getPublicCompany } from "../api/company";
 import { applyToOpportunity, createOpportunityComplaint, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
 import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
 import { getTags } from "../api/tags";
 import { uploadImage } from "../api/uploads";
 import { useAuthSession } from "../auth/api";
-import { refreshCandidateApplications, upsertCandidateApplication } from "../candidate-portal/candidate-applications-store";
+import { refreshCandidateApplications, upsertCandidateApplication, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
 import { getCandidateOnboardingState } from "../candidate-portal/onboarding";
 import { CandidateProfileGateModal } from "../candidate-portal/onboarding-widgets";
 import { canShareOpportunityWithRelationship, mapSocialUserToCard } from "../candidate-portal/social";
@@ -18,6 +18,8 @@ import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
 import { buildOpportunityPayload, buildOpportunityPreviewRoute, createOpportunityDraft, formatOpportunityDateTime, getOpportunityDetailPresentation, getOpportunityMiniCardPresentation, getOpportunityOwnerCapabilities, translateModerationStatus, validateOpportunityDraftForSubmit } from "../shared/lib/opportunityPresentation";
 import { getOpportunityApplyLabel, isEventOpportunity } from "../shared/lib/opportunityTypes";
+import { resolveSocialType, getSocialIcon, getSocialLabel } from "../shared/lib/socialPresentation";
+import { startChat, sendChatMessage } from "../api/chats";
 import {
   Alert,
   Avatar,
@@ -43,6 +45,7 @@ import {
   YoutubeIcon,
   GithubIcon,
   LinkIcon,
+  MessageIcon,
 } from "../shared/ui";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { OpportunityLocationPicker } from "../company-dashboard/OpportunityLocationPicker";
@@ -110,7 +113,7 @@ function contacts(value) {
     const normalizedKey = String(key).trim().toLowerCase();
     if (normalizedKey.includes("mail")) return { type: "email", value: normalizedValue };
     if (normalizedKey.includes("phone") || normalizedKey.includes("tel")) return { type: "phone", value: normalizedValue };
-    if (normalizedKey.includes("telegram") && !/^https?:\/\//i.test(normalizedValue)) return { type: "link", value: `https://t.me/${normalizedValue.replace(/^@/, "")}` };
+    if (normalizedKey.includes("telegram")) return { type: "telegram", value: normalizedValue.replace(/^@/, "").replace(/^https?:\/\/t\.me\//i, "") };
     return { type: "link", value: normalizedValue };
   }).filter(Boolean);
   return [];
@@ -229,10 +232,7 @@ function TypeFields({ draft, onChange }) {
   return null;
 }
 
-function OwnerEditor({ draft, onChange, onSaveDraft, onSubmit, onPreview, onClose, onArchive, onDelete, saving }) {
-  const cap = getOpportunityOwnerCapabilities(draft, { isOwner: true });
-  return <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(draft.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(draft.moderationStatus)}</Tag></div>{draft.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{draft.moderationReason}</Alert> : null}<FormField label="Название" required><Input value={draft.title} onValueChange={(value) => onChange("title", value)} /></FormField><FormField label="Описание" required><Textarea value={draft.description} onValueChange={(value) => onChange("description", value)} rows={5} autoResize /></FormField><div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two"><FormField label="Тип публикации"><Select value={draft.opportunityType} onValueChange={(value) => onChange("opportunityType", value)} options={[{ value: "vacancy", label: "Вакансия" }, { value: "internship", label: "Стажировка" }, { value: "event", label: "Мероприятие" }, { value: "mentoring", label: "Менторская программа" }]} disabled={Number(draft.applicationsCount ?? 0) > 0} /></FormField><FormField label="Формат"><Select value={draft.employmentType} onValueChange={(value) => onChange("employmentType", value)} options={[{ value: "office", label: "Офис" }, { value: "hybrid", label: "Гибрид" }, { value: "remote", label: "Удаленно" }, { value: "online", label: "Онлайн" }]} /></FormField></div><FormField label="Срок или дата"><Input type="date" value={draft.expireAt} onValueChange={(value) => onChange("expireAt", value)} /></FormField><TypeFields draft={draft} onChange={onChange} /><OpportunityLocationPicker locationCity={draft.locationCity} locationAddress={draft.locationAddress} latitude={draft.latitude} longitude={draft.longitude} onFieldChange={onChange} /><FormField label="Теги через запятую"><Input value={draft.tags} onValueChange={(value) => onChange("tags", value)} /></FormField><FormField label="Контакты / ссылки"><div className="company-dashboard-social-links">{draft.contacts.map((item, index) => <div className="company-dashboard-social-links__row" key={`contact-${index}`}><Input value={item.value} onValueChange={(value) => {const next = draft.contacts.map((entry, entryIndex) => entryIndex === index ? { ...entry, value } : entry);onChange("contacts", next);}} placeholder="team@company.ru или https://..." /><Button type="button" variant="ghost" onClick={() => onChange("contacts", draft.contacts.filter((_, entryIndex) => entryIndex !== index).length ? draft.contacts.filter((_, entryIndex) => entryIndex !== index) : [{ type: "link", value: "" }])}>Удалить</Button></div>)}<Button type="button" variant="secondary" onClick={() => onChange("contacts", [...draft.contacts, { type: "link", value: "" }])}>Добавить</Button></div></FormField><FormField label="Медиа / вложения"><div className="company-dashboard-social-links">{draft.media.map((item, index) => <div className="company-dashboard-social-links__row" key={`media-${index}`}><Input value={item.title} onValueChange={(value) => onChange("media", draft.media.map((entry, entryIndex) => entryIndex === index ? { ...entry, title: value } : entry))} placeholder="Название медиа" /><Input value={item.url} onValueChange={(value) => onChange("media", draft.media.map((entry, entryIndex) => entryIndex === index ? { ...entry, url: value } : entry))} placeholder="https://..." /><Button type="button" variant="ghost" onClick={() => onChange("media", draft.media.filter((_, entryIndex) => entryIndex !== index).length ? draft.media.filter((_, entryIndex) => entryIndex !== index) : [{ title: "", url: "" }])}>Удалить</Button></div>)}<Button type="button" variant="secondary" onClick={() => onChange("media", [...draft.media, { title: "", url: "" }])}>Добавить</Button></div></FormField><div className="company-dashboard-panel__actions"><Button type="button" onClick={onSaveDraft} disabled={saving}>Сохранить как черновик</Button>{cap.canSubmit ? <Button type="button" variant="secondary" onClick={onSubmit} disabled={saving}>Отправить на модерацию</Button> : null}{cap.canArchive ? <Button type="button" variant="secondary" onClick={onArchive} disabled={saving}>Снять с публикации/архивировать</Button> : null}<Button type="button" variant="secondary" href={onPreview} disabled={!draft.id}>Просмотр публичной версии</Button>{cap.canDelete ? <Button type="button" variant="ghost" onClick={onDelete} disabled={saving}>Удалить</Button> : null}<Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Отмена</Button></div></div></Card>;
-}
+
 
 function OwnerEditorV2({
   draft,
@@ -508,21 +508,29 @@ function normalizeCompanyContacts(items, fallbackItems = []) {
 
   return fallbackItems.map((entry) => ({
     type: entry.type,
-    label: entry.type === "email" ? "Email компании" : entry.type === "phone" ? "Телефон компании" : "Ссылка компании",
-    value: entry.value,
+    label: entry.type === "email" ? "Email компании" : entry.type === "phone" ? "Телефон компании" : entry.type === "telegram" ? "Telegram" : "Ссылка компании",
+    value: entry.type === "telegram" && !entry.value.startsWith("@") ? `@${entry.value}` : entry.value,
     href: entry.type === "email" ?
     `mailto:${entry.value}` :
     entry.type === "phone" ?
     `tel:${String(entry.value).replace(/\s+/g, "")}` :
+    entry.type === "telegram" ?
+    `https://t.me/${entry.value.replace(/^@/, "")}` :
     entry.value
   }));
 }
 
 function formatSocialPersonMeta(person) {
-  return [person?.city, person?.email].filter(Boolean).join(" В· ");
+  return [person?.city, person?.email].filter(Boolean).join(" · ");
 }
 
-function OpportunitySocialPersonCard({ person, onShareCandidate, shareBusyKey = "" }) {
+function OpportunitySocialPersonCard({
+  person,
+  onShareCandidate,
+  shareBusyKey = "",
+  onStartChat = null,
+  chatBusyKey = ""
+}) {
   const shareKey = String(person?.id ?? person?.userId ?? person?.email ?? person?.name ?? "contact");
   const canShare = canShareOpportunityWithRelationship(person?.relationship);
   const meta = formatSocialPersonMeta(person);
@@ -568,6 +576,19 @@ function OpportunitySocialPersonCard({ person, onShareCandidate, shareBusyKey = 
         <Button href={person?.href} variant="secondary">
           Открыть профиль
         </Button>
+        {onStartChat && person?.userId ? (
+          <IconButton
+            type="button"
+            label="Написать"
+            variant="outline"
+            size="lg"
+            loading={chatBusyKey === String(person.userId)}
+            onClick={() => onStartChat(person)}
+            className="opportunity-social-person__chat"
+          >
+            <MessageIcon />
+          </IconButton>
+        ) : null}
         {canShare && onShareCandidate ?
         <Button
           type="button"
@@ -591,12 +612,19 @@ function OpportunitySocialSections({
   fallbackCompanyContacts = [],
   onShareCandidate,
   shareBusyKey = "",
-  showAuthHint = false
+  showAuthHint = false,
+  onStartChat = null,
+  chatBusyKey = ""
 }) {
   const companyContacts = normalizeCompanyContacts(socialContext?.companyContacts, fallbackCompanyContacts);
   const networkCandidates = (Array.isArray(socialContext?.networkCandidates) ? socialContext.networkCandidates : []).map(mapSocialUserToCard);
   const peers = (Array.isArray(socialContext?.peers) ? socialContext.peers : []).map(mapSocialUserToCard);
   const incomingShareCount = Number(socialContext?.counts?.incomingShareCount ?? 0);
+
+  const showCompany = companyContacts.length > 0;
+  const showNetwork = networkCandidates.length > 0 || (showAuthHint && status === "idle");
+  const showPeers = peers.length > 0 || (showAuthHint && status === "idle");
+  const hasAnySocialData = showCompany || showNetwork || showPeers;
 
   return (
     <div className="opportunity-social-context">
@@ -617,83 +645,102 @@ function OpportunitySocialSections({
         </Alert> :
       null}
 
-      <div className="opportunity-social-context__grid">
-        <Card className="opportunity-social-context__section">
-          <div className="opportunity-social-context__section-head">
-            <h3 className="ui-type-h4">Связаться с компанией</h3>
-            <Tag tone="accent">{companyContacts.length}</Tag>
-          </div>
-
-          {companyContacts.length ?
-          <div className="opportunity-social-context__links">
-              {companyContacts.map((contact) =>
-            <AppLink
-              key={`${contact.type}-${contact.value}`}
-              href={contact.href || contact.value}
-              className="opportunity-social-context__link">
-              
-                  <strong>{contact.label || "Контакт компании"}</strong>
-                  <span>{contact.value}</span>
-                </AppLink>
-            )}
-            </div> :
-
-          <p className="opportunity-social-context__empty">У компании нет публичных контактов.</p>
-          }
+      {!hasAnySocialData ? (
+        <Card>
+          <EmptyState
+            eyebrow="Пусто"
+            title="Контакты и связи пока отсутствуют"
+            description="У этой компании нет публичных контактов, а также пока нет откликов от других кандидатов."
+            tone="neutral"
+            compact
+          />
         </Card>
+      ) : (
+        <div className="opportunity-social-context__grid">
+          {showCompany ? (
+            <Card className="opportunity-social-context__section">
+              <div className="opportunity-social-context__section-head">
+                <h3 className="ui-type-h4">Связаться с компанией</h3>
+                <Tag tone="accent">{companyContacts.length}</Tag>
+              </div>
 
-        <Card className="opportunity-social-context__section">
-          <div className="opportunity-social-context__section-head">
-            <h3 className="ui-type-h4">Люди из вашей сети</h3>
-            <Tag tone="accent">{networkCandidates.length}</Tag>
-          </div>
+              <div className="opportunity-social-context__links">
+                {companyContacts.map((contact) => (
+                  <AppLink
+                     key={`${contact.type}-${contact.value}`}
+                    href={contact.href || contact.value}
+                    className="opportunity-social-context__link"
+                  >
+                    <strong>{contact.label || "Контакт компании"}</strong>
+                    <span>{contact.value}</span>
+                  </AppLink>
+                ))}
+              </div>
+            </Card>
+          ) : null}
 
-          {networkCandidates.length ?
-          <div className="opportunity-social-context__people">
-              {networkCandidates.map((person) =>
-            <OpportunitySocialPersonCard
-              key={person.id}
-              person={person}
-              onShareCandidate={onShareCandidate}
-              shareBusyKey={shareBusyKey} />
+          {showNetwork ? (
+            <Card className="opportunity-social-context__section">
+              <div className="opportunity-social-context__section-head">
+                <h3 className="ui-type-h4">Люди из вашей сети</h3>
+                <Tag tone="accent">{networkCandidates.length}</Tag>
+              </div>
 
-            )}
-            </div> :
+              {networkCandidates.length ? (
+                <div className="opportunity-social-context__people">
+                  {networkCandidates.map((person) => (
+                    <OpportunitySocialPersonCard
+                      key={person.id}
+                      person={person}
+                      onShareCandidate={onShareCandidate}
+                      shareBusyKey={shareBusyKey}
+                      onStartChat={onStartChat}
+                      chatBusyKey={chatBusyKey}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="opportunity-social-context__empty">
+                  {showAuthHint && status === "idle" ?
+                    "Войдите как кандидат, чтобы увидеть релевантные контакты из вашей сети." :
+                    "Пока нет релевантных контактов из вашей сети."}
+                </p>
+              )}
+            </Card>
+          ) : null}
 
-          <p className="opportunity-social-context__empty">
-              {showAuthHint && status === "idle" ?
-            "Войдите как кандидат, чтобы увидеть релевантные контакты из вашей сети." :
-            "Пока нет релевантных контактов из вашей сети."}
-            </p>
-          }
-        </Card>
+          {showPeers ? (
+            <Card className="opportunity-social-context__section">
+              <div className="opportunity-social-context__section-head">
+                <h3 className="ui-type-h4">Другие откликнувшиеся</h3>
+                <Tag tone="accent">{peers.length}</Tag>
+              </div>
 
-        <Card className="opportunity-social-context__section">
-          <div className="opportunity-social-context__section-head">
-            <h3 className="ui-type-h4">Другие откликнувшиеся</h3>
-            <Tag tone="accent">{peers.length}</Tag>
-          </div>
+              {peers.length ? (
+                <div className="opportunity-social-context__people">
+                  {peers.map((person) => (
+                    <OpportunitySocialPersonCard
+                      key={person.id}
+                      person={person}
+                      onShareCandidate={canShareOpportunityWithRelationship(person.relationship) ? onShareCandidate : null}
+                      shareBusyKey={shareBusyKey}
+                      onStartChat={onStartChat}
+                      chatBusyKey={chatBusyKey}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="opportunity-social-context__empty">
+                  {showAuthHint && status === "idle" ?
+                    "Список других откликнувшихся доступен после входа как кандидат и только для тех, кто открыл свой профиль." :
+                    "Пока нет других откликнувшихся с открытым профилем."}
 
-          {peers.length ?
-          <div className="opportunity-social-context__people">
-              {peers.map((person) =>
-            <OpportunitySocialPersonCard
-              key={person.id}
-              person={person}
-              onShareCandidate={canShareOpportunityWithRelationship(person.relationship) ? onShareCandidate : null}
-              shareBusyKey={shareBusyKey} />
-
-            )}
-            </div> :
-
-          <p className="opportunity-social-context__empty">
-              {showAuthHint && status === "idle" ?
-            "Список других откликнувшихся доступен после входа как кандидат и только для тех, кто открыл свой профиль." :
-            "Пока нет других откликнувшихся с открытым профилем."}
-            </p>
-          }
-        </Card>
-      </div>
+                </p>
+              )}
+            </Card>
+          ) : null}
+        </div>
+      )}
     </div>);
 
 }
@@ -723,7 +770,11 @@ function DetailLayout({
   buildDetailHref = (entry) => buildOpportunityDetailRoute(entry.id),
   catalogHref = "/opportunities",
   animated = true,
-  embedded = false
+  embedded = false,
+  onStartCompanyChat = null,
+  companyChatBusy = false,
+  onStartChat = null,
+  chatBusyKey = ""
 }) {
   const vm = useMemo(() => getOpportunityDetailPresentation(item), [item]);
   const rel = (Array.isArray(related) ? related : []).slice(0, 2);
@@ -970,7 +1021,9 @@ function DetailLayout({
             fallbackCompanyContacts={c}
             onShareCandidate={onShareCandidate}
             shareBusyKey={shareBusyKey}
-            showAuthHint={showAuthHint} />
+            showAuthHint={showAuthHint}
+            onStartChat={onStartChat}
+            chatBusyKey={chatBusyKey} />
           
         </Card>
       </div>
@@ -1027,6 +1080,19 @@ function DetailLayout({
                 Открыть профиль компании
               </Button> :
             null}
+            {onStartCompanyChat ? (
+              <IconButton
+                type="button"
+                label="Написать в чат компании"
+                variant="primary"
+                size="xl"
+                loading={companyChatBusy}
+                onClick={onStartCompanyChat}
+                className="company-spotlight__message-chat"
+              >
+                <MessageIcon />
+              </IconButton>
+            ) : null}
             <IconButton href={c[0]?.value ? `mailto:${c[0].value}` : "#contacts"} label="Написать компании" variant="outline" size="xl" className="company-spotlight__message">
               <span aria-hidden="true">✉</span>
             </IconButton>
@@ -1099,6 +1165,17 @@ export function OpportunityDetailCardApp() {
   const [searchParams] = useSearchParams();
   const opportunityId = params.id;
   const authSession = useAuthSession();
+  const isCandidateViewer = authSession.status === "authenticated" && authSession.user?.role === "candidate";
+  const applicationsState = useCandidateApplications({ autoRefresh: isCandidateViewer });
+  const [publicCompanyProfile, setPublicCompanyProfile] = useState(null);
+  const [companyChatBusy, setCompanyChatBusy] = useState(false);
+  const [candidateChatBusyKey, setCandidateChatBusyKey] = useState("");
+
+  const hasApplied = useMemo(() => {
+    if (!opportunityId || !isCandidateViewer) return false;
+    return applicationsState.applications.some((app) => String(app.opportunityId) === String(opportunityId));
+  }, [applicationsState.applications, opportunityId, isCandidateViewer]);
+
   const [state, setState] = useState({ status: "loading", item: null, related: [], error: null, source: "api" });
   const [apply, setApply] = useState(applyState());
   const [candidateApplyAccess, setCandidateApplyAccess] = useState({ status: "idle", onboardingComplete: false, mandatoryCompletion: 0, peerVisibilityDefault: false });
@@ -1215,8 +1292,29 @@ export function OpportunityDetailCardApp() {
     return () => controller.abort();
   }, [authSession.status, authSession.user?.role]);
 
+  useEffect(() => {
+    if (!state.item?.employerId || state.source === "demo") {
+      setPublicCompanyProfile(null);
+      return undefined;
+    }
+    const controller = new AbortController();
+    async function loadPublicProfile() {
+      try {
+        const profile = await getPublicCompany(state.item.employerId, controller.signal);
+        if (!controller.signal.aborted) {
+          setPublicCompanyProfile(profile);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setPublicCompanyProfile(null);
+        }
+      }
+    }
+    loadPublicProfile();
+    return () => controller.abort();
+  }, [state.item?.employerId, state.source]);
+
   const item = state.item;
-  const isCandidateViewer = authSession.status === "authenticated" && authSession.user?.role === "candidate";
   const actionAccessMode = authSession.status === "authenticated" ? (isCandidateViewer ? null : "candidate-only") : "guest";
   const isOwner = Boolean(item && authSession.status === "authenticated" && authSession.user?.role === "company" && companyProfile && String(companyProfile.profileId ?? companyProfile.id ?? "") === String(item.employerId ?? ""));
   const previewMode = isOwner && searchParams.get("preview") === "public";
@@ -1328,6 +1426,16 @@ export function OpportunityDetailCardApp() {
       upsertCandidateApplication(application);
       setApply(applyState("success", successCopy(state.item?.opportunityType)));
       setPostApplyModalOpen(true);
+
+      if (publicCompanyProfile?.userId) {
+        try {
+          const thread = await startChat({ recipientUserId: publicCompanyProfile.userId });
+          const text = `Здравствуйте! Я откликнулся на вашу публикацию "${state.item?.title || "Возможность"}". Буду рад обсудить подробности!`;
+          await sendChatMessage(thread.id, { body: text });
+        } catch (chatErr) {
+          console.error("Failed to automatically start chat/send message on apply", chatErr);
+        }
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         await refreshCandidateApplications({ force: true }).catch(() => {});
@@ -1405,6 +1513,13 @@ ${currentUrl}`;
         note: shareText
       });
 
+      try {
+        const thread = await startChat({ recipientUserId: candidateId });
+        await sendChatMessage(thread.id, { body: shareText });
+      } catch (chatErr) {
+        console.error("Failed to automatically send share message in chat", chatErr);
+      }
+
       if (contact?.email && typeof window !== "undefined" && typeof window.open === "function") {
         const subject = encodeURIComponent(`Поделиться возможностью: ${shareTitle}`);
         const body = encodeURIComponent(shareText);
@@ -1426,6 +1541,37 @@ ${currentUrl}`;
       }));
     } finally {
       setShareBusyKey("");
+    }
+  }
+
+  async function handleStartCompanyChat() {
+    if (!publicCompanyProfile?.userId || companyChatBusy) {
+      return;
+    }
+    setCompanyChatBusy(true);
+    try {
+      const thread = await startChat({ recipientUserId: publicCompanyProfile.userId });
+      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+    } catch (error) {
+      console.error("Failed to start chat with company", error);
+    } finally {
+      setCompanyChatBusy(false);
+    }
+  }
+
+  async function handleStartCandidateChat(person) {
+    const recipientUserId = person?.userId;
+    if (!recipientUserId || candidateChatBusyKey) {
+      return;
+    }
+    setCandidateChatBusyKey(String(recipientUserId));
+    try {
+      const thread = await startChat({ recipientUserId });
+      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+    } catch (error) {
+      console.error("Failed to start chat with candidate", error);
+    } finally {
+      setCandidateChatBusyKey("");
     }
   }
 
@@ -1491,7 +1637,7 @@ ${currentUrl}`;
   async function archiveOwner() {if (!item) return;await updateOpportunity(item.id, { saveMode: "archive", moderationStatus: "archived" });const refreshed = await getOpportunity(item.id);setState((current) => ({ ...current, item: refreshed }));}
   async function deleteOwner() {if (!item) return;await deleteOpportunity(item.id);setState((current) => ({ ...current, status: "ready", item: null, related: [] }));}
 
-  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditorV2 draft={ownerState.draft} referenceCategories={referenceCategories} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="РР·РјРµРЅРµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
+  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditorV2 draft={ownerState.draft} referenceCategories={referenceCategories} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="Изменения сохранены" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
 
   return (
     <main className="opportunity-card-page" data-testid="opportunity-detail-page">
@@ -1551,7 +1697,11 @@ ${currentUrl}`;
             handleComplaint();
           }}
           buildDetailHref={(entry) => buildOpportunityDetailRoute(entry.id)}
-          catalogHref="/opportunities" /> :
+          catalogHref="/opportunities"
+          onStartCompanyChat={isCandidateViewer && publicCompanyProfile?.userId && hasApplied ? handleStartCompanyChat : null}
+          companyChatBusy={companyChatBusy}
+          onStartChat={handleStartCandidateChat}
+          chatBusyKey={candidateChatBusyKey} /> :
 
         null}
 
@@ -1689,10 +1839,12 @@ ${currentUrl}`;
             error={socialContextState.error}
             socialContext={socialContextState.data}
             fallbackCompanyContacts={item ? contacts(item.contactsJson) : []}
-            onShare={async () => {
+            onShareCandidate={async () => {
               setPostApplyModalOpen(false);
               await openShareModal();
-            }} />
+            }}
+            onStartChat={handleStartCandidateChat}
+            chatBusyKey={candidateChatBusyKey} />
           
 
           <div className="opportunity-social-context__modal-actions">
@@ -1706,59 +1858,5 @@ ${currentUrl}`;
 
 }
 
-function resolveSocialType(label, url) {
-  const normLabel = String(label ?? "").trim().toLowerCase();
-  const normUrl = String(url ?? "").trim().toLowerCase();
-
-  if (normLabel === "telegram" || normLabel === "tg" || normUrl.includes("t.me/")) {
-    return "telegram";
-  }
-  if (normLabel === "vk" || normLabel === "vkontakte" || normUrl.includes("vk.com/")) {
-    return "vk";
-  }
-  if (normLabel === "youtube" || normLabel === "yt" || normUrl.includes("youtube.com/") || normUrl.includes("youtu.be/")) {
-    return "youtube";
-  }
-  if (normLabel === "github" || normUrl.includes("github.com/")) {
-    return "github";
-  }
-  if (normLabel === "website" || normLabel === "site" || normLabel === "web" || normUrl.startsWith("http")) {
-    return "website";
-  }
-  return "link";
-}
-
-function getSocialIcon(type) {
-  switch (type) {
-    case "telegram":
-      return <TelegramIcon />;
-    case "vk":
-      return <VkIcon />;
-    case "youtube":
-      return <YoutubeIcon />;
-    case "github":
-      return <GithubIcon />;
-    case "website":
-      return <GlobeIcon />;
-    default:
-      return <LinkIcon />;
-  }
-}
-
-function getSocialLabel(type) {
-  switch (type) {
-    case "telegram":
-      return "Telegram";
-    case "vk":
-      return "ВКонтакте";
-    case "youtube":
-      return "YouTube";
-    case "github":
-      return "GitHub";
-    case "website":
-      return "Веб-сайт";
-    default:
-      return "Ссылка";
-  }
-}
+// Social helpers imported from shared/lib/socialPresentation
 

@@ -36,6 +36,12 @@ vi.mock("../api/candidate", () => ({
 
 vi.mock("../api/company", () => ({
   getCompanyProfile: vi.fn(),
+  getPublicCompany: vi.fn(() => Promise.resolve({ userId: 505 })),
+}));
+
+vi.mock("../api/chats", () => ({
+  startChat: vi.fn(() => Promise.resolve({ id: 1 })),
+  sendChatMessage: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("../auth/api", () => ({
@@ -419,7 +425,7 @@ describe("OpportunityDetailCardApp", () => {
     expect(screen.queryByText("Не удалось отправить заявку")).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(getCandidateApplications).toHaveBeenCalledTimes(1);
+      expect(getCandidateApplications).toHaveBeenCalledTimes(2);
       expect(screen.getByTestId("applications-count").textContent).toBe("1");
     });
   });
