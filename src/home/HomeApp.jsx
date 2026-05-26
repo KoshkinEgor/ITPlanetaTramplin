@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
-import { PUBLIC_HEADER_NAV_ITEMS, buildOpportunityDetailRoute, routes } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
 import { DEFAULT_CITY_NAME, FALLBACK_CITY_OPTIONS, getFallbackCityOption } from "../api/cities";
 import { getCurrentAuthUser } from "../auth/api";
 import { getCandidateRecommendations } from "../api/candidate";
@@ -18,7 +18,7 @@ import {
 } from "../shared/lib/opportunityTypes";
 import { getOpportunityCardPresentation, translateExperienceLevel, translateWorkSchedule } from "../shared/lib/opportunityPresentation";
 import { scheduleHashScroll, scrollToHashTarget as scrollToHashTargetShared } from "../shared/lib/scrollToHashTarget";
-import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SortControl, Tag } from "../shared/ui";
+import { Button, Card, Checkbox, CityAutocomplete, IconButton, Input, Modal, OpportunityMiniCard, SearchInput, SortControl, Tag, ArrowIcon, ChevronDownIcon, CloseIcon, MailIcon, PinIcon, SlidersIcon, SortIcon, ArrowUpIcon, DirectionIcon } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { useFloatingHeader } from "../shared/lib/useFloatingHeader";
 import { PortalHeader } from "../widgets/layout";
@@ -181,18 +181,21 @@ const nearbyCardSortMeta = [
 const nearbyCardRuntimeData = [
   {
     id: "junior-security-analyst",
+    employerId: "101",
     city: "Москва",
     coordinates: [37.588893, 55.733842],
     extraChips: ["SOC", "SIEM"],
   },
   {
     id: "mobile-ui-ux-designer",
+    employerId: "202",
     city: "Москва",
     coordinates: [37.658581, 55.762994],
     extraChips: ["UI/UX"],
   },
   {
     id: "it-planeta-event",
+    employerId: "303",
     city: "Москва",
     coordinates: [37.541584, 55.804065],
     extraChips: ["Мероприятие"],
@@ -299,7 +302,7 @@ function getSafeHomeDetailActionLabel(item) {
 function createSafeHomeRowActions(item) {
   return {
     primaryAction: {
-      href: "/candidate/contacts",
+      href: item?.employerId ? buildCompanyPublicRoute(item.employerId) : "/candidate/contacts",
       label: HOME_CONTACT_ACTION_LABEL,
       variant: "secondary",
     },
@@ -320,33 +323,6 @@ function createSafeHomeBlockDetailAction(item) {
     className: "home-opportunity-entry__action",
   };
 }
-
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <path d="M10 32h38" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-      <path d="m36 18 18 14-18 14" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CloseTinyIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4.5 4.5 11.5 11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M11.5 4.5 4.5 11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function normalizeOptionValue(value) {
   return String(value).trim().toLowerCase();
 }
@@ -991,70 +967,13 @@ function matchesAdvancedSearchValues(item, values) {
 
   return true;
 }
-
-function SortIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4 5.5h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M4 10h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M4 14.5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m14 4 2.5-2.5L19 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M16.5 1.7v13.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function SortDirectionIcon({ direction }) {
   if (direction === "asc") {
-    return (
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="m10 5-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <path d="m10 5 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <path d="M10 5v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
+    return <ArrowUpIcon />;
   }
 
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="m10 15-4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m10 15 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M10 5v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
+  return <DirectionIcon />;
 }
-
-function PinIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 17s5-4.8 5-9a5 5 0 1 0-10 0c0 4.2 5 9 5 9Z" fill="currentColor" />
-      <circle cx="10" cy="8" r="2.2" fill="white" />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="2.5" y="4.5" width="15" height="11" rx="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m4.8 7 5.2 4 5.2-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SlidersIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M10 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M15 4v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="5" cy="8" r="2.1" fill="currentColor" />
-      <circle cx="10" cy="13" r="2.1" fill="currentColor" />
-      <circle cx="15" cy="6" r="2.1" fill="currentColor" />
-    </svg>
-  );
-}
-
 function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
   const selectedOption = options.find((option) => String(option.value) === String(value)) ?? options[0];
 
@@ -1227,7 +1146,7 @@ function HomeSkillsFilter({
                       onChange(removeNormalizedValue(value, skill));
                     }}
                   >
-                    <CloseTinyIcon />
+                    <CloseIcon />
                   </button>
                 </span>
               ))

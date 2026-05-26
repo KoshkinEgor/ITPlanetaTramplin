@@ -5,25 +5,12 @@ import { extractOpportunityId } from "../../features/favorites/storage";
 import { normalizeOpportunityCardItem } from "../../shared/lib/opportunityPresentation";
 import "./OpportunityCard.css";
 
+import { HeartIcon } from "../../shared/ui";
+
 const CHIP_PLACEMENT_BY_VARIANT = {
   row: "top",
   block: "bottom",
 };
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function normalizeOpportunity(item) {
   return normalizeOpportunityCardItem(item);
 }

@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
+import { ArrowIcon } from "../../shared/ui";
 import { OpportunityBlockCard } from "./OpportunityCard";
 import "./OpportunityBlockSlider.css";
 
 const FEATURED_VARIANT = "leading-featured";
 const RAISED_FEATURED_VARIANT = "raised-featured";
 const FEATURED_VARIANTS = new Set([FEATURED_VARIANT, RAISED_FEATURED_VARIANT]);
-
-function SliderArrowIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.166 10h11.667" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M10.833 4.167 15.833 10l-5 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function getClosestItemIndex(rail) {
   const items = Array.from(rail.querySelectorAll("[data-opportunity-block-slider-item='true']"));
@@ -232,7 +224,7 @@ export function OpportunityBlockSlider({
               onClick={() => scrollToIndex(activeIndex - 1)}
               disabled={!canScrollPrev}
             >
-              <SliderArrowIcon />
+              <ArrowIcon />
             </button>
             <button
               type="button"
@@ -241,7 +233,7 @@ export function OpportunityBlockSlider({
               onClick={() => scrollToIndex(activeIndex + 1)}
               disabled={!canScrollNext}
             >
-              <SliderArrowIcon />
+              <ArrowIcon />
             </button>
           </div>
         </div>

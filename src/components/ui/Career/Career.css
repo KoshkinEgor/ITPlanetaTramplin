@@ -338,6 +338,19 @@
   box-shadow: 0 12px 24px rgba(219, 39, 119, 0.18);
 }
 
+.ui-career-opportunity-card__save.ui-icon-button[aria-pressed="true"]:hover:not(:disabled):not(.is-disabled),
+.ui-career-opportunity-card__save.ui-icon-button.is-active:hover:not(:disabled):not(.is-disabled) {
+  border-color: rgba(236, 72, 153, 0.58);
+  background: linear-gradient(180deg, rgba(255, 238, 247, 0.98), rgba(255, 222, 241, 0.96));
+  color: #be185d;
+  box-shadow: 0 14px 30px rgba(219, 39, 119, 0.24);
+}
+
+.ui-career-opportunity-card__save.ui-icon-button[aria-pressed="true"] svg,
+.ui-career-opportunity-card__save.ui-icon-button.is-active svg {
+  fill: currentColor;
+}
+
 .ui-career-opportunity-card__chips {
   margin-top: auto;
 }

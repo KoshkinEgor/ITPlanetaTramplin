@@ -2,15 +2,7 @@ import { useEffect, useRef } from "react";
 import { Card, Checkbox, CityAutocomplete, FormField, Input, PillButton, Select } from "../ui";
 import { cn } from "../../lib/cn";
 import "./OpportunityFilterSidebar.css";
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5 15 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { CloseIcon } from "../../shared/ui";
 
 function SectionHead({ title, onReset }) {
   return (

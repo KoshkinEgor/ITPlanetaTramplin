@@ -1,6 +1,6 @@
 import { AppLink } from "../app/AppLink";
 import { PUBLIC_HEADER_NAV_ITEMS, buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
-import { Avatar, Button, Card, FilterPill, FormField, Input, SearchBar, SectionHeader, SegmentedControl, SidebarNav, SortControl, StatusBadge, Tag } from "../shared/ui";
+import { Avatar, Button, Card, FilterPill, FormField, Input, SearchBar, SectionHeader, SegmentedControl, SidebarNav, SortControl, StatusBadge, Tag, ChevronDownIcon, ChevronRightIcon, HeartIcon, MailIcon, MoreIcon, PlusIcon, SortIcon } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
@@ -9,73 +9,6 @@ import { getCandidateAvatarUrl, getCandidateDisplayName, getCandidateInitials, g
 import "./candidate-portal.css";
 
 const CANDIDATE_HEADER_NAV = PUBLIC_HEADER_NAV_ITEMS;
-
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 22 22" fill="none" aria-hidden="true">
-      <rect x="3" y="4" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m5.5 7 5.5 4.5L16.5 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 5v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M5 10h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="4" cy="10" r="1.6" fill="currentColor" />
-      <circle cx="10" cy="10" r="1.6" fill="currentColor" />
-      <circle cx="16" cy="10" r="1.6" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="m4 7 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SortIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 3.5v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="m5.5 9.5 2.5 3 2.5-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function HeartLineIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export function CandidateFrame({ activeKey, hero, children }) {
   useBodyClass("candidate-portal-react-body");
@@ -182,7 +115,7 @@ export function CandidateProfileHero({
           <span className="candidate-hero__pill candidate-hero__pill--accent">Профиль соискателя</span>
           <span className="candidate-hero__pill candidate-hero__pill--status">
             <span className="candidate-hero__pill-icon" aria-hidden="true">
-              <HeartLineIcon />
+              <HeartIcon />
             </span>
             Онлайн
           </span>

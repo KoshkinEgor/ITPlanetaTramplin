@@ -1,45 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import "./ui-kit.css";
-import {
-  ActionSelect,
-  Button,
-  Card,
-  Checkbox,
-  ComplaintCard,
-  CompanyVacancyTile,
-  ConfirmActionSelect,
-  ContentRail,
-  CareerCourseCard,
-  CareerMentorCard,
-  CareerOpportunityCard,
-  CareerPeerCard,
-  CareerSalaryPanel,
-  CareerSkillsPanel,
-  CareerStatsPanel,
-  DashboardActivityCard,
-  DashboardFocusCard,
-  DashboardPageHeader,
-  DashboardQueueCard,
-  DashboardSectionHeader,
-  FilterPill,
-  FormField,
-  Input,
-  ModerationActionDialog,
-  OpportunityMiniCard,
-  PlaceholderAction,
-  PlaceholderBlock,
-  PlaceholderMedia,
-  PillButton,
-  MapMarker,
-  Radio,
-  SearchInput,
-  SectionHeader,
-  SegmentedControl,
-  Select,
-  SettingsSectionCard,
-  Switch,
-  Textarea,
-} from "../shared/ui";
+import { ActionSelect, Button, Card, Checkbox, ComplaintCard, CompanyVacancyTile, ConfirmActionSelect, ContentRail, CareerCourseCard, CareerMentorCard, CareerOpportunityCard, CareerPeerCard, CareerSalaryPanel, CareerSkillsPanel, CareerStatsPanel, DashboardActivityCard, DashboardFocusCard, DashboardPageHeader, DashboardQueueCard, DashboardSectionHeader, FilterPill, FormField, Input, ModerationActionDialog, OpportunityMiniCard, PlaceholderAction, PlaceholderBlock, PlaceholderMedia, PillButton, MapMarker, Radio, SearchInput, SectionHeader, SegmentedControl, Select, SettingsSectionCard, Switch, Textarea, ArrowIcon, BlockIcon, PencilIcon, SparkIcon } from "../shared/ui";
 import {
   CandidatePortfolioProjectCard,
   CandidatePortfolioSwitcher,
@@ -696,52 +657,6 @@ function createUiKitSliderCardProps(item) {
     },
   };
 }
-
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.166 10h11.667" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M10.833 4.167 15.833 10l-5 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SparkIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 2.5 11.698 7.52 16.667 9.167l-4.969 1.646L10 15.833 8.302 10.813 3.333 9.167 8.302 7.52 10 2.5Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="m13.875 3.375 2.75 2.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path
-        d="m5 14.875 8.75-8.75 2.25 2.25-8.75 8.75L4.5 17.5 5 14.875Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function BlockIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="2.5" y="2.5" width="15" height="15" rx="2.5" fill="currentColor" />
-    </svg>
-  );
-}
-
 function QuietResetAction({ disabled = false }) {
   return (
     <button type="button" className="ui-field__action-button ui-field__action-button--quiet" disabled={disabled}>

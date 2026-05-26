@@ -1,5 +1,5 @@
 import { AppLink } from "../app/AppLink";
-import { Card, EmptyState, FormField, Input, Tag, Textarea } from "../shared/ui";
+import { Card, EmptyState, FormField, Input, Tag, Textarea, PlayBadgeIcon } from "../shared/ui";
 import {
   createCompanyHeroMediaDraft,
   hasCompanyHeroMediaContent,
@@ -16,10 +16,7 @@ const MEDIA_TYPE_LABELS = {
 function PlayBadge() {
   return (
     <span className="company-dashboard-media-panel__play" aria-hidden="true">
-      <svg viewBox="0 0 48 48" fill="none">
-        <circle cx="24" cy="24" r="24" fill="currentColor" opacity="0.16" />
-        <path d="M20 16.5 32 24l-12 7.5v-15Z" fill="currentColor" />
-      </svg>
+      <PlayBadgeIcon />
     </span>
   );
 }

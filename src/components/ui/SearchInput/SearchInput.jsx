@@ -1,24 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
 import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
-
-function DefaultSearchIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none">
-      <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ClearIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none">
-      <path d="M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { CloseIcon, SearchIcon } from "../../../shared/ui";
 
 export const SearchInput = forwardRef(function SearchInput(
   {
@@ -29,7 +12,7 @@ export const SearchInput = forwardRef(function SearchInput(
     onValueChange,
     clearLabel = "Clear",
     clearable = true,
-    icon = <DefaultSearchIcon />,
+    icon = <SearchIcon />,
     iconPosition = "left",
     appearance = "default",
     size = "md",
@@ -132,7 +115,7 @@ export const SearchInput = forwardRef(function SearchInput(
           }}
         >
           <span className="ui-search-input__clear-icon" aria-hidden="true">
-            <ClearIcon />
+            <CloseIcon />
           </span>
         </button>
       ) : null}

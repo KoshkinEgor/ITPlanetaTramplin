@@ -4,14 +4,7 @@ import { ActionSelect } from "../ActionSelect/ActionSelect";
 import { ModerationActionDialog } from "../ModerationActionDialog/ModerationActionDialog";
 import { Modal } from "../Modal/Modal";
 import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m3.5 5.75 4.5 4.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "../../../shared/ui";
 
 function findOption(options, value) {
   return options.find((option) => option.value === value) ?? null;
@@ -288,7 +281,7 @@ export function ConfirmActionSelect({
               }}
             >
               <span className="ui-action-select__chevron" aria-hidden="true">
-                <ChevronIcon />
+                <ChevronDownIcon />
               </span>
             </button>
           </span>

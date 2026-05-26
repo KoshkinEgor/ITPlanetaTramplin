@@ -1,14 +1,7 @@
 import { cn } from "../../../lib/cn";
 import { Card } from "../Card/Card";
 import { Tag } from "../Tag/Tag";
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="m4 7 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "../../../shared/ui";
 
 const statusToneClassMap = {
   success: "is-success",

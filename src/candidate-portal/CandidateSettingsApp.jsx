@@ -35,6 +35,7 @@ import {
   Switch,
   TagSelector,
   Textarea,
+  ArrowIcon,
 } from "../shared/ui";
 import { CandidateSectionHeader } from "./shared";
 import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
@@ -472,14 +473,6 @@ function CandidateContactsSettingsForm({ draft, saveState, onChange, onSocialCha
   );
 }
 
-function ArrowRightIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function CandidateSecuritySettings({ email, phone, lastLogins }) {
   return (
     <div className="candidate-settings-detail">
@@ -503,7 +496,7 @@ function CandidateSecuritySettings({ email, phone, lastLogins }) {
             <h4>Смена пароля</h4>
             <p>Откроется отдельная защищённая форма восстановления пароля.</p>
           </div>
-          <Button href={buildForgotPasswordRoute({ email })} variant="secondary" iconEnd={<ArrowRightIcon />}>
+          <Button href={buildForgotPasswordRoute({ email })} variant="secondary" iconEnd={<ArrowIcon />}>
             Перейти
           </Button>
         </div>

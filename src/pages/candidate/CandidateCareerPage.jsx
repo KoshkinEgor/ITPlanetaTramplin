@@ -40,21 +40,7 @@ import {
   getCandidateOnboardingStepError,
 } from "../../candidate-portal/onboarding";
 import { PortalHeader } from "../../widgets/layout";
-import {
-  Alert,
-  Button,
-  Card,
-  CityAutocomplete,
-  EducationListEditor,
-  FormField,
-  Input,
-  Loader,
-  Modal,
-  SearchInput,
-  Select,
-  Tag,
-  Textarea,
-} from "../../shared/ui";
+import { Alert, Button, Card, CityAutocomplete, EducationListEditor, FormField, Input, Loader, Modal, SearchInput, Select, Tag, Textarea, CloseIcon } from "../../shared/ui";
 import { scheduleHashScroll } from "../../shared/lib/scrollToHashTarget";
 import { CandidateCareerDashboard } from "./CandidateCareerDashboard";
 import { loadCandidateCareerContext } from "./candidate-access";
@@ -70,16 +56,6 @@ function normalizeSearchValue(value) {
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4 12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 4 4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function getFirstIncompleteStepIndex(draft) {
   const nextIndex = CANDIDATE_ONBOARDING_STEPS.findIndex((step) => getCandidateOnboardingStepError(step.key, draft));
   return nextIndex >= 0 ? nextIndex : CANDIDATE_ONBOARDING_STEPS.length - 1;

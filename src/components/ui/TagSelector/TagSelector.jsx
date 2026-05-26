@@ -5,15 +5,7 @@ import { Card } from "../Card/Card";
 import { SearchInput } from "../SearchInput/SearchInput";
 import { Tag } from "../Tag/Tag";
 import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4 12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 4 4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { CloseIcon } from "../../../shared/ui";
 
 function RemovableChip({ label, onRemove }) {
   return (

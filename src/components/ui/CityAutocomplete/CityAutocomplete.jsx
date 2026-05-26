@@ -1,14 +1,7 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { mergeCityOptions, normalizeCityName, searchCityOptions } from "../../../api/cities";
 import { cn } from "../../../lib/cn";
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m3.5 5.75 4.5 4.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "../../../shared/ui";
 
 function findNextIndex(options, currentIndex, direction) {
   if (!options.length) {
@@ -265,7 +258,7 @@ export function CityAutocomplete({
             inputRef.current?.focus();
           }}
         >
-          <ChevronIcon />
+          <ChevronDownIcon />
         </button>
       </div>
 

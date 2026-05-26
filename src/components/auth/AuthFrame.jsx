@@ -1,14 +1,5 @@
-import { Badge, Card, IconButton } from "../ui";
+import { Badge, Card, IconButton, ArrowLeftIcon } from "../ui";
 import { cn } from "../../lib/cn";
-
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M11.667 4.167 5.833 10l5.834 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6.667 10H14.167" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function AuthStage({ layout = "flow", className, children }) {
   return (
@@ -44,7 +35,7 @@ export function AuthTopBar({ backHref, backLabel, backButtonSize = "lg" }) {
   return (
     <div className="auth-screen__topbar">
       <IconButton href={backHref} label={backLabel} size={backButtonSize} className="auth-screen__back">
-        <BackIcon />
+        <ArrowLeftIcon />
       </IconButton>
       <AuthBrand />
       <span className="auth-screen__topbar-spacer" aria-hidden="true" />

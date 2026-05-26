@@ -1,72 +1,14 @@
-import { DecisionButton, FilterPill, SearchBar, SidebarNav, SortControl, StatTile, StatusBadge, Tag } from "../shared/ui";
+import { DecisionButton, FilterPill, SearchBar, SidebarNav, SortControl, StatTile, StatusBadge, Tag, AlertIcon, ChevronDownIcon, HeartIcon, SearchIcon, StreamIcon } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { routes } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { cn } from "../lib/cn";
 import { getModeratorSidebarItems, HEADER_NAV } from "./config";
 import "./moderator-dashboard.css";
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 16.2s-5.2-3.5-6.7-6.6C2.1 7.2 3.2 4.5 6 4.5c1.5 0 2.7.8 4 2.3 1.3-1.5 2.5-2.3 4-2.3 2.8 0 3.9 2.7 2.7 5.1-1.5 3.1-6.7 6.6-6.7 6.6Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 5.4v4.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="10" cy="13.7" r="1" fill="currentColor" />
-      <path
-        d="M10 2.8c4 0 7.2 3.2 7.2 7.2S14 17.2 10 17.2 2.8 14 2.8 10 6 2.8 10 2.8Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-    </svg>
-  );
-}
-
 const MODERATOR_ICON_BUTTONS = [
   { key: "favorites", label: "Избранное", href: routes.favorites, icon: <HeartIcon /> },
   { key: "alerts", label: "Уведомления", icon: <AlertIcon /> },
 ];
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" strokeWidth="1.9" />
-      <path d="m13 13 4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function StreamIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 8h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M5 12h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M5 16h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m16 10 3 2-3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function ModeratorFrame({ activeKey, children }) {
   useBodyClass("moderator-dashboard-react-body");
 

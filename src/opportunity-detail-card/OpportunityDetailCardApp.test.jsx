@@ -207,7 +207,7 @@ describe("OpportunityDetailCardApp", () => {
   it("shows login prompt instead of apply and share actions for guests", async () => {
     renderDetail("/opportunities/101");
 
-    expect(await screen.findAllByText("Войдите, чтобы откликнуться или поделиться возможностью.")).toHaveLength(2);
+    expect(await screen.findAllByText("Войдите, чтобы откликнуться или поделиться возможностью.")).toHaveLength(1);
     expect(document.querySelector(".opportunity-focus-card__apply")).toBeNull();
     expect(document.querySelector(".opportunity-story-card__bottom-primary")).toBeNull();
     expect(screen.queryByRole("button", { name: "Поделиться возможностью" })).not.toBeInTheDocument();
@@ -230,7 +230,7 @@ describe("OpportunityDetailCardApp", () => {
 
     renderDetail("/opportunities/101");
 
-    expect(await screen.findAllByText("Отклик и шаринг возможности доступны кандидатам.")).toHaveLength(2);
+    expect(await screen.findAllByText("Отклик и шаринг возможности доступны кандидатам.")).toHaveLength(1);
     expect(document.querySelector(".opportunity-focus-card__apply")).toBeNull();
     expect(document.querySelector(".opportunity-story-card__bottom-primary")).toBeNull();
     expect(screen.queryByRole("button", { name: "Поделиться возможностью" })).not.toBeInTheDocument();

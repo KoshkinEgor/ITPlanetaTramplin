@@ -670,6 +670,13 @@ body.opportunity-card-react-body {
   gap: 18px;
 }
 
+.opportunity-company-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .opportunity-story-section {
   display: grid;
   gap: 16px;
