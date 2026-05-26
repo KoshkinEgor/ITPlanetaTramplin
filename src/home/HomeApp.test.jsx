@@ -146,6 +146,53 @@ describe("HomeApp", () => {
     await waitFor(() => expect(getCandidateRecommendations).toHaveBeenCalledTimes(1));
   });
 
+  it("orders popular vacancies by the local popularity score", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "popular-low",
+        employerId: 1,
+        opportunityType: "vacancy",
+        title: "AAA Low Popularity",
+        companyName: "Signal Hub",
+        locationCity: "Москва",
+        employmentType: "remote",
+        description: "Lower score vacancy.",
+        tags: ["React"],
+      },
+      {
+        id: "popular-high",
+        employerId: 2,
+        opportunityType: "vacancy",
+        title: "ZZZ High Popularity",
+        companyName: "Signal Hub",
+        locationCity: "Москва",
+        employmentType: "remote",
+        description: "Higher score vacancy.",
+        tags: ["Security", "Analytics", "Backend"],
+      },
+      {
+        id: "popular-event",
+        employerId: 3,
+        opportunityType: "event",
+        title: "Popular Event Should Not Appear",
+        companyName: "Event Lab",
+        locationCity: "Москва",
+        employmentType: "online",
+        description: "Not a vacancy.",
+        tags: ["Event"],
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await screen.findAllByText("ZZZ High Popularity");
+
+    const popularRail = container.querySelectorAll(".home-section__rail")[0];
+    const popularCards = within(popularRail).getAllByRole("heading", { level: 3 });
+    expect(popularCards[0]).toHaveTextContent("ZZZ High Popularity");
+    expect(within(popularRail).queryByText("Popular Event Should Not Appear")).not.toBeInTheDocument();
+  });
+
   it("sends guests from the hero discovery action to login", async () => {
     getCurrentAuthUser.mockRejectedValue(new ApiError("Unauthorized", { status: 401 }));
 
@@ -195,7 +242,7 @@ describe("HomeApp", () => {
     const { container } = renderApp();
 
     await screen.findAllByText("Advanced Filter Vacancy");
-    fireEvent.click(screen.getByRole("button", { name: /Список возможностей/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Просмотр на карте/i }));
     fireEvent.click(container.querySelector(".home-discovery__toolbar-icon--outlined"));
 
     const salaryFromInput = container.querySelector(".home-advanced-search__input");
@@ -225,6 +272,56 @@ describe("HomeApp", () => {
       const resultsPanel = container.querySelector(".home-results-panel");
       expect(within(resultsPanel).getByText("Advanced Filter Vacancy")).toBeInTheDocument();
       expect(within(resultsPanel).getByText("Advanced Filter Internship")).toBeInTheDocument();
+    });
+  });
+
+  it("filters advanced search by company, city, level, and skills", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "advanced-full-match",
+        employerId: 1,
+        opportunityType: "vacancy",
+        title: "Advanced Full Match",
+        companyName: "Search Lab",
+        locationCity: "Remote City",
+        employmentType: "remote",
+        description: "GraphQL role for a junior developer.",
+        tags: ["Junior", "GraphQL"],
+        moderationStatus: "approved",
+      },
+      {
+        id: "advanced-mismatch",
+        employerId: 2,
+        opportunityType: "vacancy",
+        title: "Advanced Mismatch",
+        companyName: "Design Lab",
+        locationCity: "Other City",
+        employmentType: "remote",
+        description: "React role for a middle developer.",
+        tags: ["Middle", "React"],
+        moderationStatus: "approved",
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await screen.findAllByText("Advanced Full Match");
+    fireEvent.click(container.querySelector(".home-discovery__view-switch input"));
+    fireEvent.click(container.querySelector(".home-discovery__toolbar-icon--outlined"));
+
+    const advancedPanel = container.querySelector(".home-advanced-search");
+    const advancedPickers = advancedPanel.querySelectorAll(".home-skills-filter__trigger");
+    fireEvent.click(advancedPickers[0]);
+    fireEvent.click(screen.getByRole("option", { name: "Search Lab" }));
+    fireEvent.change(container.querySelectorAll(".home-advanced-search__input")[2], { target: { value: "Remote City" } });
+    fireEvent.click(screen.getByRole("button", { name: "Junior" }));
+    fireEvent.click(advancedPickers[1]);
+    fireEvent.click(screen.getByRole("option", { name: "GraphQL" }));
+
+    await waitFor(() => {
+      const resultsPanel = container.querySelector(".home-results-panel");
+      expect(within(resultsPanel).getByText("Advanced Full Match")).toBeInTheDocument();
+      expect(within(resultsPanel).queryByText("Advanced Mismatch")).not.toBeInTheDocument();
     });
   });
 
@@ -477,6 +574,48 @@ describe("HomeApp", () => {
     expect(screen.getByText("Тип : Стажировка")).toBeInTheDocument();
   });
 
+  it("syncs quick filters with the advanced search panel", async () => {
+    getOpportunities.mockResolvedValue([
+      {
+        id: "sync-internship",
+        employerId: 3,
+        opportunityType: "internship",
+        title: "Synced Internship",
+        companyName: "Design Lab",
+        locationCity: "РњРѕСЃРєРІР°",
+        employmentType: "online",
+        description: "Internship for juniors.",
+        tags: ["Junior"],
+      },
+      {
+        id: "sync-vacancy",
+        employerId: 4,
+        opportunityType: "vacancy",
+        title: "Synced Vacancy",
+        companyName: "Product Lab",
+        locationCity: "РњРѕСЃРєРІР°",
+        employmentType: "hybrid",
+        description: "Vacancy for juniors.",
+        tags: ["Junior"],
+      },
+    ]);
+
+    const { container } = renderApp();
+
+    await screen.findAllByText("Synced Internship");
+    fireEvent.click(screen.getByRole("button", { name: "Тип" }));
+    fireEvent.click(screen.getByRole("option", { name: "Стажировка" }));
+    fireEvent.click(container.querySelector(".home-discovery__toolbar-icon--outlined"));
+
+    const advancedPanel = container.querySelector(".home-advanced-search");
+    const internshipChip = within(advancedPanel).getByRole("button", { name: "Стажировки" });
+    expect(internshipChip).toHaveClass("is-active");
+
+    fireEvent.click(internshipChip);
+
+    expect(screen.getByText("Тип : Все")).toBeInTheDocument();
+  });
+
   it("keeps no-coordinate opportunities in the list while the map receives only point-based items", async () => {
     getOpportunities.mockResolvedValue([
       {
@@ -543,7 +682,7 @@ describe("HomeApp", () => {
     const { container } = renderApp();
 
     await screen.findAllByText("Bounded Results Vacancy");
-    fireEvent.click(screen.getByRole("button", { name: /Список возможностей/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Просмотр на карте/i }));
 
     await waitFor(() => {
       expect(container.querySelector(".home-results-panel")).not.toBeNull();
