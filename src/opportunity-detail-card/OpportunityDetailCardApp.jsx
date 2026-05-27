@@ -1732,7 +1732,7 @@ ${currentUrl}`;
     setCompanyChatBusy(true);
     try {
       const thread = await startChat({ recipientUserId: publicCompanyProfile.userId });
-      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+      navigate(`${routes.candidate.messages}?thread=${thread.id}`);
     } catch (error) {
       console.error("Failed to start chat with company", error);
     } finally {
@@ -1748,7 +1748,7 @@ ${currentUrl}`;
     setCandidateChatBusyKey(String(recipientUserId));
     try {
       const thread = await startChat({ recipientUserId });
-      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+      navigate(`${routes.candidate.messages}?thread=${thread.id}`);
     } catch (error) {
       console.error("Failed to start chat with candidate", error);
     } finally {

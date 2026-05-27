@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { startChat } from "../api/chats";
 import { buildCandidatePublicProfileRoute, routes } from "../app/routes";
 import { getCompanyOpportunities, updateOpportunityApplicationStatus, cancelAcceptedOpportunityApplication } from "../api/company";
@@ -263,6 +264,7 @@ function CancelAcceptedResponseModal({ open, onClose, onSubmit, item, busy }) {
 }
 
 export function CompanyResponsesSection() {
+  const navigate = useNavigate();
   const [state, setState] = useState({ status: "loading", applications: [], error: null });
   const [applicationEdits, setApplicationEdits] = useState({});
   const [busyApplicationId, setBusyApplicationId] = useState(0);
@@ -484,7 +486,7 @@ export function CompanyResponsesSection() {
         contextId: item.id,
         subject: item.opportunityTitle ? `Отклик: ${item.opportunityTitle}` : "Отклик кандидата",
       });
-      window.location.href = `${routes.company.messages}?thread=${thread.id}`;
+      navigate(`${routes.company.messages}?thread=${thread.id}`);
     } catch (error) {
       setSaveState({
         status: "error",

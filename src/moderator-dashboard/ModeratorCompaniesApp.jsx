@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   decideCompanyModeration,
   downloadModerationCompanyVerificationDocument,
@@ -240,6 +241,7 @@ function CompanyRow({ item, selected, onSelect }) {
 }
 
 export function ModeratorCompaniesApp() {
+  const navigate = useNavigate();
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState({ status: "loading", items: [], error: null });
   const [detailState, setDetailState] = useState({ status: "idle", detail: null, error: null });
@@ -473,7 +475,7 @@ export function ModeratorCompaniesApp() {
         contextId: activeItem?.id ?? selectedId,
         subject: activeItem?.companyName ? `Проверка: ${activeItem.companyName}` : "Проверка компании",
       });
-      window.location.href = `${routes.moderator.messages}?thread=${thread.id}`;
+      navigate(`${routes.moderator.messages}?thread=${thread.id}`);
     } catch (error) {
       setChatState({
         status: "error",
