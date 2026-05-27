@@ -213,10 +213,7 @@ function createQuickFilterOptions(items, references = FALLBACK_REFERENCE_CATEGOR
         ? references.workSchedules
         : uniqueOptions(items.map((item) => translateWorkSchedule(item.schedule)).filter(Boolean)).map((value) => ({ value, label: value }))),
     ],
-    skills: [
-      { value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL },
-      ...uniqueOptions(items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))).map((value) => ({ value, label: value })),
-    ],
+    skills: uniqueOptions(items.flatMap((item) => (Array.isArray(item.tags) ? item.tags : []))),
   };
 }
 

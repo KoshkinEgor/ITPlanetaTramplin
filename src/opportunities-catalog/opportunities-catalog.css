@@ -732,6 +732,27 @@ body.opportunities-browser-react-body {
   flex: 0 0 auto;
 }
 
+.opportunities-browser__company-favorite.ui-icon-button[aria-pressed="true"],
+.opportunities-browser__company-favorite.ui-icon-button.is-active {
+  border-color: rgba(236, 72, 153, 0.38);
+  background: linear-gradient(180deg, rgba(255, 244, 250, 0.98), rgba(255, 235, 246, 0.96));
+  color: #db2777;
+  box-shadow: 0 12px 24px rgba(219, 39, 119, 0.18);
+}
+
+.opportunities-browser__company-favorite.ui-icon-button[aria-pressed="true"]:hover:not(:disabled):not(.is-disabled),
+.opportunities-browser__company-favorite.ui-icon-button.is-active:hover:not(:disabled):not(.is-disabled) {
+  border-color: rgba(236, 72, 153, 0.58);
+  background: linear-gradient(180deg, rgba(255, 238, 247, 0.98), rgba(255, 222, 241, 0.96));
+  color: #be185d;
+  box-shadow: 0 14px 30px rgba(219, 39, 119, 0.24);
+}
+
+.opportunities-browser__company-favorite.ui-icon-button[aria-pressed="true"] svg,
+.opportunities-browser__company-favorite.ui-icon-button.is-active svg {
+  fill: currentColor;
+}
+
 @media (max-width: 1240px) {
   .opportunities-browser__discovery-header {
     align-items: stretch;
