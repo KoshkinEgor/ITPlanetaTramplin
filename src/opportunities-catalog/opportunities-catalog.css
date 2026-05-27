@@ -895,3 +895,81 @@ body.opportunities-browser-react-body {
     border-radius: 24px;
   }
 }
+
+/* Fullscreen Map Styles */
+.opportunities-browser__map-panel.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #ffffff;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunities-browser__map-shell {
+  position: absolute;
+  inset: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  background: none;
+  height: 100%;
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunities-browser__map-surface {
+  position: absolute;
+  inset: 0;
+  border: none;
+  border-radius: 0;
+  height: 100%;
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunities-browser__map-meta {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 12px 18px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  box-shadow: 0 10px 30px rgba(36, 49, 77, 0.12);
+  pointer-events: auto;
+  flex-direction: row;
+  align-items: center;
+  max-width: calc(100vw - 48px);
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunity-filter-sidebar__drawer-shell {
+  position: absolute;
+  inset: 0;
+  z-index: 2100;
+  border-radius: 0;
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunity-filter-sidebar--drawer {
+  height: 100%;
+  padding: 0;
+}
+
+.opportunities-browser__map-panel.is-fullscreen .opportunity-filter-sidebar--drawer .opportunity-filter-sidebar__surface.ui-card {
+  border-radius: 0;
+  height: 100%;
+}
+
+@media (max-width: 760px) {
+  .opportunities-browser__map-panel.is-fullscreen .opportunities-browser__map-meta {
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    padding: 8px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

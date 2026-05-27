@@ -15,6 +15,7 @@ import {
   subscribeToFavorites,
   toggleFavoriteCompany,
 } from "../features/favorites/storage";
+import { useFavoriteCompany } from "../features/favorites/useFavoriteCompany";
 import { HomeOpportunityMap } from "../home/HomeOpportunityMap";
 import { useFloatingHeader } from "../shared/lib/useFloatingHeader";
 import { scheduleHashScroll } from "../shared/lib/scrollToHashTarget";
@@ -48,8 +49,11 @@ import {
   YoutubeIcon,
   GithubIcon,
   LinkIcon,
+  ArrowUpIcon,
+  CloseIcon,
 } from "../shared/ui";
 import "../ui-kit/ui-kit.css";
+import "../home/home.css";
 import "./opportunities-catalog.css";
 
 const BODY_CLASS = "opportunities-browser-react-body";
@@ -85,7 +89,6 @@ const QUICK_FILTERS = [
   { key: "type", label: "Тип" },
   { key: "format", label: "Формат" },
   { key: "level", label: "Опыт" },
-  { key: "schedule", label: "График" },
   { key: "skills", label: "Навыки" },
 ];
 
@@ -430,53 +433,280 @@ function createRecommendationSliderCardProps(item) {
   };
 }
 
-function CatalogFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
-  const resolvedOptions = options.length ? options : [{ value: FILTER_ALL_VALUE, label: FILTER_ALL_LABEL }];
-  const selectedOption = resolvedOptions.find((option) => String(option.value) === String(value)) ?? resolvedOptions[0];
+function SortDirectionIcon({ direction }) {
+  if (direction === "asc") {
+    return <ArrowUpIcon />;
+  }
+
+  return <DirectionIcon />;
+}
+
+function includesNormalizedValue(items, value) {
+  const normalizedValue = normalize(value);
+  return items.some((item) => normalize(item) === normalizedValue);
+}
+
+function removeNormalizedValue(items, value) {
+  const normalizedValue = normalize(value);
+  return items.filter((item) => normalize(item) !== normalizedValue);
+}
+
+function HomeFilterDropdown({ label, value, options, isOpen, onToggle, onSelect }) {
+  const selectedOption = options.find((option) => String(option.value) === String(value)) ?? options[0];
   const triggerLabel = createFilterTriggerLabel(label, selectedOption?.label ?? FILTER_ALL_LABEL);
 
   return (
     <SortControl
       label={triggerLabel}
-      value={selectedOption.value}
-      options={resolvedOptions}
+      value={value}
+      options={options}
       open={isOpen}
       onOpenChange={onToggle}
       onSelect={onSelect}
-      className="opportunities-browser-filter-dropdown"
-      triggerClassName="opportunities-browser-filter-dropdown__trigger"
-      menuClassName="opportunities-browser-filter-dropdown__menu"
-      optionClassName="opportunities-browser-filter-dropdown__option"
+      className="home-filter-dropdown"
+      triggerClassName="home-filter-dropdown__trigger"
+      menuClassName="home-filter-dropdown__menu"
+      optionClassName="home-filter-dropdown__option"
       triggerLabel={triggerLabel}
       endIcon={<ChevronDownIcon />}
     />
   );
 }
 
-function CatalogSortControl({ value, direction, onSelect, onToggleDirection }) {
+function HomeSkillsFilter({
+  label,
+  value,
+  options,
+  isOpen,
+  onToggle,
+  onChange,
+  placeholder = "Поиск навыков",
+  clearLabel = "Очистить поиск",
+  emptyLabel = "Выберите навыки из списка или добавьте свой",
+  createLabel = "Добавить",
+  selectedLabel = "Выбрано",
+}) {
+  const rootRef = useRef(null);
+  const inputRef = useRef(null);
+  const [query, setQuery] = useState("");
+
+  const skillOptions = useMemo(
+    () => options.filter((option) => normalize(option) !== normalize(label)),
+    [label, options]
+  );
+
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = normalize(query);
+
+    return skillOptions.filter((option) => (
+      !normalizedQuery || normalize(option).includes(normalizedQuery)
+    ));
+  }, [query, skillOptions]);
+
+  const trimmedQuery = query.trim();
+  const canCreateSkill = Boolean(trimmedQuery)
+    && !includesNormalizedValue(skillOptions, trimmedQuery)
+    && !includesNormalizedValue(value, trimmedQuery);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery("");
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        onToggle(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        onToggle(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen, onToggle]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isOpen]);
+
+  const addSkill = (skill) => {
+    const nextSkill = skill.trim();
+
+    if (!nextSkill || includesNormalizedValue(value, nextSkill)) {
+      setQuery("");
+      return;
+    }
+
+    onChange([...value, nextSkill]);
+    setQuery("");
+  };
+
+  const toggleSkill = (skill) => {
+    if (includesNormalizedValue(value, skill)) {
+      onChange(removeNormalizedValue(value, skill));
+      return;
+    }
+
+    onChange([...value, skill]);
+    setQuery("");
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+
+      const exactMatch = skillOptions.find((option) => normalize(option) === normalize(trimmedQuery));
+
+      if (exactMatch) {
+        if (!includesNormalizedValue(value, exactMatch)) {
+          onChange([...value, exactMatch]);
+        }
+        setQuery("");
+        return;
+      }
+
+      if (canCreateSkill) {
+        addSkill(trimmedQuery);
+      }
+    }
+  };
+
+  return (
+    <div ref={rootRef} className={`home-skills-filter ${isOpen ? "is-open" : ""}`.trim()}>
+      <button
+        type="button"
+        className="home-skills-filter__trigger"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={label}
+        onClick={() => onToggle(!isOpen)}
+      >
+        <span className={`home-skills-filter__trigger-value ${value.length ? "is-filled" : ""}`.trim()}>
+          {createFilterTriggerLabel(label, value[0] ?? FILTER_ALL_LABEL)}
+        </span>
+        {value.length > 1 ? <span className="home-skills-filter__trigger-count">+{value.length - 1}</span> : null}
+        <ChevronDownIcon />
+      </button>
+
+      {isOpen ? (
+        <div className="home-skills-filter__menu">
+          <div className="home-skills-filter__selected">
+            {value.length ? (
+              value.map((skill) => (
+                <span key={skill} className="home-skills-filter__chip">
+                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    className="home-skills-filter__chip-remove"
+                    aria-label={`Удалить ${skill}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onChange(removeNormalizedValue(value, skill));
+                    }}
+                  >
+                    <CloseIcon />
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="home-skills-filter__empty">{emptyLabel}</span>
+            )}
+          </div>
+
+          <SearchInput
+            ref={inputRef}
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={placeholder}
+            clearLabel={clearLabel}
+            className="home-skills-filter__search"
+          />
+
+          <div className="home-skills-filter__list" role="listbox" aria-label={label} aria-multiselectable="true">
+            {canCreateSkill ? (
+              <button
+                type="button"
+                className="home-skills-filter__option home-skills-filter__option--create"
+                onClick={() => addSkill(trimmedQuery)}
+              >
+                <span>{createLabel} "{trimmedQuery}"</span>
+              </button>
+            ) : null}
+
+            {filteredOptions.length ? (
+              filteredOptions.map((option) => {
+                const isSelected = includesNormalizedValue(value, option);
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`home-skills-filter__option ${isSelected ? "is-selected" : ""}`.trim()}
+                    onClick={() => toggleSkill(option)}
+                  >
+                    <span>{option}</span>
+                    {isSelected ? <span className="home-skills-filter__option-mark">{selectedLabel}</span> : null}
+                  </button>
+                );
+              })
+            ) : (
+              !canCreateSkill ? <span className="home-skills-filter__empty">Ничего не найдено</span> : null
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function HomeSortControl({ options, value, direction, onSelect, onToggleDirection }) {
   return (
     <SortControl
       label="Выбрать способ сортировки"
       value={value}
       onSelect={onSelect}
-      options={SORT_OPTIONS.map((option) => ({ value: option.key, label: option.label }))}
-      className="opportunities-browser-sort-control"
-      triggerClassName="opportunities-browser-sort-control__trigger"
-      menuClassName="opportunities-browser-sort-control__menu"
-      optionClassName="opportunities-browser-sort-control__option"
+      options={options.map((option) => ({ value: option.key, label: option.label }))}
+      className="home-sort-control"
+      triggerClassName="home-sort-control__trigger"
+      menuClassName="home-sort-control__menu"
+      optionClassName="home-sort-control__option"
       startIcon={<SortIcon />}
       endIcon={<ChevronDownIcon />}
       action={(
         <IconButton
           type="button"
-          className="opportunities-browser-sort-control__direction"
+          className="home-sort-control__direction"
           size="2xl"
           aria-label={direction === "asc" ? "Порядок: по возрастанию" : "Порядок: по убыванию"}
           onClick={onToggleDirection}
         >
-          <DirectionIcon />
+          <SortDirectionIcon direction={direction} />
         </IconButton>
       )}
+      menuAlignment="end"
     />
   );
 }
@@ -547,13 +777,19 @@ function getCompanyLinks(profile) {
     }));
 }
 
-function CompanySpotlightSlide({ company, profileState, isFavorite, onToggleFavorite }) {
+function CompanySpotlightSlide({ company, profileState, isFavorite: favoritePressed = false, onToggleFavorite }) {
   const profile = profileState?.status === "ready" ? profileState.profile : null;
   const companyHref = company.employerId ? buildCompanyPublicRoute(company.employerId, { from: "opportunities" }) : "";
   const links = getCompanyLinks(profile);
   const description = getCompanyDescription(company, profile);
   const address = getCompanyAddress(company, profile);
   const logoUrl = getCompanyLogoUrl(company, profile);
+  const { isFavorite, toggleFavorite } = useFavoriteCompany(company.employerId, favoritePressed);
+
+  const handleFavoriteClick = () => {
+    const nextState = toggleFavorite();
+    onToggleFavorite?.(company.employerId, nextState);
+  };
 
   return (
     <Card className="company-spotlight opportunities-browser__company-spotlight">
@@ -612,12 +848,12 @@ function CompanySpotlightSlide({ company, profileState, isFavorite, onToggleFavo
           <IconButton
             type="button"
             label={isFavorite ? "Убрать компанию из избранного" : "Сохранить компанию"}
-            variant="outline"
+            variant="surface"
             size="xl"
             className="opportunities-browser__company-favorite"
             aria-pressed={isFavorite}
             active={isFavorite}
-            onClick={() => onToggleFavorite(company.employerId)}
+            onClick={handleFavoriteClick}
           >
             <HeartIcon />
           </IconButton>
@@ -700,9 +936,11 @@ export function OpportunitiesCatalogApp() {
   const [favoritesDisplay, setFavoritesDisplay] = useState("all");
   const [filtersDropdownOpen, setFiltersDropdownOpen] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState([]);
   const [favoriteOpportunityIds, setFavoriteOpportunityIds] = useState(() => readFavoriteOpportunityIds());
   const [favoriteCompanyIds, setFavoriteCompanyIds] = useState(() => readFavoriteCompanyIds());
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
   const [companyCity, setCompanyCity] = useState("");
   const [companyProfiles, setCompanyProfiles] = useState({});
@@ -718,6 +956,54 @@ export function OpportunitiesCatalogApp() {
 
   useEffect(() => subscribeToFavorites(setFavoriteOpportunityIds), []);
   useEffect(() => subscribeToFavorites(setFavoriteCompanyIds, { scope: "companies" }), []);
+
+  // Keep selectedSkills in sync with specialization filter
+  useEffect(() => {
+    if (filters.specialization) {
+      if (selectedSkills.length !== 1 || selectedSkills[0] !== filters.specialization) {
+        setSelectedSkills([filters.specialization]);
+      }
+    } else {
+      if (selectedSkills.length > 0) {
+        setSelectedSkills([]);
+      }
+    }
+  }, [filters.specialization]);
+
+  const updateQuickSkills = (nextSkills) => {
+    setSelectedSkills(nextSkills);
+    handleFilterChange("specialization", nextSkills[0] ?? "");
+  };
+
+  useEffect(() => {
+    if (isMapFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMapFullscreen]);
+
+  useEffect(() => {
+    if (!isMapFullscreen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        if (!filtersDrawerOpen) {
+          setIsMapFullscreen(false);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMapFullscreen, filtersDrawerOpen]);
 
   useEffect(() => {
     if (!location.hash || state.status !== "ready") {
@@ -821,8 +1107,11 @@ export function OpportunitiesCatalogApp() {
     return state.items.filter((item) => {
       const matchesType = filters.activeType === "all" || item.opportunityType === filters.activeType;
       const matchesCity = !filters.city || normalize(item.locationCity) === normalize(filters.city);
-      const matchesSpecialization =
-        !normalizedSpecialization || (Array.isArray(item.tags) ? item.tags.some((tag) => normalize(tag) === normalizedSpecialization) : false);
+      const matchesSpecialization = !selectedSkills.length
+        || selectedSkills.some((skill) => {
+          const normalizedSkill = normalize(skill);
+          return Array.isArray(item.tags) ? item.tags.some((tag) => normalize(tag) === normalizedSkill) : false;
+        });
       const matchesEmployment =
         selectedEmploymentTypes.length === 0 ||
         selectedEmploymentTypes.includes(normalize(item.employmentType)) ||
@@ -1103,6 +1392,7 @@ export function OpportunitiesCatalogApp() {
     }
 
     setFiltersDrawerOpen(false);
+    setIsMapFullscreen(false);
   };
 
   const getQuickFilterValue = (key) => {
@@ -1189,7 +1479,7 @@ export function OpportunitiesCatalogApp() {
             <section className="opportunities-browser__layout" id="catalog-results">
               <div className="opportunities-browser__main">
                 <div className="opportunities-browser__discovery">
-                  <div className="opportunities-browser__discovery-header">
+                  <div className="home-discovery__header">
                     <div className="opportunities-browser__title-row">
                       <h2 className="ui-type-h1">Возможности рядом</h2>
                       <CityAutocomplete
@@ -1221,17 +1511,18 @@ export function OpportunitiesCatalogApp() {
                     />
                   </div>
 
-                  <div className="opportunities-browser__discovery-toolbar">
+                  <div className="home-discovery__toolbar">
                     <SearchInput
                       value={filters.query}
                       onValueChange={(value) => handleFilterChange("query", value)}
                       placeholder="Поиск возможностей"
                       clearLabel="Очистить поиск"
-                      className="opportunities-browser__search"
+                      className="home-discovery__search"
                     />
 
-                    <div className="opportunities-browser__toolbar-icons">
-                      <CatalogSortControl
+                    <div className="home-discovery__toolbar-icons">
+                      <HomeSortControl
+                        options={SORT_OPTIONS}
                         value={sortKey}
                         direction={sortDirection}
                         onSelect={setSortKey}
@@ -1242,7 +1533,7 @@ export function OpportunitiesCatalogApp() {
                           type="button"
                           variant="outline"
                           size="2xl"
-                          className="opportunities-browser__toolbar-icon opportunities-browser__toolbar-icon--outlined"
+                          className="home-discovery__toolbar-icon home-discovery__toolbar-icon--outlined"
                           aria-label={view === "map" ? "Фильтры карты" : "Фильтры"}
                           aria-pressed={view === "map" ? filtersDrawerOpen : filtersDropdownOpen}
                           active={view === "map" ? filtersDrawerOpen : filtersDropdownOpen}
@@ -1276,17 +1567,32 @@ export function OpportunitiesCatalogApp() {
                     </div>
                   </div>
 
-                  <div className="opportunities-browser__quick-filters" aria-label="Быстрые фильтры">
+                  <div className="home-discovery__filters" aria-label="Быстрые фильтры">
                     {visibleQuickFilters.map((filter) => (
-                      <div key={filter.key} className="opportunities-browser__quick-filter">
-                        <CatalogFilterDropdown
-                          label={filter.label}
-                          value={getQuickFilterValue(filter.key)}
-                          options={quickFilterOptions[filter.key] ?? []}
-                          isOpen={openQuickFilterKey === filter.key}
-                          onToggle={(nextState) => setOpenQuickFilterKey(nextState ? filter.key : null)}
-                          onSelect={(nextValue) => handleQuickFilterSelect(filter.key, nextValue)}
-                        />
+                      <div key={filter.key} className="home-discovery__filter-select">
+                        {filter.key === "skills" ? (
+                          <HomeSkillsFilter
+                            label={filter.label}
+                            value={selectedSkills}
+                            options={quickFilterOptions.skills}
+                            isOpen={openQuickFilterKey === filter.key}
+                            onToggle={(nextState) => {
+                              setOpenQuickFilterKey(nextState ? filter.key : null);
+                            }}
+                            onChange={updateQuickSkills}
+                          />
+                        ) : (
+                          <HomeFilterDropdown
+                            label={filter.label}
+                            value={getQuickFilterValue(filter.key)}
+                            options={quickFilterOptions[filter.key] ?? []}
+                            isOpen={openQuickFilterKey === filter.key}
+                            onToggle={(nextState) => {
+                              setOpenQuickFilterKey(nextState ? filter.key : null);
+                            }}
+                            onSelect={(nextValue) => handleQuickFilterSelect(filter.key, nextValue)}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1341,7 +1647,7 @@ export function OpportunitiesCatalogApp() {
                     ) : null}
                   </>
                 ) : (
-                  <section className="opportunities-browser__map-panel" aria-label="Карта возможностей">
+                  <section className={`opportunities-browser__map-panel${isMapFullscreen ? " is-fullscreen" : ""}`} aria-label="Карта возможностей">
                     <div className="opportunities-browser__map-shell">
                       <div className="opportunities-browser__map-meta opportunities-browser__map-meta--compact">
                         <p className="opportunities-browser__map-description">{mapResultsDescription}</p>
@@ -1367,6 +1673,11 @@ export function OpportunitiesCatalogApp() {
                           }
                           activeId={selectedMapItemId}
                           onSelectItem={setSelectedMapItemId}
+                          isFullscreen={isMapFullscreen}
+                          onToggleFullscreen={() => setIsMapFullscreen(!isMapFullscreen)}
+                          showFiltersButton={true}
+                          filtersOpen={filtersDrawerOpen}
+                          onToggleFilters={() => setFiltersDrawerOpen(!filtersDrawerOpen)}
                         />
                       </div>
                     </div>
@@ -1461,7 +1772,6 @@ export function OpportunitiesCatalogApp() {
                           company={item}
                           profileState={item.profileState}
                           isFavorite={item.employerId ? favoriteCompanyIdSet.has(String(item.employerId)) : false}
-                          onToggleFavorite={toggleFavoriteCompany}
                         />
                       )}
                     />

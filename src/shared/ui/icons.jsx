@@ -35,6 +35,8 @@ export {
   UserRound as CandidateIcon,
   Building2 as EmployerIcon,
   ShieldCheck as CuratorIcon,
+  Maximize2 as MaximizeIcon,
+  Minimize2 as MinimizeIcon,
 } from "lucide-react";
 
 // YouTube — нет в lucide, кастомный SVG
