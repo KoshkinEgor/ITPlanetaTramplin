@@ -55,3 +55,10 @@ export function updateOpportunityApplicationStatus(opportunityId, applicationId,
     body,
   });
 }
+
+export function cancelAcceptedOpportunityApplication(opportunityId, applicationId, body) {
+  return apiRequest(`/opportunities/${opportunityId}/applications/${applicationId}/cancel-accepted`, {
+    method: "POST",
+    body,
+  });
+}

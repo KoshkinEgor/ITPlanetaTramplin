@@ -202,9 +202,9 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         ApplicationDBContext db) =>
         UpdateCurrentCandidateApplicationAsync(
             applicationId,
-            new[] { OpportunityApplicationStatuses.Submitted, OpportunityApplicationStatuses.Reviewing },
+            new[] { OpportunityApplicationStatuses.Submitted, OpportunityApplicationStatuses.Reviewing, OpportunityApplicationStatuses.Invited },
             OpportunityApplicationStatuses.Withdrawn,
-            "Отменить можно только отправленный или рассматриваемый отклик.",
+            "Отменить или отклонить можно только отправленный, рассматриваемый или приглашённый отклик.",
             context,
             db);
 
@@ -250,6 +250,16 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         if (!allowedCurrentStatuses.Contains(normalizedCurrentStatus))
         {
             return AuthEndpointSupport.MessageResult(validationMessage, StatusCodes.Status400BadRequest);
+        }
+
+        if (nextStatus == OpportunityApplicationStatuses.Accepted &&
+            application.Opportunity.OpportunityType == "mentoring")
+        {
+            var acceptedCount = await db.Applications.CountAsync(item => item.OpportunityId == application.OpportunityId && item.Status == OpportunityApplicationStatuses.Accepted);
+            if (application.Opportunity.SeatsCount.HasValue && acceptedCount >= application.Opportunity.SeatsCount.Value)
+            {
+                return AuthEndpointSupport.MessageResult("Не удалось принять приглашение: все свободные места на программу уже заняты.", StatusCodes.Status400BadRequest);
+            }
         }
 
         application.Status = nextStatus;

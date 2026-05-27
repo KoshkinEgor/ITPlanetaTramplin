@@ -124,6 +124,10 @@ namespace DTO
         public OpportunityViewerCapabilitiesDTO? Viewer { get; set; }
 
         public List<string>? Tags { get; set; }
+
+        public int? ApplicationsCount { get; set; }
+
+        public int? AcceptedApplicationsCount { get; set; }
     }
 
     public partial class OpportunityUpdateDTO

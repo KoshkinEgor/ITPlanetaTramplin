@@ -994,3 +994,18 @@ body.opportunity-card-react-body {
     font-size: var(--ui-font-size-body);
   }
 }
+
+.opportunity-focus-card__withdraw.ui-button--secondary {
+  color: #c9730f;
+  border-color: rgba(232, 180, 101, 0.32);
+  background: rgba(255, 246, 233, 0.96);
+}
+
+.opportunity-focus-card__withdraw.ui-button--secondary:hover:not(:disabled):not(.is-disabled):not(.is-hovered),
+.opportunity-focus-card__withdraw.ui-button--secondary.is-hovered:not(:disabled):not(.is-disabled),
+.opportunity-focus-card__withdraw.ui-button--secondary.is-active {
+  color: #b36408;
+  border-color: rgba(232, 180, 101, 0.42);
+  background: rgba(255, 241, 219, 0.98);
+}
+

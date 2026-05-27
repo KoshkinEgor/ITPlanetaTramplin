@@ -266,16 +266,19 @@ internal static class ComplaintEndpointRouteBuilderExtensions
             opportunityId: complaint.OpportunityId,
             complaintId: complaint.Id);
 
-        NotificationEndpointRouteBuilderExtensions.CreateNotification(
-            db,
-            complaint.Opportunity.Employer.UserId,
-            "complaint.decision",
-            "Решение по жалобе на вашу публикацию",
-            BuildEmployerMessage(complaint),
-            $"/opportunities/{complaint.OpportunityId}",
-            actorUserId: moderatorUserId.Value,
-            opportunityId: complaint.OpportunityId,
-            complaintId: complaint.Id);
+        if (complaint.ReporterUserId != complaint.Opportunity.Employer.UserId)
+        {
+            NotificationEndpointRouteBuilderExtensions.CreateNotification(
+                db,
+                complaint.Opportunity.Employer.UserId,
+                "complaint.decision",
+                "Решение по жалобе на вашу публикацию",
+                BuildEmployerMessage(complaint),
+                $"/opportunities/{complaint.OpportunityId}",
+                actorUserId: moderatorUserId.Value,
+                opportunityId: complaint.OpportunityId,
+                complaintId: complaint.Id);
+        }
 
         await db.SaveChangesAsync();
         return Results.Ok(MapComplaint(complaint, complaint.Opportunity, complaint.ReporterUser.Email, 1));
