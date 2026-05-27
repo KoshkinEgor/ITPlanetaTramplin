@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   decideCompanyModeration,
@@ -59,6 +60,14 @@ const detailItem = {
   opportunitiesCount: 3,
 };
 
+function renderApp() {
+  return render(
+    <MemoryRouter>
+      <ModeratorCompaniesApp />
+    </MemoryRouter>
+  );
+}
+
 describe("ModeratorCompaniesApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,7 +94,7 @@ describe("ModeratorCompaniesApp", () => {
   });
 
   it("loads company details and saves profile edits", async () => {
-    render(<ModeratorCompaniesApp />);
+    renderApp();
 
     fireEvent.click(await screen.findByRole("button", { name: /Northwind/i }));
 
@@ -109,7 +118,7 @@ describe("ModeratorCompaniesApp", () => {
   });
 
   it("opens a confirmation modal and sends the rejection comment", async () => {
-    render(<ModeratorCompaniesApp />);
+    renderApp();
 
     fireEvent.click(await screen.findByRole("button", { name: /Northwind/i }));
 
@@ -139,7 +148,7 @@ describe("ModeratorCompaniesApp", () => {
     const appendSpy = vi.spyOn(document.body, "appendChild");
     const removeSpy = vi.spyOn(HTMLElement.prototype, "remove");
 
-    render(<ModeratorCompaniesApp />);
+    renderApp();
 
     fireEvent.click(await screen.findByRole("button", { name: /Northwind/i }));
     fireEvent.click(await screen.findByRole("button", { name: "Скачать документ" }));

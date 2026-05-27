@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getFallbackCityOption } from "../api/cities";
 import { buildOpportunityDetailRoute } from "../app/routes";
 import { loadYandexMapsApi } from "../shared/lib/loadYandexMapsApi";
-import { OpportunityMiniCard } from "../shared/ui";
+import { IconButton, MaximizeIcon, MinimizeIcon, OpportunityMiniCard, SlidersIcon } from "../shared/ui";
 import "./HomeOpportunityMap.css";
 
 const scriptId = "yandex-maps-js-api-v3";
@@ -472,7 +472,18 @@ function updateMapLocation(mapInstance, location) {
   }
 }
 
-export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinates = null, activeId = null, onSelectItem }) {
+export function HomeOpportunityMap({
+  items,
+  selectedCity,
+  selectedCityCoordinates = null,
+  activeId = null,
+  onSelectItem,
+  isFullscreen = false,
+  onToggleFullscreen,
+  showFiltersButton = false,
+  filtersOpen = false,
+  onToggleFilters,
+}) {
   const rootRef = useRef(null);
   const containerRef = useRef(null);
   const previewRef = useRef(null);
@@ -1026,6 +1037,33 @@ export function HomeOpportunityMap({ items, selectedCity, selectedCityCoordinate
           <p>{overlayState.description}</p>
         </div>
       ) : null}
+
+      <div className="home-yandex-map__controls">
+        {showFiltersButton && onToggleFilters ? (
+          <IconButton
+            variant="surface"
+            size="lg"
+            active={filtersOpen}
+            onClick={onToggleFilters}
+            className="home-yandex-map__control-btn home-yandex-map__control-btn--filters"
+            aria-label="Фильтры"
+          >
+            <SlidersIcon />
+          </IconButton>
+        ) : null}
+
+        {onToggleFullscreen ? (
+          <IconButton
+            variant="surface"
+            size="lg"
+            onClick={onToggleFullscreen}
+            className="home-yandex-map__control-btn home-yandex-map__control-btn--fullscreen"
+            aria-label={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
+          >
+            {isFullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
+          </IconButton>
+        ) : null}
+      </div>
     </div>
   );
 }

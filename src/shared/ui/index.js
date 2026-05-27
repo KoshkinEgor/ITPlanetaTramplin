@@ -96,5 +96,7 @@ export {
   CandidateIcon,
   EmployerIcon,
   CuratorIcon,
+  MaximizeIcon,
+  MinimizeIcon,
 } from "./icons";
 
