@@ -120,6 +120,8 @@ public class SocialUserSummaryDTO
     public List<string> Reasons { get; set; } = [];
 
     public RelationshipSummaryDTO Relationship { get; set; } = new();
+
+    public object? Links { get; set; }
 }
 
 public class CompanyContactDTO

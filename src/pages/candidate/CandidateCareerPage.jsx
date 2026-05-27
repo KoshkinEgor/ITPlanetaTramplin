@@ -8,6 +8,7 @@ import {
   getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
+  getCandidateDirectory,
   getCandidateProfile,
   getCandidateRecommendations,
   updateCandidateEducation,
@@ -299,6 +300,7 @@ export function CandidateCareerPage() {
     suggestions: [],
     recommendations: [],
     opportunities: [],
+    directory: [],
     degraded: false,
     error: null,
   });
@@ -359,12 +361,13 @@ export function CandidateCareerPage() {
       getCandidateContactSuggestions({ source: "dashboard", limit: 6 }, controller.signal),
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
+      getCandidateDirectory(controller.signal),
     ]).then((results) => {
       if (!active || controller.signal.aborted) {
         return;
       }
 
-      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult] = results;
+      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
 
       setDashboardState({
@@ -374,9 +377,10 @@ export function CandidateCareerPage() {
         suggestions: suggestionsResult.status === "fulfilled" ? safeArray(suggestionsResult.value) : [],
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
+        directory: directoryResult.status === "fulfilled" ? safeArray(directoryResult.value) : [],
         degraded: failedCount > 0,
         error: failedCount === results.length
-          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason)
+          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason)
           : null,
       });
     }).catch((error) => {
@@ -391,6 +395,7 @@ export function CandidateCareerPage() {
         suggestions: [],
         recommendations: [],
         opportunities: [],
+        directory: [],
         degraded: false,
         error,
       });

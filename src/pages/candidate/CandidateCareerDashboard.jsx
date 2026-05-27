@@ -224,8 +224,9 @@ function mapOpportunityCard(item) {
 
 
 function getOpportunityCards(recommendations, opportunities) {
-  const primary = safeArray(recommendations).map(mapOpportunityCard).filter(Boolean);
-  const secondary = safeArray(opportunities).map(mapOpportunityCard).filter(Boolean);
+  const filterInternships = (list) => safeArray(list).filter((item) => item?.opportunityType === "internship");
+  const primary = filterInternships(recommendations).map(mapOpportunityCard).filter(Boolean);
+  const secondary = filterInternships(opportunities).map(mapOpportunityCard).filter(Boolean);
   const merged = [];
   const seenIds = new Set();
 
@@ -343,10 +344,45 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
   const networkContacts = getSharedContacts(profile, dashboardState.contacts);
   const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
   const sharedContacts = networkContacts;
-  const mentors = useMemo(
-    () => MENTORS.filter((mentor) => mentor.focus.includes(mentorFilter)).slice(0, 3),
-    [mentorFilter]
-  );
+  const dynamicMentors = useMemo(() => {
+    return safeArray(dashboardState?.directory)
+      .filter((user) => {
+        const mentorSettings = user?.links?.mentor;
+        return mentorSettings?.isMentor === true && mentorSettings?.moderationStatus === "approved";
+      })
+      .map((user) => {
+        const mentorSettings = user.links.mentor;
+        return {
+          id: user.userId,
+          userId: user.userId,
+          name: user.name,
+          role: mentorSettings.companyType === "company" 
+            ? (mentorSettings.mentorCompanyName || "Компания") 
+            : (mentorSettings.mentorCustomCompany || "Частная практика"),
+          summary: mentorSettings.mentorBio || "Помогает по направлениям развития.",
+          companyType: mentorSettings.companyType,
+          mentorCompanyName: mentorSettings.mentorCompanyName,
+          mentorCustomCompany: mentorSettings.mentorCustomCompany,
+          mentorTopics: mentorSettings.mentorTopics || [],
+          isVerified: true,
+          focus: mentorSettings.mentorTopics || [],
+          tone: "accent",
+        };
+      });
+  }, [dashboardState?.directory]);
+
+  const mentors = useMemo(() => {
+    const filteredDynamic = dynamicMentors.filter((m) => m.focus.includes(mentorFilter));
+    const filteredStatic = MENTORS.filter((m) => m.focus.includes(mentorFilter));
+    return [...filteredDynamic, ...filteredStatic].slice(0, 3);
+  }, [dynamicMentors, mentorFilter]);
+
+  const mentoringPrograms = useMemo(() => {
+    return safeArray(dashboardState?.opportunities)
+      .filter((opp) => opp.opportunityType === "mentoring")
+      .map(mapOpportunityCard)
+      .filter(Boolean);
+  }, [dashboardState?.opportunities]);
 
   const statsPanel = {
     title: "Твоя карьера",
@@ -357,8 +393,8 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
       { value: String(countByStatus(dashboardState.applications, "reviewing")), label: "Рассмотрение" },
       { value: String(countByStatus(dashboardState.applications, "invited")), label: "Приглашения", tone: "success" },
     ],
-    description: "Чтобы повысить шансы на собеседование, можно обратиться к менторам: они помогут усилить профиль и подготовить следующий шаг.",
-    cta: { href: routes.candidate.resume, label: "Подготовиться к собеседованию" },
+    description: "Чтобы повысить шансы на собеседование, можно записаться на менторские программы: они помогут усилить профиль и сделать следующий шаг.",
+    cta: { href: "#mentors", label: "Найти программу" },
   };
 
   return (
@@ -449,31 +485,35 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
 
       <section className="candidate-career-dashboard__section" id="mentors">
         <SectionHeader
-          title="Есть вопросы? Обратись к нашим менторам!"
+          title="Менторские программы"
+          description="Программы долгосрочного развития от компаний и экспертов."
           size="md"
           actions={(
             <a href={MENTOR_CATALOG_HREF} className="candidate-career-dashboard__section-link">
-              Все менторы →
+              Все программы →
             </a>
           )}
         />
-        <div className="candidate-career-dashboard__mentor-filters" role="tablist" aria-label="Сценарии консультаций">
-          {MENTOR_FILTERS.map((filter) => (
-            <FilterPill key={filter.value} type="button" active={filter.value === mentorFilter} onClick={() => setMentorFilter(filter.value)}>
-              {filter.label}
-            </FilterPill>
-          ))}
-        </div>
-        <div className="candidate-career-dashboard__card-grid candidate-career-dashboard__card-grid--mentors">
-          {mentors.map((mentor) => (
-            <CareerMentorCard
-              key={mentor.id}
-              {...mentor}
-              href={MENTOR_CATALOG_HREF}
-              actionLabel="Смотреть программы"
-            />
-          ))}
-        </div>
+        {mentoringPrograms.length ? (
+          <OpportunityBlockSlider
+            ariaLabel="Mentoring programs slider"
+            items={mentoringPrograms}
+            className="candidate-career-dashboard__opportunities-slider"
+            itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
+            gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
+            cardPropsBuilder={(item) => ({
+              detailAction: {
+                href: item.href ?? routes.opportunities.catalog,
+                label: "Подробнее",
+                variant: "secondary",
+              },
+            })}
+          />
+        ) : (
+          <Alert tone="info" title="Пока нет доступных менторских программ" showIcon>
+            Когда компании опубликуют новые программы менторства, они появятся здесь.
+          </Alert>
+        )}
       </section>
 
       <section className="candidate-career-dashboard__section">

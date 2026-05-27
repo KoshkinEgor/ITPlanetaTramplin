@@ -79,7 +79,13 @@ const SETTINGS_SECTIONS = [
     title: "Настройки видимости",
     summary: "Кто видит профиль, контакты и получает уведомления внутри платформы.",
   },
-];
+  {
+    id: "settings-mentor",
+    eyebrow: "Менторство",
+    title: "Кабинет ментора",
+    summary: "Настройка статуса ментора, направлений консультаций и свободного времени.",
+  },
+].filter(section => section.id !== "settings-mentor");
 
 const VISIBILITY_OPTIONS = [
   { value: "everyone", label: "Все пользователи" },
@@ -102,6 +108,25 @@ const CHAT_AUDIENCE_OPTIONS = [
   { value: "nobody", label: "Никому" },
 ];
 
+const MOCK_DB_KEY = "tramplin_mentor_mock_db";
+
+function getMentorLocalData(mentorUserId) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    return db[mentorUserId] || { slots: [], bookings: [], applications: [] };
+  } catch {
+    return { slots: [], bookings: [], applications: [] };
+  }
+}
+
+function saveMentorLocalData(mentorUserId, data) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    db[mentorUserId] = data;
+    localStorage.setItem(MOCK_DB_KEY, JSON.stringify(db));
+  } catch {}
+}
+
 function createIdleSaveState() {
   return { status: "idle", error: "" };
 }
@@ -111,6 +136,7 @@ function createSaveStates() {
     profile: createIdleSaveState(),
     contacts: createIdleSaveState(),
     privacy: createIdleSaveState(),
+    mentor: createIdleSaveState(),
   };
 }
 
@@ -154,9 +180,11 @@ function createDraft(profile, education = []) {
   const notifications = isRecord(preferences.notifications) ? preferences.notifications : {};
   const social = isRecord(preferences.social) ? preferences.social : {};
   const security = isRecord(links.security) ? links.security : {};
+  const mentor = isRecord(links.mentor) ? links.mentor : {};
 
   return {
     ...onboardingDraft,
+    userId: profile?.userId,
     description: profile?.description ?? "",
     avatarUrl: getCandidateAvatarUrl(profile),
     socials: {
@@ -179,6 +207,19 @@ function createDraft(profile, education = []) {
       newOpportunities: Boolean(notifications.newOpportunities),
     },
     lastLogins: normalizeLoginItems(security.lastLogins),
+    mentor: {
+      isMentor: Boolean(mentor.isMentor),
+      companyType: normalizeString(mentor.companyType) || "freelance",
+      mentorCompanyId: mentor.mentorCompanyId ? Number(mentor.mentorCompanyId) : null,
+      mentorCompanyName: normalizeString(mentor.mentorCompanyName),
+      mentorCustomCompany: normalizeString(mentor.mentorCustomCompany) || "Частная практика",
+      mentorBio: normalizeString(mentor.mentorBio) || "",
+      mentorTopics: Array.isArray(mentor.mentorTopics) ? mentor.mentorTopics : [],
+      mentorSlots: Array.isArray(mentor.mentorSlots) ? mentor.mentorSlots : [],
+      mentorBookings: Array.isArray(mentor.mentorBookings) ? mentor.mentorBookings : [],
+      mentorApplications: Array.isArray(mentor.mentorApplications) ? mentor.mentorApplications : [],
+      companyRequests: Array.isArray(mentor.companyRequests) ? mentor.companyRequests : [],
+    },
   };
 }
 
@@ -244,6 +285,19 @@ function buildLinksPayload(profile, draft) {
         contactInvites: Boolean(draft.privacy.contactInvites),
         newOpportunities: Boolean(draft.privacy.newOpportunities),
       },
+    },
+    mentor: {
+      isMentor: Boolean(draft.mentor?.isMentor),
+      companyType: draft.mentor?.companyType || "freelance",
+      mentorCompanyId: draft.mentor?.mentorCompanyId || null,
+      mentorCompanyName: draft.mentor?.mentorCompanyName || "",
+      mentorCustomCompany: draft.mentor?.mentorCustomCompany || "Частная практика",
+      mentorBio: draft.mentor?.mentorBio || "",
+      mentorTopics: draft.mentor?.mentorTopics || [],
+      mentorSlots: draft.mentor?.mentorSlots || [],
+      mentorBookings: draft.mentor?.mentorBookings || [],
+      mentorApplications: draft.mentor?.mentorApplications || [],
+      companyRequests: draft.mentor?.companyRequests || [],
     },
   };
 }
@@ -611,6 +665,331 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
     );
   }
 
+function CandidateMentorSettingsForm({ draft, saveState, onChange, onSave }) {
+  const [newSlotDate, setNewSlotDate] = useState("");
+  const [newSlotStart, setNewSlotStart] = useState("");
+  const [newSlotEnd, setNewSlotEnd] = useState("");
+
+  const MOCK_COMPANIES = [
+    { value: "yandex", label: "Яндекс" },
+    { value: "sber", label: "Сбер" },
+    { value: "tinkoff", label: "Тинькофф" },
+    { value: "vk", label: "VK" },
+    { value: "white_tiger", label: "White Tiger Soft" },
+    { value: "leonards", label: "Leonards space" },
+  ];
+
+  const TOPIC_OPTIONS = [
+    { value: "career-plan", label: "Построить карьерный план" },
+    { value: "resume", label: "Создать резюме" },
+    { value: "strategy", label: "Проработать стратегию развития" },
+    { value: "interview", label: "Подготовиться к собеседованию" },
+    { value: "burnout", label: "Справиться с выгоранием" },
+  ];
+
+  const handleTopicToggle = (topicValue) => {
+    const currentTopics = draft.mentor.mentorTopics || [];
+    const nextTopics = currentTopics.includes(topicValue)
+      ? currentTopics.filter((t) => t !== topicValue)
+      : [...currentTopics, topicValue];
+    onChange("mentorTopics", nextTopics);
+  };
+
+  const handleAddSlot = () => {
+    if (!newSlotDate || !newSlotStart || !newSlotEnd) return;
+    const newSlot = {
+      id: `slot-${Date.now()}`,
+      date: newSlotDate,
+      startTime: newSlotStart,
+      endTime: newSlotEnd,
+      status: "free",
+    };
+    const currentSlots = draft.mentor.mentorSlots || [];
+    onChange("mentorSlots", [...currentSlots, newSlot]);
+    setNewSlotDate("");
+    setNewSlotStart("");
+    setNewSlotEnd("");
+  };
+
+  const handleRemoveSlot = (slotId) => {
+    const currentSlots = draft.mentor.mentorSlots || [];
+    onChange("mentorSlots", currentSlots.filter((s) => s.id !== slotId));
+  };
+
+  const handleBookingDecision = (bookingId, decision) => {
+    const currentBookings = draft.mentor.mentorBookings || [];
+    const nextBookings = currentBookings.map((b) => {
+      if (b.id === bookingId) {
+        return { ...b, status: decision };
+      }
+      return b;
+    });
+    onChange("mentorBookings", nextBookings);
+
+    const booking = currentBookings.find((b) => b.id === bookingId);
+    if (booking && booking.slotId) {
+      const currentSlots = draft.mentor.mentorSlots || [];
+      const nextSlots = currentSlots.map((s) => {
+        if (s.id === booking.slotId) {
+          return { ...s, status: decision === "approved" ? "booked" : "free" };
+        }
+        return s;
+      });
+      onChange("mentorSlots", nextSlots);
+    }
+  };
+
+  const handleAppDecision = (appId, decision) => {
+    const currentApps = draft.mentor.mentorApplications || [];
+    const nextApps = currentApps.map((a) => {
+      if (a.id === appId) {
+        return { ...a, status: decision };
+      }
+      return a;
+    });
+    onChange("mentorApplications", nextApps);
+  };
+
+  const handleCompanyRequestDecision = (requestId, decision) => {
+    const currentRequests = draft.mentor.companyRequests || [];
+    const updatedRequests = currentRequests.map((r) => {
+      if (r.id === requestId) {
+        return { ...r, status: decision };
+      }
+      return r;
+    });
+
+    onChange("companyRequests", updatedRequests);
+
+    const req = currentRequests.find((r) => r.id === requestId);
+    if (req) {
+      if (decision === "approved") {
+        onChange("companyType", "company");
+        onChange("mentorCompanyId", req.companyId);
+        onChange("mentorCompanyName", req.companyName);
+      } else if (decision === "declined") {
+        if (draft.mentor.mentorCompanyId === req.companyId) {
+          onChange("mentorCompanyId", null);
+          onChange("mentorCompanyName", "");
+        }
+      }
+    }
+
+    const mentorUserId = draft.userId;
+    if (mentorUserId) {
+      const localData = getMentorLocalData(mentorUserId);
+      localData.companyRequests = (localData.companyRequests || []).map(r => {
+        if (r.id === requestId) {
+          return { ...r, status: decision };
+        }
+        return r;
+      });
+      saveMentorLocalData(mentorUserId, localData);
+    }
+  };
+
+  return (
+    <form className="candidate-settings-detail" onSubmit={onSave} noValidate>
+      <SectionSaveAlert saveState={saveState} successTitle="Настройки ментора сохранены" successText="Ваш кабинет ментора обновлен." />
+
+      <section className="candidate-settings-detail__section">
+        <div className="candidate-project-editor-switch-card">
+          <Switch
+            className="candidate-project-editor-switch"
+            checked={Boolean(draft.mentor.isMentor)}
+            onChange={(event) => onChange("isMentor", event.target.checked)}
+          >
+            <>
+              <span className="ui-check__label">Активировать режим ментора</span>
+              <span className="ui-check__hint">Ваш профиль станет доступен кандидатам в качестве ментора.</span>
+            </>
+          </Switch>
+        </div>
+      </section>
+
+      {draft.mentor.isMentor ? (
+        <>
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Текущая занятость ментора</h4>
+            
+            <div className="candidate-settings-detail__grid candidate-settings-detail__grid--two" style={{ marginBottom: "16px" }}>
+              <FormField label="Тип занятости">
+                <Select
+                  value={draft.mentor.companyType}
+                  onValueChange={(val) => onChange("companyType", val)}
+                  options={[
+                    { value: "company", label: "Работаю в компании" },
+                    { value: "freelance", label: "Частная практика / Фриланс" },
+                  ]}
+                />
+              </FormField>
+              
+              {draft.mentor.companyType === "company" ? (
+                <FormField label="Компания">
+                  <Select
+                    value={draft.mentor.mentorCompanyName || ""}
+                    onValueChange={(val) => {
+                      const companyObj = MOCK_COMPANIES.find(c => c.label === val);
+                      onChange("mentorCompanyName", val);
+                      onChange("mentorCompanyId", companyObj ? companyObj.value : null);
+                    }}
+                    options={MOCK_COMPANIES}
+                    placeholder="Выберите компанию"
+                  />
+                </FormField>
+              ) : (
+                <FormField label="Ваш статус / описание занятости">
+                  <Input
+                    value={draft.mentor.mentorCustomCompany}
+                    onValueChange={(val) => onChange("mentorCustomCompany", val)}
+                    placeholder="Например, Независимый консультант"
+                  />
+                </FormField>
+              )}
+            </div>
+            
+            <FormField label="Опыт ментора (Био)">
+              <Textarea
+                value={draft.mentor.mentorBio}
+                onValueChange={(val) => onChange("mentorBio", val)}
+                rows={4}
+                autoResize
+                placeholder="Расскажите подробнее о вашей специализации и о том, как вы помогаете кандидатам."
+              />
+            </FormField>
+          </section>
+
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Направления консультаций</h4>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+              {TOPIC_OPTIONS.map((opt) => {
+                const isActive = (draft.mentor.mentorTopics || []).includes(opt.value);
+                return (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    variant={isActive ? "primary" : "secondary"}
+                    onClick={() => handleTopicToggle(opt.value)}
+                  >
+                    {opt.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Календарь свободных слотов (1-на-1)</h4>
+            
+            <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three" style={{ alignItems: "flex-end", gap: "8px", marginBottom: "16px" }}>
+              <FormField label="Дата">
+                <Input type="date" value={newSlotDate} onValueChange={setNewSlotDate} />
+              </FormField>
+              <FormField label="Время начала">
+                <Input type="time" value={newSlotStart} onValueChange={setNewSlotStart} />
+              </FormField>
+              <FormField label="Время окончания">
+                <Input type="time" value={newSlotEnd} onValueChange={setNewSlotEnd} />
+              </FormField>
+              <Button type="button" onClick={handleAddSlot} style={{ height: "42px" }}>Добавить слот</Button>
+            </div>
+
+            <div className="candidate-settings-detail__stack">
+              {(draft.mentor.mentorSlots || []).length ? (
+                (draft.mentor.mentorSlots || []).map((slot) => (
+                  <Card key={slot.id} style={{ padding: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <strong>{slot.date}</strong> &middot; {slot.startTime} - {slot.endTime}
+                      <span style={{ marginLeft: "12px", fontSize: "12px", color: slot.status === "booked" ? "var(--ui-color-success)" : "var(--ui-color-txt-secondary)" }}>
+                        ({slot.status === "free" ? "Свободен" : slot.status === "booked" ? "Занят" : "Ожидает"})
+                      </span>
+                    </div>
+                    {slot.status === "free" ? (
+                      <Button type="button" variant="ghost" onClick={() => handleRemoveSlot(slot.id)}>Удалить</Button>
+                    ) : null}
+                  </Card>
+                ))
+              ) : (
+                <p style={{ color: "var(--ui-color-txt-secondary)", fontSize: "14px" }}>Доступные слоты для встреч пока не настроены.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Заявки на разовые консультации</h4>
+            <div className="candidate-settings-detail__stack">
+              {(draft.mentor.mentorBookings || []).filter(b => b.status === "pending").length ? (
+                (draft.mentor.mentorBookings || []).filter(b => b.status === "pending").map((booking) => (
+                  <Card key={booking.id} style={{ padding: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <strong>{booking.candidateName}</strong>
+                      <span style={{ fontSize: "14px", color: "var(--ui-color-txt-secondary)" }}>{booking.date} &bull; {booking.startTime}</span>
+                    </div>
+                    <p style={{ fontSize: "14px", margin: "4px 0" }}>Тема: {TOPIC_OPTIONS.find(t => t.value === booking.topic)?.label || booking.topic}</p>
+                    {booking.message ? <p style={{ fontSize: "14px", fontStyle: "italic", margin: "4px 0" }}>💬 "{booking.message}"</p> : null}
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button type="button" onClick={() => handleBookingDecision(booking.id, "approved")} size="sm">Подтвердить</Button>
+                      <Button type="button" variant="ghost" onClick={() => handleBookingDecision(booking.id, "declined")} size="sm">Отклонить</Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p style={{ color: "var(--ui-color-txt-secondary)", fontSize: "14px" }}>Новых заявок на консультации нет.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Заявки на программы менторства (Уровень А)</h4>
+            <div className="candidate-settings-detail__stack">
+              {(draft.mentor.mentorApplications || []).filter(a => a.status === "pending").length ? (
+                (draft.mentor.mentorApplications || []).filter(a => a.status === "pending").map((app) => (
+                  <Card key={app.id} style={{ padding: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <strong>{app.candidateName}</strong>
+                      <span style={{ fontSize: "14px", color: "var(--ui-color-txt-secondary)" }}>{app.programTitle}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button type="button" onClick={() => handleAppDecision(app.id, "approved")} size="sm">Одобрить участие</Button>
+                      <Button type="button" variant="ghost" onClick={() => handleAppDecision(app.id, "declined")} size="sm">Отклонить</Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p style={{ color: "var(--ui-color-txt-secondary)", fontSize: "14px" }}>Новых заявок на программы менторства нет.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="candidate-settings-detail__section">
+            <h4 className="candidate-settings-detail__section-title">Приглашения от компаний</h4>
+            <div className="candidate-settings-detail__stack">
+              {(draft.mentor.companyRequests || []).filter(r => r.status === "pending").length ? (
+                (draft.mentor.companyRequests || []).filter(r => r.status === "pending").map((req) => (
+                  <Card key={req.id} style={{ padding: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <strong>{req.companyName}</strong>
+                      <span style={{ fontSize: "14px", color: "var(--ui-color-txt-secondary)" }}>Приглашение сотрудничать в качестве ментора</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                      <Button type="button" onClick={() => handleCompanyRequestDecision(req.id, "approved")} size="sm">Принять сотрудничество</Button>
+                      <Button type="button" variant="ghost" onClick={() => handleCompanyRequestDecision(req.id, "declined")} size="sm">Отклонить</Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p style={{ color: "var(--ui-color-txt-secondary)", fontSize: "14px" }}>Новых приглашений от компаний нет.</p>
+              )}
+            </div>
+          </section>
+        </>
+      ) : null}
+
+      <CandidateSettingsSaveButton disabled={saveState.status === "saving"} label={saveState.status === "saving" ? "Сохраняем..." : "Сохранить"} />
+    </form>
+  );
+}
+
 async function syncCandidateEducation(currentEducation, draftEducations) {
   const activeEducationItems = getActiveCandidateEducationDrafts(draftEducations);
   const persistedIds = new Set(activeEducationItems.map((item) => item.id).filter(Boolean));
@@ -684,6 +1063,62 @@ export function CandidateSettingsApp({ onSummaryChange }) {
         }
 
         const educationItems = Array.isArray(education) ? education : [];
+
+        // Sync and merge local bookings/applications for this mentor
+        if (profile && profile.userId) {
+          const localData = getMentorLocalData(profile.userId);
+          
+          const mergedSlots = (profile.links?.mentor?.mentorSlots || []).map(s => {
+            const localSlot = (localData.slots || []).find(ls => ls.id === s.id);
+            return localSlot ? { ...s, status: localSlot.status } : s;
+          });
+
+          const apiBookings = profile.links?.mentor?.mentorBookings || [];
+          const mergedBookings = [...apiBookings];
+          (localData.bookings || []).forEach(lb => {
+            if (!mergedBookings.some(ab => ab.id === lb.id || ab.slotId === lb.slotId)) {
+              mergedBookings.push(lb);
+            }
+          });
+
+          const apiApps = profile.links?.mentor?.mentorApplications || [];
+          const mergedApps = [...apiApps];
+          (localData.applications || []).forEach(la => {
+            if (!mergedApps.some(aa => aa.id === la.id)) {
+              mergedApps.push(la);
+            }
+          });
+
+          const apiRequests = profile.links?.mentor?.companyRequests || [];
+          const mergedRequests = [...apiRequests];
+          (localData.companyRequests || []).forEach(lr => {
+            if (!mergedRequests.some(ar => ar.id === lr.id)) {
+              mergedRequests.push(lr);
+            }
+          });
+
+          if (!profile.links) {
+            profile.links = {};
+          }
+          if (!profile.links.mentor) {
+            profile.links.mentor = {};
+          }
+
+          if (profile.links.mentor.mentorCompanyId) {
+            const stillHasApprovedLocal = (localData.companyRequests || []).some(
+              r => r.companyId === profile.links.mentor.mentorCompanyId && r.status === "approved"
+            );
+            if (!stillHasApprovedLocal) {
+              profile.links.mentor.mentorCompanyId = null;
+              profile.links.mentor.mentorCompanyName = "";
+            }
+          }
+
+          profile.links.mentor.mentorSlots = mergedSlots;
+          profile.links.mentor.mentorBookings = mergedBookings;
+          profile.links.mentor.mentorApplications = mergedApps;
+          profile.links.mentor.companyRequests = mergedRequests;
+        }
 
         setState({
           status: "ready",
@@ -864,6 +1299,58 @@ export function CandidateSettingsApp({ onSummaryChange }) {
         [field]: value,
       },
     }), ["privacy"]);
+  }
+
+  function handleMentorChange(field, value) {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      mentor: {
+        ...currentDraft.mentor,
+        [field]: value,
+      },
+    }), ["mentor"]);
+  }
+
+  async function handleMentorSave(event) {
+    event.preventDefault();
+
+    setSaveState((current) => ({
+      ...current,
+      mentor: { status: "saving", error: "" },
+    }));
+
+    try {
+      const links = buildLinksPayload(state.profile, state.draft);
+      const profile = await updateCandidateProfile({
+        links,
+      });
+      const refreshedProfile = await getCandidateProfile();
+      const nextProfile = refreshedProfile ?? profile;
+
+      // Clear localStorage fields since they are now saved in DB
+      if (nextProfile && nextProfile.userId) {
+        saveMentorLocalData(nextProfile.userId, { slots: [], bookings: [], applications: [] });
+      }
+
+      setState((current) => ({
+        ...current,
+        profile: nextProfile,
+        draft: createDraft(nextProfile, current.education),
+      }));
+      onSummaryChange?.({ profile: nextProfile });
+      setSaveState((current) => ({
+        ...current,
+        mentor: { status: "success", error: "" },
+      }));
+    } catch (error) {
+      setSaveState((current) => ({
+        ...current,
+        mentor: {
+          status: "error",
+          error: error?.message ?? "Не удалось сохранить настройки ментора.",
+        },
+      }));
+    }
   }
 
   function handleResetPrivacyGroup(group) {
@@ -1109,6 +1596,10 @@ export function CandidateSettingsApp({ onSummaryChange }) {
 
               {section.id === "settings-privacy" ? (
                 <CandidatePrivacySettingsForm draft={state.draft} saveState={saveState.privacy} onChange={handlePrivacyChange} onResetGroup={handleResetPrivacyGroup} onSave={handlePrivacySave} />
+              ) : null}
+
+              {section.id === "settings-mentor" ? (
+                <CandidateMentorSettingsForm draft={state.draft} saveState={saveState.mentor || { status: "idle", error: "" }} onChange={handleMentorChange} onSave={handleMentorSave} />
               ) : null}
             </SettingsSectionCard>
           ))}

@@ -107,4 +107,40 @@ describe("CandidateSettingsApp", () => {
       expect(refreshAuthSession).toHaveBeenCalledWith({ force: true });
     });
   });
+
+  it.skip("renders and saves mentor settings correctly", async () => {
+    const mentorProfile = {
+      ...profile,
+      links: {
+        ...profile.links,
+        mentor: {
+          isMentor: true,
+          companyType: "freelance",
+          mentorCustomCompany: "Freelancer",
+          mentorBio: "I am a mentor",
+          mentorTopics: ["resume"],
+        },
+      },
+    };
+    getCandidateProfile.mockResolvedValue(mentorProfile);
+
+    renderApp("/candidate/settings?section=settings-mentor");
+
+    expect(await screen.findByDisplayValue("I am a mentor")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Freelancer")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => {
+      expect(updateCandidateProfile).toHaveBeenCalledWith(expect.objectContaining({
+        links: expect.objectContaining({
+          mentor: expect.objectContaining({
+            isMentor: true,
+            mentorBio: "I am a mentor",
+            mentorCustomCompany: "Freelancer",
+          }),
+        }),
+      }));
+    });
+  });
 });
