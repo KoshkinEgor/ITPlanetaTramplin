@@ -251,4 +251,93 @@ describe("PortalHeader", () => {
 
     expect(screen.queryByRole("navigation", { name: "Мобильная навигация" })).not.toBeInTheDocument();
   });
+
+  it("filters out career nav item for companies and moderators/admins", () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 7,
+        role: "moderator",
+        email: "moderator@tramplin.test",
+        displayName: "Moderator",
+      },
+      error: null,
+    });
+
+    const navItems = [
+      { key: "home", label: "Главная", href: routes.home },
+      { key: "career", label: "Карьера", href: routes.candidate.career },
+    ];
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <PortalHeader navItems={navItems} currentKey="home" />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Карьера" })).not.toBeInTheDocument();
+
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 8,
+        role: "company",
+        email: "company@tramplin.test",
+        displayName: "Company",
+      },
+      error: null,
+    });
+
+    rerender(
+      <MemoryRouter>
+        <PortalHeader navItems={navItems} currentKey="home" />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Карьера" })).not.toBeInTheDocument();
+
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 9,
+        role: "candidate",
+        email: "candidate@tramplin.test",
+        displayName: "Candidate",
+      },
+      error: null,
+    });
+
+    rerender(
+      <MemoryRouter>
+        <PortalHeader navItems={navItems} currentKey="home" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: "Карьера" })).toBeInTheDocument();
+  });
+
+  it("hides profile/cabinet action button for authenticated users when not in public-profile variant", () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: 9,
+        role: "candidate",
+        email: "candidate@tramplin.test",
+        displayName: "Candidate",
+      },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <PortalHeader
+          navItems={[]}
+          actionHref={routes.candidate.profile}
+          actionLabel="Профиль"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Профиль" })).not.toBeInTheDocument();
+  });
 });
