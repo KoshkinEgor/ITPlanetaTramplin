@@ -441,9 +441,30 @@ export function PortalHeader({
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const isPublicProfileVariant = variant === "public-profile";
-  const showActionButton = Boolean(actionHref && actionLabel && (!authUser || actionHref !== routes.auth.login));
+
+  const isProfileOrCabinetAction = actionLabel === "Профиль" || actionLabel === "Кабинет компании";
+  const showActionButton = Boolean(
+    actionHref &&
+      actionLabel &&
+      (!authUser || (actionHref !== routes.auth.login && (!isProfileOrCabinetAction || isPublicProfileVariant)))
+  );
+
   const showAccountMenu = Boolean(authUser) && !isPublicProfileVariant;
   const isLoginAction = actionHref === routes.auth.login;
+
+  const filteredNavItems = useMemo(() => {
+    const items = Array.isArray(navItems) ? navItems : [];
+    if (!authUser) {
+      return items;
+    }
+    const role = String(authUser.role || "").toLowerCase();
+    const isCompany = role === "company" || role === "employer";
+    const isModerator = role === "moderator" || role === "curator";
+    if (isCompany || isModerator) {
+      return items.filter((item) => item.key !== "career");
+    }
+    return items;
+  }, [navItems, authUser]);
 
   useEffect(() => {
     if (!mobileMenuOpen) {
@@ -480,7 +501,7 @@ export function PortalHeader({
         </AppLink>
 
         <nav className="portal-header__nav" aria-label="Основная навигация">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <AppLink
               key={item.key ?? item.label}
               href={item.href}
@@ -507,7 +528,7 @@ export function PortalHeader({
 
             {mobileMenuOpen ? (
               <nav className="portal-header__mobile-menu" aria-label="Мобильная навигация">
-                {navItems.map((item) => (
+                {filteredNavItems.map((item) => (
                   <AppLink
                     key={`mobile-${item.key ?? item.label}`}
                     href={item.href}
