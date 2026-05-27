@@ -4,6 +4,7 @@ import {
   createChatConnection,
   getChatMessages,
   getChatThreads,
+  getChatThread,
   markChatRead,
   sendChatMessage,
 } from "../api/chats";
@@ -106,6 +107,8 @@ export function ChatApp({ compact = false, className }) {
   const connectionRef = useRef(null);
   const selectedThreadIdRef = useRef(selectedThreadId);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const lastThreadIdRef = useRef(selectedThreadId);
 
   useEffect(() => {
     selectedThreadIdRef.current = selectedThreadId;
@@ -121,7 +124,21 @@ export function ChatApp({ compact = false, className }) {
     async function loadThreads() {
       try {
         const response = await getChatThreads(controller.signal);
-        const items = normalizeArray(response);
+        let items = normalizeArray(response);
+
+        // Fetch selected thread if it is not in the list
+        const hasSelected = selectedThreadIdRef.current && items.some((t) => t.id === selectedThreadIdRef.current);
+        if (selectedThreadIdRef.current && !hasSelected) {
+          try {
+            const singleThread = await getChatThread(selectedThreadIdRef.current, controller.signal);
+            if (singleThread?.id) {
+              items = [singleThread, ...items];
+            }
+          } catch (e) {
+            console.error("Failed to load selected thread details", e);
+          }
+        }
+
         setThreadsState({ status: "ready", items, error: null });
         if (!selectedThreadIdRef.current && items[0]?.id) {
           selectThread(items[0].id, false);
@@ -151,6 +168,12 @@ export function ChatApp({ compact = false, className }) {
         const response = await getChatMessages(selectedThreadId, { take: compact ? 60 : 120 }, controller.signal);
         setMessagesState({ status: "ready", items: normalizeArray(response), error: null });
         await markChatRead(selectedThreadId).catch(() => {});
+        setThreadsState((current) => ({
+          ...current,
+          items: current.items.map((t) =>
+            t.id === selectedThreadId ? { ...t, unreadCount: 0 } : t
+          ),
+        }));
       } catch (error) {
         if (!controller.signal.aborted) {
           setMessagesState({ status: "error", items: [], error });
@@ -195,7 +218,15 @@ export function ChatApp({ compact = false, className }) {
         };
       });
 
-      void markChatRead(message.threadId).catch(() => {});
+      if (message.senderUserId !== currentUser?.id) {
+        void markChatRead(message.threadId).catch(() => {});
+      }
+    });
+
+    connection.onreconnected(() => {
+      if (selectedThreadIdRef.current) {
+        connection.invoke("JoinThread", selectedThreadIdRef.current).catch(() => {});
+      }
     });
 
     connection.start()
@@ -227,8 +258,22 @@ export function ChatApp({ compact = false, className }) {
   }, [selectedThreadId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
-  }, [messagesState.items.length, selectedThreadId]);
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const isThreadSwitch = lastThreadIdRef.current !== selectedThreadId;
+    lastThreadIdRef.current = selectedThreadId;
+
+    const lastMessage = messagesState.items[messagesState.items.length - 1];
+    const isOwnMessage = lastMessage?.senderUserId === currentUser?.id;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+
+    if (isThreadSwitch || isOwnMessage || isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [messagesState.items.length, selectedThreadId, currentUser?.id]);
 
   const selectedThread = useMemo(
     () => threadsState.items.find((item) => item.id === selectedThreadId) ?? null,
@@ -238,8 +283,15 @@ export function ChatApp({ compact = false, className }) {
 
   function selectThread(threadId, updateUrl = true) {
     setSelectedThreadId(threadId);
-    if (updateUrl) {
+    if (updateUrl && !compact) {
       setSearchParams(threadId ? { thread: String(threadId) } : {});
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter" && event.ctrlKey) {
+      event.preventDefault();
+      void handleSubmit(event);
     }
   }
 
@@ -283,7 +335,7 @@ export function ChatApp({ compact = false, className }) {
   }
 
   return (
-    <section className={cn("chat-app", compact && "chat-app--compact", className)} data-testid="chat-app">
+    <section className={cn("chat-app", compact && "chat-app--compact", selectedThreadId && "has-selected-thread", className)} data-testid="chat-app">
       <aside className="chat-app__threads" aria-label="Диалоги">
         <div className="chat-app__threads-head">
           <span>Сообщения</span>
@@ -317,6 +369,14 @@ export function ChatApp({ compact = false, className }) {
         {selectedThread ? (
           <>
             <header className="chat-app__conversation-head">
+              <Button
+                type="button"
+                variant="ghost"
+                className="chat-app__mobile-back-button"
+                onClick={() => selectThread(null)}
+              >
+                ← Назад
+              </Button>
               <Avatar name={getParticipantName(selectedCounterparty)} src={selectedCounterparty?.avatarUrl} />
               <div>
                 <strong>{getParticipantName(selectedCounterparty)}</strong>
@@ -324,7 +384,7 @@ export function ChatApp({ compact = false, className }) {
               </div>
             </header>
 
-            <div className="chat-app__messages" aria-live="polite">
+            <div ref={messagesContainerRef} className="chat-app__messages" aria-live="polite">
               {messagesState.status === "loading" ? <Loader label="Загружаем историю" surface /> : null}
               {messagesState.error ? (
                 <Alert tone="error" title="Сообщение не отправлено" showIcon>
@@ -344,10 +404,12 @@ export function ChatApp({ compact = false, className }) {
               <Textarea
                 value={draft}
                 onValueChange={setDraft}
-                placeholder="Напишите сообщение"
+                placeholder={sending ? "Отправка сообщения..." : "Напишите сообщение"}
                 maxLength={4000}
                 autoResize
                 rows={compact ? 2 : 3}
+                disabled={sending}
+                onKeyDown={handleKeyDown}
               />
               <Button type="submit" loading={sending} disabled={!draft.trim()}>
                 Отправить

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { startChat } from "../../api/chats";
 import {
   acceptCandidateFriendRequest,
@@ -777,15 +777,16 @@ function getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMo
     items.push({ label: "Инвайт в проект отправлен", tone: "warning" });
   } else if (relationship.projectInviteState === "accepted") {
     items.push({ label: "Приглашение в проект принято", tone: "success" });
-  }
+}
 
-  return items.length ? items : [{ label: "Связь еще не установлена", tone: "neutral" }];
+    return items.length ? items : [{ label: "Связь еще не установлена", tone: "neutral" }];
 }
 
 export function CandidatePublicProfilePage() {
   useBodyClass("candidate-portal-react-body");
 
   const location = useLocation();
+  const navigate = useNavigate();
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const preview = useMemo(() => getProfilePreview(location), [location]);
@@ -1108,7 +1109,7 @@ export function CandidatePublicProfilePage() {
     try {
       setBusyAction("chat");
       const thread = await startChat({ recipientUserId: publicUserId });
-      window.location.href = `${routes.candidate.messages}?thread=${thread.id}`;
+      navigate(`${routes.candidate.messages}?thread=${thread.id}`);
     } catch (error) {
       setFeedback({
         status: "error",
