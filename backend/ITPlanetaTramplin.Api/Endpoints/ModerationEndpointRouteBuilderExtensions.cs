@@ -286,6 +286,21 @@ internal static partial class ModerationEndpointRouteBuilderExtensions
 
         var normalizedStatus = CandidateModerationStatuses.Normalize(request.Status);
         profile.ModerationStatus = normalizedStatus;
+
+        if (!string.IsNullOrEmpty(profile.Links))
+        {
+            try
+            {
+                var doc = System.Text.Json.Nodes.JsonNode.Parse(profile.Links)?.AsObject();
+                if (doc is not null && doc.TryGetPropertyValue("mentor", out var mentorNode) && mentorNode is System.Text.Json.Nodes.JsonObject mentorObj)
+                {
+                    mentorObj["moderationStatus"] = normalizedStatus;
+                    profile.Links = doc.ToJsonString();
+                }
+            }
+            catch {}
+        }
+
         AddAuditLog(db, moderatorUserId, "candidate.decision", "candidate", profile.UserId, $"Профиль кандидата получил статус «{normalizedStatus}»");
         NotificationEndpointRouteBuilderExtensions.CreateNotification(
             db,

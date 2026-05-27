@@ -300,20 +300,59 @@ export function CareerMentorCard({
   actionLabel = "Профиль",
   onActionClick,
   className,
+  userId,
+  companyType,
+  mentorCompanyName,
+  mentorCustomCompany,
+  mentorTopics = [],
+  isVerified = true,
   ...props
 }) {
+  const resolvedHref = userId ? `/candidate/public?userId=${userId}` : href;
+
+  const displayCompany = companyType === "company"
+    ? (mentorCompanyName || "Компания")
+    : (mentorCustomCompany || "Частная практика");
+
+  const displayRole = role || displayCompany;
+
+  const topicMap = {
+    "career-plan": "Карьерный план",
+    "resume": "Резюме",
+    "strategy": "Стратегия",
+    "interview": "Собеседование",
+    "burnout": "Выгорание",
+  };
+
   return (
-    <Card className={["ui-career-mentor-card", className].filter(Boolean).join(" ")} {...props}>
+    <Card className={["ui-career-mentor-card", "ui-career-mentor-card--premium", className].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-mentor-card__body">
         <div className="ui-career-mentor-card__head">
-          <Avatar src={imageUrl} name={name} initials={getInitials(name)} size="lg" tone={tone} className="ui-career-mentor-card__avatar" />
+          <div className="ui-career-mentor-card__avatar-wrapper">
+            <Avatar src={imageUrl} name={name} initials={getInitials(name)} size="lg" tone={tone} className="ui-career-mentor-card__avatar" />
+            {isVerified ? (
+              <span className="ui-career-mentor-card__verified-badge" title="Верифицированный ментор">✓</span>
+            ) : null}
+          </div>
           <div className="ui-career-mentor-card__copy">
-            {name ? <h3 className="ui-career-mentor-card__name">{name}</h3> : null}
-            {role ? <p className="ui-career-mentor-card__role">{role}</p> : null}
+            <div className="ui-career-mentor-card__title-row">
+              {name ? <h3 className="ui-career-mentor-card__name">{name}</h3> : null}
+            </div>
+            {displayRole ? <p className="ui-career-mentor-card__role">{displayRole}</p> : null}
           </div>
         </div>
 
         {summary ? <p className="ui-career-mentor-card__summary">{summary}</p> : null}
+
+        {mentorTopics && mentorTopics.length ? (
+          <div className="ui-career-mentor-card__topics">
+            {mentorTopics.map((topic) => (
+              <Tag key={topic} size="sm" tone="accent" className="ui-career-mentor-card__topic-tag">
+                {topicMap[topic] || topic}
+              </Tag>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {typeof onActionClick === "function" ? (
@@ -321,7 +360,7 @@ export function CareerMentorCard({
           {actionLabel}
         </Button>
       ) : (
-        <Button href={href} variant="secondary" width="full" className="ui-career-mentor-card__action">
+        <Button href={resolvedHref} variant="secondary" width="full" className="ui-career-mentor-card__action">
           {actionLabel}
         </Button>
       )}

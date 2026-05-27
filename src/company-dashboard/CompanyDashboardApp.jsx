@@ -10,6 +10,7 @@ import {
   updateCompanyProfile,
   updateOpportunityApplicationStatus,
   cancelAcceptedOpportunityApplication,
+  getCompanyDirectory,
 } from "../api/company";
 import { ApiError } from "../lib/http";
 import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
@@ -88,6 +89,19 @@ function createOpportunityDraft(item = null) {
     locationAddress: item?.locationAddress ?? "",
     opportunityType: item?.opportunityType ?? "vacancy",
     tags: Array.isArray(item?.tags) ? item.tags.join(", ") : "",
+    duration: item?.duration ?? "",
+    meetingFrequency: item?.meetingFrequency ?? "",
+    seatsCount: item?.seatsCount ?? "",
+    mentorUserId: (() => {
+      if (item?.contactsJson) {
+        try {
+          const contacts = JSON.parse(item.contactsJson);
+          const found = Array.isArray(contacts) ? contacts.find(c => c.type === "mentorUserId") : null;
+          if (found) return found.value;
+        } catch {}
+      }
+      return "";
+    })(),
   };
 }
 
@@ -222,6 +236,25 @@ function CancelAcceptedResponseModal({ open, onClose, onSubmit, item, busy }) {
   );
 }
 
+const MOCK_DB_KEY = "tramplin_mentor_mock_db";
+
+function getMentorLocalData(mentorUserId) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    return db[mentorUserId] || { slots: [], bookings: [], applications: [], companyRequests: [] };
+  } catch {
+    return { slots: [], bookings: [], applications: [], companyRequests: [] };
+  }
+}
+
+function saveMentorLocalData(mentorUserId, data) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    db[mentorUserId] = data;
+    localStorage.setItem(MOCK_DB_KEY, JSON.stringify(db));
+  } catch { /* ignore */ }
+}
+
 export function CompanyDashboardApp() {
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState({
@@ -229,6 +262,7 @@ export function CompanyDashboardApp() {
     profile: null,
     opportunities: [],
     applications: [],
+    directory: [],
     error: null,
   });
   const [profileDraft, setProfileDraft] = useState({
@@ -244,14 +278,19 @@ export function CompanyDashboardApp() {
   const [applicationEdits, setApplicationEdits] = useState({});
   const [busyApplicationId, setBusyApplicationId] = useState(0);
   const [cancelModalState, setCancelModalState] = useState({ open: false, item: null, busy: false });
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [mentorActionState, setMentorActionState] = useState({ status: "idle", error: "", success: "" });
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
       try {
-        const profile = await getCompanyProfile(controller.signal);
-        const opportunities = await getCompanyOpportunities(controller.signal);
+        const [profile, opportunities, directory] = await Promise.all([
+          getCompanyProfile(controller.signal),
+          getCompanyOpportunities(controller.signal),
+          getCompanyDirectory(controller.signal).catch(() => []),
+        ]);
         const applicationLists = await Promise.all(
           (Array.isArray(opportunities) ? opportunities : []).map(async (item) => {
             const applications = await getOpportunityApplications(item.id, controller.signal);
@@ -269,6 +308,7 @@ export function CompanyDashboardApp() {
           profile,
           opportunities: Array.isArray(opportunities) ? opportunities : [],
           applications: flatApplications,
+          directory: Array.isArray(directory) ? directory : [],
           error: null,
         });
 
@@ -300,6 +340,7 @@ export function CompanyDashboardApp() {
           profile: null,
           opportunities: [],
           applications: [],
+          directory: [],
           error,
         });
       }
@@ -319,6 +360,106 @@ export function CompanyDashboardApp() {
       { value: String(moderationQueue), label: "На проверке", note: "После редактирования карточка снова уходит в модерацию." },
     ];
   }, [state.applications.length, state.opportunities]);
+
+  const companyMentors = useMemo(() => {
+    if (!state.profile || !state.directory.length) return [];
+    return state.directory.filter(user => {
+      const mentorSettings = user.links?.mentor;
+      return mentorSettings?.isMentor === true && mentorSettings?.mentorCompanyId === state.profile.profileId;
+    });
+  }, [state.directory, state.profile]);
+
+  const pendingMentorInvites = useMemo(() => {
+    if (!state.profile) return [];
+    const db = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    })();
+
+    const pending = [];
+    Object.entries(db).forEach(([userIdStr, mentorData]) => {
+      const requests = mentorData?.companyRequests || [];
+      const ourRequest = requests.find(r => r.companyId === state.profile.profileId && r.status === "pending");
+      if (ourRequest) {
+        const candidateId = Number(userIdStr);
+        const candidate = state.directory.find(u => u.userId === candidateId);
+        pending.push({
+          id: ourRequest.id,
+          userId: candidateId,
+          email: candidate?.email || `User ${candidateId}`,
+          name: candidate?.name || `Пользователь #${candidateId}`,
+          skills: candidate?.skills || []
+        });
+      }
+    });
+    return pending;
+  }, [state.directory, state.profile]);
+
+  const handleInviteMentor = (event) => {
+    event.preventDefault();
+    setMentorActionState({ status: "loading", error: "", success: "" });
+
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
+      setMentorActionState({ status: "error", error: "Пожалуйста, введите email ментора.", success: "" });
+      return;
+    }
+
+    const candidate = state.directory.find(u => u.email?.trim().toLowerCase() === email);
+    if (!candidate) {
+      setMentorActionState({ status: "error", error: `Пользователь с email ${email} не найден в базе данных.`, success: "" });
+      return;
+    }
+
+    const isAffiliated = companyMentors.some(m => m.userId === candidate.userId);
+    if (isAffiliated) {
+      setMentorActionState({ status: "error", error: "Этот специалист уже является ментором вашей компании.", success: "" });
+      return;
+    }
+
+    const isPending = pendingMentorInvites.some(m => m.userId === candidate.userId);
+    if (isPending) {
+      setMentorActionState({ status: "error", error: "Приглашение этому специалисту уже отправлено.", success: "" });
+      return;
+    }
+
+    const localData = getMentorLocalData(candidate.userId);
+    if (!localData.companyRequests) {
+      localData.companyRequests = [];
+    }
+    localData.companyRequests.push({
+      id: `req-${Date.now()}`,
+      companyId: state.profile.profileId,
+      companyName: state.profile.companyName,
+      status: "pending"
+    });
+    saveMentorLocalData(candidate.userId, localData);
+
+    setInviteEmail("");
+    setMentorActionState({ status: "success", error: "", success: `Приглашение для ${candidate.name || email} успешно отправлено!` });
+    setReloadKey(prev => prev + 1);
+  };
+
+  const handleUnlinkMentor = (mentorUserId) => {
+    const localData = getMentorLocalData(mentorUserId);
+    localData.companyRequests = (localData.companyRequests || []).filter(r => r.companyId !== state.profile.profileId);
+    saveMentorLocalData(mentorUserId, localData);
+
+    setMentorActionState({ status: "success", error: "", success: "Специалист отвязан от компании." });
+    setReloadKey(prev => prev + 1);
+  };
+
+  const handleCancelInvite = (mentorUserId) => {
+    const localData = getMentorLocalData(mentorUserId);
+    localData.companyRequests = (localData.companyRequests || []).filter(r => r.companyId !== state.profile.profileId);
+    saveMentorLocalData(mentorUserId, localData);
+
+    setMentorActionState({ status: "success", error: "", success: "Приглашение отменено." });
+    setReloadKey(prev => prev + 1);
+  };
 
   function handleProfileChange(field, value) {
     setProfileDraft((current) => ({ ...current, [field]: value }));
@@ -376,29 +517,50 @@ export function CompanyDashboardApp() {
       return;
     }
 
+    if (opportunityDraft.opportunityType === "mentoring") {
+      if (!opportunityDraft.duration || !opportunityDraft.duration.trim()) {
+        setOpportunitySave({ status: "error", error: "Укажите длительность программы." });
+        return;
+      }
+      if (!opportunityDraft.meetingFrequency || !opportunityDraft.meetingFrequency.trim()) {
+        setOpportunitySave({ status: "error", error: "Укажите частоту встреч." });
+        return;
+      }
+      if (!opportunityDraft.seatsCount) {
+        setOpportunitySave({ status: "error", error: "Укажите количество мест." });
+        return;
+      }
+    }
+
     const tags = parseTags(opportunityDraft.tags);
     setOpportunitySave({ status: "saving", error: "" });
 
     try {
+      const contactsArray = [];
+      if (opportunityDraft.mentorUserId) {
+        contactsArray.push({ type: "mentorUserId", value: String(opportunityDraft.mentorUserId) });
+      }
+
+      const payload = {
+        title: opportunityDraft.title.trim(),
+        description: opportunityDraft.description.trim(),
+        locationCity: opportunityDraft.locationCity.trim() || null,
+        locationAddress: opportunityDraft.locationAddress.trim() || null,
+        opportunityType: opportunityDraft.opportunityType,
+        tags,
+        duration: opportunityDraft.opportunityType === "mentoring" ? opportunityDraft.duration.trim() : null,
+        meetingFrequency: opportunityDraft.opportunityType === "mentoring" ? opportunityDraft.meetingFrequency.trim() : null,
+        seatsCount: opportunityDraft.opportunityType === "mentoring" && opportunityDraft.seatsCount ? Number(opportunityDraft.seatsCount) : null,
+        contactsJson: contactsArray.length ? JSON.stringify(contactsArray) : null,
+      };
+
       if (opportunityDraft.id) {
         await updateOpportunity(opportunityDraft.id, {
           id: opportunityDraft.id,
-          title: opportunityDraft.title.trim(),
-          description: opportunityDraft.description.trim(),
-          locationCity: opportunityDraft.locationCity.trim() || null,
-          locationAddress: opportunityDraft.locationAddress.trim() || null,
-          opportunityType: opportunityDraft.opportunityType,
-          tags,
+          ...payload
         });
       } else {
-        await createOpportunity({
-          title: opportunityDraft.title.trim(),
-          description: opportunityDraft.description.trim(),
-          locationCity: opportunityDraft.locationCity.trim() || null,
-          locationAddress: opportunityDraft.locationAddress.trim() || null,
-          opportunityType: opportunityDraft.opportunityType,
-          tags,
-        });
+        await createOpportunity(payload);
       }
 
       resetOpportunityForm();
@@ -644,6 +806,38 @@ export function CompanyDashboardApp() {
                       <Input value={opportunityDraft.tags} onValueChange={(value) => handleOpportunityField("tags", value)} />
                     </FormField>
 
+                    {opportunityDraft.opportunityType === "mentoring" ? (
+                      <div className="company-dashboard-stack" style={{ gap: "16px", marginTop: "8px", padding: "16px", background: "rgba(0, 0, 0, 0.02)", borderRadius: "8px", border: "1px solid rgba(0, 0, 0, 0.05)" }}>
+                        <h4 className="ui-type-h4" style={{ margin: 0 }}>Настройки менторской программы</h4>
+                        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                          <FormField label="Длительность программы" required>
+                            <Input value={opportunityDraft.duration} onValueChange={(value) => handleOpportunityField("duration", value)} placeholder="Например, 1 месяц" />
+                          </FormField>
+                          <FormField label="Частота встреч" required>
+                            <Input value={opportunityDraft.meetingFrequency} onValueChange={(value) => handleOpportunityField("meetingFrequency", value)} placeholder="Например, 2 раза в неделю" />
+                          </FormField>
+                        </div>
+                        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+                          <FormField label="Количество мест" required>
+                            <Input type="number" value={opportunityDraft.seatsCount} onValueChange={(value) => handleOpportunityField("seatsCount", value)} placeholder="Например, 5" />
+                          </FormField>
+                          {false && (
+                            <FormField label="Ментор-куратор">
+                              <Select
+                                value={opportunityDraft.mentorUserId ? String(opportunityDraft.mentorUserId) : ""}
+                                onValueChange={(value) => handleOpportunityField("mentorUserId", value)}
+                                placeholder="Выберите ментора"
+                                options={[
+                                  { value: "", label: "Без ментора / Не выбран" },
+                                  ...companyMentors.map((m) => ({ value: String(m.userId), label: m.name })),
+                                ]}
+                              />
+                            </FormField>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="company-dashboard-panel__actions">
                       <Button type="submit" disabled={opportunitySave.status === "saving"}>
                         {opportunitySave.status === "saving"
@@ -708,6 +902,107 @@ export function CompanyDashboardApp() {
                   )}
                 </Card>
               </section>
+
+              {false && (
+                <Card className="company-dashboard-panel company-dashboard-panel--mentors">
+                  <SectionHeader
+                    eyebrow="Менторство"
+                    title="Менторы компании"
+                    description="Связывайте внешних специалистов с вашей компанией и управляйте их списком."
+                    size="md"
+                  />
+
+                  {mentorActionState.success ? (
+                    <Alert tone="success" title="Успешно" showIcon style={{ marginBottom: "16px" }}>
+                      {mentorActionState.success}
+                    </Alert>
+                  ) : null}
+
+                  {mentorActionState.error ? (
+                    <Alert tone="error" title="Ошибка" showIcon style={{ marginBottom: "16px" }}>
+                      {mentorActionState.error}
+                    </Alert>
+                  ) : null}
+
+                  <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two" style={{ gap: "24px", marginBottom: "24px" }}>
+                    <div>
+                      <h4 className="ui-type-h3" style={{ marginBottom: "12px" }}>Пригласить специалиста</h4>
+                      <form onSubmit={handleInviteMentor} className="company-dashboard-stack" style={{ gap: "12px" }}>
+                        <FormField label="Email специалиста" required>
+                          <Input
+                            value={inviteEmail}
+                            onValueChange={setInviteEmail}
+                            placeholder="mentor@example.com"
+                          />
+                        </FormField>
+                        <Button type="submit" disabled={mentorActionState.status === "loading"}>
+                          {mentorActionState.status === "loading" ? "Отправка..." : "Пригласить ментора"}
+                        </Button>
+                      </form>
+                    </div>
+
+                    <div>
+                      <h4 className="ui-type-h3" style={{ marginBottom: "12px" }}>Действующие менторы</h4>
+                      {companyMentors.length ? (
+                        <div className="company-dashboard-stack" style={{ gap: "12px" }}>
+                          {companyMentors.map(mentor => (
+                            <Card key={mentor.userId} style={{ padding: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <strong>{mentor.name}</strong>
+                                <p className="ui-type-caption" style={{ margin: "2px 0 6px" }}>{mentor.email}</p>
+                                {mentor.links?.mentor?.mentorTopics?.length ? (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                    {mentor.links.mentor.mentorTopics.map(topic => {
+                                      const topicMap = {
+                                        "career-plan": "Карьерный план",
+                                        "resume": "Резюме",
+                                        "strategy": "Стратегия",
+                                        "interview": "Собеседование",
+                                        "burnout": "Выгорание",
+                                      };
+                                      return (
+                                        <Badge key={topic} tone="accent">
+                                          {topicMap[topic] || topic}
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => handleUnlinkMentor(mentor.userId)}>
+                                Отвязать
+                              </Button>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="ui-type-body" style={{ color: "var(--ui-color-txt-secondary)", fontSize: "14px" }}>
+                          У вашей компании пока нет действующих менторов.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {pendingMentorInvites.length ? (
+                    <div style={{ marginTop: "24px" }}>
+                      <h4 className="ui-type-h3" style={{ marginBottom: "12px" }}>Ожидающие приглашения</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+                        {pendingMentorInvites.map(invite => (
+                          <Card key={invite.userId} style={{ padding: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div>
+                              <strong>{invite.name}</strong>
+                              <p className="ui-type-caption" style={{ margin: "2px 0 0" }}>{invite.email}</p>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleCancelInvite(invite.userId)}>
+                              Отменить
+                            </Button>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </Card>
+              )}
 
               <Card className="company-dashboard-panel">
                 <SectionHeader

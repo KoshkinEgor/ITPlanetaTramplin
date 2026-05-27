@@ -88,7 +88,7 @@ describe("CandidateCareerDashboard", () => {
     const topPanel = screen.getByRole("heading", { name: "Твоя карьера" });
     const coursesSection = screen.getByRole("heading", { name: "Курсы по навыкам" });
     const opportunitiesSection = screen.getByRole("heading", { name: "Пройди стажировку и совершенствуй свои навыки" });
-    const mentorsSection = screen.getByRole("heading", { name: "Есть вопросы? Обратись к нашим менторам!" });
+    const mentorsSection = screen.getByRole("heading", { name: "Менторские программы" });
     const networkSection = screen.getByRole("heading", { name: "Активные связи" });
     const suggestionsSection = screen.getByRole("heading", { name: "Люди под ваши отклики" });
 
@@ -113,8 +113,8 @@ describe("CandidateCareerDashboard", () => {
     expect(firstCourseLink).toHaveAttribute("rel", "noreferrer");
     expect(opportunitiesSlider).not.toHaveClass("opportunity-block-slider--leading-featured");
 
-    expect(screen.getByRole("link", { name: "Все менторы →" })).toHaveAttribute("href", "/opportunities?type=mentoring");
-    expect(screen.getAllByRole("link", { name: "Смотреть программы" })[0]).toHaveAttribute("href", "/opportunities?type=mentoring");
+    expect(screen.getByRole("link", { name: "Все программы →" })).toHaveAttribute("href", "/opportunities?type=mentoring");
+    expect(screen.getAllByRole("link", { name: "Подробнее" })[0]).toBeInTheDocument();
     expect(screen.queryByText("Менторы скоро появятся")).not.toBeInTheDocument();
 
     expect(isBefore(careerTitle, coursesSection)).toBe(true);

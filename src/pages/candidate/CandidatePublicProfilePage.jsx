@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { startChat } from "../../api/chats";
+import { getOpportunities, applyToOpportunity } from "../../api/opportunities";
 import {
   acceptCandidateFriendRequest,
   acceptCandidateProjectInvite,
@@ -782,6 +783,33 @@ function getRelationshipStatusTags(relationship, { isSelfPublicView, isPreviewMo
     return items.length ? items : [{ label: "Связь еще не установлена", tone: "neutral" }];
 }
 
+const MOCK_DB_KEY = "tramplin_mentor_mock_db";
+
+function getMentorLocalData(mentorUserId) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    return db[mentorUserId] || { slots: [], bookings: [], applications: [] };
+  } catch {
+    return { slots: [], bookings: [], applications: [] };
+  }
+}
+
+function saveMentorLocalData(mentorUserId, data) {
+  try {
+    const db = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || "{}");
+    db[mentorUserId] = data;
+    localStorage.setItem(MOCK_DB_KEY, JSON.stringify(db));
+  } catch { /* ignore */ }
+}
+
+const TOPIC_LABELS = {
+  "career-plan": "Карьерный план",
+  "resume": "Резюме",
+  "strategy": "Стратегия",
+  "interview": "Собеседование",
+  "burnout": "Выгорание",
+};
+
 export function CandidatePublicProfilePage() {
   useBodyClass("candidate-portal-react-body");
 
@@ -807,6 +835,16 @@ export function CandidatePublicProfilePage() {
     items: [],
     error: ""
   });
+
+  /* ── Mentor interaction state ── */
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [bookingSlot, setBookingSlot] = useState(null);
+  const [bookingTopic, setBookingTopic] = useState("");
+  const [bookingComment, setBookingComment] = useState("");
+  const [programModalOpen, setProgramModalOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState(null);
+  const [programMessage, setProgramMessage] = useState("");
+  const [mentorPrograms, setMentorPrograms] = useState([]);
 
   useEffect(() => {
     setFeedback(null);
@@ -914,9 +952,175 @@ export function CandidatePublicProfilePage() {
   relationship.projectInviteState !== "accepted" &&
   canInviteCandidateToProject(relationship);
 
+  /* ── Mentor data extraction ── */
+  const mentorData = useMemo(() => {
+    const links = getCandidateProfileLinks(profile);
+    const mentor = isRecord(links.mentor) ? links.mentor : null;
+    if (!mentor || !mentor.isMentor) return null;
+    return {
+      isMentor: true,
+      isApproved: mentor.moderationStatus === "approved",
+      mentorBio: normalizeString(mentor.mentorBio),
+      mentorTopics: Array.isArray(mentor.mentorTopics) ? mentor.mentorTopics : [],
+      companyType: normalizeString(mentor.companyType) || "freelance",
+      mentorCompanyName: normalizeString(mentor.mentorCompanyName),
+      mentorCustomCompany: normalizeString(mentor.mentorCustomCompany),
+      mentorSlots: Array.isArray(mentor.mentorSlots) ? mentor.mentorSlots : [],
+    };
+  }, [profile]);
+
+  const isMentorProfile = false; // Скрыто из интерфейса по требованию заказчика
+
+  /* Load mentoring programs for this mentor */
+  useEffect(() => {
+    if (!isMentorProfile || !publicUserId) {
+      setMentorPrograms([]);
+      return;
+    }
+    let cancelled = false;
+    async function loadPrograms() {
+      try {
+        const opportunities = await getOpportunities();
+        const filtered = (Array.isArray(opportunities) ? opportunities : [])
+          .filter((opp) => {
+            if (opp.opportunityType !== "mentoring") return false;
+            let mId = opp.mentorUserId;
+            if (!mId && opp.contactsJson) {
+              try {
+                const contacts = JSON.parse(opp.contactsJson);
+                const found = Array.isArray(contacts) ? contacts.find(c => c.type === "mentorUserId") : null;
+                if (found) mId = found.value;
+              } catch {}
+            }
+            if (!mId && Array.isArray(opp.contacts)) {
+              const found = opp.contacts.find(c => c.type === "mentorUserId");
+              if (found) mId = found.value;
+            }
+            return String(mId) === String(publicUserId);
+          });
+        if (!cancelled) setMentorPrograms(filtered);
+      } catch {
+        if (!cancelled) setMentorPrograms([]);
+      }
+    }
+    loadPrograms();
+    return () => { cancelled = true; };
+  }, [isMentorProfile, publicUserId]);
+
+  /* ── Available slots (filter out booked) ── */
+  const availableSlots = useMemo(() => {
+    if (!mentorData) return [];
+    const localData = publicUserId ? getMentorLocalData(publicUserId) : { bookings: [] };
+    const bookedSlotIds = new Set(
+      (localData.bookings || [])
+        .filter((b) => b.status === "pending" || b.status === "booked")
+        .map((b) => b.slotId)
+    );
+    return mentorData.mentorSlots
+      .filter((slot) => slot.status === "free" && !bookedSlotIds.has(slot.id))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [mentorData, publicUserId]);
+
+  const mentorDisplayCompany = useMemo(() => {
+    if (!mentorData) return "";
+    return mentorData.companyType === "company"
+      ? (mentorData.mentorCompanyName || "Компания")
+      : (mentorData.mentorCustomCompany || "Частная практика");
+  }, [mentorData]);
+
   async function refreshPublicProfile() {
     if (publicUserId) {
       setReloadKey((current) => current + 1);
+    }
+  }
+
+  /* ── Mentor booking handlers ── */
+  function handleOpenBookingModal(slot) {
+    setBookingSlot(slot);
+    setBookingTopic(mentorData?.mentorTopics?.[0] || "");
+    setBookingComment("");
+    setBookingModalOpen(true);
+  }
+
+  async function handleBookingSubmit(event) {
+    event.preventDefault();
+    if (!publicUserId || !bookingSlot || busyAction) return;
+    try {
+      setBusyAction("booking");
+      const localData = getMentorLocalData(publicUserId);
+      const newBooking = {
+        id: `booking-${Date.now()}`,
+        slotId: bookingSlot.id,
+        candidateUserId: authUser?.id || "anonymous",
+        candidateName: authUser?.name || "Кандидат",
+        topic: bookingTopic,
+        comment: bookingComment,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      localData.bookings = [...(localData.bookings || []), newBooking];
+      saveMentorLocalData(publicUserId, localData);
+      setBookingModalOpen(false);
+      setBookingSlot(null);
+      setFeedback({
+        status: "success",
+        title: "Запись отправлена",
+        message: "Ментор получит уведомление о вашей записи на консультацию.",
+      });
+    } catch (error) {
+      setFeedback({
+        status: "error",
+        title: "Не удалось записаться",
+        message: error?.message ?? "Попробуйте ещё раз.",
+      });
+    } finally {
+      setBusyAction("");
+    }
+  }
+
+  function handleOpenProgramModal(program) {
+    setSelectedProgram(program);
+    setProgramMessage("");
+    setProgramModalOpen(true);
+  }
+
+  async function handleProgramApply(event) {
+    event.preventDefault();
+    if (!publicUserId || !selectedProgram || busyAction) return;
+    try {
+      setBusyAction("program-apply");
+      try {
+        await applyToOpportunity(selectedProgram.id, { message: programMessage });
+      } catch {
+        const localData = getMentorLocalData(publicUserId);
+        const newApp = {
+          id: `app-${Date.now()}`,
+          programId: selectedProgram.id,
+          programTitle: selectedProgram.title,
+          candidateUserId: authUser?.id || "anonymous",
+          candidateName: authUser?.name || "Кандидат",
+          message: programMessage,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        };
+        localData.applications = [...(localData.applications || []), newApp];
+        saveMentorLocalData(publicUserId, localData);
+      }
+      setProgramModalOpen(false);
+      setSelectedProgram(null);
+      setFeedback({
+        status: "success",
+        title: "Заявка отправлена",
+        message: `Вы подали заявку на программу «${selectedProgram.title}».`,
+      });
+    } catch (error) {
+      setFeedback({
+        status: "error",
+        title: "Не удалось подать заявку",
+        message: error?.message ?? "Попробуйте ещё раз.",
+      });
+    } finally {
+      setBusyAction("");
     }
   }
 
@@ -1573,8 +1777,8 @@ export function CandidatePublicProfilePage() {
         
 
         <div className="candidate-public-profile__content">
-          <Card className="candidate-public-profile__hero">
-            <div className="candidate-public-profile__hero-cover" />
+          <Card className={["candidate-public-profile__hero", isMentorProfile && "candidate-public-profile__hero--mentor"].filter(Boolean).join(" ")}>
+            <div className={["candidate-public-profile__hero-cover", isMentorProfile && "candidate-public-profile__hero-cover--mentor"].filter(Boolean).join(" ")} />
 
             <div className="candidate-public-profile__hero-body">
               <Avatar
@@ -1583,14 +1787,23 @@ export function CandidatePublicProfilePage() {
                 initials={getCandidateInitials(profile)}
                 size="xl"
                 shape="rounded"
-                tone="neutral"
-                className="candidate-public-profile__avatar" />
-              
+                tone={isMentorProfile ? "accent" : "neutral"}
+                className={["candidate-public-profile__avatar", isMentorProfile && "candidate-public-profile__avatar--mentor"].filter(Boolean).join(" ")} />
 
               <div className="candidate-public-profile__hero-main">
                 <div className="candidate-public-profile__hero-badges">
-                  <Tag tone="neutral">Не в сети</Tag>
-                  <Tag tone={isSelfPublicView ? "neutral" : getStatusTag(relationship).tone}>{isSelfPublicView ? "Ваш профиль" : getStatusTag(relationship).label}</Tag>
+                  {isMentorProfile ? (
+                    <>
+                      <Tag tone="accent">✦ Ментор</Tag>
+                      {mentorData.isApproved ? <Tag tone="success">Верифицирован</Tag> : <Tag tone="warning">На модерации</Tag>}
+                      <Tag tone="neutral">{mentorDisplayCompany}</Tag>
+                    </>
+                  ) : (
+                    <>
+                      <Tag tone="neutral">Не в сети</Tag>
+                      <Tag tone={isSelfPublicView ? "neutral" : getStatusTag(relationship).tone}>{isSelfPublicView ? "Ваш профиль" : getStatusTag(relationship).label}</Tag>
+                    </>
+                  )}
                 </div>
 
                 <div className="candidate-public-profile__hero-copy">
@@ -1598,25 +1811,27 @@ export function CandidatePublicProfilePage() {
                   {meta ? <p className="ui-type-body-lg candidate-public-profile__meta">{meta}</p> : null}
                 </div>
 
-                {goal ?
-                <p className="ui-type-body candidate-public-profile__goal">
-                    <strong>Цель:</strong> {goal}
-                  </p> :
-                null}
+                {isMentorProfile && mentorData.mentorBio ? (
+                  <p className="ui-type-body candidate-public-profile__description candidate-public-profile__mentor-bio">{mentorData.mentorBio}</p>
+                ) : goal ? (
+                  <p className="ui-type-body candidate-public-profile__goal"><strong>Цель:</strong> {goal}</p>
+                ) : null}
 
-                {normalizeString(profile?.description) ?
+                {normalizeString(profile?.description) && !isMentorProfile ?
                 <p className="ui-type-body candidate-public-profile__description">{normalizeString(profile.description)}</p> :
                 null}
 
-                {skills.length ?
-                <div className="candidate-public-profile__skills" aria-label="Навыки кандидата">
-                    {skills.map((skill) =>
-                  <Tag key={skill} tone="accent">
-                        {skill}
-                      </Tag>
-                  )}
-                  </div> :
-                null}
+                {isMentorProfile && mentorData.mentorTopics.length ? (
+                  <div className="candidate-public-profile__skills candidate-public-profile__mentor-topics" aria-label="Направления менторства">
+                    {mentorData.mentorTopics.map((topic) => (
+                      <Tag key={topic} tone="accent" variant="soft">{TOPIC_LABELS[topic] || topic}</Tag>
+                    ))}
+                  </div>
+                ) : skills.length ? (
+                  <div className="candidate-public-profile__skills" aria-label="Навыки кандидата">
+                    {skills.map((skill) => <Tag key={skill} tone="accent">{skill}</Tag>)}
+                  </div>
+                ) : null}
 
               </div>
 
@@ -1627,11 +1842,89 @@ export function CandidatePublicProfilePage() {
                     {feedback.message}
                   </Alert> :
                 null}
+
+                {/* Mentor quick-question button (Level B) */}
+                {isMentorProfile && !isSelfPublicView && state.mode === "public" ? (
+                  <Button
+                    size="lg"
+                    variant="primary"
+                    width="full"
+                    loading={busyAction === "chat"}
+                    onClick={handleStartChat}
+                    className="candidate-public-profile__mentor-quick-question"
+                  >
+                    💬 Задать вопрос ментору
+                  </Button>
+                ) : null}
+
                 {renderSocialLinks()}
                 {renderProfileActionButtons()}
               </div>
             </div>
           </Card>
+
+          {/* ── Mentor Slots (Level Б) ── */}
+          {isMentorProfile && availableSlots.length ? (
+            <Card className="candidate-public-profile__panel candidate-public-profile__mentor-slots-panel" id="mentor-slots">
+              <CandidateSectionHeader
+                eyebrow="Менторство"
+                title="Запись на консультацию"
+                description="Выберите удобный слот и запишитесь на разовую встречу с ментором." />
+              <div className="mentor-slots-grid">
+                {availableSlots.map((slot) => {
+                  const slotDate = new Date(slot.date);
+                  const dayLabel = slotDate.toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "short" });
+                  const timeLabel = normalizeString(slot.time) || slotDate.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      className="mentor-slot-btn"
+                      onClick={() => handleOpenBookingModal(slot)}
+                      disabled={isSelfPublicView}
+                    >
+                      <span className="mentor-slot-btn__date">{dayLabel}</span>
+                      <span className="mentor-slot-btn__time">{timeLabel}</span>
+                      <span className="mentor-slot-btn__action">Записаться</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          ) : null}
+
+          {/* ── Mentor Programs (Level A) ── */}
+          {isMentorProfile && mentorPrograms.length ? (
+            <Card className="candidate-public-profile__panel candidate-public-profile__mentor-programs-panel" id="mentor-programs">
+              <CandidateSectionHeader
+                eyebrow="Программы"
+                title="Менторские программы"
+                description="Долгосрочные программы под руководством ментора. Подайте заявку, чтобы начать обучение." />
+              <div className="mentor-programs-grid">
+                {mentorPrograms.map((program) => (
+                  <Card key={program.id} className="mentor-program-card">
+                    <div className="mentor-program-card__header">
+                      <h3>{normalizeString(program.title) || "Программа менторства"}</h3>
+                      <Tag tone="accent" size="sm">{normalizeString(program.duration) || "Индивидуально"}</Tag>
+                    </div>
+                    <p className="mentor-program-card__desc">{normalizeString(program.description) || "Описание программы будет добавлено ментором."}</p>
+                    <div className="mentor-program-card__meta">
+                      {program.maxParticipants ? <span>👥 Мест: {program.maxParticipants}</span> : null}
+                      {program.price ? <span>💰 {program.price}</span> : <span>Бесплатно</span>}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      width="full"
+                      onClick={() => handleOpenProgramModal(program)}
+                      disabled={isSelfPublicView}
+                    >
+                      Подать заявку
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            </Card>
+          ) : null}
 
           <Card className="candidate-public-profile__panel" id="resume">
             <CandidateSectionHeader
@@ -1643,7 +1936,6 @@ export function CandidatePublicProfilePage() {
                   Скачать резюме
                 </Button> :
               null} />
-            
 
             {renderPublicResumeCards()}
           </Card>
@@ -1652,7 +1944,7 @@ export function CandidatePublicProfilePage() {
             <CandidateSectionHeader
               title="Портфолио"
               description="Изучите проекты пользователя и роли, в которых он работал." />
-            
+
             {renderProjectsContent()}
           </section>
         </div>
@@ -1779,6 +2071,60 @@ export function CandidatePublicProfilePage() {
 
         null}
       </Modal>
+
+      {/* ── Booking Modal (Level Б) ── */}
+      <Modal
+        open={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+        title="Запись на консультацию"
+        description={bookingSlot ? `Слот: ${new Date(bookingSlot.date).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })} · ${normalizeString(bookingSlot.time) || new Date(bookingSlot.date).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}` : ""}
+        actions={
+        <>
+            <Button variant="secondary" onClick={() => setBookingModalOpen(false)}>Отменить</Button>
+            <Button type="submit" form="mentor-booking-form" loading={busyAction === "booking"}>Записаться</Button>
+          </>
+        }>
+        <form id="mentor-booking-form" className="candidate-public-profile__invite-form" onSubmit={handleBookingSubmit}>
+          <FormField label="Тема консультации">
+            <Select
+              value={bookingTopic}
+              onValueChange={setBookingTopic}
+              options={(mentorData?.mentorTopics || []).map((topic) => ({ value: topic, label: TOPIC_LABELS[topic] || topic }))}
+              placeholder="Выберите тему" />
+          </FormField>
+          <FormField label="Комментарий">
+            <Textarea
+              value={bookingComment}
+              onValueChange={setBookingComment}
+              placeholder="Коротко опишите, что хотите обсудить с ментором."
+              autoResize />
+          </FormField>
+        </form>
+      </Modal>
+
+      {/* ── Program Application Modal (Level A) ── */}
+      <Modal
+        open={programModalOpen}
+        onClose={() => setProgramModalOpen(false)}
+        title={`Заявка на «${selectedProgram?.title || "Программу"}»`}
+        description="Ментор рассмотрит вашу заявку и свяжется с вами."
+        actions={
+        <>
+            <Button variant="secondary" onClick={() => setProgramModalOpen(false)}>Отменить</Button>
+            <Button type="submit" form="mentor-program-form" loading={busyAction === "program-apply"}>Подать заявку</Button>
+          </>
+        }>
+        <form id="mentor-program-form" className="candidate-public-profile__invite-form" onSubmit={handleProgramApply}>
+          <FormField label="Мотивационное письмо">
+            <Textarea
+              value={programMessage}
+              onValueChange={setProgramMessage}
+              placeholder="Расскажите, почему вы хотите участвовать в этой программе."
+              autoResize />
+          </FormField>
+        </form>
+      </Modal>
+
     </main>);
 
 }

@@ -34,6 +34,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         var links = ParseJsonObject(profile.Links);
         var onboarding = GetObjectNode(links, "onboarding");
         var resumes = GetArrayNode(links, "resumes");
+        var mentor = GetObjectNode(links, "mentor");
         var rawSocialLinks = ExtractVisibleSocialLinks(links);
         var projectsVisibility = GetNestedString(links, "preferences", "visibility", "projectsVisibility");
         var contactsAudience = GetNestedString(links, "preferences", "audience", "contactsAudience");
@@ -59,7 +60,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             Thirdname = profile.Thirdname,
             Description = profile.Description,
             Skills = profile.Skills,
-            Links = BuildPublicLinksPayload(onboarding, visibleResumes),
+            Links = BuildPublicLinksPayload(onboarding, visibleResumes, mentor),
             SocialLinks = visibleSocialLinks,
             Education = BuildPublicEducationPayload(profile, onboarding),
             HasProjects = totalPortfolioProjects > 0,
@@ -546,6 +547,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             City = ExtractCandidateCity(user.ApplicantProfile?.Links),
             Skills = user.ApplicantProfile?.Skills,
             Relationship = await BuildRelationshipSummaryAsync(db, currentUserId, targetUserId),
+            Links = AuthEndpointSupport.TryParseJsonValue(user.ApplicantProfile?.Links),
         };
     }
 
@@ -741,12 +743,13 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         return visible;
     }
 
-    private static object? BuildPublicLinksPayload(JsonObject? onboarding, List<object> resumes)
+    private static object? BuildPublicLinksPayload(JsonObject? onboarding, List<object> resumes, JsonObject? mentor)
     {
         return new
         {
             onboarding = onboarding is null ? null : JsonSerializer.Deserialize<object>(onboarding.ToJsonString()),
             resumes,
+            mentor = mentor is null ? null : JsonSerializer.Deserialize<object>(mentor.ToJsonString()),
         };
     }
 

@@ -53,6 +53,115 @@ internal static class DevelopmentDataSeeder
             ["Figma", "UX research", "Prototyping", "Design systems"],
             """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova"}""",
             CandidateModerationStatuses.Approved),
+        new(
+            "maria.sokolova@tramplin.local",
+            "Mentor1234",
+            "Maria",
+            "Sokolova",
+            null,
+            "Сертифицированный карьерный консультант, эксперт по трудоустройству топ-менеджеров.",
+            ["Career plan", "Strategy", "Resume"],
+            """
+            {
+              "portfolio": "https://maria.tramplin.local",
+              "telegram": "https://t.me/mariasokolova",
+              "mentor": {
+                "isMentor": true,
+                "companyType": "freelance",
+                "mentorCustomCompany": "Частная практика",
+                "mentorBio": "Помогу составить карьерную стратегию, провести аудит резюме и подготовиться к сложным интервью.",
+                "mentorTopics": ["career-plan", "strategy", "resume"],
+                "mentorSlots": [
+                  {"id": "ms-slot-1", "date": "2026-06-05T10:00:00.000Z", "time": "10:00", "status": "free"},
+                  {"id": "ms-slot-2", "date": "2026-06-06T14:00:00.000Z", "time": "14:00", "status": "free"},
+                  {"id": "ms-slot-3", "date": "2026-06-08T16:30:00.000Z", "time": "16:30", "status": "free"}
+                ],
+                "moderationStatus": "approved"
+              }
+            }
+            """,
+            CandidateModerationStatuses.Approved),
+        new(
+            "julia.dmitrieva@tramplin.local",
+            "Mentor1234",
+            "Julia",
+            "Dmitrieva",
+            null,
+            "Помогает настроить карьерный фокус, резюме и уверенно пройти интервью.",
+            ["Career plan", "Interview", "Strategy"],
+            """
+            {
+              "portfolio": "https://julia.tramplin.local",
+              "telegram": "https://t.me/juliadmitrieva",
+              "mentor": {
+                "isMentor": true,
+                "companyType": "freelance",
+                "mentorCustomCompany": "Частная практика",
+                "mentorBio": "Опыт в HR более 8 лет. Специализируюсь на подготовке к собеседованиям в IT компании.",
+                "mentorTopics": ["career-plan", "interview", "strategy"],
+                "mentorSlots": [
+                  {"id": "jd-slot-1", "date": "2026-06-05T12:00:00.000Z", "time": "12:00", "status": "free"},
+                  {"id": "jd-slot-2", "date": "2026-06-06T15:00:00.000Z", "time": "15:00", "status": "free"}
+                ],
+                "moderationStatus": "approved"
+              }
+            }
+            """,
+            CandidateModerationStatuses.Approved),
+        new(
+            "veronica.alekseeva@tramplin.local",
+            "Mentor1234",
+            "Veronica",
+            "Alekseeva",
+            null,
+            "Senior Product Designer в Яндекс. 5 лет в UX/UI-дизайне, IT-рекрутинге и продуктовых командах.",
+            ["Resume", "Interview", "Career plan"],
+            """
+            {
+              "portfolio": "https://veronica.tramplin.local",
+              "telegram": "https://t.me/veronica_design",
+              "mentor": {
+                "isMentor": true,
+                "companyType": "company",
+                "mentorCompanyName": "Yandex",
+                "mentorBio": "Senior Product Designer в Яндекс. Провожу портфолио-ревью, учу проектированию интерфейсов.",
+                "mentorTopics": ["resume", "interview", "career-plan"],
+                "mentorSlots": [
+                  {"id": "va-slot-1", "date": "2026-06-05T11:00:00.000Z", "time": "11:00", "status": "free"},
+                  {"id": "va-slot-2", "date": "2026-06-07T18:00:00.000Z", "time": "18:00", "status": "free"}
+                ],
+                "moderationStatus": "approved"
+              }
+            }
+            """,
+            CandidateModerationStatuses.Approved),
+        new(
+            "andrey.fadeev@tramplin.local",
+            "Mentor1234",
+            "Andrey",
+            "Fadeev",
+            null,
+            "Тимлид аналитики. Помогает собрать стратегию роста, усилить портфолио и не выгореть на длинной дистанции.",
+            ["Strategy", "Career plan", "Burnout"],
+            """
+            {
+              "portfolio": "https://andrey.tramplin.local",
+              "telegram": "https://t.me/andrey_analytics",
+              "mentor": {
+                "isMentor": true,
+                "companyType": "freelance",
+                "mentorCustomCompany": "Частная практика",
+                "mentorBio": "Тимлид аналитики. Помогает собрать стратегию роста, усилить портфолио и не выгореть на длинной дистанции.",
+                "mentorTopics": ["strategy", "career-plan", "burnout"],
+                "mentorSlots": [
+                  {"id": "af-slot-1", "date": "2026-06-05T15:00:00.000Z", "time": "15:00", "status": "free"},
+                  {"id": "af-slot-2", "date": "2026-06-08T11:30:00.000Z", "time": "11:30", "status": "free"}
+                ],
+                "moderationStatus": "approved"
+              }
+            }
+            """,
+            CandidateModerationStatuses.Approved),
     ];
 
     private static readonly SeedCompany[] SeedCompanies =

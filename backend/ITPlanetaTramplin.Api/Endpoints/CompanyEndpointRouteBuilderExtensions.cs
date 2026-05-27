@@ -23,6 +23,7 @@ internal static class CompanyEndpointRouteBuilderExtensions
             .RequireAuthorization("requireCompanyRole");
         api.MapGet("/company/me/verification-document", GetCompanyVerificationDocumentAsync).RequireAuthorization("requireCompanyRole");
         api.MapGet("/company/me/opportunities", GetCurrentCompanyOpportunitiesAsync).RequireAuthorization("requireCompanyRole");
+        api.MapGet("/company/me/directory", GetCompanyGlobalDirectoryAsync).RequireAuthorization("requireCompanyRole");
 
         api.MapGet("/companies/{companyId:int}", GetPublicCompanyByIdAsync);
         api.MapGet("/companies/{companyId:int}/opportunities", GetPublicCompanyOpportunitiesByIdAsync);
@@ -513,6 +514,40 @@ internal static class CompanyEndpointRouteBuilderExtensions
         }
 
         return storage.Validate(request.Document);
+    }
+
+    private static async Task<IResult> GetCompanyGlobalDirectoryAsync(HttpContext context, ApplicationDBContext db)
+    {
+        var currentUserId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var users = await db.Users
+            .AsNoTracking()
+            .Include(item => item.ApplicantProfile)
+            .Where(item => item.ApplicantProfile != null)
+            .OrderBy(item => item.ApplicantProfile!.Name)
+            .ThenBy(item => item.ApplicantProfile!.Surname)
+            .ThenBy(item => item.Email)
+            .ToListAsync();
+
+        var result = new List<object>();
+        foreach (var user in users)
+        {
+            var profile = user.ApplicantProfile!;
+            result.Add(new
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Name = AuthEndpointSupport.BuildDisplayName(user, PublicRoles.Candidate) ?? user.Email,
+                Skills = profile.Skills,
+                Links = AuthEndpointSupport.TryParseJsonValue(profile.Links)
+            });
+        }
+
+        return Results.Ok(result);
     }
 
     private static string NormalizeComparableText(string? value) =>

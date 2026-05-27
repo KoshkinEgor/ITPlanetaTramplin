@@ -610,7 +610,47 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
 
         if (request.Links is not null)
         {
-            profile.Links = JsonSerializer.Serialize(request.Links);
+            var rawLinks = JsonSerializer.Serialize(request.Links);
+            bool wasMentor = false;
+            if (!string.IsNullOrEmpty(profile.Links))
+            {
+                try
+                {
+                    var oldDoc = System.Text.Json.Nodes.JsonNode.Parse(profile.Links)?.AsObject();
+                    if (oldDoc is not null && oldDoc.TryGetPropertyValue("mentor", out var oldMentorNode) && oldMentorNode is System.Text.Json.Nodes.JsonObject oldMentorObj)
+                    {
+                        wasMentor = oldMentorObj["isMentor"]?.GetValue<bool>() == true;
+                    }
+                }
+                catch {}
+            }
+
+            try
+            {
+                var newDoc = System.Text.Json.Nodes.JsonNode.Parse(rawLinks)?.AsObject();
+                if (newDoc is not null && newDoc.TryGetPropertyValue("mentor", out var newMentorNode) && newMentorNode is System.Text.Json.Nodes.JsonObject newMentorObj)
+                {
+                    bool isMentor = newMentorObj["isMentor"]?.GetValue<bool>() == true;
+                    if (isMentor && !wasMentor)
+                    {
+                        profile.ModerationStatus = "pending";
+                        newMentorObj["moderationStatus"] = "pending";
+                    }
+                    else if (!isMentor)
+                    {
+                        newMentorObj["moderationStatus"] = "pending";
+                    }
+                    else
+                    {
+                        newMentorObj["moderationStatus"] = newMentorObj["moderationStatus"]?.GetValue<string?>() ?? profile.ModerationStatus;
+                    }
+                }
+                profile.Links = newDoc?.ToJsonString() ?? rawLinks;
+            }
+            catch
+            {
+                profile.Links = rawLinks;
+            }
         }
     }
 

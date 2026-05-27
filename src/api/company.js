@@ -4,6 +4,10 @@ export function getCompanyProfile(signal) {
   return apiRequest("/company/me", { signal });
 }
 
+export function getCompanyDirectory(signal) {
+  return apiRequest("/company/me/directory", { signal });
+}
+
 export function updateCompanyProfile(body) {
   return apiRequest("/company/me", {
     method: "PUT",
