@@ -1,4 +1,4 @@
-﻿using Application.DBContext;
+using Application.DBContext;
 using DTO;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
@@ -28,6 +28,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         api.MapPost("/opportunities/applications", CreateOpportunityApplicationAsync).RequireAuthorization("requireCandidateRole");
         api.MapGet("/opportunities/{opportunityId:int}/applications", GetOpportunityApplicationsAsync).RequireAuthorization("requireCompanyRole");
         api.MapPut("/opportunities/{opportunityId:int}/applications/{applicationId:int}", UpdateOpportunityApplicationStatusAsync).RequireAuthorization("requireCompanyRole");
+        api.MapPost("/opportunities/{opportunityId:int}/applications/{applicationId:int}/cancel-accepted", CancelAcceptedOpportunityApplicationAsync).RequireAuthorization("requireCompanyRole");
 
         return api;
     }
@@ -292,6 +293,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var opportunities = await db.Opportunities
             .Include(item => item.Employer)
             .Include(item => item.Tags)
+            .Include(item => item.Applications)
             .Where(item => item.DeletedAt == null)
             .ToListAsync();
 
@@ -322,6 +324,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 item.RegistrationDeadline,
                 item.MeetingFrequency,
                 item.SeatsCount,
+                ApplicationsCount = item.Applications.Count,
+                AcceptedApplicationsCount = item.Applications.Count(a => a.Status == OpportunityApplicationStatuses.Accepted),
                 CompanyName = item.Employer.CompanyName,
                 CompanyProfileImage = item.Employer.ProfileImage,
                 Tags = item.Tags.Select(tag => tag.Name).ToList(),
@@ -338,6 +342,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var opportunity = await db.Opportunities
             .Include(item => item.Employer)
             .Include(item => item.Tags)
+            .Include(item => item.Applications)
             .FirstOrDefaultAsync(item => item.Id == id);
 
         if (opportunity is null)
@@ -422,19 +427,32 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 StatusCodes.Status403Forbidden);
         }
 
-        var alreadyExists = await db.Applications.AnyAsync(item => item.ApplicantId == applicant.Id && item.OpportunityId == opportunity.Id);
-        if (alreadyExists)
+        var existingApplication = await db.Applications.FirstOrDefaultAsync(item => item.ApplicantId == applicant.Id && item.OpportunityId == opportunity.Id);
+        if (existingApplication is not null)
         {
-            return Results.Conflict(new MessageResponseDTO { Message = "Отклик уже отправлен." });
+            var normalizedStatus = OpportunityApplicationStatuses.Normalize(existingApplication.Status);
+            if (normalizedStatus == OpportunityApplicationStatuses.Withdrawn || normalizedStatus == OpportunityApplicationStatuses.Rejected)
+            {
+                existingApplication.Status = OpportunityApplicationStatuses.Submitted;
+                existingApplication.EmployerNote = null;
+                existingApplication.AllowPeerVisibility = request.allowPeerVisibility == true;
+                existingApplication.AppliedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                return Results.Conflict(new MessageResponseDTO { Message = "Отклик уже отправлен." });
+            }
         }
-
-        db.Applications.Add(new OpportunityApplication
+        else
         {
-            OpportunityId = opportunity.Id,
-            ApplicantId = applicant.Id,
-            Status = OpportunityApplicationStatuses.Submitted,
-            AllowPeerVisibility = request.allowPeerVisibility == true,
-        });
+            db.Applications.Add(new OpportunityApplication
+            {
+                OpportunityId = opportunity.Id,
+                ApplicantId = applicant.Id,
+                Status = OpportunityApplicationStatuses.Submitted,
+                AllowPeerVisibility = request.allowPeerVisibility == true,
+            });
+        }
 
         await db.SaveChangesAsync();
 
@@ -540,7 +558,22 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         }
 
         var normalizedStatus = OpportunityApplicationStatuses.Normalize(request.Status);
+        if (normalizedStatus == OpportunityApplicationStatuses.Withdrawn)
+        {
+            return AuthEndpointSupport.MessageResult("Работодатель не может перевести отклик в статус 'Отозвано'.", StatusCodes.Status400BadRequest);
+        }
+
         var previousStatus = OpportunityApplicationStatuses.Normalize(application.Status);
+        if (previousStatus == OpportunityApplicationStatuses.Withdrawn)
+        {
+            return AuthEndpointSupport.MessageResult("Нельзя изменить статус отклика, который был отозван кандидатом.", StatusCodes.Status400BadRequest);
+        }
+
+        if (previousStatus == OpportunityApplicationStatuses.Accepted && normalizedStatus != previousStatus)
+        {
+            return AuthEndpointSupport.MessageResult("Нельзя изменить статус уже принятого отклика напрямую. Пожалуйста, отправьте запрос на отмену с указанием причины.", StatusCodes.Status400BadRequest);
+        }
+
         var previousNote = application.EmployerNote;
         application.Status = normalizedStatus;
         application.EmployerNote = string.IsNullOrWhiteSpace(request.EmployerNote) ? null : request.EmployerNote.Trim();
@@ -572,6 +605,123 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             CandidateUserId = application.Applicant.UserId,
             CandidateEmail = application.Applicant.User.Email,
             CandidateName = ((application.Applicant.Name ?? string.Empty) + " " + (application.Applicant.Surname ?? string.Empty) + " " + (application.Applicant.Thirdname ?? string.Empty)).Trim(),
+        });
+    }
+
+    private static async Task<IResult> CancelAcceptedOpportunityApplicationAsync(
+        int opportunityId,
+        int applicationId,
+        [FromBody] OpportunityApplicationCancelDTO request,
+        HttpContext context,
+        ApplicationDBContext db)
+    {
+        var userId = AuthEndpointSupport.GetCurrentUserId(context);
+        if (userId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var employer = await db.EmployerProfiles.FirstOrDefaultAsync(item => item.UserId == userId.Value);
+        if (employer is null)
+        {
+            return Results.NotFound();
+        }
+
+        var application = await db.Applications
+            .Include(item => item.Opportunity)
+            .Include(item => item.Applicant)
+            .ThenInclude(item => item.User)
+            .FirstOrDefaultAsync(item => item.Id == applicationId && item.OpportunityId == opportunityId);
+
+        if (application is null || application.Opportunity.EmployerId != employer.Id)
+        {
+            return Results.NotFound();
+        }
+
+        var previousStatus = OpportunityApplicationStatuses.Normalize(application.Status);
+        if (previousStatus != OpportunityApplicationStatuses.Accepted)
+        {
+            return AuthEndpointSupport.MessageResult("Этот метод предназначен только для отмены уже принятых откликов.", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return AuthEndpointSupport.MessageResult("Укажите причину отмены.", StatusCodes.Status400BadRequest);
+        }
+
+        var reasonText = request.Reason.Trim();
+        var descriptionText = request.Description?.Trim();
+
+        application.Status = OpportunityApplicationStatuses.Rejected;
+        var formattedReason = $"Отменено компанией. Причина: {reasonText}.";
+        if (!string.IsNullOrWhiteSpace(descriptionText))
+        {
+            formattedReason += $" Комментарий: {descriptionText}";
+        }
+        application.EmployerNote = formattedReason;
+
+        var complaint = new Complaint
+        {
+            OpportunityId = opportunityId,
+            ReporterUserId = userId.Value,
+            Reason = "other",
+            Description = $"Отмена принятого отклика №{applicationId} кандидата {BuildCandidateName(application.Applicant)}. Причина: {reasonText}. Подробности: {descriptionText}",
+            Status = "pending",
+        };
+        db.Complaints.Add(complaint);
+
+        await db.SaveChangesAsync();
+
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            application.Applicant.UserId,
+            "application.status_changed",
+            "Принятый отклик отменен",
+            $"Компания отменила ваш принятый отклик на возможность «{application.Opportunity.Title}». Причина: {reasonText}.{(string.IsNullOrWhiteSpace(descriptionText) ? "" : $" Комментарий: {descriptionText}")}",
+            "/candidate/responses",
+            actorUserId: userId.Value,
+            opportunityId: application.OpportunityId,
+            applicationId: application.Id);
+
+        NotificationEndpointRouteBuilderExtensions.CreateNotification(
+            db,
+            userId.Value,
+            "complaint.created",
+            "Отмена отклика отправлена в техподдержку",
+            $"Вы отменили принятый отклик кандидата {BuildCandidateName(application.Applicant)} по причине: {reasonText}. Создан запрос в техподдержку.",
+            $"/company/dashboard/responses",
+            actorUserId: userId.Value,
+            opportunityId: application.OpportunityId,
+            complaintId: complaint.Id);
+
+        var moderatorUserIds = await db.CuratorProfiles.Select(item => item.UserId).ToListAsync();
+        foreach (var moderatorUserId in moderatorUserIds)
+        {
+            NotificationEndpointRouteBuilderExtensions.CreateNotification(
+                db,
+                moderatorUserId,
+                "complaint.created",
+                "Отмена принятого отклика",
+                $"Компания отменила принятый отклик по возможности «{application.Opportunity.Title}». Причина: {reasonText}",
+                "/moderator/complaints",
+                actorUserId: userId.Value,
+                opportunityId: application.OpportunityId,
+                complaintId: complaint.Id);
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            application.Id,
+            application.OpportunityId,
+            application.ApplicantId,
+            application.AppliedAt,
+            Status = application.Status,
+            application.EmployerNote,
+            CandidateUserId = application.Applicant.UserId,
+            CandidateEmail = application.Applicant.User.Email,
+            CandidateName = BuildCandidateName(application.Applicant),
         });
     }
 
@@ -1083,6 +1233,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             CompanySocials = opportunity.Employer.Socials,
             Viewer = viewer,
             Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
+            ApplicationsCount = opportunity.Applications?.Count,
+            AcceptedApplicationsCount = opportunity.Applications?.Count(a => a.Status == OpportunityApplicationStatuses.Accepted),
         };
 
     private static Opportunity CloneOpportunityForValidation(Opportunity source) =>

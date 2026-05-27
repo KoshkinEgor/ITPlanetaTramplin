@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppLink } from "../app/AppLink";
-import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes } from "../app/routes";
-import { createCandidateOpportunityShare, getCandidateEducation, getCandidateOpportunitySocialContext, getCandidateProfile } from "../api/candidate";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCompanyPublicRoute, buildOpportunityDetailRoute, routes, withSearch } from "../app/routes";
+import { createCandidateOpportunityShare, getCandidateEducation, getCandidateOpportunitySocialContext, getCandidateProfile, withdrawCandidateApplication } from "../api/candidate";
 import { getCompanyProfile, getPublicCompany } from "../api/company";
 import { applyToOpportunity, createOpportunityComplaint, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
 import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
 import { getTags } from "../api/tags";
 import { uploadImage } from "../api/uploads";
+import { DEMO, demoOpportunity, demoRelated } from "./opportunityMockData";
 import { useAuthSession } from "../auth/api";
 import { refreshCandidateApplications, upsertCandidateApplication, useCandidateApplications } from "../candidate-portal/candidate-applications-store";
 import { getCandidateOnboardingState } from "../candidate-portal/onboarding";
@@ -60,47 +61,7 @@ const COMPLAINT_REASON_OPTIONS = [
   { value: "other", label: "Другое" },
 ];
 
-const DEMO = {
-  "design-ui-ux": {
-    id: "design-ui-ux",
-    title: "Дизайнер интерфейсов мобильных приложений UI/UX",
-    companyName: "White Tiger Soft",
-    locationCity: "Москва",
-    locationAddress: "Йошкар-Ола",
-    opportunityType: "internship",
-    employmentType: "hybrid",
-    moderationStatus: "approved",
-    publishAt: "2026-02-27",
-    description: "Стажировка для студентов и junior-специалистов.",
-    contactsJson: "{\"email\":\"hello@whitetigersoft.ru\"}",
-    mediaContentJson: "[{\"title\":\"Программа стажировки\"}]",
-    tags: ["Figma", "UI / UX"],
-    employerId: 10,
-    applicationsCount: 0,
-    salaryFrom: 40000,
-    salaryTo: 70000,
-    duration: "3 месяца"
-  },
-  "junior-security-analyst": {
-    id: "junior-security-analyst",
-    title: "Младший аналитик информационной безопасности",
-    companyName: "Shield Ops",
-    locationCity: "Москва",
-    locationAddress: "Ленинградский проспект 39",
-    opportunityType: "vacancy",
-    employmentType: "remote",
-    moderationStatus: "approved",
-    publishAt: "2026-03-10",
-    description: "Стартовая позиция для кандидатов без опыта.",
-    contactsJson: "{\"email\":\"jobs@shieldops.ru\"}",
-    mediaContentJson: "[{\"title\":\"Стартовый трек\"}]",
-    tags: ["Junior", "SOC", "SIEM"],
-    employerId: 404,
-    applicationsCount: 1,
-    salaryFrom: 120000,
-    salaryTo: 180000
-  }
-};
+
 
 function uniq(items) {return [...new Set((Array.isArray(items) ? items : []).map((item) => String(item).trim()).filter(Boolean))];}
 function json(value, fallback) {if (!value || typeof value !== "string") return fallback;try {return JSON.parse(value);} catch {return fallback;}}
@@ -201,10 +162,17 @@ function socials(value) {const parsed = json(value, null);return Array.isArray(p
 function desc(value) {return String(value ?? "").split(/\r?\n\r?\n|\r?\n/).map((item) => item.trim()).filter(Boolean);}
 function initials(name) {return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((item) => item[0] || "").join("").toLowerCase() || "it";}
 function locationLine(item) {return [item.locationCity, item.locationAddress].filter(Boolean).join(", ");}
-function demoOpportunity(id) {return DEMO[String(id)] ?? null;}
-function demoRelated(id) {return Object.values(DEMO).filter((item) => String(item.id) !== String(id)).slice(0, 2);}
 function numericId(value) {return /^\d+$/.test(String(value ?? "").trim());}
-function applyLabel(type, status) {if (status === "saving") return "Отправляем...";if (status === "success") return isEventOpportunity(type) ? "Заявка отправлена" : "Отклик отправлен";return getOpportunityApplyLabel(type);}
+function applyLabel(type, status, isDeadlinePassed, moderationStatus, isSeatsFull) {
+  if (moderationStatus && moderationStatus !== "approved") {
+    return moderationStatus === "archived" ? "Архивировано" : "Не опубликовано";
+  }
+  if (isSeatsFull) return "Мест больше нет";
+  if (isDeadlinePassed) return "Регистрация завершена";
+  if (status === "saving") return "Отправляем...";
+  if (status === "success") return isEventOpportunity(type) ? "Заявка отправлена" : "Отклик отправлен";
+  return getOpportunityApplyLabel(type);
+}
 function applyState(status = "idle", overrides = {}) {return { status, error: "", successTitle: "", successMessage: "", ...overrides };}
 function actionAccessCopy(type, mode) {
   const applyAction = isEventOpportunity(type) ? "подать заявку" : "откликнуться";
@@ -222,7 +190,18 @@ function getPeerVisibilityDefaultFromProfile(profile) {
   const social = preferences?.social && typeof preferences.social === "object" ? preferences.social : {};
   return Boolean(social.peerVisibilityDefault);
 }
-function successCopy(type, mode = "created") {const event = isEventOpportunity(type);return mode === "existing" ? { successTitle: event ? "Заявка уже отправлена" : "Отклик уже отправлен", successMessage: "Он уже есть в вашем кабинете кандидата." } : { successTitle: event ? "Заявка отправлена" : "Отклик отправлен", successMessage: "Он появился в вашем кабинете кандидата." };}
+function successCopy(type, mode = "created") {
+  const event = isEventOpportunity(type);
+  return mode === "existing"
+    ? {
+        successTitle: event ? "Заявка уже отправлена" : "Отклик уже отправлен",
+        successMessage: "Он уже есть в вашем кабинете кандидата.",
+      }
+    : {
+        successTitle: event ? "Заявка отправлена" : "Отклик отправлен",
+        successMessage: "Он появился в вашем кабинете кандидата. Мы также автоматически отправили работодателю приветственное сообщение в чат.",
+      };
+}
 
 function TypeFields({ draft, onChange }) {
   if (draft.opportunityType === "vacancy") return <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two"><FormField label="Зарплата от" required><Input type="number" value={draft.salaryFrom} onValueChange={(value) => onChange("salaryFrom", value)} /></FormField><FormField label="Зарплата до" required><Input type="number" value={draft.salaryTo} onValueChange={(value) => onChange("salaryTo", value)} /></FormField></div>;
@@ -614,7 +593,9 @@ function OpportunitySocialSections({
   shareBusyKey = "",
   showAuthHint = false,
   onStartChat = null,
-  chatBusyKey = ""
+  chatBusyKey = "",
+  onStartCompanyChat = null,
+  companyChatBusy = false
 }) {
   const companyContacts = normalizeCompanyContacts(socialContext?.companyContacts, fallbackCompanyContacts);
   const networkCandidates = (Array.isArray(socialContext?.networkCandidates) ? socialContext.networkCandidates : []).map(mapSocialUserToCard);
@@ -648,7 +629,7 @@ function OpportunitySocialSections({
       {!hasAnySocialData ? (
         <Card>
           <EmptyState
-            eyebrow="Пусто"
+            eyebrow="Пуро"
             title="Контакты и связи пока отсутствуют"
             description="У этой компании нет публичных контактов, а также пока нет откликов от других кандидатов."
             tone="neutral"
@@ -676,6 +657,20 @@ function OpportunitySocialSections({
                   </AppLink>
                 ))}
               </div>
+
+              {onStartCompanyChat ? (
+                <div style={{ marginTop: "16px" }}>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    loading={companyChatBusy}
+                    onClick={onStartCompanyChat}
+                    style={{ width: "100%" }}
+                  >
+                    Начать чат с компанией
+                  </Button>
+                </div>
+              ) : null}
             </Card>
           ) : null}
 
@@ -732,9 +727,8 @@ function OpportunitySocialSections({
               ) : (
                 <p className="opportunity-social-context__empty">
                   {showAuthHint && status === "idle" ?
-                    "Список других откликнувшихся доступен после входа как кандидат и только для тех, кто открыл свой профиль." :
+                    "Войдите как кандидат, чтобы увидеть список других откликнувшихся." :
                     "Пока нет других откликнувшихся с открытым профилем."}
-
                 </p>
               )}
             </Card>
@@ -774,11 +768,22 @@ function DetailLayout({
   onStartCompanyChat = null,
   companyChatBusy = false,
   onStartChat = null,
-  chatBusyKey = ""
+  chatBusyKey = "",
+  hasApplied = false,
+  onWithdraw = null,
+  isRegistrationDeadlinePassed = false,
+  isSeatsFull = false,
+  currentApplication = null
 }) {
   const vm = useMemo(() => getOpportunityDetailPresentation(item), [item]);
   const rel = (Array.isArray(related) ? related : []).slice(0, 2);
-  const applyButtonLabel = applyLabel(item.opportunityType, applyState.status);
+  const applyButtonLabel = applyLabel(
+    item.opportunityType,
+    applyState.status === "idle" && hasApplied ? "success" : applyState.status,
+    isRegistrationDeadlinePassed,
+    item.moderationStatus,
+    isSeatsFull
+  );
   const intro = desc(item.description);
   const c = contacts(item.contactsJson);
   const m = media(item.mediaContentJson);
@@ -873,10 +878,23 @@ function DetailLayout({
               <dt>Опубликовано:</dt>
               <dd>{formatOpportunityDateTime(item.publishAt) || "Не указано"}</dd>
             </div>
-            <div className="opportunity-focus-card__fact">
-              <dt>Срок:</dt>
-              <dd>{item.expireAt ? formatOpportunityDateTime(item.expireAt) : "Не указан"}</dd>
-            </div>
+            {isEventOpportunity(item.opportunityType) ? (
+              <>
+                <div className="opportunity-focus-card__fact">
+                  <dt>Начало:</dt>
+                  <dd>{item.eventStartAt ? formatOpportunityDateTime(item.eventStartAt) : "Не указано"}</dd>
+                </div>
+                <div className="opportunity-focus-card__fact">
+                  <dt>Регистрация до:</dt>
+                  <dd>{item.registrationDeadline ? formatOpportunityDateTime(item.registrationDeadline) : "Не указан"}</dd>
+                </div>
+              </>
+            ) : (
+              <div className="opportunity-focus-card__fact">
+                <dt>Срок:</dt>
+                <dd>{item.expireAt ? formatOpportunityDateTime(item.expireAt) : "Не указан"}</dd>
+              </div>
+            )}
           </dl>
 
           {vm.primaryFactValue ?
@@ -934,24 +952,118 @@ function DetailLayout({
               <div className="opportunity-focus-card__watchers">
                 {item.expireAt ? `До ${formatOpportunityDateTime(item.expireAt)}` : "Срок не указан"}
               </div>
+              {!actionAccessMode && currentApplication && currentApplication.status !== "withdrawn" ? (
+                (() => {
+                  const status = currentApplication.status;
+                  let tone = "info";
+                  let title = "Отклик отправлен";
+                  let description = "Вы откликнулись на эту возможность.";
+
+                  if (status === "accepted") {
+                    tone = "success";
+                    title = isEventOpportunity(item.opportunityType) || item.opportunityType === "mentoring"
+                      ? "Вы успешно записаны"
+                      : "Вы приняты компанией";
+                    description = "Ожидайте дальнейших инструкций от организатора.";
+                  } else if (status === "invited") {
+                    tone = "warning";
+                    title = "Получено приглашение";
+                    description = "Работодатель пригласил вас к следующему шагу. Пожалуйста, подтвердите участие в личном кабинете в разделе 'Мои отклики'.";
+                  } else if (status === "rejected") {
+                    tone = "error";
+                    title = "Отклик отклонен";
+                    description = "К сожалению, компания отклонила ваш отклик.";
+                  } else if (status === "reviewing") {
+                    tone = "info";
+                    title = "Отклик на рассмотрении";
+                    description = "Работодатель взял ваш отклик в работу.";
+                  }
+
+                  return (
+                    <div style={{ marginBottom: "16px", width: "100%" }}>
+                      <Alert tone={tone} title={title} showIcon>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <p>{description}</p>
+                          {currentApplication.employerNote ? (
+                            <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: "8px", marginTop: "4px", fontSize: "14px" }}>
+                              <strong>Комментарий организатора:</strong> {currentApplication.employerNote}
+                            </div>
+                          ) : null}
+                        </div>
+                      </Alert>
+                    </div>
+                  );
+                })()
+              ) : null}
+
               <div className="opportunity-focus-card__actions">
-                {!actionAccessMode ?
-                <Button
-                type="button"
-                className="opportunity-focus-card__apply"
-                onClick={onApply}
-                disabled={applyState.status === "saving" || applyState.status === "success"}>
-                
-                  {applyButtonLabel}
-                </Button>
-                :
-                null}
-                {!actionAccessMode ?
-                <Button type="button" variant="secondary" onClick={onShare}>
-                  Поделиться возможностью
-                </Button>
-                :
-                null}
+                {!actionAccessMode && !hasApplied ? (
+                  <Button
+                    type="button"
+                    className="opportunity-focus-card__apply"
+                    onClick={onApply}
+                    disabled={
+                      applyState.status === "saving" ||
+                      applyState.status === "success" ||
+                      isRegistrationDeadlinePassed ||
+                      isSeatsFull ||
+                      item.moderationStatus !== "approved"
+                    }
+                  >
+                    {applyButtonLabel}
+                  </Button>
+                ) : null}
+
+                {!actionAccessMode && hasApplied ? (
+                  (() => {
+                    const status = currentApplication?.status;
+                    if (status === "accepted") {
+                      const label = isEventOpportunity(item.opportunityType) || item.opportunityType === "mentoring"
+                        ? "Вы записаны"
+                        : "Вы приняты";
+                      return (
+                        <Button type="button" variant="secondary" disabled>
+                          {label}
+                        </Button>
+                      );
+                    }
+                    if (status === "invited") {
+                      return (
+                        <Button type="button" variant="secondary" disabled>
+                          Получено приглашение
+                        </Button>
+                      );
+                    }
+                    if (status === "rejected") {
+                      return (
+                        <Button type="button" variant="secondary" disabled>
+                          Отклик отклонен
+                        </Button>
+                      );
+                    }
+                    return (
+                      <Button
+                        type="button"
+                        className="opportunity-focus-card__withdraw candidate-application-card__action--warning"
+                        variant="secondary"
+                        onClick={onWithdraw}
+                        disabled={applyState.status === "saving"}
+                      >
+                        {applyState.status === "saving"
+                          ? "Отменяем..."
+                          : isEventOpportunity(item.opportunityType)
+                          ? "Отменить запись"
+                          : "Отозвать отклик"}
+                      </Button>
+                    );
+                  })()
+                ) : null}
+
+                {!actionAccessMode ? (
+                  <Button type="button" variant="secondary" onClick={onShare}>
+                    Поделиться возможностью
+                  </Button>
+                ) : null}
               </div>
             </div> :
           null}
@@ -1023,7 +1135,9 @@ function DetailLayout({
             shareBusyKey={shareBusyKey}
             showAuthHint={showAuthHint}
             onStartChat={onStartChat}
-            chatBusyKey={chatBusyKey} />
+            chatBusyKey={chatBusyKey}
+            onStartCompanyChat={onStartCompanyChat}
+            companyChatBusy={companyChatBusy} />
           
         </Card>
       </div>
@@ -1171,9 +1285,21 @@ export function OpportunityDetailCardApp() {
   const [companyChatBusy, setCompanyChatBusy] = useState(false);
   const [candidateChatBusyKey, setCandidateChatBusyKey] = useState("");
 
+  const hasActiveApplication = useMemo(() => {
+    if (!opportunityId || !isCandidateViewer) return false;
+    return applicationsState.applications.some((app) => 
+      String(app.opportunityId) === String(opportunityId) && 
+      app.status !== "withdrawn" && 
+      app.status !== "rejected"
+    );
+  }, [applicationsState.applications, opportunityId, isCandidateViewer]);
+
   const hasApplied = useMemo(() => {
     if (!opportunityId || !isCandidateViewer) return false;
-    return applicationsState.applications.some((app) => String(app.opportunityId) === String(opportunityId));
+    return applicationsState.applications.some((app) => 
+      String(app.opportunityId) === String(opportunityId) && 
+      app.status !== "withdrawn"
+    );
   }, [applicationsState.applications, opportunityId, isCandidateViewer]);
 
   const [state, setState] = useState({ status: "loading", item: null, related: [], error: null, source: "api" });
@@ -1360,10 +1486,38 @@ export function OpportunityDetailCardApp() {
   }, [authSession.status, authSession.user?.role, item, state.source]);
 
   useEffect(() => {
+    if (isCandidateViewer && state.source === "api") {
+      refreshCandidateApplications({ force: true }).catch(() => {});
+    }
+  }, [opportunityId, isCandidateViewer, state.source]);
+
+  useEffect(() => {
     if (item && isOwner && !previewMode && !ownerState.isEditing) {
       setOwnerState((current) => ({ ...current, draft: createOpportunityDraft(item) }));
     }
   }, [item, isOwner, previewMode, ownerState.isEditing]);
+
+  const isRegistrationDeadlinePassed = useMemo(() => {
+    if (!item || !isEventOpportunity(item.opportunityType) || !item.registrationDeadline) {
+      return false;
+    }
+    return new Date() > new Date(item.registrationDeadline);
+  }, [item]);
+
+  const isSeatsFull = useMemo(() => {
+    if (!item || item.opportunityType !== "mentoring" || !item.seatsCount) {
+      return false;
+    }
+    return Number(item.acceptedApplicationsCount ?? 0) >= Number(item.seatsCount);
+  }, [item]);
+
+  const currentApplication = useMemo(() => {
+    if (!opportunityId || !isCandidateViewer) return null;
+    return applicationsState.applications.find((app) => 
+      String(app.opportunityId) === String(opportunityId) && 
+      app.status !== "withdrawn"
+    );
+  }, [applicationsState.applications, opportunityId, isCandidateViewer]);
 
   async function ensureCandidateApplyAccess({ force = false } = {}) {
     if (!force && candidateApplyAccess.status === "ready") {
@@ -1375,22 +1529,37 @@ export function OpportunityDetailCardApp() {
       status: "loading"
     }));
 
-    const [profile, education] = await Promise.all([
-    getCandidateProfile(),
-    getCandidateEducation()]
-    );
-    const onboardingState = getCandidateOnboardingState(profile, Array.isArray(education) ? education : []);
-    const nextState = {
-      status: "ready",
-      onboardingComplete: onboardingState.onboardingComplete,
-      mandatoryCompletion: onboardingState.mandatoryCompletion,
-      peerVisibilityDefault: getPeerVisibilityDefaultFromProfile(profile)
-    };
+    try {
+      const [profile, education] = await Promise.all([
+        getCandidateProfile(),
+        getCandidateEducation()
+      ]);
+      const onboardingState = getCandidateOnboardingState(profile, Array.isArray(education) ? education : []);
+      const nextState = {
+        status: "ready",
+        onboardingComplete: onboardingState.onboardingComplete,
+        mandatoryCompletion: onboardingState.mandatoryCompletion,
+        peerVisibilityDefault: getPeerVisibilityDefaultFromProfile(profile)
+      };
 
-    setCandidateApplyAccess(nextState);
-    setAllowPeerVisibility(getPeerVisibilityDefaultFromProfile(profile));
-    return nextState;
+      setCandidateApplyAccess(nextState);
+      setAllowPeerVisibility(getPeerVisibilityDefaultFromProfile(profile));
+      return nextState;
+    } catch (error) {
+      setCandidateApplyAccess((current) => ({
+        ...current,
+        status: "error"
+      }));
+      throw error;
+    }
   }
+
+  useEffect(() => {
+    if (authSession.status !== "authenticated" || authSession.user?.role !== "candidate" || state.source === "demo") {
+      return;
+    }
+    void ensureCandidateApplyAccess().catch(() => {});
+  }, [authSession.status, authSession.user?.role, state.source]);
 
   async function handleApply() {
     if (authSession.status !== "authenticated") {
@@ -1461,6 +1630,18 @@ export function OpportunityDetailCardApp() {
       }
 
       setApply(applyState("error", { error: error?.message ?? "Не удалось отправить отклик." }));
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!currentApplication) return;
+    setApply(applyState("saving"));
+    try {
+      await withdrawCandidateApplication(currentApplication.id);
+      await refreshCandidateApplications({ force: true }).catch(() => {});
+      setApply(applyState("idle"));
+    } catch (error) {
+      setApply(applyState("error", { error: error?.message ?? "Не удалось отозвать отклик." }));
     }
   }
 
@@ -1701,7 +1882,12 @@ ${currentUrl}`;
           onStartCompanyChat={isCandidateViewer && publicCompanyProfile?.userId && hasApplied ? handleStartCompanyChat : null}
           companyChatBusy={companyChatBusy}
           onStartChat={handleStartCandidateChat}
-          chatBusyKey={candidateChatBusyKey} /> :
+          chatBusyKey={candidateChatBusyKey}
+          hasApplied={hasActiveApplication}
+          onWithdraw={handleWithdraw}
+          currentApplication={currentApplication}
+          isRegistrationDeadlinePassed={isRegistrationDeadlinePassed}
+          isSeatsFull={isSeatsFull} /> :
 
         null}
 
@@ -1711,7 +1897,7 @@ ${currentUrl}`;
           onClose={() => setProfileGateOpen(false)}
           onContinue={() => {
             setProfileGateOpen(false);
-            navigate(routes.candidate.career);
+            navigate(withSearch(routes.candidate.career, { redirect: window.location.pathname }));
           }} />
         
 
@@ -1844,7 +2030,9 @@ ${currentUrl}`;
               await openShareModal();
             }}
             onStartChat={handleStartCandidateChat}
-            chatBusyKey={candidateChatBusyKey} />
+            chatBusyKey={candidateChatBusyKey}
+            onStartCompanyChat={isCandidateViewer && publicCompanyProfile?.userId ? handleStartCompanyChat : null}
+            companyChatBusy={companyChatBusy} />
           
 
           <div className="opportunity-social-context__modal-actions">

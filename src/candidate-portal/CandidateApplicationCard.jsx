@@ -116,7 +116,7 @@ export function CandidateApplicationCard({
             className="candidate-application-card__action candidate-application-card__action--warning"
             onClick={() => onWithdraw?.(item)}
           >
-            Отменить отклик
+            {item.status === "invited" ? "Отклонить приглашение" : "Отменить отклик"}
           </Button>
         ) : null}
 

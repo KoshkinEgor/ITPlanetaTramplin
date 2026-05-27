@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PUBLIC_HEADER_NAV_ITEMS } from "../app/routes";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
-import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Loader, ResponseCard, SectionHeader, Select, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, Card, EmptyState, FormField, Input, Loader, ResponseCard, SectionHeader, Select, Textarea, Modal } from "../shared/ui";
 import { createOpportunity, deleteOpportunity, updateOpportunity } from "../api/opportunities";
 import {
   getCompanyOpportunities,
@@ -9,6 +9,7 @@ import {
   getOpportunityApplications,
   updateCompanyProfile,
   updateOpportunityApplicationStatus,
+  cancelAcceptedOpportunityApplication,
 } from "../api/company";
 import { ApiError } from "../lib/http";
 import { OPPORTUNITY_TYPE_OPTIONS, translateOpportunityType as translateSharedOpportunityType } from "../shared/lib/opportunityTypes";
@@ -22,7 +23,6 @@ const APPLICATION_STATUS_OPTIONS = [
   { value: "invited", label: "Приглашение" },
   { value: "accepted", label: "Принято" },
   { value: "rejected", label: "Отказ" },
-  { value: "withdrawn", label: "Отозвано" },
 ];
 
 function translateModerationStatus(status) {
@@ -91,8 +91,9 @@ function createOpportunityDraft(item = null) {
   };
 }
 
-function CompanyApplicationCard({ item, edit, onEditChange, onSave, busyId }) {
+function CompanyApplicationCard({ item, edit, onEditChange, onSave, onCancelAccepted, busyId }) {
   const isSaving = busyId === item.id;
+  const isAccepted = item.status === "accepted";
 
   return (
     <Card className="company-dashboard-response">
@@ -113,35 +114,111 @@ function CompanyApplicationCard({ item, edit, onEditChange, onSave, busyId }) {
           Навыки: {Array.isArray(item.candidateSkills) && item.candidateSkills.length ? item.candidateSkills.join(", ") : "не указаны"}
         </p>
 
-        <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
-          <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
-            <Select
-              value={edit.status}
-              onValueChange={(value) => onEditChange(item.id, "status", value)}
-              options={APPLICATION_STATUS_OPTIONS}
-              className="company-dashboard-response__control company-dashboard-response__control--select"
-            />
-          </FormField>
+        {isAccepted ? (
+          <div style={{ marginBottom: "16px" }}>
+            <Alert tone="info" title="Отклик принят" showIcon>
+              Этот отклик уже принят. Вы не можете изменить его статус напрямую. Для отмены отклика необходимо нажать кнопку ниже и подать жалобу/заявление в техподдержку с указанием причины.
+            </Alert>
+            {item.employerNote ? (
+              <div style={{ marginTop: "12px", fontSize: "14px", color: "var(--ui-color-text-secondary)" }}>
+                <strong>Комментарий работодателя:</strong> {item.employerNote}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
+            <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
+              <Select
+                value={edit.status}
+                onValueChange={(value) => onEditChange(item.id, "status", value)}
+                options={APPLICATION_STATUS_OPTIONS}
+                className="company-dashboard-response__control company-dashboard-response__control--select"
+              />
+            </FormField>
 
-          <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
-            <Textarea
-              value={edit.employerNote}
-              onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
-              rows={3}
-              autoResize
-              placeholder="Добавьте комментарий для кандидата"
-              className="company-dashboard-response__control company-dashboard-response__control--textarea"
-            />
-          </FormField>
-        </div>
+            <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
+              <Textarea
+                value={edit.employerNote}
+                onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
+                rows={3}
+                autoResize
+                placeholder="Добавьте комментарий для кандидата"
+                className="company-dashboard-response__control company-dashboard-response__control--textarea"
+              />
+            </FormField>
+          </div>
+        )}
 
         <div className="company-dashboard-panel__actions">
-          <Button type="button" onClick={() => onSave(item)} disabled={isSaving}>
-            {isSaving ? "Сохраняем..." : "Обновить отклик"}
-          </Button>
+          {isAccepted ? (
+            <Button type="button" variant="secondary" onClick={() => onCancelAccepted(item)} className="candidate-application-card__action--warning">
+              Отменить принятый отклик (подача жалобы)
+            </Button>
+          ) : (
+            <Button type="button" onClick={() => onSave(item)} disabled={isSaving}>
+              {isSaving ? "Сохраняем..." : "Обновить отклик"}
+            </Button>
+          )}
         </div>
       </div>
     </Card>
+  );
+}
+
+const CANCELLATION_REASONS = [
+  { value: "Кандидат не выходит на связь / Не явился", label: "Кандидат не выходит на связь / Не явился" },
+  { value: "Кандидат отказался от участия", label: "Кандидат отказался от участия" },
+  { value: "Мероприятие отменено или перенесено", label: "Мероприятие отменено или перенесено" },
+  { value: "Несоответствие требованиям (обнаружено позже)", label: "Несоответствие требованиям (обнаружено позже)" },
+  { value: "Другая причина", label: "Другая причина" },
+];
+
+function CancelAcceptedResponseModal({ open, onClose, onSubmit, item, busy }) {
+  const [reason, setReason] = useState(CANCELLATION_REASONS[0].value);
+  const [description, setDescription] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({ reason, description });
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Отмена принятого отклика"
+      description={`Вы отменяете ранее принятый отклик кандидата ${item?.candidateName || ""}. Это действие потребует подачи жалобы и уведомит кандидата о причине.`}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="company-dashboard-stack">
+        <FormField label="Причина отмены" required>
+          <Select
+            value={reason}
+            onValueChange={setReason}
+            options={CANCELLATION_REASONS}
+          />
+        </FormField>
+
+        <FormField label="Подробности отмены (будут видны кандидату и техподдержке)">
+          <Textarea
+            value={description}
+            onValueChange={setDescription}
+            rows={4}
+            autoResize
+            placeholder="Укажите дополнительные детали отмены..."
+          />
+        </FormField>
+
+        <div className="company-dashboard-panel__actions" style={{ justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? "Отправляем..." : "Подтвердить отмену отклика"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -166,6 +243,7 @@ export function CompanyDashboardApp() {
   const [opportunitySave, setOpportunitySave] = useState({ status: "idle", error: "" });
   const [applicationEdits, setApplicationEdits] = useState({});
   const [busyApplicationId, setBusyApplicationId] = useState(0);
+  const [cancelModalState, setCancelModalState] = useState({ open: false, item: null, busy: false });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -378,6 +456,33 @@ export function CompanyDashboardApp() {
       setOpportunitySave({
         status: "error",
         error: error?.message ?? "Не удалось обновить статус отклика.",
+      });
+    }
+  }
+
+  function handleCancelAcceptedClick(item) {
+    setCancelModalState({ open: true, item, busy: false });
+  }
+
+  async function handleCancelAcceptedSubmit({ reason, description }) {
+    const item = cancelModalState.item;
+    if (!item) return;
+
+    setCancelModalState((current) => ({ ...current, busy: true }));
+
+    try {
+      await cancelAcceptedOpportunityApplication(item.opportunityId, item.id, {
+        reason,
+        description,
+      });
+
+      setCancelModalState({ open: false, item: null, busy: false });
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setCancelModalState((current) => ({ ...current, busy: false }));
+      setOpportunitySave({
+        status: "error",
+        error: error?.message ?? "Не удалось отменить отклик.",
       });
     }
   }
@@ -621,6 +726,7 @@ export function CompanyDashboardApp() {
                         edit={applicationEdits[item.id] ?? { status: item.status, employerNote: item.employerNote ?? "" }}
                         onEditChange={handleApplicationEditChange}
                         onSave={handleApplicationSave}
+                        onCancelAccepted={handleCancelAcceptedClick}
                         busyId={busyApplicationId}
                       />
                     ))}
@@ -670,6 +776,14 @@ export function CompanyDashboardApp() {
           ) : null}
         </main>
       </div>
+
+      <CancelAcceptedResponseModal
+        open={cancelModalState.open}
+        onClose={() => setCancelModalState({ open: false, item: null, busy: false })}
+        onSubmit={handleCancelAcceptedSubmit}
+        item={cancelModalState.item}
+        busy={cancelModalState.busy}
+      />
     </div>
   );
 }

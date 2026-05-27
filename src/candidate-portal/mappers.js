@@ -147,7 +147,7 @@ export function mapCandidateApplicationToCard(application) {
     company: companyMeta || application.companyName || "Компания",
     details: [`Дата отправки заявки: ${appliedAtLabel}`],
     description: buildApplicationDescription(status, application.employerNote),
-    canWithdraw: status === "submitted" || status === "reviewing",
+    canWithdraw: status === "submitted" || status === "reviewing" || status === "invited",
     canConfirm: status === "invited",
     opportunityDeleted: Boolean(application.opportunityDeleted),
     moderationStatus: application.moderationStatus,

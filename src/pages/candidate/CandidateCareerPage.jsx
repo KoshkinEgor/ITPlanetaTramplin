@@ -599,12 +599,22 @@ export function CandidateCareerPage() {
       if (result.completion === 100 && activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
         setWizardOpen(false);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        const searchParams = new URLSearchParams(location.search);
+        const redirectUrl = searchParams.get("redirect");
+        if (redirectUrl) {
+          setRedirectTo(redirectUrl);
+        }
         return;
       }
 
       if (activeStepIndex === CANDIDATE_ONBOARDING_STEPS.length - 1) {
         setMessage({ tone: "success", title: "Профиль сохранён", text: "Обязательный минимум заполнен, карьерный раздел открыт." });
         setWizardOpen(false);
+        const searchParams = new URLSearchParams(location.search);
+        const redirectUrl = searchParams.get("redirect");
+        if (redirectUrl) {
+          setRedirectTo(redirectUrl);
+        }
         return;
       }
 

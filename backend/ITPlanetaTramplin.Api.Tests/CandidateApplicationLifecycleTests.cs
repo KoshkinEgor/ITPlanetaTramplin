@@ -260,6 +260,139 @@ public class CandidateApplicationLifecycleTests
                 && item.GetProperty("status").GetString() == "accepted");
     }
 
+    [Fact]
+    public async Task CompanyCannotDirectlyUpdateAcceptedApplication()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"direct-lock-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"direct-lock-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Invite and Accept
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "invited",
+            employerNote = "Приходите на интервью",
+        });
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await client.PostAsync($"/api/candidate/me/applications/{applySummary.Id}/confirm", null);
+
+        // Try directly updating as company back to reviewing
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        var updateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "reviewing",
+            employerNote = "Хотим вернуть на рассмотрение",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        var payload = await updateResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("Нельзя изменить статус уже принятого отклика напрямую", payload!.Message);
+    }
+
+    [Fact]
+    public async Task CompanyCannotDirectlyUpdateToWithdrawn()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"withdrawn-lock-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"withdrawn-lock-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+
+        var updateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "withdrawn",
+            employerNote = "Отозвать отклик от имени компании",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        var payload = await updateResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("Работодатель не может перевести отклик в статус 'Отозвано'", payload!.Message);
+    }
+
+    [Fact]
+    public async Task CompanyCanCancelAcceptedApplicationThroughComplaintFlow()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"cancel-flow-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"cancel-flow-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Invite and Accept
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "invited",
+            employerNote = "Приходите на интервью",
+        });
+
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await client.PostAsync($"/api/candidate/me/applications/{applySummary.Id}/confirm", null);
+
+        // Cancel through cancel-accepted endpoint
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        var cancelResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}/cancel-accepted", new
+        {
+            reason = "Кандидат не выходит на связь / Не явился",
+            description = "Не отвечает на сообщения уже 3 дня.",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, cancelResponse.StatusCode);
+
+        // Verify status changed to rejected and employer note updated
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var application = await db.Applications.SingleAsync(item => item.Id == applySummary.Id);
+            Assert.Equal("rejected", application.Status);
+            Assert.Contains("Кандидат не выходит на связь / Не явился", application.EmployerNote);
+            Assert.Contains("Не отвечает на сообщения уже 3 дня", application.EmployerNote);
+
+            // Verify a complaint was created
+            var complaint = await db.Complaints.SingleOrDefaultAsync(item => item.OpportunityId == opportunityId);
+            Assert.NotNull(complaint);
+            Assert.Equal("other", complaint!.Reason);
+            Assert.Contains("Отмена принятого отклика №", complaint.Description);
+            Assert.Contains("Не отвечает на сообщения уже 3 дня", complaint.Description);
+
+            // Verify notification created for candidate
+            var candidateUser = await db.Users.SingleAsync(item => item.Email == candidate.Email);
+            var notification = await db.UserNotifications.FirstOrDefaultAsync(item => item.UserId == candidateUser.Id && item.Type == "application.status_changed" && item.Title == "Принятый отклик отменен");
+            Assert.NotNull(notification);
+            Assert.Contains("Кандидат не выходит на связь / Не явился", notification!.Message);
+        }
+    }
+
     private static async Task<int> CreateApprovedOpportunityAsync(TestApplicationFactory factory, HttpClient client, string title)
     {
         await LoginAsCompanyAsync(client);
@@ -363,6 +496,163 @@ public class CandidateApplicationLifecycleTests
         }
 
         await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task CandidateCanReapplyAfterWithdrawing()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"reapply-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"reapply-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+
+        // First apply
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+        Assert.Equal("submitted", applySummary.Status);
+
+        // Withdraw
+        var withdrawResponse = await client.PostAsync($"/api/candidate/me/applications/{applySummary.Id}/withdraw", null);
+        Assert.Equal(HttpStatusCode.OK, withdrawResponse.StatusCode);
+
+        // Reapply
+        var reapplyResponse = await client.PostAsJsonAsync($"/api/opportunities/{opportunityId}/applications", new { });
+        Assert.Equal(HttpStatusCode.OK, reapplyResponse.StatusCode);
+
+        var reapplySummary = await reapplyResponse.Content.ReadFromJsonAsync<OpportunityApplicationSummaryDTO>();
+        Assert.NotNull(reapplySummary);
+        Assert.Equal(applySummary.Id, reapplySummary!.Id);
+        Assert.Equal("submitted", reapplySummary.Status);
+    }
+
+    [Fact]
+    public async Task CandidateCanDeclineInvitation()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"decline-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"decline-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Company invites
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "invited",
+            employerNote = "Приглашаем на интервью",
+        });
+
+        // Candidate declines (withdraws)
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, candidate.Email);
+        var declineResponse = await client.PostAsync($"/api/candidate/me/applications/{applySummary.Id}/withdraw", null);
+        Assert.Equal(HttpStatusCode.OK, declineResponse.StatusCode);
+
+        var declinedSummary = await declineResponse.Content.ReadFromJsonAsync<OpportunityApplicationSummaryDTO>();
+        Assert.NotNull(declinedSummary);
+        Assert.Equal("withdrawn", declinedSummary!.Status);
+    }
+
+    [Fact]
+    public async Task CompanyCannotModifyWithdrawnApplication()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"modify-withdrawn-{Guid.NewGuid():N}");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, $"modify-withdrawn-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidate.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidate.Email);
+
+        var applySummary = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Withdraw
+        var withdrawResponse = await client.PostAsync($"/api/candidate/me/applications/{applySummary.Id}/withdraw", null);
+        Assert.Equal(HttpStatusCode.OK, withdrawResponse.StatusCode);
+
+        // Company tries to invite candidate
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        var updateResponse = await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummary.Id}", new
+        {
+            status = "invited",
+            employerNote = "Хотим пригласить отозванный отклик",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
+        var payload = await updateResponse.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("Нельзя изменить статус отклика, который был отозван кандидатом", payload!.Message);
+    }
+
+    [Fact]
+    public async Task CandidateCannotConfirmMentoringIfSeatsAreFull()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var opportunityId = await CreateApprovedOpportunityAsync(factory, client, $"mentoring-limit-{Guid.NewGuid():N}");
+
+        // Modify opportunity in DB to be mentoring with 1 seat
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            var opportunity = await db.Opportunities.SingleAsync(item => item.Id == opportunityId);
+            opportunity.OpportunityType = "mentoring";
+            opportunity.SeatsCount = 1;
+            opportunity.Duration = "3 месяца";
+            opportunity.MeetingFrequency = "Раз в неделю";
+            await db.SaveChangesAsync();
+        }
+
+        // Candidate A
+        await client.PostAsync("/api/auth/logout", null);
+        var candidateA = await RegisterAndConfirmCandidateAsync(client, $"mentoring-a-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidateA.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidateA.Email);
+        var applySummaryA = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Candidate B
+        await client.PostAsync("/api/auth/logout", null);
+        var candidateB = await RegisterAndConfirmCandidateAsync(client, $"mentoring-b-{Guid.NewGuid():N}@tramplin.local");
+        await LoginAsCandidateAsync(client, candidateB.Email);
+        await CompleteMandatoryCandidateProfileAsync(factory, candidateB.Email);
+        var applySummaryB = await ApplyToOpportunityAsync(client, opportunityId);
+
+        // Company invites both
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCompanyAsync(client);
+        await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummaryA.Id}", new { status = "invited", employerNote = "Invite A" });
+        await client.PutAsJsonAsync($"/api/opportunities/{opportunityId}/applications/{applySummaryB.Id}", new { status = "invited", employerNote = "Invite B" });
+
+        // Candidate A confirms -> OK
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, candidateA.Email);
+        var confirmResponseA = await client.PostAsync($"/api/candidate/me/applications/{applySummaryA.Id}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirmResponseA.StatusCode);
+
+        // Candidate B confirms -> BadRequest because limit of 1 seat is reached
+        await client.PostAsync("/api/auth/logout", null);
+        await LoginAsCandidateAsync(client, candidateB.Email);
+        var confirmResponseB = await client.PostAsync($"/api/candidate/me/applications/{applySummaryB.Id}/confirm", null);
+        Assert.Equal(HttpStatusCode.BadRequest, confirmResponseB.StatusCode);
+
+        var payload = await confirmResponseB.Content.ReadFromJsonAsync<MessageResponseDTO>();
+        Assert.NotNull(payload);
+        Assert.Contains("все свободные места на программу уже заняты", payload!.Message);
     }
 
     private static async Task LoginAsCandidateAsync(HttpClient client, string email)

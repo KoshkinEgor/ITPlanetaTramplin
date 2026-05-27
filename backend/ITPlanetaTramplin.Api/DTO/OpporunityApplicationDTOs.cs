@@ -25,3 +25,10 @@ public class OpportunityApplicationSummaryDTO
     public List<string> OpportunityTags { get; set; } = [];
     public SocialContextPreviewDTO? SocialContextPreview { get; set; }
 }
+
+public class OpportunityApplicationCancelDTO
+{
+    public string Reason { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}
+

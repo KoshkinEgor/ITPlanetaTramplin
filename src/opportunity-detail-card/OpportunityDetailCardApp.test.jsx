@@ -7,6 +7,7 @@ import {
   getCandidateOpportunitySocialContext,
   getCandidateProfile,
   createCandidateOpportunityShare,
+  withdrawCandidateApplication,
 } from "../api/candidate";
 import { getCompanyProfile } from "../api/company";
 import { applyToOpportunity, createOpportunityComplaint, deleteOpportunity, getOpportunity, getOpportunities, updateOpportunity } from "../api/opportunities";
@@ -32,6 +33,7 @@ vi.mock("../api/candidate", () => ({
   getCandidateOpportunitySocialContext: vi.fn(() => Promise.resolve({ companyContacts: [], networkCandidates: [], peers: [], counts: { peerCount: 0, incomingShareCount: 0, networkCandidateCount: 0 } })),
   getCandidateProfile: vi.fn(() => Promise.resolve({})),
   createCandidateOpportunityShare: vi.fn(() => Promise.resolve({})),
+  withdrawCandidateApplication: vi.fn(() => Promise.resolve({})),
 }));
 
 vi.mock("../api/company", () => ({
@@ -414,7 +416,9 @@ describe("OpportunityDetailCardApp", () => {
     applyToOpportunity.mockRejectedValue(
       new ApiError("Отклик уже отправлен.", { status: 409, data: { message: "Отклик уже отправлен." } })
     );
-    getCandidateApplications.mockResolvedValue([appliedSummary]);
+    getCandidateApplications
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([appliedSummary]);
 
     renderDetail("/opportunities/101");
 
@@ -447,4 +451,129 @@ describe("OpportunityDetailCardApp", () => {
     expect(screen.getByText("Добавьте зарплату")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Отклик отправлен|Подать заявку/ })).not.toBeInTheDocument();
   });
+
+  it("allows withdrawing an application when candidate has already applied", async () => {
+    withdrawCandidateApplication.mockResolvedValue({});
+    
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    
+    getCandidateApplications.mockResolvedValue([appliedSummary]);
+
+    renderDetail("/opportunities/101");
+
+    const withdrawButton = await screen.findByRole("button", { name: /Отозвать отклик/ });
+    expect(withdrawButton).toBeInTheDocument();
+
+    fireEvent.click(withdrawButton);
+
+    await waitFor(() => {
+      expect(withdrawCandidateApplication).toHaveBeenCalledWith(55);
+      expect(getCandidateApplications).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("renders remaining seats correctly for mentoring program and disables apply when full", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    const mentoringOpportunity = {
+      ...apiOpportunity,
+      opportunityType: "mentoring",
+      seatsCount: 5,
+      acceptedApplicationsCount: 1,
+      applicationsCount: 2,
+    };
+    getOpportunity.mockResolvedValue(mentoringOpportunity);
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByText("Мест: 4")).toBeInTheDocument();
+    
+    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
+    expect(applyButton).not.toBeDisabled();
+  });
+
+  it("disables apply and shows seats full message when accepted applications reach capacity", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    const fullMentoringOpportunity = {
+      ...apiOpportunity,
+      opportunityType: "mentoring",
+      seatsCount: 5,
+      acceptedApplicationsCount: 5,
+      applicationsCount: 6,
+    };
+    getOpportunity.mockResolvedValue(fullMentoringOpportunity);
+
+    renderDetail("/opportunities/101");
+
+    expect(await screen.findByText("Мест: 0")).toBeInTheDocument();
+    const [applyButton] = await screen.findAllByRole("button", { name: /Мест больше нет/ });
+    expect(applyButton).toBeDisabled();
+  });
+
+  it("renders the withdraw button with warning classes and variant secondary", async () => {
+    withdrawCandidateApplication.mockResolvedValue({});
+    
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    
+    getCandidateApplications.mockResolvedValue([appliedSummary]);
+
+    renderDetail("/opportunities/101");
+
+    const withdrawButton = await screen.findByRole("button", { name: /Отозвать отклик/ });
+    expect(withdrawButton).toBeInTheDocument();
+    expect(withdrawButton.className).toContain("candidate-application-card__action--warning");
+    expect(withdrawButton.className).toContain("ui-button--secondary");
+  });
+
+  it("renders disabled status button saying Вы приняты when accepted", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    getCandidateApplications.mockResolvedValue([{ ...appliedSummary, status: "accepted" }]);
+    renderDetail("/opportunities/101");
+    expect(await screen.findByRole("button", { name: "Вы приняты" })).toBeDisabled();
+  });
+
+  it("renders disabled status button saying Получено приглашение when invited", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    getCandidateApplications.mockResolvedValue([{ ...appliedSummary, status: "invited" }]);
+    renderDetail("/opportunities/101");
+    expect(await screen.findByRole("button", { name: "Получено приглашение" })).toBeDisabled();
+  });
+
+  it("renders status alert and active apply button when rejected", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    getCandidateApplications.mockResolvedValue([{ ...appliedSummary, status: "rejected" }]);
+    renderDetail("/opportunities/101");
+    expect(await screen.findByText("Отклик отклонен")).toBeInTheDocument();
+    expect(screen.getByText("К сожалению, компания отклонила ваш отклик.")).toBeInTheDocument();
+    const [applyButton] = await screen.findAllByRole("button", { name: /Отклик/ });
+    expect(applyButton).not.toBeDisabled();
+  });
 });
+

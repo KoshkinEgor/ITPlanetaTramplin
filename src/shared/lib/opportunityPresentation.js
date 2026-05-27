@@ -305,16 +305,18 @@ export function getOpportunityTypeSummary(item = {}) {
     case "mentoring": {
       const duration = String(item.duration ?? "").trim();
       const meetingFrequency = String(item.meetingFrequency ?? "").trim();
-      const seatsCount = formatSeatsCount(item.seatsCount);
+      const hasSeats = item.seatsCount !== null && item.seatsCount !== undefined && item.seatsCount !== "";
+      const remainingSeats = hasSeats ? Math.max(0, Number(item.seatsCount) - Number(item.acceptedApplicationsCount ?? 0)) : null;
+      const seatsText = remainingSeats !== null ? `Мест: ${remainingSeats}` : "Места не указаны";
 
       return {
         typeTone,
         primaryFactLabel: "Длительность",
         primaryFactValue: duration || "Длительность не указана",
         secondaryFact: meetingFrequency ? `Встречи: ${meetingFrequency}` : "Частота встреч не указана",
-        tertiaryFact: seatsCount ? `Мест: ${seatsCount}` : "Места не указаны",
+        tertiaryFact: remainingSeats !== null ? seatsText : "Места не указаны",
         compactFact: compactText(
-          meetingFrequency ? `Встречи: ${meetingFrequency}` : seatsCount ? `Мест: ${seatsCount}` : "Места не указаны",
+          meetingFrequency ? `Встречи: ${meetingFrequency}` : remainingSeats !== null ? seatsText : "Места не указаны",
           34
         ),
       };

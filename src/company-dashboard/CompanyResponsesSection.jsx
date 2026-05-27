@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { startChat } from "../api/chats";
 import { buildCandidatePublicProfileRoute, routes } from "../app/routes";
-import { getCompanyOpportunities, updateOpportunityApplicationStatus } from "../api/company";
+import { getCompanyOpportunities, updateOpportunityApplicationStatus, cancelAcceptedOpportunityApplication } from "../api/company";
 import { cn } from "../lib/cn";
 import { ApiError } from "../lib/http";
-import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Input, Loader, Select, Tag, Textarea, ChevronDownIcon } from "../shared/ui";
+import { Alert, Badge, Button, EmptyState, FilterPill, FormField, Input, Loader, Select, Tag, Textarea, ChevronDownIcon, Modal } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { loadCompanyApplications, translateApplicationStatus } from "./utils";
 import "./company-dashboard.css";
@@ -15,12 +15,12 @@ const APPLICATION_STATUS_OPTIONS = [
   { value: "invited", label: "Приглашение" },
   { value: "accepted", label: "Принято" },
   { value: "rejected", label: "Отказ" },
-  { value: "withdrawn", label: "Отозвано" },
 ];
 
 const APPLICATION_FILTER_OPTIONS = [
   { value: "all", label: "Все" },
   ...APPLICATION_STATUS_OPTIONS,
+  { value: "withdrawn", label: "Отозвано" },
 ];
 
 const APPLICATION_SORT_OPTIONS = [
@@ -67,9 +67,11 @@ function buildApplicationLinks(item) {
   };
 }
 
-function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, onSave, onStartChat, busyId, chatBusyId }) {
+function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, onSave, onStartChat, onCancelAccepted, busyId, chatBusyId }) {
   const isSaving = busyId === item.id;
   const isStartingChat = chatBusyId === item.id;
+  const isAccepted = item.status === "accepted";
+  const isWithdrawn = item.status === "withdrawn";
   const contentId = `company-dashboard-response-${item.id}`;
   const skills = normalizeApplicationSkills(item.candidateSkills).slice(0, 4);
   const { profileHref, resumeHref } = buildApplicationLinks(item);
@@ -143,36 +145,120 @@ function CompanyApplicationCard({ item, edit, isOpen, onToggle, onEditChange, on
 
       {isOpen ? (
         <div id={contentId} className="company-dashboard-response__expanded">
-          <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
-            <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
-              <Select
-                value={edit.status}
-                onValueChange={(value) => onEditChange(item.id, "status", value)}
-                options={APPLICATION_STATUS_OPTIONS}
-                className="company-dashboard-response__control company-dashboard-response__control--select"
-              />
-            </FormField>
+          {isAccepted ? (
+            <div style={{ marginBottom: "16px" }}>
+              <Alert tone="info" title="Отклик принят" showIcon>
+                Этот отклик уже принят. Вы не можете изменить его статус напрямую. Для отмены отклика необходимо нажать кнопку ниже и подать жалобу/заявление в техподдержку с указанием причины.
+              </Alert>
+              {item.employerNote ? (
+                <div style={{ marginTop: "12px", fontSize: "14px", color: "var(--ui-color-text-secondary)" }}>
+                  <strong>Комментарий работодателя:</strong> {item.employerNote}
+                </div>
+              ) : null}
+            </div>
+          ) : isWithdrawn ? (
+            <div style={{ marginBottom: "16px" }}>
+              <Alert tone="neutral" title="Отклик отозван" showIcon>
+                Кандидат отозвал этот отклик. Изменение статуса недоступно.
+              </Alert>
+            </div>
+          ) : (
+            <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two company-dashboard-response__editor-grid">
+              <FormField label="Статус отклика" className="company-dashboard-response__field company-dashboard-response__field--status">
+                <Select
+                  value={edit.status}
+                  onValueChange={(value) => onEditChange(item.id, "status", value)}
+                  options={APPLICATION_STATUS_OPTIONS}
+                  className="company-dashboard-response__control company-dashboard-response__control--select"
+                />
+              </FormField>
 
-            <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
-              <Textarea
-                value={edit.employerNote}
-                onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
-                rows={3}
-                autoResize
-                placeholder="Добавьте комментарий для кандидата"
-                className="company-dashboard-response__control company-dashboard-response__control--textarea"
-              />
-            </FormField>
-          </div>
+              <FormField label="Комментарий работодателя" className="company-dashboard-response__field">
+                <Textarea
+                  value={edit.employerNote}
+                  onValueChange={(value) => onEditChange(item.id, "employerNote", value)}
+                  rows={3}
+                  autoResize
+                  placeholder="Добавьте комментарий для кандидата"
+                  className="company-dashboard-response__control company-dashboard-response__control--textarea"
+                />
+              </FormField>
+            </div>
+          )}
 
           <div className="company-dashboard-panel__actions company-dashboard-response__panel-actions">
-            <Button type="button" onClick={() => onSave(item)} disabled={isSaving}>
-              {isSaving ? "Сохраняем..." : "Обновить отклик"}
-            </Button>
+            {isAccepted ? (
+              <Button type="button" variant="secondary" onClick={() => onCancelAccepted(item)} className="candidate-application-card__action--warning">
+                Отменить принятый отклик (подача жалобы)
+              </Button>
+            ) : isWithdrawn ? (
+              null
+            ) : (
+              <Button type="button" onClick={() => onSave(item)} disabled={isSaving}>
+                {isSaving ? "Сохраняем..." : "Обновить отклик"}
+              </Button>
+            )}
           </div>
         </div>
       ) : null}
     </article>
+  );
+}
+
+const CANCELLATION_REASONS = [
+  { value: "Кандидат не выходит на связь / Не явился", label: "Кандидат не выходит на связь / Не явился" },
+  { value: "Кандидат отказался от участия", label: "Кандидат отказался от участия" },
+  { value: "Мероприятие отменено или перенесено", label: "Мероприятие отменено или перенесено" },
+  { value: "Несоответствие требованиям (обнаружено позже)", label: "Несоответствие требованиям (обнаружено позже)" },
+  { value: "Другая причина", label: "Другая причина" },
+];
+
+function CancelAcceptedResponseModal({ open, onClose, onSubmit, item, busy }) {
+  const [reason, setReason] = useState(CANCELLATION_REASONS[0].value);
+  const [description, setDescription] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({ reason, description });
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Отмена принятого отклика"
+      description={`Вы отменяете ранее принятый отклик кандидата ${item?.candidateName || ""}. Это действие потребует подачи жалобы и уведомит кандидата о причине.`}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="company-dashboard-stack">
+        <FormField label="Причина отмены" required>
+          <Select
+            value={reason}
+            onValueChange={setReason}
+            options={CANCELLATION_REASONS}
+          />
+        </FormField>
+
+        <FormField label="Подробности отмены (будут видны кандидату и техподдержке)">
+          <Textarea
+            value={description}
+            onValueChange={setDescription}
+            rows={4}
+            autoResize
+            placeholder="Укажите дополнительные детали отмены..."
+          />
+        </FormField>
+
+        <div className="company-dashboard-panel__actions" style={{ justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? "Отправляем..." : "Подтвердить отмену отклика"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -189,6 +275,7 @@ export function CompanyResponsesSection() {
     sort: "newest",
   });
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
+  const [cancelModalState, setCancelModalState] = useState({ open: false, item: null, busy: false });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -347,6 +434,42 @@ export function CompanyResponsesSection() {
     }
   }
 
+  function handleCancelAcceptedClick(item) {
+    setCancelModalState({ open: true, item, busy: false });
+  }
+
+  async function handleCancelAcceptedSubmit({ reason, description }) {
+    const item = cancelModalState.item;
+    if (!item) return;
+
+    setCancelModalState((current) => ({ ...current, busy: true }));
+
+    try {
+      const updatedApplication = await cancelAcceptedOpportunityApplication(item.opportunityId, item.id, {
+        reason,
+        description,
+      });
+
+      setState((current) => ({
+        ...current,
+        applications: current.applications.map((currentItem) => (
+          currentItem.id === item.id
+            ? { ...currentItem, ...updatedApplication }
+            : currentItem
+        )),
+      }));
+
+      setCancelModalState({ open: false, item: null, busy: false });
+      setSaveState({ status: "success", error: "" });
+    } catch (error) {
+      setCancelModalState((current) => ({ ...current, busy: false }));
+      setSaveState({
+        status: "error",
+        error: error?.message ?? "Не удалось отменить отклик.",
+      });
+    }
+  }
+
   async function handleStartChat(item) {
     const recipientUserId = item?.candidateUserId ?? item?.applicantUserId;
     if (!recipientUserId || chatBusyApplicationId) {
@@ -449,6 +572,7 @@ export function CompanyResponsesSection() {
                     onEditChange={handleApplicationEditChange}
                     onSave={handleApplicationSave}
                     onStartChat={handleStartChat}
+                    onCancelAccepted={handleCancelAcceptedClick}
                     busyId={busyApplicationId}
                     chatBusyId={chatBusyApplicationId}
                   />
@@ -468,6 +592,14 @@ export function CompanyResponsesSection() {
           )}
         </CabinetContentSection>
       ) : null}
+
+      <CancelAcceptedResponseModal
+        open={cancelModalState.open}
+        onClose={() => setCancelModalState({ open: false, item: null, busy: false })}
+        onSubmit={handleCancelAcceptedSubmit}
+        item={cancelModalState.item}
+        busy={cancelModalState.busy}
+      />
     </>
   );
 }
