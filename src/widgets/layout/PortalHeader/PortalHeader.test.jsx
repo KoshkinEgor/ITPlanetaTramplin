@@ -340,4 +340,40 @@ describe("PortalHeader", () => {
 
     expect(screen.queryByRole("link", { name: "Профиль" })).not.toBeInTheDocument();
   });
+
+  it("shows an auth prompt modal when unauthenticated users click restricted buttons", async () => {
+    useAuthSession.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      error: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <PortalHeader
+          navItems={[]}
+          actionHref={routes.auth.login}
+          actionLabel="Войти / Регистрация"
+        />
+      </MemoryRouter>
+    );
+
+    // Clicking "Уведомления" should open the modal
+    fireEvent.click(screen.getByRole("button", { name: "Уведомления" }));
+
+    expect(screen.getByRole("dialog", { name: "Требуется авторизация" })).toBeInTheDocument();
+    expect(screen.getByText("Чтобы общаться и просматривать уведомления, пожалуйста, войдите в систему.")).toBeInTheDocument();
+
+    // The cancel button should close the modal
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
+    expect(screen.queryByRole("dialog", { name: "Требуется авторизация" })).not.toBeInTheDocument();
+
+    // Clicking "Сообщения" should open the modal again
+    fireEvent.click(screen.getByRole("button", { name: "Сообщения" }));
+    expect(screen.getByRole("dialog", { name: "Требуется авторизация" })).toBeInTheDocument();
+
+    // The login link should point to the login page
+    const loginLink = screen.getByRole("link", { name: "Войти" });
+    expect(loginLink).toHaveAttribute("href", expect.stringContaining(routes.auth.login));
+  });
 });

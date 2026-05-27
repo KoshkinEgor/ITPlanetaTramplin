@@ -9,7 +9,7 @@ import {
 } from "../../../api/candidate";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../../../api/notifications";
 import { AppLink } from "../../../app/AppLink";
-import { buildCandidateContactsRoute, routes } from "../../../app/routes";
+import { buildCandidateContactsRoute, routes, withSearch } from "../../../app/routes";
 import { useAuthSession } from "../../../auth/api";
 import {
   buildSocialProfileHref,
@@ -19,6 +19,7 @@ import {
 } from "../../../candidate-portal/social";
 import { AuthAccountMenu } from "../../../auth/AuthAccountMenu";
 import { ChatDrawerTrigger } from "../../../chat";
+import { Modal } from "../../../components/ui/Modal/Modal";
 import { cn } from "../../../shared/lib/cn";
 import { Button, IconButton, BellIcon, GuestProfileIcon, HeartIcon, MenuIcon, MessageIcon } from "../../../shared/ui";
 import "./PortalHeader.css";
@@ -438,6 +439,7 @@ export function PortalHeader({
 }) {
   const mobileMenuRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const authSession = useAuthSession();
   const authUser = authSession.status === "authenticated" ? authSession.user : null;
   const isPublicProfileVariant = variant === "public-profile";
@@ -556,8 +558,23 @@ export function PortalHeader({
               return <PortalHeaderNotifications key={item.key} authUser={authUser} />;
             }
 
+            const isRestricted = !authUser && (item.key === "messages" || item.key === "notifications");
+            const handleButtonClick = isRestricted
+              ? (e) => {
+                  e.preventDefault();
+                  setAuthPromptOpen(true);
+                }
+              : undefined;
+
             return (
-              <IconButton key={item.key ?? item.label} label={item.label} href={item.href} size="lg" className="portal-header__icon-button">
+              <IconButton
+                key={item.key ?? item.label}
+                label={item.label}
+                href={item.href}
+                size="lg"
+                className="portal-header__icon-button"
+                onClick={handleButtonClick}
+              >
                 {item.icon}
               </IconButton>
             );
@@ -591,6 +608,33 @@ export function PortalHeader({
           ) : null}
         </div>
       </header>
+
+      <Modal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        title="Требуется авторизация"
+        description="Чтобы общаться и просматривать уведомления, пожалуйста, войдите в систему."
+        tone="info"
+        showIcon
+        actions={(
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setAuthPromptOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              as="a"
+              href={withSearch(routes.auth.login, { redirect: typeof window !== "undefined" ? window.location.pathname : "" })}
+              onClick={() => setAuthPromptOpen(false)}
+            >
+              Войти
+            </Button>
+          </>
+        )}
+      />
     </div>
   );
 }
