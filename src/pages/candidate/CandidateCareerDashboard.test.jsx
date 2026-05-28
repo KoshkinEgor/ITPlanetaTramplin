@@ -86,7 +86,7 @@ describe("CandidateCareerDashboard", () => {
 
     const careerTitle = screen.getByRole("heading", { name: "Карьера" });
     const topPanel = screen.getByRole("heading", { name: "Твоя карьера" });
-    const coursesSection = screen.getByRole("heading", { name: "Курсы по навыкам" });
+    const coursesSection = screen.getByRole("heading", { name: "Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:" });
     const opportunitiesSection = screen.getByRole("heading", { name: "Пройди стажировку и совершенствуй свои навыки" });
     const mentorsSection = screen.getByRole("heading", { name: "Менторские программы" });
     const networkSection = screen.getByRole("heading", { name: "Активные связи" });

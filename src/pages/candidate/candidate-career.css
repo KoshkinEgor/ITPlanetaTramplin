@@ -778,3 +778,47 @@
   }
 }
 
+/* Career Courses Section Header */
+.candidate-career-courses-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.candidate-career-courses-header__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.candidate-career-courses-header__title-row h2 {
+  margin: 0;
+  max-width: 52ch;
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-h2);
+  font-weight: 700;
+}
+
+.candidate-career-courses-header__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.candidate-career-courses-header__description {
+  margin: 0;
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+}
+
+@media (max-width: 760px) {
+  .candidate-career-courses-header__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+

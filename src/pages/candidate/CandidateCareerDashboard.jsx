@@ -17,6 +17,7 @@ import {
   FilterPill,
   HeartIcon,
   SectionHeader,
+  Tag,
 } from "../../shared/ui";
 
 const COURSE_SLIDER_ARIA_LABEL = "Career courses slider";
@@ -261,6 +262,7 @@ function mapOpportunityCard(item) {
     meta: [item.companyName, item.locationCity].filter(Boolean).join(" • ") || presentation.meta || item.companyName || "Компания",
     chips: safeArray(item.tags).filter(Boolean).slice(0, 2),
     href: opportunityId ? buildOpportunityDetailRoute(opportunityId) : routes.opportunities.catalog,
+    tags: safeArray(item.tags).filter(Boolean),
   };
 }
 
@@ -511,6 +513,18 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
   const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;
   const matchPercentage = calculateOpportunityMatchPercentage(profile, featuredOpportunity);
   const showCtaCard = matchPercentage >= 70;
+
+  console.log("CandidateCareerDashboard debug:", {
+    email: profile?.email,
+    profession: getProfileProfession(profile),
+    skills: getCandidateSkills(profile),
+    recommendationsCount: dashboardState.recommendations.length,
+    opportunitiesInStateCount: dashboardState.opportunities.length,
+    processedOpportunities: opportunities.map(o => ({ id: o.id, title: o.title, tags: o.tags, chips: o.chips })),
+    featuredOpportunity: featuredOpportunity ? { id: featuredOpportunity.id, title: featuredOpportunity.title } : null,
+    matchPercentage,
+    showCtaCard
+  });
   const salaryTrack = SALARY_TRACKS[track] ?? SALARY_TRACKS.default;
   const networkContacts = getSharedContacts(profile, dashboardState.contacts);
   const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
@@ -609,11 +623,30 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
       ) : null}
 
       <section id="career-courses" className="candidate-career-dashboard__section">
-        <SectionHeader
-          title="Курсы по навыкам"
-          size="md"
-          actions={<a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">Все курсы →</a>}
-        />
+        <div className="candidate-career-courses-header">
+          <div className="candidate-career-courses-header__title-row">
+            <h2 className="ui-type-h2">
+              Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:
+            </h2>
+            <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
+              Все курсы →
+            </a>
+          </div>
+
+          {suggestedSkills.length > 0 && (
+            <div className="candidate-career-courses-header__skills">
+              {suggestedSkills.map((skill) => (
+                <Tag key={skill} variant="surface">
+                  {skill}
+                </Tag>
+              ))}
+            </div>
+          )}
+
+          <p className="candidate-career-courses-header__description ui-type-body">
+            Развивайтесь в данных направлениях для повышения шансов на собеседовании.
+          </p>
+        </div>
         <OpportunityBlockSlider
           ariaLabel={COURSE_SLIDER_ARIA_LABEL}
           items={courses}

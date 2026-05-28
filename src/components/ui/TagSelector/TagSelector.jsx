@@ -46,21 +46,63 @@ export function TagSelector({
   width,
   className,
   onSave,
+  loadSuggestions,
+  allowCustomTags = true,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState(value);
+  const [dynamicSuggestions, setDynamicSuggestions] = useState(suggestions);
+  const [loading, setLoading] = useState(false);
   const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useEffect(() => {
     setDraft(value);
   }, [value]);
 
+  useEffect(() => {
+    if (!isEditing) {
+      setQuery("");
+      return;
+    }
+
+    if (!loadSuggestions) {
+      setDynamicSuggestions(suggestions);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+
+    const fetchSuggestions = async () => {
+      try {
+        const results = await loadSuggestions(query);
+        if (active) {
+          setDynamicSuggestions(results);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(fetchSuggestions, 200);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, isEditing, loadSuggestions, suggestions]);
+
   const visibleSuggestions = useMemo(() => {
+    if (loadSuggestions) {
+      return dynamicSuggestions;
+    }
     const normalized = query.trim().toLowerCase();
     return suggestions.filter((item) => !normalized || item.toLowerCase().includes(normalized));
-  }, [query, suggestions]);
-  const canCreateTag = query.trim() && !draft.some((item) => item.toLowerCase() === query.trim().toLowerCase());
+  }, [query, suggestions, dynamicSuggestions, loadSuggestions]);
+
+  const canCreateTag = allowCustomTags && query.trim() && !draft.some((item) => item.toLowerCase() === query.trim().toLowerCase());
 
   const handleCancel = () => {
     setDraft(value);

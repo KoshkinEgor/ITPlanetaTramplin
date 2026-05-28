@@ -4,6 +4,7 @@ import { createCandidateProject, deleteCandidateProject, getCandidateProjects, u
 import { uploadImage } from "../api/uploads";
 import { Alert, Button, Card, FormField, Input, Loader, MediaUploadIcon, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
+import { getTags } from "../api/tags";
 import { CandidatePortfolioProjectCard } from "./portfolio-kit";
 import {
   createInitialProjectDraft,
@@ -708,6 +709,16 @@ export function CandidateProjectEditorApp() {
                   clearLabel="Очистить поиск"
                   saveLabel="Сохранить теги"
                   onSave={(nextTags) => updateField("tags", nextTags)}
+                  loadSuggestions={async (query) => {
+                    try {
+                      const res = await getTags({ query, limit: 30 });
+                      return (res?.Items || res?.items || []).map((t) => t.Name || t.name);
+                    } catch (err) {
+                      console.error(err);
+                      return [];
+                    }
+                  }}
+                  allowCustomTags={false}
                 />
 
                 {errors.tags ? <span className="ui-error">{errors.tags}</span> : null}
