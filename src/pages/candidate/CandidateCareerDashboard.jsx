@@ -64,7 +64,7 @@ const COURSE_CATALOG = [
     meta: "Короткий курс · 2 месяца · онлайн",
     monthly: "Можно платить ежемесячно",
     href: "https://practicum.yandex.ru/ai-tools-for-designers/",
-    tags: ["design", "default"],
+    tags: ["Figma", "UX", "UI", "User experience", "User interface", "Research", "Usability"],
   },
   {
     id: "illustrator",
@@ -75,7 +75,7 @@ const COURSE_CATALOG = [
     oldPrice: "7 655 ₽/мес",
     monthly: "Рассрочка на 6 месяцев",
     href: "https://skillbox.ru/course/illustrator/",
-    tags: ["design", "default"],
+    tags: ["Adobe Photoshop", "Графический дизайн", "Figma", "UI", "Вёрстка"],
   },
   {
     id: "typography",
@@ -86,7 +86,7 @@ const COURSE_CATALOG = [
     oldPrice: "9 480 ₽/мес",
     monthly: "Рассрочка на 12 месяцев",
     href: "https://skillbox.ru/course/paratype/",
-    tags: ["design", "development"],
+    tags: ["Вёрстка", "Графический дизайн", "UI", "CSS", "HTML"],
   },
   {
     id: "graphic-design",
@@ -97,7 +97,7 @@ const COURSE_CATALOG = [
     oldPrice: "9 945 ₽/мес",
     monthly: "Рассрочка на 24 месяца",
     href: "https://skillbox.ru/course/graphic-design/",
-    tags: ["design", "default"],
+    tags: ["Adobe Photoshop", "Графический дизайн", "Figma", "UX", "UI", "Sketch"],
   },
   {
     id: "product-analytics",
@@ -107,7 +107,7 @@ const COURSE_CATALOG = [
     price: "8 000 ₽/мес",
     monthly: "Можно платить ежемесячно",
     href: "https://practicum.yandex.ru/product-analyst/",
-    tags: ["analytics", "default"],
+    tags: ["SQL", "Python", "A/B тесты", "Метрики", "Статистика", "Дашборды", "Research", "Excel", "BI", "Power BI"],
   },
   {
     id: "frontend",
@@ -118,7 +118,7 @@ const COURSE_CATALOG = [
     oldPrice: "89 400 ₽",
     monthly: "Лайт-формат · доступ на 2 года",
     href: "https://htmlacademy.ru/intensive/react",
-    tags: ["development", "default"],
+    tags: ["React", "JavaScript", "TypeScript", "Git", "State management", "HTML", "CSS", "REST API", "Тестирование"],
   },
   {
     id: "brand-identity",
@@ -126,7 +126,7 @@ const COURSE_CATALOG = [
     provider: "Bang Bang Education",
     meta: "С нуля · 3 месяца · онлайн",
     href: "https://bangbangeducation.ru/course/id-from-idea-to-image",
-    tags: ["design", "default"],
+    tags: ["Графический дизайн", "Презентации", "UI", "Research"],
   },
   {
     id: "motion-design",
@@ -137,7 +137,7 @@ const COURSE_CATALOG = [
     oldPrice: "8 667 ₽/мес",
     monthly: "Рассрочка на 36 месяцев",
     href: "https://contented.ru/edu/motion-designer-pro",
-    tags: ["design", "default"],
+    tags: ["Motion-design", "UI", "UX", "User interface", "Figma"],
   },
 ];
 
@@ -306,9 +306,28 @@ function getPrimarySkills(profile) {
 
 function pickCourses(profile) {
   const track = resolveTrackKey(profile);
-  const preferred = COURSE_CATALOG.filter((course) => course.tags.includes(track));
+  const trackSkills = TRACK_SKILLS[track] ?? TRACK_SKILLS.default;
+  const profileSkills = getCandidateSkills(profile).map(normalizeKey);
+  const profileSkillsSet = new Set(profileSkills);
+  
+  const missingSkills = trackSkills.filter(s => !profileSkillsSet.has(normalizeKey(s)));
+  const missingSkillsSet = new Set(missingSkills.map(normalizeKey));
 
-  return [...preferred, ...COURSE_CATALOG.filter((course) => !preferred.includes(course))].slice(0, 6);
+  // Count how many missing skills each course covers
+  const coursesWithScores = COURSE_CATALOG.map((course, index) => {
+    const score = course.tags.filter((t) => missingSkillsSet.has(normalizeKey(t))).length;
+    return { course, score, index };
+  });
+
+  // Sort by score descending, then by original index ascending to keep stable ordering
+  coursesWithScores.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return a.index - b.index;
+  });
+
+  return coursesWithScores.map((item) => item.course).slice(0, 6);
 }
 
 function mapCourseCard(course) {

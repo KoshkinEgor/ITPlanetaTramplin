@@ -718,7 +718,7 @@ export function CandidateProjectEditorApp() {
                       return [];
                     }
                   }}
-                  allowCustomTags={false}
+                  allowCustomTags={true}
                 />
 
                 {errors.tags ? <span className="ui-error">{errors.tags}</span> : null}

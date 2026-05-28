@@ -125,6 +125,8 @@ namespace DTO
 
         public List<string>? Tags { get; set; }
 
+        public List<string>? PendingTags { get; set; }
+
         public int? ApplicationsCount { get; set; }
 
         public int? AcceptedApplicationsCount { get; set; }

@@ -1,4 +1,4 @@
-﻿namespace DTO
+namespace DTO
 {
     public class ApplicantLoginDTO
     {
@@ -45,6 +45,8 @@
         public string ModerationStatus { get; set; } = string.Empty;
 
         public List<string>? Skills { get; set; }
+
+        public List<string>? PendingSkills { get; set; }
 
         public object? Links { get; set; }
     }

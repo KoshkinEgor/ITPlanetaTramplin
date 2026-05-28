@@ -45,6 +45,7 @@ internal static partial class ModerationEndpointRouteBuilderExtensions
             {
                 "active" => item.IsActive != false,
                 "inactive" or "disabled" => item.IsActive == false,
+                "pending" => item.IsActive == false && item.MergedIntoTagId == null,
                 "merged" => item.MergedIntoTagId != null,
                 _ => true,
             })
@@ -59,6 +60,7 @@ internal static partial class ModerationEndpointRouteBuilderExtensions
                 Total = tags.Count,
                 Active = tags.Count(item => item.IsActive != false),
                 Disabled = tags.Count(item => item.IsActive == false),
+                Pending = tags.Count(item => item.IsActive == false && item.MergedIntoTagId == null),
                 Merged = tags.Count(item => item.MergedIntoTagId != null),
                 Unused = tags.Count(item => item.Opportunities.Count == 0),
             },

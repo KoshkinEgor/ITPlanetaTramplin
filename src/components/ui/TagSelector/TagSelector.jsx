@@ -7,10 +7,10 @@ import { Tag } from "../Tag/Tag";
 import { getFontWeightClassName, getWidthClassName } from "../sharedProps";
 import { CloseIcon } from "../../../shared/ui";
 
-function RemovableChip({ label, onRemove }) {
+function RemovableChip({ label, onRemove, isPending }) {
   return (
-    <span className="ui-tag-selector__chip ui-tag-selector__chip--removable">
-      <span>{label}</span>
+    <span className={cn("ui-tag-selector__chip ui-tag-selector__chip--removable", isPending && "ui-tag-selector__chip--pending")}>
+      <span>{label} {isPending ? "(на модерации)" : ""}</span>
       <button type="button" className="ui-tag-selector__chip-remove" aria-label={`Удалить ${label}`} onClick={onRemove}>
         <CloseIcon />
       </button>
@@ -33,6 +33,7 @@ function SuggestionChip({ label, disabled, onClick }) {
 
 export function TagSelector({
   value = [],
+  pendingValue = [],
   suggestions = [],
   title,
   suggestionsLabel = "Рекомендованные теги",
@@ -51,14 +52,14 @@ export function TagSelector({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [query, setQuery] = useState("");
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(() => [...value, ...pendingValue]);
   const [dynamicSuggestions, setDynamicSuggestions] = useState(suggestions);
   const [loading, setLoading] = useState(false);
   const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
   useEffect(() => {
-    setDraft(value);
-  }, [value]);
+    setDraft([...value, ...pendingValue]);
+  }, [value, pendingValue]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -132,6 +133,7 @@ export function TagSelector({
                 <RemovableChip
                   key={item}
                   label={item}
+                  isPending={pendingValue.includes(item)}
                   onRemove={() => setDraft((current) => current.filter((chip) => chip !== item))}
                 />
               ))
@@ -147,6 +149,11 @@ export function TagSelector({
             className="ui-tag-selector__search"
             clearLabel={clearLabel}
           />
+          {allowCustomTags ? (
+            <div className="ui-tag-selector__hint">
+              Новые навыки отправляются на модерацию и появятся на публичной странице после проверки.
+            </div>
+          ) : null}
 
           <div className="ui-tag-selector__recommendations">
             <div className="ui-tag-selector__subtitle">{suggestionsLabel}</div>
@@ -181,8 +188,15 @@ export function TagSelector({
       ) : (
         <>
           <div className="ui-tag-selector__display">
-            {value.length ? (
-              value.map((item) => <Tag key={item}>{item}</Tag>)
+            {value.length || pendingValue.length ? (
+              <>
+                {value.map((item) => <Tag key={item}>{item}</Tag>)}
+                {pendingValue.map((item) => (
+                  <Tag key={item} className="ui-tag--pending" tone="warning" variant="outline" title="На модерации">
+                    {item} <span className="ui-tag__pending-label">(на модерации)</span>
+                  </Tag>
+                ))}
+              </>
             ) : (
               <span className="ui-tag-selector__empty">{emptyLabel}</span>
             )}

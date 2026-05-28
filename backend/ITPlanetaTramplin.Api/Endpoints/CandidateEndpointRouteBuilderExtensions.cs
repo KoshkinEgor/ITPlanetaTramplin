@@ -80,7 +80,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        return Results.Ok(MapCandidateProfile(profile));
+        return Results.Ok(await MapCandidateProfileAsync(profile, db));
     }
 
     private static async Task<IResult> UpdateCandidateMeAsync(
@@ -94,9 +94,9 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        ApplyCandidateProfileUpdate(profile, request);
+        await ApplyCandidateProfileUpdateAsync(db, profile, request);
         await db.SaveChangesAsync();
-        return Results.Ok(MapCandidateProfile(profile));
+        return Results.Ok(await MapCandidateProfileAsync(profile, db));
     }
 
     private static async Task<IResult> GetCurrentCandidateEducationAsync(HttpContext context, ApplicationDBContext db)
@@ -490,7 +490,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             AcceptedApplicationsCount = item.Opportunity.Applications.Count(a => a.Status == OpportunityApplicationStatuses.Accepted),
             CompanyName = item.Opportunity.Employer.CompanyName,
             CompanyProfileImage = item.Opportunity.Employer.ProfileImage,
-            Tags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
+            Tags = item.Opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name).ToList(),
             OpportunityType = item.Opportunity.OpportunityType,
             ModerationStatus = OpportunityEndpointRouteBuilderExtensions.GetEffectiveModerationStatus(item.Opportunity),
             RecommenderId = item.RecommenderId,
@@ -552,6 +552,14 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
+        var allSkills = profile.Skills ?? new List<string>();
+        var activeTags = await db.Tags
+            .Where(t => allSkills.Contains(t.Name) && t.IsActive == true)
+            .Select(t => t.Name)
+            .ToListAsync();
+        var activeSet = new HashSet<string>(activeTags, StringComparer.OrdinalIgnoreCase);
+        var activeSkills = allSkills.Where(s => activeSet.Contains(s)).ToList();
+
         return Results.Ok(new[]
         {
             new
@@ -561,7 +569,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 profile.Thirdname,
                 Educations = profile.ApplicantEducations.Select(item => new { item.InstitutionName, item.GraduationYear }),
                 profile.Description,
-                profile.Skills,
+                Skills = activeSkills,
             },
         });
     }
@@ -620,7 +628,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             .FirstOrDefaultAsync(item => item.UserId == userId.Value);
     }
 
-    internal static void ApplyCandidateProfileUpdate(ApplicantProfile profile, CandidateProfileUpdateDTO request)
+    internal static async Task ApplyCandidateProfileUpdateAsync(ApplicationDBContext db, ApplicantProfile profile, CandidateProfileUpdateDTO request)
     {
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
@@ -644,7 +652,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
 
         if (request.Skills is not null)
         {
-            profile.Skills = request.Skills;
+            profile.Skills = await ResolveActiveSkillsAndQueueInactiveAsync(db, request.Skills);
         }
 
         if (request.Links is not null)
@@ -693,8 +701,55 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         }
     }
 
-    internal static CandidateProfileReadDTO MapCandidateProfile(ApplicantProfile profile) =>
-        new()
+    internal static async Task<List<string>> ResolveActiveSkillsAndQueueInactiveAsync(ApplicationDBContext db, IEnumerable<string>? inputSkills)
+    {
+        var normalizedNames = (inputSkills ?? [])
+            .Select(item => item?.Trim())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedNames.Count == 0)
+        {
+            return [];
+        }
+
+        var existingTags = await db.Tags
+            .Where(item => normalizedNames.Contains(item.Name))
+            .ToListAsync();
+
+        var tagsByName = existingTags.ToDictionary(item => item.Name, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in normalizedNames)
+        {
+            if (!tagsByName.TryGetValue(name, out var tag))
+            {
+                tag = new Tag
+                {
+                    Name = name,
+                    IsActive = false,
+                };
+                db.Tags.Add(tag);
+                tagsByName[name] = tag;
+            }
+        }
+
+        return normalizedNames;
+    }
+
+    internal static async Task<CandidateProfileReadDTO> MapCandidateProfileAsync(ApplicantProfile profile, ApplicationDBContext db)
+    {
+        var allSkills = profile.Skills ?? new List<string>();
+        var activeTags = await db.Tags
+            .Where(t => allSkills.Contains(t.Name) && t.IsActive == true)
+            .Select(t => t.Name)
+            .ToListAsync();
+        
+        var activeSet = new HashSet<string>(activeTags, StringComparer.OrdinalIgnoreCase);
+        var skills = allSkills.Where(s => activeSet.Contains(s)).ToList();
+        var pendingSkills = allSkills.Where(s => !activeSet.Contains(s)).ToList();
+
+        return new CandidateProfileReadDTO
         {
             UserId = profile.UserId,
             ProfileId = profile.Id,
@@ -704,9 +759,11 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             Thirdname = profile.Thirdname,
             Description = profile.Description,
             ModerationStatus = CandidateModerationStatuses.Normalize(profile.ModerationStatus),
-            Skills = profile.Skills,
+            Skills = skills,
+            PendingSkills = pendingSkills,
             Links = AuthEndpointSupport.TryParseJsonValue(profile.Links),
         };
+    }
 
     private static async Task<List<object>> GetCandidateEducationsAsync(ApplicationDBContext db, int applicantId) =>
         await db.ApplicantEducations
@@ -749,6 +806,19 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             .OrderByDescending(item => item.CreatedAt)
             .ToListAsync();
 
+        var allSkillNames = contacts
+            .Select(c => c.ContactProfile.ApplicantProfile)
+            .Where(ap => ap != null && ap.Skills != null)
+            .SelectMany(ap => ap.Skills!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var activeTags = await db.Tags
+            .Where(t => allSkillNames.Contains(t.Name) && t.IsActive == true)
+            .Select(t => t.Name)
+            .ToListAsync();
+        var activeSet = new HashSet<string>(activeTags, StringComparer.OrdinalIgnoreCase);
+
         var result = new List<object>(contacts.Count);
         foreach (var item in contacts)
         {
@@ -766,7 +836,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 item.CreatedAt,
                 Email = item.ContactProfile.Email,
                 Name = string.IsNullOrWhiteSpace(displayName) ? item.ContactProfile.Email : displayName,
-                Skills = applicantProfile?.Skills,
+                Skills = applicantProfile?.Skills?.Where(s => activeSet.Contains(s)).ToList(),
                 Relationship = await BuildRelationshipSummaryAsync(db, userId, item.ContactProfileId),
             });
         }

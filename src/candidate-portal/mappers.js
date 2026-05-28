@@ -59,7 +59,11 @@ export function getCandidateMeta(profile) {
 }
 
 export function getCandidateSkills(profile) {
-  return Array.isArray(profile?.skills) ? profile.skills.filter(Boolean) : [];
+  return Array.isArray(profile?.skills) ? profile.skills.filter(Boolean) : Array.isArray(profile?.Skills) ? profile.Skills.filter(Boolean) : [];
+}
+
+export function getCandidatePendingSkills(profile) {
+  return Array.isArray(profile?.pendingSkills) ? profile.pendingSkills.filter(Boolean) : Array.isArray(profile?.PendingSkills) ? profile.PendingSkills.filter(Boolean) : [];
 }
 
 export function getProfileCompletion(profile, education) {
