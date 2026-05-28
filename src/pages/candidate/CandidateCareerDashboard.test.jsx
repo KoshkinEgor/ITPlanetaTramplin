@@ -93,6 +93,8 @@ describe("CandidateCareerDashboard", () => {
     const suggestionsSection = screen.getByRole("heading", { name: "Люди под ваши отклики" });
 
     expect(topPanel).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Воспользуйся моментом" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Откликнуться" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Твои навыки" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Уровень зарплат в Чебоксары" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Career courses slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(6);
@@ -100,7 +102,7 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByText("Нейросети для дизайна")).toBeInTheDocument();
     expect(screen.getAllByText("Веб-дизайнер").length).toBeGreaterThan(0);
     expect(screen.getByText("Оплата")).toBeInTheDocument();
-    expect(screen.getByText("Без оплаты")).toBeInTheDocument();
+    expect(screen.getAllByText("Без оплаты").length).toBeGreaterThan(0);
     expect(screen.getByText("Длительность: 8 недель")).toBeInTheDocument();
     expect(screen.getByText("Александра Морева")).toBeInTheDocument();
     expect(screen.getByText("Мария Ильина")).toBeInTheDocument();
@@ -155,8 +157,60 @@ describe("CandidateCareerDashboard", () => {
     );
 
     expect(screen.getByText("Пока нет реальных рекомендаций")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Воспользуйся моментом" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Откликнуться" })).toBeInTheDocument();
+    expect(screen.getByText("Дизайнер интерфейсов Мобильных приложений UI/UX")).toBeInTheDocument();
     expect(screen.queryByText("Александра Морева")).not.toBeInTheDocument();
     expect(screen.queryByText("Анастасия Соколова")).not.toBeInTheDocument();
     expect(screen.queryByText("Мария Ильина")).not.toBeInTheDocument();
+  });
+
+  it("hides the CTA block if the match percentage is below 70%", () => {
+    const profile = {
+      name: "Иван",
+      surname: "Петров",
+      skills: ["C#", "SQL", "ASP.NET"],
+      links: {
+        onboarding: {
+          profession: "Бэкенд разработчик",
+          city: "Москва",
+        },
+      },
+    };
+
+    const dashboardState = {
+      status: "ready",
+      applications: [],
+      contacts: [],
+      suggestions: [],
+      recommendations: [
+        {
+          id: "design-internship",
+          opportunityType: "internship",
+          title: "UX/UI Дизайнер",
+          companyName: "Design Agency",
+          locationCity: "Москва",
+          employmentType: "onsite",
+          isPaid: true,
+          stipendFrom: 20000,
+          stipendTo: 30000,
+          duration: "4 недели",
+          tags: ["Figma", "Sketch", "Prototyping"],
+          moderationStatus: "approved",
+        },
+      ],
+      opportunities: [],
+      degraded: false,
+      error: null,
+    };
+
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard profile={profile} dashboardState={dashboardState} />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("heading", { name: "Воспользуйся моментом" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Откликнуться" })).not.toBeInTheDocument();
   });
 });

@@ -4,8 +4,10 @@ import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-por
 import { mapSocialUserToCard } from "../../candidate-portal/social";
 import { OpportunityBlockSlider } from "../../components/opportunities";
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
+import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
 import {
   Alert,
+  Button,
   CareerCourseCard,
   CareerMentorCard,
   CareerPeerCard,
@@ -13,6 +15,7 @@ import {
   CareerSkillsPanel,
   CareerStatsPanel,
   FilterPill,
+  HeartIcon,
   SectionHeader,
 } from "../../shared/ui";
 
@@ -202,6 +205,45 @@ function resolveTrackKey(profile) {
   return "default";
 }
 
+function calculateOpportunityMatchPercentage(profile, opportunity) {
+  if (!opportunity) return 0;
+  
+  const profileSkills = getCandidateSkills(profile).map(s => s.toLowerCase());
+  const opportunityTags = (opportunity.chips || opportunity.tags || []).map(t => t.toLowerCase());
+  
+  const profession = getProfileProfession(profile).toLowerCase();
+  const title = (opportunity.title || "").toLowerCase();
+  
+  // Normalizing string comparisons to be robust
+  const cleanProfession = profession.replace(/[^a-zA-Zа-яА-Я0-9]/g, "");
+  const cleanTitle = title.replace(/[^a-zA-Zа-яА-Я0-9]/g, "");
+  
+  const professionMatch = cleanProfession && (cleanTitle.includes(cleanProfession) || cleanProfession.includes(cleanTitle));
+  
+  const track = resolveTrackKey(profile);
+  const titleTrackMatch = 
+    (track === "design" && (title.includes("диз") || title.includes("ux") || title.includes("ui"))) ||
+    (track === "analytics" && (title.includes("аналит") || title.includes("data"))) ||
+    (track === "development" && (title.includes("разработ") || title.includes("react") || title.includes("frontend") || title.includes("js")));
+
+  // Count matching skills
+  const matchingSkillsCount = profileSkills.filter(skill => 
+    opportunityTags.some(tag => tag.includes(skill) || skill.includes(tag))
+  ).length;
+
+  let baseScore = 50;
+  if (professionMatch) {
+    baseScore = 85;
+  } else if (titleTrackMatch) {
+    baseScore = 78;
+  }
+  
+  const skillRatio = profileSkills.length > 0 ? matchingSkillsCount / profileSkills.length : 0.6;
+  const matchScore = Math.min(99, Math.round(baseScore + skillRatio * 20));
+  
+  return matchScore;
+}
+
 function mapOpportunityCard(item) {
   if (!isRecord(item)) {
     return null;
@@ -333,6 +375,131 @@ function countByStatus(items, status) {
   return items.filter((item) => item?.status === status).length;
 }
 
+const FALLBACK_OPPORTUNITIES_BY_TRACK = {
+  design: {
+    id: "design-mobile-internship",
+    type: "Стажировка",
+    title: "Дизайнер интерфейсов Мобильных приложений UI/UX",
+    meta: "White Tiger Soft · Москва + онлайн",
+    chips: ["Студенты", "Оплачиваемая"],
+    href: routes.opportunities.catalog,
+    primaryFactValue: "от 30 000 ₽",
+    primaryFactLabel: "Стипендия",
+  },
+  analytics: {
+    id: "analytics-internship",
+    type: "Стажировка",
+    title: "Младший аналитик данных (Junior Data Analyst)",
+    meta: "White Tiger Soft · Москва + онлайн",
+    chips: ["Студенты", "Оплачиваемая"],
+    href: routes.opportunities.catalog,
+    primaryFactValue: "от 35 000 ₽",
+    primaryFactLabel: "Стипендия",
+  },
+  development: {
+    id: "development-internship",
+    type: "Стажировка",
+    title: "Фронтенд-разработчик React (Junior)",
+    meta: "White Tiger Soft · Москва + онлайн",
+    chips: ["Студенты", "Оплачиваемая"],
+    href: routes.opportunities.catalog,
+    primaryFactValue: "от 40 000 ₽",
+    primaryFactLabel: "Стипендия",
+  },
+  default: {
+    id: "design-mobile-internship",
+    type: "Стажировка",
+    title: "Дизайнер интерфейсов Мобильных приложений UI/UX",
+    meta: "White Tiger Soft · Москва + онлайн",
+    chips: ["Студенты", "Оплачиваемая"],
+    href: routes.opportunities.catalog,
+    primaryFactValue: "от 30 000 ₽",
+    primaryFactLabel: "Стипендия",
+  },
+};
+
+function CareerCtaCard({ profile, opportunity, matchPercentage }) {
+  const onboarding = getOnboardingPayload(profile);
+  const goal = onboarding.goal || "Пройти стажировку на должность UX/UI дизайнера";
+  const { isFavorite, toggleFavorite } = useFavoriteOpportunity(opportunity?.id);
+
+  if (!opportunity) {
+    return null;
+  }
+
+  const handleFavoriteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite();
+  };
+
+  const isPaid = opportunity.primaryFactValue && opportunity.primaryFactValue !== "Без оплаты" && opportunity.primaryFactValue !== "Стипендия не указана";
+
+  return (
+    <div className="candidate-career-cta-card">
+      <div className="candidate-career-cta-card__header">
+        <h2 className="candidate-career-cta-card__title">Воспользуйся моментом</h2>
+        <p className="candidate-career-cta-card__subtitle">
+          Ваша цель: {goal}
+        </p>
+      </div>
+
+      <div className="candidate-career-cta-vacancy">
+        <div className="candidate-career-cta-vacancy__top">
+          <div className="candidate-career-cta-vacancy__badges">
+            <span className="candidate-career-cta-vacancy__badge">{opportunity.type || "Стажировка"}</span>
+            <span className="candidate-career-cta-vacancy__badge candidate-career-cta-vacancy__badge--match">
+              Подходит на {matchPercentage}%
+            </span>
+            {opportunity.chips?.map((chip) => (
+              <span key={chip} className="candidate-career-cta-vacancy__badge">
+                {chip}
+              </span>
+            ))}
+            {isPaid && (
+              <span className="candidate-career-cta-vacancy__badge">Оплачиваемая</span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={`candidate-career-cta-vacancy__save ${isFavorite ? "is-favorite" : ""}`}
+            onClick={handleFavoriteClick}
+            aria-label={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
+          >
+            <HeartIcon />
+          </button>
+        </div>
+
+        <div className="candidate-career-cta-vacancy__body">
+          <h3 className="candidate-career-cta-vacancy__title">{opportunity.title}</h3>
+          <p className="candidate-career-cta-vacancy__meta">{opportunity.meta}</p>
+          
+          <div className="candidate-career-cta-vacancy__salary">
+            <span className="candidate-career-cta-vacancy__salary-value">
+              {opportunity.primaryFactValue}
+            </span>
+            {isPaid && (
+              <span className="candidate-career-cta-vacancy__salary-label">
+                за месяц, до вычета налогов
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Button
+          href={opportunity.href}
+          variant="primary"
+          width="full"
+          className="candidate-career-cta-vacancy__button"
+        >
+          Откликнуться
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CandidateCareerDashboard({ profile, dashboardState }) {
   const [mentorFilter, setMentorFilter] = useState(MENTOR_FILTERS[0].value);
 
@@ -340,7 +507,11 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
   const suggestedSkills = getSuggestedSkills(profile);
   const courses = pickCourses(profile).map(mapCourseCard);
   const opportunities = getOpportunityCards(dashboardState.recommendations, dashboardState.opportunities);
-  const salaryTrack = SALARY_TRACKS[resolveTrackKey(profile)] ?? SALARY_TRACKS.default;
+  const track = resolveTrackKey(profile);
+  const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;
+  const matchPercentage = calculateOpportunityMatchPercentage(profile, featuredOpportunity);
+  const showCtaCard = matchPercentage >= 70;
+  const salaryTrack = SALARY_TRACKS[track] ?? SALARY_TRACKS.default;
   const networkContacts = getSharedContacts(profile, dashboardState.contacts);
   const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
   const sharedContacts = networkContacts;
@@ -406,6 +577,9 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
           description="Не знаешь куда двигаться? Тогда этот блок именно для тебя. Получи свою траекторию развития для усиления навыков и перехода к следующей цели."
           className="candidate-career-dashboard__intro"
         />
+        {showCtaCard && (
+          <CareerCtaCard profile={profile} opportunity={featuredOpportunity} matchPercentage={matchPercentage} />
+        )}
 
         <div className="candidate-career-dashboard__top-grid">
           <CareerStatsPanel

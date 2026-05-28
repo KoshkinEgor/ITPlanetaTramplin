@@ -162,6 +162,16 @@ internal static class DevelopmentDataSeeder
             }
             """,
             CandidateModerationStatuses.Approved),
+        new(
+            "i@mikulay-efimov",
+            "Candidate1234",
+            "Николай",
+            "Ефимов",
+            null,
+            "UX/UI дизайнер с опытом проектирования мобильных приложений, создания интерактивных прототипов в Figma и проведения исследований.",
+            ["Figma", "UX", "UI", "Prototyping", "Design systems", "Usability"],
+            """{"portfolio":"https://mikulay.tramplin.local","telegram":"@mikulay_efimov","onboarding":{"profession":"UX/UI дизайнер","city":"Чебоксары","goal":"Пройти стажировку на должность UX/UI дизайнера"}}""",
+            CandidateModerationStatuses.Approved),
     ];
 
     private static readonly SeedCompany[] SeedCompanies =
@@ -240,6 +250,17 @@ internal static class DevelopmentDataSeeder
             "Цифровые продукты для коммуникаций, контента и creator tools с активными стажировками и карьерными событиями.",
             """[{"type":"website","url":"https://vk.company"},{"type":"telegram","url":"https://t.me/vkteam"}]""",
             [
+                new(
+                    "Дизайнер интерфейсов Мобильных приложений UI/UX",
+                    "Проектирование пользовательских интерфейсов для мобильных приложений под iOS и Android, разработка дизайн-систем в Figma, создание интерактивных прототипов и проведение юзабилити-тестирований.",
+                    "Чебоксары",
+                    "проспект Ленина 2",
+                    56.1308549m,
+                    47.2463442m,
+                    "internship",
+                    "Hybrid",
+                    """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
+                    ["Figma", "UX", "UI", "Prototyping", "Design systems"]),
                 new(
                     "Стажировка по продуктовому дизайну",
                     "Работайте с продуктовой командой над синтезом исследований, быстрыми прототипами и дизайн-QA для социальных и creator-инструментов.",
@@ -446,6 +467,11 @@ internal static class DevelopmentDataSeeder
             "anna.petrova@tramplin.local",
             "Инженер дизайн-систем",
             "Анна уже мыслит компонентами и токенами и умеет превращать дизайн-спеки в устойчивые frontend-паттерны."),
+        new(
+            "maria.sokolova@tramplin.local",
+            "i@mikulay-efimov",
+            "Дизайнер интерфейсов Мобильных приложений UI/UX",
+            "Николай отлично проектирует мобильные экраны, детально прорабатывает пользовательские сценарии и аккуратно работает с Figma."),
     ];
 
     private static readonly SeedComplaint[] SeedComplaints =

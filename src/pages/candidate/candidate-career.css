@@ -594,3 +594,187 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Career Page Call To Action Block */
+.candidate-career-cta-card {
+  background: linear-gradient(135deg, hsl(140, 50%, 94%) 0%, hsl(140, 40%, 88%) 100%);
+  border: 1px solid hsl(140, 30%, 82%);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 
+    0 12px 36px rgba(46, 204, 113, 0.05),
+    0 2px 8px rgba(46, 204, 113, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: transform var(--ui-transition-base), box-shadow var(--ui-transition-base);
+}
+
+.candidate-career-cta-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 16px 44px rgba(46, 204, 113, 0.1),
+    0 4px 12px rgba(46, 204, 113, 0.05);
+}
+
+.candidate-career-cta-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.candidate-career-cta-card__title {
+  margin: 0;
+  font-size: var(--ui-font-size-h2);
+  line-height: var(--ui-line-height-h2);
+  letter-spacing: var(--ui-letter-spacing-h2);
+  color: #16301d;
+  font-weight: 700;
+}
+
+.candidate-career-cta-card__subtitle {
+  margin: 0;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  color: #3b5a43;
+}
+
+.candidate-career-cta-vacancy {
+  background: #ffffff;
+  border: 1px solid rgba(24, 29, 45, 0.06);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.02);
+}
+
+.candidate-career-cta-vacancy__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.candidate-career-cta-vacancy__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.candidate-career-cta-vacancy__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f4f6f8;
+  color: #5c6f84;
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  border: 1px solid rgba(24, 29, 45, 0.04);
+}
+
+.candidate-career-cta-vacancy__badge--match {
+  background: #eafaf1;
+  color: #27ae60;
+  font-weight: 600;
+  border-color: rgba(46, 204, 113, 0.15);
+}
+
+.candidate-career-cta-vacancy__save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  background: #ffffff;
+  color: var(--ui-color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color var(--ui-transition-fast), border-color var(--ui-transition-fast), color var(--ui-transition-fast), transform var(--ui-transition-fast);
+}
+
+.candidate-career-cta-vacancy__save:hover {
+  background-color: #fafbfc;
+  border-color: rgba(24, 29, 45, 0.16);
+  transform: scale(1.05);
+}
+
+.candidate-career-cta-vacancy__save.is-favorite {
+  color: var(--ui-color-danger);
+  border-color: rgba(236, 122, 86, 0.2);
+  background: rgba(236, 122, 86, 0.05);
+}
+
+.candidate-career-cta-vacancy__save svg {
+  width: 18px;
+  height: 18px;
+  transition: fill 0.2s;
+}
+
+.candidate-career-cta-vacancy__save.is-favorite svg {
+  fill: currentColor;
+}
+
+.candidate-career-cta-vacancy__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.candidate-career-cta-vacancy__title {
+  margin: 0;
+  font-size: var(--ui-font-size-h3);
+  line-height: var(--ui-line-height-h3);
+  color: var(--ui-color-text);
+  font-weight: 700;
+}
+
+.candidate-career-cta-vacancy__meta {
+  margin: 0;
+  font-size: var(--ui-font-size-body);
+  line-height: var(--ui-line-height-body);
+  color: var(--ui-color-text-muted);
+}
+
+.candidate-career-cta-vacancy__salary {
+  margin-top: 4px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.candidate-career-cta-vacancy__salary-value {
+  font-size: var(--ui-font-size-h3);
+  line-height: var(--ui-line-height-h3);
+  font-weight: 700;
+  color: var(--ui-color-accent);
+}
+
+.candidate-career-cta-vacancy__salary-label {
+  font-size: var(--ui-font-size-caption);
+  line-height: var(--ui-line-height-caption);
+  color: var(--ui-color-text-muted);
+}
+
+.candidate-career-cta-vacancy__button.ui-button {
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .candidate-career-cta-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+  
+  .candidate-career-cta-vacancy {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}
+
