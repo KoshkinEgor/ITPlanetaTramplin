@@ -250,7 +250,7 @@ internal static partial class ModerationEndpointRouteBuilderExtensions
             return Results.NotFound();
         }
 
-        return Results.Ok(CandidateEndpointRouteBuilderExtensions.MapCandidateProfile(profile));
+        return Results.Ok(await CandidateEndpointRouteBuilderExtensions.MapCandidateProfileAsync(profile, db));
     }
 
     private static async Task<IResult> UpdateModerationUserByIdAsync(int id, CandidateProfileUpdateDTO request, ApplicationDBContext db)
@@ -263,9 +263,9 @@ internal static partial class ModerationEndpointRouteBuilderExtensions
             return Results.NotFound();
         }
 
-        CandidateEndpointRouteBuilderExtensions.ApplyCandidateProfileUpdate(profile, request);
+        await CandidateEndpointRouteBuilderExtensions.ApplyCandidateProfileUpdateAsync(db, profile, request);
         await db.SaveChangesAsync();
-        return Results.Ok(CandidateEndpointRouteBuilderExtensions.MapCandidateProfile(profile));
+        return Results.Ok(await CandidateEndpointRouteBuilderExtensions.MapCandidateProfileAsync(profile, db));
     }
 
     private static async Task<IResult> ApplyCandidateDecisionAsync(int id, ModerationDecisionDTO request, HttpContext context, ApplicationDBContext db)

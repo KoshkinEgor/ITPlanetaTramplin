@@ -144,6 +144,80 @@ public class CandidateEndpointTests
         Assert.Equal(HttpStatusCode.NotFound, otherContactsResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CandidateProfileAndProjectCustomTags_AreCreatedAsInactiveAndFilteredOut()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var candidate = await RegisterAndConfirmCandidateAsync(client, "custom-tags-cand@tramplin.local");
+        await client.PostAsync("/api/auth/logout", null);
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "candidate",
+            login = candidate.Email,
+            password = "Password1",
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        // 1. Candidate updates profile skills with one active (React) and one custom (BrandNewSkill)
+        var updateProfileResponse = await client.PutAsJsonAsync("/api/candidate/me", new
+        {
+            skills = new[] { "React", "BrandNewSkill" }
+        });
+        Assert.Equal(HttpStatusCode.OK, updateProfileResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+            
+            // Check tag exists and is inactive in DB
+            var brandNewSkillTag = await db.Tags.FirstOrDefaultAsync(t => t.Name == "BrandNewSkill");
+            Assert.NotNull(brandNewSkillTag);
+            Assert.Equal(false, brandNewSkillTag.IsActive);
+
+            // Check profile contains ONLY React, and excludes BrandNewSkill
+            var profile = await db.ApplicantProfiles.SingleAsync(p => p.User.Email == candidate.Email);
+            Assert.NotNull(profile.Skills);
+            Assert.Contains("React", profile.Skills);
+            Assert.DoesNotContain("BrandNewSkill", profile.Skills);
+        }
+
+        // 2. Candidate creates project with one active (React) and one custom (BrandNewProjTag)
+        var createProjectResponse = await client.PostAsJsonAsync("/api/candidate/me/projects", new
+        {
+            title = "Платформа с кастомными тегами",
+            projectType = "Проект",
+            shortDescription = "Краткое описание проекта",
+            role = "Разработчик",
+            startDate = "2025-09",
+            isOngoing = true,
+            problem = "Какая-то задача",
+            contribution = "Мой вклад",
+            result = "Итог",
+            tags = new[] { "React", "BrandNewProjTag" },
+            showInPortfolio = true,
+        });
+        Assert.Equal(HttpStatusCode.Created, createProjectResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+
+            // Check tag exists and is inactive in DB
+            var brandNewProjTag = await db.Tags.FirstOrDefaultAsync(t => t.Name == "BrandNewProjTag");
+            Assert.NotNull(brandNewProjTag);
+            Assert.Equal(false, brandNewProjTag.IsActive);
+
+            // Check project contains ONLY React, and excludes BrandNewProjTag
+            var project = await db.CandidateProjects.SingleAsync(p => p.Title == "Платформа с кастомными тегами");
+            Assert.NotNull(project.Tags);
+            Assert.Contains("React", project.Tags);
+            Assert.DoesNotContain("BrandNewProjTag", project.Tags);
+        }
+    }
+
     private static async Task<PendingEmailVerificationDTO> RegisterAndConfirmCandidateAsync(HttpClient client, string email)
     {
         var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/candidate", new

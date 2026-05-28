@@ -21,7 +21,7 @@ internal static class OpportunityApplicationMapping
         OpportunityDeleted = item.Opportunity.DeletedAt != null,
         ModerationStatus = item.Opportunity.ModerationStatus,
         AllowPeerVisibility = item.AllowPeerVisibility,
-        OpportunityTags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
+        OpportunityTags = item.Opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name).ToList(),
     };
 
     public static OpportunityApplicationSummaryDTO ToCandidateSummary(OpportunityApplication item) =>
@@ -40,6 +40,6 @@ internal static class OpportunityApplicationMapping
             OpportunityDeleted = item.Opportunity.DeletedAt != null,
             ModerationStatus = item.Opportunity.ModerationStatus,
             AllowPeerVisibility = item.AllowPeerVisibility,
-            OpportunityTags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
+            OpportunityTags = item.Opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name).ToList(),
         };
 }

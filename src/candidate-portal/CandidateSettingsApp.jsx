@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { buildForgotPasswordRoute } from "../app/routes";
 import {
@@ -37,6 +37,7 @@ import {
   TagSelector,
   Textarea,
   ArrowIcon,
+  Modal,
 } from "../shared/ui";
 import { CandidateSectionHeader } from "./shared";
 import { CANDIDATE_SKILL_SUGGESTIONS } from "./config";
@@ -49,7 +50,7 @@ import {
   createExperienceDraftListAfterRemove,
   getCandidateProfileLinks,
 } from "./onboarding";
-import { getCandidateAvatarUrl } from "./mappers";
+import { getCandidateAvatarUrl, getCandidatePendingSkills } from "./mappers";
 
 const CITIZENSHIP_OPTIONS = CANDIDATE_CITIZENSHIP_OPTIONS.map((value) => ({ value, label: value }));
 const PROFILE_AVATAR_MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -188,6 +189,7 @@ function createDraft(profile, education = []) {
     userId: profile?.userId,
     description: profile?.description ?? "",
     avatarUrl: getCandidateAvatarUrl(profile),
+    pendingSkills: getCandidatePendingSkills(profile),
     socials: {
       vk: normalizeString(contacts.vk),
       telegram: normalizeString(contacts.telegram),
@@ -350,6 +352,8 @@ function CandidateProfileSettingsForm({
   onExperienceAdd,
   onExperienceRemove,
   onSave,
+  onSkillsSave,
+  hasUnsavedChanges,
 }) {
   return (
     <form className="candidate-settings-detail" onSubmit={onSave} noValidate>
@@ -358,6 +362,12 @@ function CandidateProfileSettingsForm({
         successTitle="Профиль обновлён"
         successText="Личные данные, образование, навыки и опыт работы сохранены."
       />
+
+      {hasUnsavedChanges ? (
+        <Alert tone="warning" title="Есть несохраненные изменения" showIcon>
+          Вы изменили личные данные, навыки или образование. Нажмите кнопку <strong>«Сохранить»</strong> внизу страницы, чтобы применить изменения.
+        </Alert>
+      ) : null}
 
       <section className="candidate-settings-detail__section">
         <h4 className="candidate-settings-detail__section-title">Основная информация</h4>
@@ -460,12 +470,31 @@ function CandidateProfileSettingsForm({
           className="candidate-project-editor-tag-selector"
           title="Ключевые навыки"
           value={draft.skills}
+          pendingValue={draft.pendingSkills}
           suggestions={CANDIDATE_SKILL_SUGGESTIONS}
           suggestionsLabel="Подсказки"
           searchPlaceholder="Поиск навыков"
           clearLabel="Очистить поиск"
           saveLabel="Сохранить навыки"
-          onSave={(nextSkills) => onChange("skills", nextSkills)}
+          onSave={(nextSkills) => {
+            const originalPending = new Set(draft.pendingSkills);
+            const originalActive = new Set(draft.skills);
+            
+            const newPending = [];
+            const newActive = [];
+            
+            nextSkills.forEach(skill => {
+              if (originalPending.has(skill)) {
+                newPending.push(skill);
+              } else if (originalActive.has(skill)) {
+                newActive.push(skill);
+              } else {
+                newPending.push(skill);
+              }
+            });
+            
+            onSkillsSave(newActive, newPending);
+          }}
           loadSuggestions={async (query) => {
             try {
               const res = await getTags({ query, limit: 30 });
@@ -475,7 +504,7 @@ function CandidateProfileSettingsForm({
               return [];
             }
           }}
-          allowCustomTags={false}
+          allowCustomTags={true}
         />
       </section>
 
@@ -1041,6 +1070,18 @@ export function CandidateSettingsApp({ onSummaryChange }) {
   const [formErrors, setFormErrors] = useState({});
   const [avatarState, setAvatarState] = useState({ status: "idle", error: "" });
 
+  // Crop states
+  const viewportSize = 200;
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [baseSize, setBaseSize] = useState({ width: 0, height: 0 });
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     if (!sectionSyncReadyRef.current) {
       sectionSyncReadyRef.current = true;
@@ -1184,6 +1225,195 @@ export function CandidateSettingsApp({ onSummaryChange }) {
     }
   }
 
+  const clampPosition = (pos, zoomVal, baseW, baseH) => {
+    const w = baseW * zoomVal;
+    const h = baseH * zoomVal;
+    const maxX = Math.max(0, (w - viewportSize) / 2);
+    const minX = -maxX;
+    const maxY = Math.max(0, (h - viewportSize) / 2);
+    const minY = -maxY;
+    return {
+      x: Math.min(maxX, Math.max(minX, pos.x)),
+      y: Math.min(maxY, Math.max(minY, pos.y))
+    };
+  };
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    setNaturalSize({ width: naturalWidth, height: naturalHeight });
+    const scale = Math.max(viewportSize / naturalWidth, viewportSize / naturalHeight);
+    const baseW = naturalWidth * scale;
+    const baseH = naturalHeight * scale;
+    setBaseSize({ width: baseW, height: baseH });
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleZoomChange = (newZoom) => {
+    setZoom(newZoom);
+    setPosition(current => clampPosition(current, newZoom, baseSize.width, baseSize.height));
+  };
+
+  const handleDragStart = (clientX, clientY) => {
+    setIsDragging(true);
+    setDragStart({
+      x: clientX - position.x,
+      y: clientY - position.y
+    });
+  };
+
+  const handleDragMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const newPos = {
+      x: clientX - dragStart.x,
+      y: clientY - dragStart.y
+    };
+    setPosition(clampPosition(newPos, zoom, baseSize.width, baseSize.height));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    handleDragStart(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e) => {
+    handleDragMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    handleDragEnd();
+  };
+
+  const handleMouseLeave = () => {
+    handleDragEnd();
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches[0]) {
+      handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches[0]) {
+      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
+  const handleCancelCrop = () => {
+    setIsCropOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+    }
+    setCropImageSrc("");
+    setSelectedFile(null);
+  };
+
+  const handleApplyCrop = async () => {
+    if (!cropImageSrc || !selectedFile) return;
+
+    setAvatarState({ status: "loading", error: "" });
+    setIsCropOpen(false);
+
+    // Fallback for tests/environments where Canvas.toBlob is not available
+    const canvasTest = document.createElement("canvas");
+    if (typeof canvasTest.toBlob !== "function") {
+      try {
+        const upload = await uploadImage(selectedFile);
+        if (!upload.url) {
+          throw new Error("Сервер не вернул ссылку на изображение.");
+        }
+        updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: upload.url }), ["profile"]);
+        setAvatarState({ status: "idle", error: "" });
+      } catch (error) {
+        setAvatarState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение." });
+      } finally {
+        if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+        setCropImageSrc("");
+        setSelectedFile(null);
+      }
+      return;
+    }
+
+    const img = new Image();
+    img.src = cropImageSrc;
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const cropSize = 400; // Output dimension
+        canvas.width = cropSize;
+        canvas.height = cropSize;
+
+        const scaleCanvas = cropSize / viewportSize; // scale ratio from preview to canvas
+        
+        // Calculate rendering dimensions
+        const w = baseSize.width * zoom;
+        const h = baseSize.height * zoom;
+        const baseLeft = (viewportSize - w) / 2;
+        const baseTop = (viewportSize - h) / 2;
+        const renderLeft = baseLeft + position.x;
+        const renderTop = baseTop + position.y;
+
+        // Draw image panned/zoomed onto the canvas
+        ctx.drawImage(
+          img,
+          renderLeft * scaleCanvas,
+          renderTop * scaleCanvas,
+          w * scaleCanvas,
+          h * scaleCanvas
+        );
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            setAvatarState({ status: "error", error: "Не удалось обработать изображение." });
+            return;
+          }
+
+          const croppedFile = new File([blob], selectedFile.name || "avatar.jpg", {
+            type: "image/jpeg",
+          });
+
+          try {
+            const upload = await uploadImage(croppedFile);
+            if (!upload.url) {
+              throw new Error("Сервер не вернул ссылку на изображение.");
+            }
+            updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: upload.url }), ["profile"]);
+            setAvatarState({ status: "idle", error: "" });
+          } catch (error) {
+            setAvatarState({
+              status: "error",
+              error: error?.message ?? "Не удалось загрузить изображение.",
+            });
+          } finally {
+            if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+            setCropImageSrc("");
+            setSelectedFile(null);
+          }
+        }, "image/jpeg", 0.9);
+      } catch (err) {
+        setAvatarState({ status: "error", error: "Не удалось обрезать изображение." });
+        if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+        setCropImageSrc("");
+        setSelectedFile(null);
+      }
+    };
+    img.onerror = () => {
+      setAvatarState({ status: "error", error: "Не удалось загрузить изображение для обрезки." });
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc("");
+      setSelectedFile(null);
+    };
+  };
+
   async function handleAvatarUpload(event) {
     const [file] = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -1208,19 +1438,27 @@ export function CandidateSettingsApp({ onSummaryChange }) {
       return;
     }
 
-    setAvatarState({ status: "loading", error: "" });
-
-    try {
-      const upload = await uploadImage(file);
-      if (!upload.url) {
-        throw new Error("Сервер не вернул ссылку на изображение.");
+    if (typeof URL.createObjectURL !== "function") {
+      setAvatarState({ status: "loading", error: "" });
+      try {
+        const upload = await uploadImage(file);
+        if (!upload.url) {
+          throw new Error("Сервер не вернул ссылку на изображение.");
+        }
+        updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: upload.url }), ["profile"]);
+        setAvatarState({ status: "idle", error: "" });
+      } catch (error) {
+        setAvatarState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение." });
       }
-
-      updateDraft((currentDraft) => ({ ...currentDraft, avatarUrl: upload.url }), ["profile"]);
-      setAvatarState({ status: "idle", error: "" });
-    } catch (error) {
-      setAvatarState({ status: "error", error: error?.message ?? "Не удалось загрузить изображение." });
+      return;
     }
+
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setCropImageSrc(objectUrl);
+    setZoom(1);
+    setPosition({ x: 0, y: 0 });
+    setIsCropOpen(true);
   }
 
   function handleAvatarClear() {
@@ -1410,6 +1648,38 @@ export function CandidateSettingsApp({ onSummaryChange }) {
     }, { replace: true });
   }
 
+  const hasUnsavedChanges = useMemo(() => {
+    if (!state.profile || !state.draft) return false;
+    const initialDraft = createDraft(state.profile, state.education);
+    
+    if (state.draft.name !== initialDraft.name) return true;
+    if (state.draft.surname !== initialDraft.surname) return true;
+    if (state.draft.thirdname !== initialDraft.thirdname) return true;
+    if (state.draft.description !== initialDraft.description) return true;
+    if (state.draft.goal !== initialDraft.goal) return true;
+    if (state.draft.city !== initialDraft.city) return true;
+    if (state.draft.gender !== initialDraft.gender) return true;
+    if (state.draft.birthDate !== initialDraft.birthDate) return true;
+    if (state.draft.phone !== initialDraft.phone) return true;
+    if (state.draft.citizenship !== initialDraft.citizenship) return true;
+    if (state.draft.profession !== initialDraft.profession) return true;
+    if (JSON.stringify(state.draft.additionalProfessions) !== JSON.stringify(initialDraft.additionalProfessions)) return true;
+    
+    const initialSkills = [...initialDraft.skills, ...initialDraft.pendingSkills].sort().join(",");
+    const currentSkills = [...state.draft.skills, ...state.draft.pendingSkills].sort().join(",");
+    if (initialSkills !== currentSkills) return true;
+    
+    const initialEd = (initialDraft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}`).sort().join(",");
+    const currentEd = (state.draft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}`).sort().join(",");
+    if (initialEd !== currentEd) return true;
+
+    const initialExp = (initialDraft.experiences ?? []).map(e => `${e.company}-${e.role}-${e.startMonth}-${e.endMonth}-${e.isCurrent}`).sort().join(",");
+    const currentExp = (state.draft.experiences ?? []).map(e => `${e.company}-${e.role}-${e.startMonth}-${e.endMonth}-${e.isCurrent}`).sort().join(",");
+    if (initialExp !== currentExp) return true;
+    
+    return false;
+  }, [state.draft, state.profile, state.education]);
+
   async function handleProfileSave(event) {
     event.preventDefault();
 
@@ -1445,7 +1715,7 @@ export function CandidateSettingsApp({ onSummaryChange }) {
         surname: normalizeString(state.draft.surname),
         thirdname: normalizeString(state.draft.thirdname) || null,
         description: normalizeString(state.draft.description) || null,
-        skills: state.draft.skills,
+        skills: [...state.draft.skills, ...state.draft.pendingSkills],
         links,
       });
       const educationItems = await syncCandidateEducation(state.education, state.draft.educations);
@@ -1594,6 +1864,14 @@ export function CandidateSettingsApp({ onSummaryChange }) {
                   onExperienceAdd={handleExperienceAdd}
                   onExperienceRemove={handleExperienceRemove}
                   onSave={handleProfileSave}
+                  onSkillsSave={(newActive, newPending) => {
+                    updateDraft((currentDraft) => ({
+                      ...currentDraft,
+                      skills: newActive,
+                      pendingSkills: newPending
+                    }), ["profile"]);
+                  }}
+                  hasUnsavedChanges={hasUnsavedChanges}
                 />
               ) : null}
 
@@ -1615,6 +1893,68 @@ export function CandidateSettingsApp({ onSummaryChange }) {
             </SettingsSectionCard>
           ))}
         </div>
+      ) : null}
+
+      {isCropOpen ? (
+        <Modal
+          open={isCropOpen}
+          onClose={handleCancelCrop}
+          title="Редактирование фото"
+          size="sm"
+        >
+          <div className="candidate-settings-crop-container">
+            <p className="ui-type-body candidate-settings-crop-hint">
+              Перетащите фото для настройки положения или измените масштаб ползунком.
+            </p>
+            <div
+              className="candidate-settings-crop-viewport"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <div className="candidate-settings-crop-viewport-inner">
+                <img
+                  src={cropImageSrc}
+                  alt="Предпросмотр обрезки"
+                  style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    width: `${baseSize.width * zoom}px`,
+                    height: `${baseSize.height * zoom}px`,
+                    left: `${(viewportSize - baseSize.width * zoom) / 2}px`,
+                    top: `${(viewportSize - baseSize.height * zoom) / 2}px`,
+                  }}
+                  onLoad={handleImageLoad}
+                  draggable={false}
+                />
+              </div>
+              <div className="candidate-settings-crop-overlay" />
+            </div>
+            <div className="candidate-settings-crop-controls">
+              <span className="candidate-settings-crop-zoom-label">Масштаб:</span>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.01"
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                className="candidate-settings-crop-zoom-slider"
+              />
+            </div>
+            <div style={{ display: "flex", gap: "12px", width: "100%", marginTop: "16px" }}>
+              <Button onClick={handleApplyCrop} variant="primary" style={{ flex: 1 }}>
+                Применить
+              </Button>
+              <Button onClick={handleCancelCrop} variant="secondary" style={{ flex: 1 }}>
+                Отмена
+              </Button>
+            </div>
+          </div>
+        </Modal>
       ) : null}
     </section>
   );

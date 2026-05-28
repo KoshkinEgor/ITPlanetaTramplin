@@ -170,3 +170,27 @@ button.ui-tag-selector__chip:hover {
     width: 100%;
   }
 }
+
+.ui-tag-selector__hint {
+  font-size: var(--ui-font-size-caption, 14px);
+  color: var(--ui-color-text-muted);
+  line-height: var(--ui-line-height-caption, 1.4);
+  margin-top: -8px;
+  padding-left: 4px;
+}
+
+.ui-tag-selector__chip--pending {
+  border-style: dashed !important;
+  border-color: var(--ui-color-warning, #ec9a1a) !important;
+  background: var(--ui-color-warning-soft, rgba(236, 154, 26, 0.08)) !important;
+}
+
+.ui-tag--pending {
+  border-style: dashed !important;
+}
+
+.ui-tag__pending-label {
+  font-size: 0.85em;
+  opacity: 0.85;
+  margin-left: 4px;
+}

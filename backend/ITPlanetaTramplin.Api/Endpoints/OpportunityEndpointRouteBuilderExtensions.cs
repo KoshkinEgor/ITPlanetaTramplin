@@ -1232,7 +1232,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             CompanyLegalAddress = opportunity.Employer.LegalAddress,
             CompanySocials = opportunity.Employer.Socials,
             Viewer = viewer,
-            Tags = opportunity.Tags.Select(tag => tag.Name).ToList(),
+            Tags = opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name).ToList(),
+            PendingTags = opportunity.Tags.Where(tag => tag.IsActive == false).Select(tag => tag.Name).ToList(),
             ApplicationsCount = opportunity.Applications?.Count,
             AcceptedApplicationsCount = opportunity.Applications?.Count(a => a.Status == OpportunityApplicationStatuses.Accepted),
         };
@@ -1288,8 +1289,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var normalizedNames = (requestTags ?? [])
             .Select(item => item?.Trim())
             .Where(item => !string.IsNullOrWhiteSpace(item))
-            .Distinct(StringComparer.Ordinal)
-            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (normalizedNames.Count == 0)
@@ -1301,8 +1301,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
             .Where(item => normalizedNames.Contains(item.Name))
             .ToListAsync();
 
-        var tagsByName = existingTags.ToDictionary(item => item.Name, StringComparer.Ordinal);
-        var resolvedTags = new List<Tag>(normalizedNames.Count);
+        var tagsByName = existingTags.ToDictionary(item => item.Name, StringComparer.OrdinalIgnoreCase);
+        var resolvedTags = new List<Tag>();
 
         foreach (var tagName in normalizedNames)
         {
@@ -1311,7 +1311,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 tag = new Tag
                 {
                     Name = tagName,
-                    IsActive = true,
+                    IsActive = false,
                 };
 
                 db.Tags.Add(tag);

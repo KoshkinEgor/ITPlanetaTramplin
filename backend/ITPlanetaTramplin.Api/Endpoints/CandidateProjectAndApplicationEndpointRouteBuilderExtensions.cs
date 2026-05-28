@@ -82,6 +82,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         };
 
         ApplyCandidateProject(project, normalizedProject);
+        project.Tags = await ResolveActiveSkillsAndQueueInactiveAsync(db, normalizedProject.Tags);
 
         db.CandidateProjects.Add(project);
         await db.SaveChangesAsync();
@@ -139,6 +140,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         }
 
         ApplyCandidateProject(project, normalizedProject);
+        project.Tags = await ResolveActiveSkillsAndQueueInactiveAsync(db, normalizedProject.Tags);
         await db.SaveChangesAsync();
 
         return Results.Ok(MapCandidateProject(project));

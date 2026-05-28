@@ -18,7 +18,7 @@ import {
   translateWorkSchedule,
   validateOpportunityDraftForSubmit,
 } from "../shared/lib/opportunityPresentation";
-import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, TagSelector, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, Tag, TagSelector, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { createOpportunityContactDraft, createOpportunityMediaDraft } from "./utils";
 import { OpportunityLocationPicker } from "./OpportunityLocationPicker";
@@ -164,6 +164,7 @@ function renderTypedFields({ draft, onFieldChange, isEditingExisting }) {
 export function CompanyOpportunitiesSection() {
   const [state, setState] = useState({ status: "loading", opportunities: [], error: null });
   const [draft, setDraft] = useState(createOpportunityDraft());
+  const [originalItem, setOriginalItem] = useState(null);
   const [editorMode, setEditorMode] = useState(null);
   const [saveState, setSaveState] = useState({ status: "idle", error: "", message: "" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -281,14 +282,46 @@ export function CompanyOpportunitiesSection() {
   }
 
   function openCreateForm() {
-    setDraft(createOpportunityDraft());
+    const initial = createOpportunityDraft();
+    setDraft(initial);
+    setOriginalItem(initial);
     setEditorMode("create");
     setSaveState({ status: "idle", error: "", message: "" });
     scrollEditorIntoView();
   }
 
-  function closeEditor() {
+  function hasUnsavedChanges() {
+    if (!originalItem) return false;
+    const keys = Object.keys(originalItem);
+    for (const key of keys) {
+      if (key === "contacts" || key === "media") {
+        if (JSON.stringify(draft[key]) !== JSON.stringify(originalItem[key])) {
+          return true;
+        }
+      } else if (Array.isArray(draft[key])) {
+        if (draft[key].join(",") !== originalItem[key].join(",")) {
+          return true;
+        }
+      } else {
+        const v1 = draft[key] === null || draft[key] === undefined ? "" : String(draft[key]);
+        const v2 = originalItem[key] === null || originalItem[key] === undefined ? "" : String(originalItem[key]);
+        if (v1 !== v2) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function closeEditor(force = false) {
+    const isForce = force === true;
+    if (!isForce && hasUnsavedChanges()) {
+      if (!window.confirm("У вас есть несохраненные изменения в форме публикации. Вы уверены, что хотите закрыть редактор?")) {
+        return;
+      }
+    }
     setDraft(createOpportunityDraft());
+    setOriginalItem(null);
     setEditorMode(null);
     setSaveState({ status: "idle", error: "", message: "" });
   }
@@ -406,9 +439,13 @@ export function CompanyOpportunitiesSection() {
 
     try {
       const opportunity = await getOpportunity(item.id);
-      setDraft(createOpportunityDraft(opportunity));
+      const initial = createOpportunityDraft(opportunity);
+      setDraft(initial);
+      setOriginalItem(initial);
     } catch {
-      setDraft(createOpportunityDraft(item));
+      const initial = createOpportunityDraft(item);
+      setDraft(initial);
+      setOriginalItem(initial);
     }
 
     setEditorMode("edit");
@@ -462,7 +499,7 @@ export function CompanyOpportunitiesSection() {
       }));
 
       if (draft.id === opportunityId) {
-        closeEditor();
+        closeEditor(true);
       }
 
       setSaveState({ status: "success", error: "", message: "Публикация удалена." });
@@ -616,6 +653,19 @@ export function CompanyOpportunitiesSection() {
 
                       <p className="ui-type-body company-dashboard-list-item__description">{item.description || "Описание пока не заполнено."}</p>
 
+                      {((item.tags && item.tags.length > 0) || (item.pendingTags && item.pendingTags.length > 0)) && (
+                        <div className="company-dashboard-list-item__tags" style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "12px", marginBottom: "16px" }}>
+                          {item.tags?.map((t) => (
+                            <Tag key={t}>{t}</Tag>
+                          ))}
+                          {item.pendingTags?.map((t) => (
+                            <Tag key={t} className="ui-tag--pending" tone="warning" variant="outline" title="На модерации">
+                              {t} <span className="ui-tag__pending-label">(на модерации)</span>
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="company-dashboard-list-item__meta-grid">
                         <div className="company-dashboard-list-item__meta-card">
                           <span>Срок</span>
@@ -743,12 +793,23 @@ export function CompanyOpportunitiesSection() {
                 <FormField label="Теги">
                   <TagSelector
                     value={Array.isArray(draft.tags) ? draft.tags : []}
+                    pendingValue={Array.isArray(draft.pendingTags) ? draft.pendingTags : []}
                     suggestions={tagSuggestions}
                     suggestionsLabel="Доступные теги"
                     searchPlaceholder="Найти или добавить тег"
                     editLabel="Выбрать теги"
                     saveLabel="Применить"
-                    onSave={(nextTags) => updateField("tags", nextTags)}
+                    onSave={(nextTags) => {
+                      const activeSet = new Set(tagSuggestions);
+                      const active = nextTags.filter((t) => activeSet.has(t));
+                      const pending = nextTags.filter((t) => !activeSet.has(t));
+                      setDraft((current) => ({
+                        ...current,
+                        tags: active,
+                        pendingTags: pending,
+                      }));
+                      resetSuccessState();
+                    }}
                   />
                 </FormField>
 

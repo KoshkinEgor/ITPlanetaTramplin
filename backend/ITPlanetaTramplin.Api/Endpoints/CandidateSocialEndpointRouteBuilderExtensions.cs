@@ -51,6 +51,14 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 .ToListAsync()
             : [];
 
+        var allSkills = profile.Skills ?? new List<string>();
+        var activeTags = await db.Tags
+            .Where(t => allSkills.Contains(t.Name) && t.IsActive == true)
+            .Select(t => t.Name)
+            .ToListAsync();
+        var activeSet = new HashSet<string>(activeTags, StringComparer.OrdinalIgnoreCase);
+        var activeSkills = allSkills.Where(s => activeSet.Contains(s)).ToList();
+
         var result = new CandidatePublicProfileReadDTO
         {
             UserId = profile.UserId,
@@ -59,7 +67,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             Surname = profile.Surname,
             Thirdname = profile.Thirdname,
             Description = profile.Description,
-            Skills = profile.Skills,
+            Skills = activeSkills,
             Links = BuildPublicLinksPayload(onboarding, visibleResumes, mentor),
             SocialLinks = visibleSocialLinks,
             Education = BuildPublicEducationPayload(profile, onboarding),
@@ -539,13 +547,21 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             };
         }
 
+        var allSkills = user.ApplicantProfile?.Skills ?? new List<string>();
+        var activeTags = await db.Tags
+            .Where(t => allSkills.Contains(t.Name) && t.IsActive == true)
+            .Select(t => t.Name)
+            .ToListAsync();
+        var activeSet = new HashSet<string>(activeTags, StringComparer.OrdinalIgnoreCase);
+        var activeSkills = allSkills.Where(s => activeSet.Contains(s)).ToList();
+
         return new SocialUserSummaryDTO
         {
             UserId = user.Id,
             Email = user.Email,
             Name = AuthEndpointSupport.BuildDisplayName(user, PublicRoles.Candidate) ?? user.Email,
             City = ExtractCandidateCity(user.ApplicantProfile?.Links),
-            Skills = user.ApplicantProfile?.Skills,
+            Skills = activeSkills,
             Relationship = await BuildRelationshipSummaryAsync(db, currentUserId, targetUserId),
             Links = AuthEndpointSupport.TryParseJsonValue(user.ApplicantProfile?.Links),
         };

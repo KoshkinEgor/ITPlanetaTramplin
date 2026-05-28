@@ -495,6 +495,7 @@ export function createOpportunityDraft(item = null) {
     contacts: normalizeOpportunityContacts(item?.contactsJson ?? null),
     media: normalizeOpportunityMedia(item?.mediaContentJson ?? null),
     tags: Array.isArray(item?.tags) ? item.tags : parseTags(item?.tags),
+    pendingTags: Array.isArray(item?.pendingTags) ? item.pendingTags : [],
     moderationStatus: item?.moderationStatus ?? "draft",
     moderationReason: item?.moderationReason ?? "",
     applicationsCount: item?.applicationsCount ?? 0,
@@ -526,7 +527,7 @@ export function buildOpportunityPayload(draft, { saveMode = "draft" } = {}) {
     seatsCount: parseOpportunityCoordinateInput(draft?.seatsCount),
     contactsJson: serializeOpportunityContacts(draft?.contacts),
     mediaContentJson: serializeOpportunityMedia(draft?.media),
-    tags: parseTags(draft?.tags),
+    tags: [...parseTags(draft?.tags), ...parseTags(draft?.pendingTags)],
     saveMode,
   };
 }

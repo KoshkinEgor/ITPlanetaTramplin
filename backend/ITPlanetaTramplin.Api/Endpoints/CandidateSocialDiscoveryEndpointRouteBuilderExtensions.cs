@@ -237,7 +237,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             .Select(item => item!)
             .ToList();
         var currentCity = ExtractCandidateCity(currentProfile.Links);
-        var opportunityTags = opportunity.Tags.Select(tag => tag.Name).ToList();
+        var opportunityTags = opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name).ToList();
 
         var networkIds = await GetCurrentCandidateNetworkUserIdsAsync(db, currentProfile.UserId);
         var currentUserApplied = await db.Applications.AnyAsync(item => item.OpportunityId == opportunity.Id && item.ApplicantId == currentProfile.Id);
@@ -397,7 +397,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 item.ApplicantId == applicantId &&
                 item.Status != OpportunityApplicationStatuses.Withdrawn &&
                 item.Status != OpportunityApplicationStatuses.Rejected)
-            .SelectMany(item => item.Opportunity.Tags.Select(tag => tag.Name))
+            .SelectMany(item => item.Opportunity.Tags.Where(tag => tag.IsActive == true).Select(tag => tag.Name))
             .Distinct()
             .ToListAsync();
     }

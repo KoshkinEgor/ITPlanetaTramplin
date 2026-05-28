@@ -183,6 +183,20 @@ export function ModeratorTagsSystemApp() {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const pendingCount = useMemo(() => {
+    return state.stats?.pending ?? state.stats?.Pending ?? 0;
+  }, [state.stats]);
+
+  const tagFilterOptions = useMemo(() => {
+    return [
+      { value: "all", label: "Все" },
+      { value: "pending", label: pendingCount > 0 ? `На модерации (${pendingCount})` : "На модерации" },
+      { value: "active", label: "Активные" },
+      { value: "inactive", label: "Отключенные" },
+      { value: "merged", label: "Объединенные" },
+    ];
+  }, [pendingCount]);
+
   async function load(signal) {
     const [tagsPayload, referencesPayload, auditPayload] = await Promise.all([
       getModerationTags({ status: tagStatus }, signal),
@@ -249,26 +263,35 @@ export function ModeratorTagsSystemApp() {
           </div>
           <Button type="button" onClick={() => setTagModal({ mode: "create" })}>Добавить тег</Button>
         </div>
-        <div className="moderator-complaints-summary__controls">
+        <div className="moderator-tags-toolbar">
           <SearchInput value={query} onValueChange={setQuery} placeholder="Поиск тегов" />
-          <Select value={tagStatus} onValueChange={setTagStatus} options={TAG_FILTERS} />
+          <Select value={tagStatus} onValueChange={setTagStatus} options={tagFilterOptions} />
           <Button type="button" variant="secondary" onClick={() => setMergeOpen(true)} disabled={state.tags.filter((tag) => tag.isActive).length < 2}>Объединить</Button>
         </div>
         {filteredTags.length ? (
           <div className="moderator-panel__table" role="table">
-            {filteredTags.map((tag) => (
-              <div key={tag.id} className="moderator-panel__row" role="row">
-                <div>
-                  <strong>{tag.name}</strong>
-                  <p className="ui-type-caption">{tag.usageCount} связей{tag.mergedIntoTagName ? `, объединен с ${tag.mergedIntoTagName}` : ""}</p>
+            {filteredTags.map((tag) => {
+              const isPending = !tag.isActive && !tag.mergedIntoTagId;
+              return (
+                <div key={tag.id} className={`moderator-panel__row moderator-panel__row--tags ${isPending ? 'moderator-panel__row--pending' : ''}`} role="row">
+                  <div>
+                    <strong>{tag.name}</strong>
+                    <p className="ui-type-caption">{tag.usageCount} связей{tag.mergedIntoTagName ? `, объединен с ${tag.mergedIntoTagName}` : ""}</p>
+                  </div>
+                  {tag.mergedIntoTagId ? (
+                    <Badge tone="neutral">Объединен</Badge>
+                  ) : tag.isActive ? (
+                    <Badge tone="success">Активен</Badge>
+                  ) : (
+                    <Badge tone="warning">На модерации</Badge>
+                  )}
+                  <Button type="button" variant="secondary" onClick={() => setTagModal({ mode: "edit", tag })}>Править</Button>
+                  <Button type="button" variant="ghost" onClick={() => reloadAfter(() => setModerationTagEnabled(tag.id, !tag.isActive))}>
+                    {tag.isActive ? "Отключить" : "Включить"}
+                  </Button>
                 </div>
-                <Badge tone={tag.isActive ? "success" : "neutral"}>{tag.isActive ? "Активен" : "Отключен"}</Badge>
-                <Button type="button" variant="secondary" onClick={() => setTagModal({ mode: "edit", tag })}>Править</Button>
-                <Button type="button" variant="ghost" onClick={() => reloadAfter(() => setModerationTagEnabled(tag.id, !tag.isActive))}>
-                  {tag.isActive ? "Отключить" : "Включить"}
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <EmptyState title="Теги не найдены" description="Измените поиск или создайте новый тег." compact />
@@ -288,7 +311,7 @@ export function ModeratorTagsSystemApp() {
       </div>
       <div className="moderator-panel__table" role="table">
         {state.references.map((item) => (
-          <div key={`${item.category}-${item.key}`} className="moderator-panel__row" role="row">
+          <div key={`${item.category}-${item.key}`} className="moderator-panel__row moderator-panel__row--references" role="row">
             <div>
               <strong>{item.label}</strong>
               <p className="ui-type-caption">{item.category} / {item.key}{item.isSystem ? " / системный ключ" : ""}</p>
@@ -329,7 +352,7 @@ export function ModeratorTagsSystemApp() {
       {state.audit.length ? (
         <div className="moderator-panel__table">
           {state.audit.slice(0, 12).map((item) => (
-            <div key={item.id} className="moderator-panel__row">
+            <div key={item.id} className="moderator-panel__row moderator-panel__row--audit">
               <div>
                 <strong>{item.title}</strong>
                 <p className="ui-type-caption">{item.description}</p>
@@ -354,7 +377,7 @@ export function ModeratorTagsSystemApp() {
         className="moderator-fade-up moderator-fade-up--delay-1"
         tabListLabel="Разделы тегов и системы"
         items={[
-          { value: "tags", label: "Теги", content: tagsContent },
+          { value: "tags", label: "Теги", content: tagsContent, badge: pendingCount > 0 ? pendingCount : undefined },
           { value: "references", label: "Справочники", content: referencesContent },
           { value: "quality", label: "Контроль качества", content: qualityContent },
           { value: "audit", label: "Аудит", content: auditContent },

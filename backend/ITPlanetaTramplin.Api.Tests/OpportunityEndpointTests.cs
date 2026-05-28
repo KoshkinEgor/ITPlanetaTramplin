@@ -727,4 +727,52 @@ public class OpportunityEndpointTests
 
         Assert.Equal("https://cdn.example.com/feed-company-logo.png", opportunityPayload.GetProperty("companyProfileImage").GetString());
     }
+
+    [Fact]
+    public async Task CreateOpportunityWithCustomTag_CreatesInactiveTagAndExcludesItFromOpportunity()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var createResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Opportunity с кастомными тегами",
+            description = "Описание для проверки модерации тегов",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            schedule = "full_time",
+            locationCity = "Москва",
+            salaryFrom = 100000m,
+            salaryTo = 150000m,
+            contactsJson = """{"email":"moderation-test@test.local"}""",
+            tags = new[] { "React", "BrandNewOpportunityTag" },
+            saveMode = "submit",
+        });
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+
+            // Check tag exists and is inactive in DB
+            var brandNewTag = await db.Tags.FirstOrDefaultAsync(t => t.Name == "BrandNewOpportunityTag");
+            Assert.NotNull(brandNewTag);
+            Assert.Equal(false, brandNewTag.IsActive);
+
+            // Check opportunity contains ONLY React, and excludes BrandNewOpportunityTag
+            var opportunity = await db.Opportunities
+                .Include(item => item.Tags)
+                .SingleAsync(item => item.Title == "Opportunity с кастомными тегами");
+            Assert.Contains(opportunity.Tags, tag => tag.Name == "React");
+            Assert.DoesNotContain(opportunity.Tags, tag => tag.Name == "BrandNewOpportunityTag");
+        }
+    }
 }

@@ -15,7 +15,7 @@ import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, FormField, Input, Loader, SectionHeader, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
 import { getTags } from "../api/tags";
-import { getCandidateSkills } from "./mappers";
+import { getCandidatePendingSkills, getCandidateSkills } from "./mappers";
 
 function createProfileDraft(profile) {
   return {
@@ -24,6 +24,7 @@ function createProfileDraft(profile) {
     thirdname: profile?.thirdname ?? "",
     description: profile?.description ?? "",
     skills: getCandidateSkills(profile),
+    pendingSkills: getCandidatePendingSkills(profile),
   };
 }
 
@@ -252,6 +253,22 @@ export function CandidateResumeEditorApp() {
     );
   }
 
+  const hasUnsavedChanges = useMemo(() => {
+    if (!state.profile) return false;
+    const initialDraft = createProfileDraft(state.profile);
+    
+    if (profileDraft.name !== initialDraft.name) return true;
+    if (profileDraft.surname !== initialDraft.surname) return true;
+    if (profileDraft.thirdname !== initialDraft.thirdname) return true;
+    if (profileDraft.description !== initialDraft.description) return true;
+    
+    const initialSkills = [...initialDraft.skills, ...initialDraft.pendingSkills].sort().join(",");
+    const currentSkills = [...profileDraft.skills, ...profileDraft.pendingSkills].sort().join(",");
+    if (initialSkills !== currentSkills) return true;
+    
+    return false;
+  }, [profileDraft, state.profile]);
+
   async function handleProfileSave() {
     if (!profileDraft.name.trim() || !profileDraft.surname.trim()) {
       setProfileSave({
@@ -269,7 +286,7 @@ export function CandidateResumeEditorApp() {
         surname: profileDraft.surname.trim(),
         thirdname: profileDraft.thirdname.trim() || null,
         description: profileDraft.description.trim() || null,
-        skills: profileDraft.skills,
+        skills: [...profileDraft.skills, ...profileDraft.pendingSkills],
       });
 
       setState((current) => ({ ...current, profile }));
@@ -427,6 +444,12 @@ export function CandidateResumeEditorApp() {
                     </Alert>
                   ) : null}
 
+                  {hasUnsavedChanges ? (
+                    <Alert tone="warning" title="Есть несохраненные изменения" showIcon>
+                      Вы изменили данные профиля или навыки. Не забудьте нажать кнопку <strong>«Сохранить профиль»</strong> в правом верхнем углу этой секции, чтобы применить изменения.
+                    </Alert>
+                  ) : null}
+
                   <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
                     <FormField label="Имя" required>
                       <Input value={profileDraft.name} onValueChange={(value) => updateProfileField("name", value)} />
@@ -448,12 +471,36 @@ export function CandidateResumeEditorApp() {
                     className="candidate-project-editor-tag-selector"
                     title="Навыки"
                     value={profileDraft.skills}
+                    pendingValue={profileDraft.pendingSkills}
                     suggestions={CANDIDATE_SKILL_SUGGESTIONS}
                     suggestionsLabel="Подсказки"
                     searchPlaceholder="Поиск навыков"
                     clearLabel="Очистить поиск"
                     saveLabel="Сохранить навыки"
-                    onSave={(nextSkills) => updateProfileField("skills", nextSkills)}
+                    onSave={(nextSkills) => {
+                      const originalPending = new Set(profileDraft.pendingSkills);
+                      const originalActive = new Set(profileDraft.skills);
+                      
+                      const newPending = [];
+                      const newActive = [];
+                      
+                      nextSkills.forEach(skill => {
+                        if (originalPending.has(skill)) {
+                          newPending.push(skill);
+                        } else if (originalActive.has(skill)) {
+                          newActive.push(skill);
+                        } else {
+                          newPending.push(skill);
+                        }
+                      });
+                      
+                      setProfileDraft(current => ({
+                        ...current,
+                        skills: newActive,
+                        pendingSkills: newPending
+                      }));
+                      setProfileSave((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+                    }}
                     loadSuggestions={async (query) => {
                       try {
                         const res = await getTags({ query, limit: 30 });
@@ -463,7 +510,7 @@ export function CandidateResumeEditorApp() {
                         return [];
                       }
                     }}
-                    allowCustomTags={false}
+                    allowCustomTags={true}
                   />
                 </ResumeEditorSection>
 
