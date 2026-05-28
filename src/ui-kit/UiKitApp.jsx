@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import "./ui-kit.css";
-import { ActionSelect, Button, Card, Checkbox, ComplaintCard, CompanyVacancyTile, ConfirmActionSelect, ContentRail, CareerCourseCard, CareerMentorCard, CareerOpportunityCard, CareerPeerCard, CareerSalaryPanel, CareerSkillsPanel, CareerStatsPanel, DashboardActivityCard, DashboardFocusCard, DashboardPageHeader, DashboardQueueCard, DashboardSectionHeader, FilterPill, FormField, Input, ModerationActionDialog, OpportunityMiniCard, PlaceholderAction, PlaceholderBlock, PlaceholderMedia, PillButton, MapMarker, Radio, SearchInput, SectionHeader, SegmentedControl, Select, SettingsSectionCard, Switch, Textarea, ArrowIcon, BlockIcon, PencilIcon, SparkIcon } from "../shared/ui";
+import { ActionSelect, Button, Card, Checkbox, ComplaintCard, CompanyVacancyTile, ConfirmActionSelect, ContentRail, CareerCourseCard, CareerMentorCard, CareerOpportunityCard, CareerPeerCard, CareerSalaryPanel, CareerSkillsPanel, CareerStatsPanel, DashboardActivityCard, DashboardFocusCard, DashboardPageHeader, DashboardQueueCard, DashboardSectionHeader, FilterPill, FormField, Input, ModerationActionDialog, OpportunityMiniCard, PlaceholderAction, PlaceholderBlock, PlaceholderMedia, PillButton, MapMarker, Radio, SearchInput, SectionHeader, SegmentedControl, Select, SettingsSectionCard, Switch, Tag, Textarea, ArrowIcon, BlockIcon, PencilIcon, SparkIcon } from "../shared/ui";
 import {
   CandidatePortfolioProjectCard,
   CandidatePortfolioSwitcher,
@@ -2257,11 +2257,28 @@ function CareerDashboardAssembly() {
         </div>
 
         <div className="ui-kit-career-dashboard-preview__section">
-          <SectionHeader
-            title="Курсы по навыкам"
-            size="md"
-            actions={<a href="#career-courses-all" className="ui-kit-career-dashboard-preview__link">Все курсы →</a>}
-          />
+          <div className="candidate-career-courses-header" style={{ marginBottom: "24px" }}>
+            <div className="candidate-career-courses-header__title-row">
+              <h2 className="ui-type-h2">
+                Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:
+              </h2>
+              <a href="#career-courses-all" className="ui-kit-career-dashboard-preview__link">
+                Все курсы →
+              </a>
+            </div>
+
+            <div className="candidate-career-courses-header__skills">
+              {careerSkillsPanelMock.suggestedSkills.slice(0, 3).map((skill) => (
+                <Tag key={skill} variant="surface">
+                  {skill}
+                </Tag>
+              ))}
+            </div>
+
+            <p className="candidate-career-courses-header__description ui-type-body">
+              Развивайтесь в данных направлениях для повышения шансов на собеседовании.
+            </p>
+          </div>
           <div className="ui-kit-career-dashboard-preview__grid ui-kit-career-dashboard-preview__grid--courses">
             {careerCourseCardsMock.map((course) => (
               <CareerCourseCard key={course.href} {...course} />

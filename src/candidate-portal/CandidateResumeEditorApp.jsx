@@ -14,6 +14,7 @@ import {
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, FormField, Input, Loader, SectionHeader, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
+import { getTags } from "../api/tags";
 import { getCandidateSkills } from "./mappers";
 
 function createProfileDraft(profile) {
@@ -453,6 +454,16 @@ export function CandidateResumeEditorApp() {
                     clearLabel="Очистить поиск"
                     saveLabel="Сохранить навыки"
                     onSave={(nextSkills) => updateProfileField("skills", nextSkills)}
+                    loadSuggestions={async (query) => {
+                      try {
+                        const res = await getTags({ query, limit: 30 });
+                        return (res?.Items || res?.items || []).map((t) => t.Name || t.name);
+                      } catch (err) {
+                        console.error(err);
+                        return [];
+                      }
+                    }}
+                    allowCustomTags={false}
                   />
                 </ResumeEditorSection>
 

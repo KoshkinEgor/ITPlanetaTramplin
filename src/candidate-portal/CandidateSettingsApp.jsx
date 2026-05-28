@@ -11,6 +11,7 @@ import {
 } from "../api/candidate";
 import { searchYandexCityOptions } from "../api/cities";
 import { uploadImage } from "../api/uploads";
+import { getTags } from "../api/tags";
 import { refreshAuthSession } from "../auth/api";
 import {
   createCandidateEducationDraft,
@@ -465,6 +466,16 @@ function CandidateProfileSettingsForm({
           clearLabel="Очистить поиск"
           saveLabel="Сохранить навыки"
           onSave={(nextSkills) => onChange("skills", nextSkills)}
+          loadSuggestions={async (query) => {
+            try {
+              const res = await getTags({ query, limit: 30 });
+              return (res?.Items || res?.items || []).map((t) => t.Name || t.name);
+            } catch (err) {
+              console.error(err);
+              return [];
+            }
+          }}
+          allowCustomTags={false}
         />
       </section>
 

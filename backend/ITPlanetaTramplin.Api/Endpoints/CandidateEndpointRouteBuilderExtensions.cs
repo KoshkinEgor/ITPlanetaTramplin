@@ -450,18 +450,57 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        return Results.Ok(await db.Recommendations
+        var recommendations = await db.Recommendations
             .Include(item => item.Recommender)
             .Include(item => item.Opportunity)
+                .ThenInclude(o => o.Employer)
+            .Include(item => item.Opportunity)
+                .ThenInclude(o => o.Tags)
+            .Include(item => item.Opportunity)
+                .ThenInclude(o => o.Applications)
             .Where(item => item.CandidateId == profile.Id)
-            .Select(item => new
-            {
-                RecommenderId = item.RecommenderId,
-                OpportunityId = item.OpportunityId,
-                item.Message,
-                item.CreatedAt,
-            })
-            .ToListAsync());
+            .ToListAsync();
+
+        var response = recommendations.Select(item => new
+        {
+            Id = item.Opportunity.Id,
+            EmployerId = item.Opportunity.EmployerId,
+            Title = item.Opportunity.Title,
+            Description = item.Opportunity.Description,
+            Longitude = item.Opportunity.Longitude,
+            Latitude = item.Opportunity.Latitude,
+            LocationAddress = item.Opportunity.LocationAddress,
+            LocationCity = item.Opportunity.LocationCity,
+            ExpireAt = item.Opportunity.ExpireAt,
+            PublishAt = item.Opportunity.PublishAt,
+            EmploymentType = item.Opportunity.EmploymentType,
+            ExperienceLevel = item.Opportunity.ExperienceLevel,
+            Schedule = item.Opportunity.Schedule,
+            SalaryFrom = item.Opportunity.SalaryFrom,
+            SalaryTo = item.Opportunity.SalaryTo,
+            IsPaid = item.Opportunity.IsPaid,
+            StipendFrom = item.Opportunity.StipendFrom,
+            StipendTo = item.Opportunity.StipendTo,
+            Duration = item.Opportunity.Duration,
+            EventStartAt = item.Opportunity.EventStartAt,
+            RegistrationDeadline = item.Opportunity.RegistrationDeadline,
+            MeetingFrequency = item.Opportunity.MeetingFrequency,
+            SeatsCount = item.Opportunity.SeatsCount,
+            ApplicationsCount = item.Opportunity.Applications.Count,
+            AcceptedApplicationsCount = item.Opportunity.Applications.Count(a => a.Status == OpportunityApplicationStatuses.Accepted),
+            CompanyName = item.Opportunity.Employer.CompanyName,
+            CompanyProfileImage = item.Opportunity.Employer.ProfileImage,
+            Tags = item.Opportunity.Tags.Select(tag => tag.Name).ToList(),
+            OpportunityType = item.Opportunity.OpportunityType,
+            ModerationStatus = OpportunityEndpointRouteBuilderExtensions.GetEffectiveModerationStatus(item.Opportunity),
+            RecommenderId = item.RecommenderId,
+            RecommenderName = item.Recommender.Name,
+            OpportunityId = item.OpportunityId,
+            Message = item.Message,
+            CreatedAt = item.CreatedAt
+        }).ToList();
+
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> CreateCandidateRecommendationAsync(

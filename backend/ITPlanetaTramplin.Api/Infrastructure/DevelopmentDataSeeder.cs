@@ -31,7 +31,7 @@ internal static class DevelopmentDataSeeder
             null,
             "Frontend-разработчик с фокусом на библиотеки компонентов, доступность и быстрые продуктовые итерации.",
             ["React", "TypeScript", "Accessibility", "Figma"],
-            """{"portfolio":"https://anna.tramplin.local","github":"https://github.com/anna-petrova","telegram":"https://t.me/annapetrova"}""",
+            """{"portfolio":"https://anna.tramplin.local","github":"https://github.com/anna-petrova","telegram":"https://t.me/annapetrova","onboarding":{"profession":"Frontend-разработчик","city":"Москва","goal":"Пройти стажировку на позицию frontend-разработчика","gender":"female","birthDate":"2001-08-12","phone":"+7 900 123-45-01","citizenship":"Россия","noExperience":true,"completedAt":"2026-05-28T12:00:00.000Z"}}""",
             CandidateModerationStatuses.Approved),
         new(
             "ivan.smirnov@tramplin.local",
@@ -41,7 +41,7 @@ internal static class DevelopmentDataSeeder
             "Olegovich",
             "Продуктовый аналитик, который работает с SQL, Python, дашбордами и дизайном экспериментов для цифровых продуктов.",
             ["SQL", "Python", "A/B testing", "Analytics"],
-            """{"portfolio":"https://ivan.tramplin.local","github":"https://github.com/ivan-smirnov","telegram":"https://t.me/ivansmirnov"}""",
+            """{"portfolio":"https://ivan.tramplin.local","github":"https://github.com/ivan-smirnov","telegram":"https://t.me/ivansmirnov","onboarding":{"profession":"Продуктовый аналитик","city":"Москва","goal":"Пройти стажировку на позицию продуктового аналитика","gender":"male","birthDate":"2000-11-23","phone":"+7 900 123-45-02","citizenship":"Россия","noExperience":true,"completedAt":"2026-05-28T12:00:00.000Z"}}""",
             CandidateModerationStatuses.Approved),
         new(
             "polina.sokolova@tramplin.local",
@@ -51,7 +51,7 @@ internal static class DevelopmentDataSeeder
             null,
             "Продуктовый дизайнер с сильной исследовательской базой, навыками прототипирования и интересом к стажировочным программам.",
             ["Figma", "UX research", "Prototyping", "Design systems"],
-            """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova"}""",
+            """{"portfolio":"https://polina.tramplin.local","behance":"https://behance.net/polina-sokolova","telegram":"https://t.me/polinasokolova","onboarding":{"profession":"Продуктовый дизайнер","city":"Санкт-Петербург","goal":"Пройти стажировку на позицию продуктового дизайнера","gender":"female","birthDate":"2002-03-14","phone":"+7 900 123-45-03","citizenship":"Россия","noExperience":true,"completedAt":"2026-05-28T12:00:00.000Z"}}""",
             CandidateModerationStatuses.Approved),
         new(
             "maria.sokolova@tramplin.local",
@@ -162,6 +162,26 @@ internal static class DevelopmentDataSeeder
             }
             """,
             CandidateModerationStatuses.Approved),
+        new(
+            "i@mikulay-efimov",
+            "Candidate1234",
+            "Николай",
+            "Ефимов",
+            null,
+            "UX/UI дизайнер с опытом проектирования мобильных приложений, создания интерактивных прототипов в Figma и проведения исследований.",
+            ["Figma", "UX", "UI", "Prototyping", "Design systems", "Usability"],
+            """{"portfolio":"https://mikulay.tramplin.local","telegram":"@mikulay_efimov","onboarding":{"profession":"UX/UI дизайнер","city":"Чебоксары","goal":"Пройти стажировку на должность UX/UI дизайнера","gender":"male","birthDate":"2002-05-15","phone":"+7 999 123-45-67","citizenship":"Россия","noExperience":true,"completedAt":"2026-05-28T12:00:00.000Z"}}""",
+            CandidateModerationStatuses.Approved),
+        new(
+            "i@mikulay-efimov.ru",
+            "Candidate1234",
+            "Николай",
+            "Ефимов",
+            null,
+            "UX/UI дизайнер с опытом проектирования мобильных приложений, создания интерактивных прототипов в Figma и проведения исследований.",
+            ["Figma", "UX", "UI", "Prototyping", "Design systems", "Usability"],
+            """{"portfolio":"https://mikulay.tramplin.local","telegram":"@mikulay_efimov","onboarding":{"profession":"UX/UI дизайнер","city":"Чебоксары","goal":"Пройти стажировку на должность UX/UI дизайнера","gender":"male","birthDate":"2002-05-15","phone":"+7 999 123-45-67","citizenship":"Россия","noExperience":true,"completedAt":"2026-05-28T12:00:00.000Z"}}""",
+            CandidateModerationStatuses.Approved),
     ];
 
     private static readonly SeedCompany[] SeedCompanies =
@@ -240,6 +260,17 @@ internal static class DevelopmentDataSeeder
             "Цифровые продукты для коммуникаций, контента и creator tools с активными стажировками и карьерными событиями.",
             """[{"type":"website","url":"https://vk.company"},{"type":"telegram","url":"https://t.me/vkteam"}]""",
             [
+                new(
+                    "Дизайнер интерфейсов Мобильных приложений UI/UX",
+                    "Проектирование пользовательских интерфейсов для мобильных приложений под iOS и Android, разработка дизайн-систем в Figma, создание интерактивных прототипов и проведение юзабилити-тестирований.",
+                    "Чебоксары",
+                    "проспект Ленина 2",
+                    56.1308549m,
+                    47.2463442m,
+                    "internship",
+                    "Hybrid",
+                    """{"email":"company-vk@tramplin.local","telegram":"@vkcareers"}""",
+                    ["Figma", "UX", "UI", "Prototyping", "Design systems"]),
                 new(
                     "Стажировка по продуктовому дизайну",
                     "Работайте с продуктовой командой над синтезом исследований, быстрыми прототипами и дизайн-QA для социальных и creator-инструментов.",
@@ -446,6 +477,16 @@ internal static class DevelopmentDataSeeder
             "anna.petrova@tramplin.local",
             "Инженер дизайн-систем",
             "Анна уже мыслит компонентами и токенами и умеет превращать дизайн-спеки в устойчивые frontend-паттерны."),
+        new(
+            "maria.sokolova@tramplin.local",
+            "i@mikulay-efimov",
+            "Дизайнер интерфейсов Мобильных приложений UI/UX",
+            "Николай отлично проектирует мобильные экраны, детально прорабатывает пользовательские сценарии и аккуратно работает с Figma."),
+        new(
+            "maria.sokolova@tramplin.local",
+            "i@mikulay-efimov.ru",
+            "Дизайнер интерфейсов Мобильных приложений UI/UX",
+            "Николай отлично проектирует мобильные экраны, детально прорабатывает пользовательские сценарии и аккуратно работает с Figma."),
     ];
 
     private static readonly SeedComplaint[] SeedComplaints =
@@ -573,6 +614,35 @@ internal static class DevelopmentDataSeeder
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // Seed default education for each non-mentor candidate to complete onboarding
+        foreach (var user in users)
+        {
+            if (user.ApplicantProfile == null) continue;
+
+            if (user.Email.Contains("mentor") || user.Email.Contains("sokolova") || user.Email.Contains("dmitrieva") || user.Email.Contains("alekseeva") || user.Email.Contains("fadeev"))
+            {
+                continue;
+            }
+
+            var hasEducation = await db.ApplicantEducations.AnyAsync(e => e.ApplicantId == user.ApplicantProfile.Id, cancellationToken);
+            if (!hasEducation)
+            {
+                var education = new ApplicantEducation
+                {
+                    ApplicantId = user.ApplicantProfile.Id,
+                    InstitutionName = "Чувашский государственный университет им. И.Н. Ульянова",
+                    Faculty = "Факультет информатики и вычислительной техники",
+                    Specialization = "Информационные системы и технологии",
+                    GraduationYear = 2024,
+                    IsCompleted = true
+                };
+                db.ApplicantEducations.Add(education);
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
         return users;
     }
 
