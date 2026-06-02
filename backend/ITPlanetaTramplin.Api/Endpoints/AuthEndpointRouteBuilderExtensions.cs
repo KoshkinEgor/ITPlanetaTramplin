@@ -6,6 +6,7 @@ using ITPlanetaTramplin.Api.Integrations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Npgsql;
 
 namespace ITPlanetaTramplin.Api.Endpoints;
 
@@ -574,9 +575,20 @@ internal static class AuthEndpointRouteBuilderExtensions
         }
 
         var normalizedEmail = AuthSupport.NormalizeEmail(request.Email);
-        if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == normalizedEmail))
+        try
         {
-            return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+            if (await db.Users.AnyAsync(item => item.DeletedAt == null && item.Email.ToLower() == normalizedEmail))
+            {
+                return AuthEndpointSupport.MessageResult("Пользователь с таким email уже существует.", StatusCodes.Status409Conflict);
+            }
+        }
+        catch (Exception ex) when (IsDatabaseConnectionFailure(ex))
+        {
+            loggerFactory.CreateLogger("AuthEndpoints")
+                .LogWarning(ex, "Database connection failed during candidate registration for {Email}.", normalizedEmail);
+            return AuthEndpointSupport.MessageResult(
+                "База данных временно недоступна. Попробуйте отправить форму еще раз.",
+                StatusCodes.Status503ServiceUnavailable);
         }
 
         var pendingRegistrationResult = pendingRegistrationStore.UpsertCandidate(
@@ -601,6 +613,19 @@ internal static class AuthEndpointRouteBuilderExtensions
             loggerFactory.CreateLogger("AuthEndpoints"));
 
         return Results.Created("/api/auth/confirm-email", payload);
+    }
+
+    private static bool IsDatabaseConnectionFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is NpgsqlException or IOException)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task<IResult> HandleRegisterCompanyAsync(

@@ -1,4 +1,4 @@
-﻿using Models;
+using Models;
 
 namespace DTO
 {
@@ -17,6 +17,8 @@ namespace DTO
         public bool? IsCompleted { get; set; }
 
         public string? Description { get; set; }
+
+        public string? EducationLevel { get; set; }
     }
 
     public class ApplicantEducationReadDTO
@@ -39,6 +41,7 @@ namespace DTO
 
         public string? Description { get; set; }
 
+        public string? EducationLevel { get; set; }
     }
 
     public class ApplicantEducationUpdateDTO
@@ -60,6 +63,8 @@ namespace DTO
         public List<string>? Attachments { get; set; }
 
         public string? Description { get; set; }
+
+        public string? EducationLevel { get; set; }
     }
 
 

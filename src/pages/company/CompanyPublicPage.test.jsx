@@ -76,6 +76,8 @@ describe("CompanyPublicPage", () => {
     expect(screen.getByText("Длительность: 3 месяца")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Перейти к редактированию" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Добавить проект" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Редактировать проект/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Удалить проект/i })).not.toBeInTheDocument();
   });
 
   it("hides company verification preview copy when opened from opportunities", async () => {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Models;
@@ -24,6 +24,8 @@ public partial class ApplicantEducation
     public List<string>? Attachments { get; set; }
 
     public string? Description { get; set; }
+
+    public string? EducationLevel { get; set; }
 
     public virtual ApplicantProfile Applicant { get; set; } = null!;
 }

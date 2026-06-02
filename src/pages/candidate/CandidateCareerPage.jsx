@@ -57,6 +57,32 @@ function normalizeSearchValue(value) {
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
+
+function buildPlatformCompanyOptions(opportunities = []) {
+  const companies = new Map();
+
+  safeArray(opportunities).forEach((item) => {
+    const companyName = String(item?.companyName ?? item?.company ?? "").trim();
+
+    if (!companyName) {
+      return;
+    }
+
+    const key = companyName.toLowerCase();
+    const existing = companies.get(key);
+    const count = (existing?.count ?? 0) + 1;
+
+    companies.set(key, {
+      value: companyName,
+      label: companyName,
+      count,
+      meta: `${count} ${count === 1 ? "публикация" : count > 1 && count < 5 ? "публикации" : "публикаций"} на платформе`,
+    });
+  });
+
+  return [...companies.values()].sort((left, right) => left.label.localeCompare(right.label, "ru"));
+}
+
 function getFirstIncompleteStepIndex(draft) {
   const nextIndex = CANDIDATE_ONBOARDING_STEPS.findIndex((step) => getCandidateOnboardingStepError(step.key, draft));
   return nextIndex >= 0 ? nextIndex : CANDIDATE_ONBOARDING_STEPS.length - 1;
@@ -217,7 +243,7 @@ function SkillsStep({ draft, skillQuery, onSkillQueryChange, onAddSkill, onRemov
   );
 }
 
-function ExperienceStep({ draft, onNoExperienceChange, onExperienceChange, onExperienceAdd, onExperienceRemove }) {
+function ExperienceStep({ draft, companyOptions = [], onNoExperienceChange, onExperienceChange, onExperienceAdd, onExperienceRemove }) {
   return (
     <div className="candidate-career-step">
       <div className="candidate-career-step__head">
@@ -228,6 +254,7 @@ function ExperienceStep({ draft, onNoExperienceChange, onExperienceChange, onExp
       <CandidateExperienceListEditor
         experiences={draft.experiences}
         noExperience={draft.noExperience}
+        companyOptions={companyOptions}
         onNoExperienceChange={onNoExperienceChange}
         onExperienceChange={onExperienceChange}
         onExperienceAdd={onExperienceAdd}
@@ -269,9 +296,10 @@ async function syncCandidateEducation(profileEducation, draftEducations) {
       faculty: item.faculty.trim() || null,
       specialization: item.specialization.trim() || null,
       graduationYear: item.graduationYear ? Number(item.graduationYear) : null,
-      startYear: null,
+      startYear: item.startYear ? Number(item.startYear) : null,
       isCompleted: Boolean(item.graduationYear),
       description: null,
+      educationLevel: item.educationLevel || null,
     };
 
     if (item.id) {
@@ -304,6 +332,7 @@ export function CandidateCareerPage() {
     degraded: false,
     error: null,
   });
+  const [platformCompanyOptions, setPlatformCompanyOptions] = useState([]);
   const [draft, setDraft] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [skillQuery, setSkillQuery] = useState("");
@@ -344,6 +373,32 @@ export function CandidateCareerPage() {
       controller.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (contextState.status !== "ready" || contextState.data?.kind !== "candidate") {
+      return undefined;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+
+    getOpportunities(controller.signal)
+      .then((opportunities) => {
+        if (active && !controller.signal.aborted) {
+          setPlatformCompanyOptions(buildPlatformCompanyOptions(opportunities));
+        }
+      })
+      .catch(() => {
+        if (active && !controller.signal.aborted) {
+          setPlatformCompanyOptions([]);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [contextState.status, contextState.data?.kind]);
 
   useEffect(() => {
     if (contextState.status !== "ready" || contextState.data?.kind !== "candidate" || !contextState.data.onboardingComplete) {
@@ -750,6 +805,7 @@ export function CandidateCareerPage() {
               {activeStep.key === "experience" ? (
                 <ExperienceStep
                   draft={draft}
+                  companyOptions={platformCompanyOptions}
                   onNoExperienceChange={(value) => updateField("noExperience", value)}
                   onExperienceChange={updateExperienceValue}
                   onExperienceAdd={addExperienceItem}

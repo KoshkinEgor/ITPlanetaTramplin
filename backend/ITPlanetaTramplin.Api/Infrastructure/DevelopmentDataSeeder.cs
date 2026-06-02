@@ -547,6 +547,7 @@ internal static class DevelopmentDataSeeder
                 .Include(item => item.CuratorProfile)
                 .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail, cancellationToken);
 
+            var isNew = false;
             if (user is null)
             {
                 user = new User
@@ -554,7 +555,7 @@ internal static class DevelopmentDataSeeder
                     Email = normalizedEmail,
                     CuratorProfile = new CuratorProfile(),
                 };
-
+                isNew = true;
                 db.Users.Add(user);
             }
 
@@ -562,12 +563,15 @@ internal static class DevelopmentDataSeeder
             user.DeletedAt = null;
             user.IsVerified = true;
             user.PreVerify = true;
-            user.PasswordHash = AuthSupport.HashPassword(user, seedCurator.Password);
-            user.CuratorProfile ??= new CuratorProfile();
-            user.CuratorProfile.Name = seedCurator.Name;
-            user.CuratorProfile.Surname = seedCurator.Surname;
-            user.CuratorProfile.Thirdname = seedCurator.Thirdname;
-            user.CuratorProfile.IsAdministrator = seedCurator.IsAdministrator;
+            if (isNew)
+            {
+                user.PasswordHash = AuthSupport.HashPassword(user, seedCurator.Password);
+                user.CuratorProfile ??= new CuratorProfile();
+                user.CuratorProfile.Name = seedCurator.Name;
+                user.CuratorProfile.Surname = seedCurator.Surname;
+                user.CuratorProfile.Thirdname = seedCurator.Thirdname;
+                user.CuratorProfile.IsAdministrator = seedCurator.IsAdministrator;
+            }
             users.Add(user);
         }
 
@@ -586,6 +590,7 @@ internal static class DevelopmentDataSeeder
                 .Include(item => item.ApplicantProfile)
                 .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail, cancellationToken);
 
+            var isNew = false;
             if (user is null)
             {
                 user = new User
@@ -593,7 +598,7 @@ internal static class DevelopmentDataSeeder
                     Email = normalizedEmail,
                     ApplicantProfile = new ApplicantProfile(),
                 };
-
+                isNew = true;
                 db.Users.Add(user);
             }
 
@@ -601,15 +606,18 @@ internal static class DevelopmentDataSeeder
             user.DeletedAt = null;
             user.IsVerified = true;
             user.PreVerify = true;
-            user.PasswordHash = AuthSupport.HashPassword(user, seedCandidate.Password);
-            user.ApplicantProfile ??= new ApplicantProfile();
-            user.ApplicantProfile.Name = seedCandidate.Name;
-            user.ApplicantProfile.Surname = seedCandidate.Surname;
-            user.ApplicantProfile.Thirdname = seedCandidate.Thirdname;
-            user.ApplicantProfile.Description = seedCandidate.Description;
-            user.ApplicantProfile.Skills = seedCandidate.Skills.ToList();
-            user.ApplicantProfile.Links = seedCandidate.LinksJson;
-            user.ApplicantProfile.ModerationStatus = CandidateModerationStatuses.Normalize(seedCandidate.ModerationStatus);
+            if (isNew)
+            {
+                user.PasswordHash = AuthSupport.HashPassword(user, seedCandidate.Password);
+                user.ApplicantProfile ??= new ApplicantProfile();
+                user.ApplicantProfile.Name = seedCandidate.Name;
+                user.ApplicantProfile.Surname = seedCandidate.Surname;
+                user.ApplicantProfile.Thirdname = seedCandidate.Thirdname;
+                user.ApplicantProfile.Description = seedCandidate.Description;
+                user.ApplicantProfile.Skills = seedCandidate.Skills.ToList();
+                user.ApplicantProfile.Links = seedCandidate.LinksJson;
+                user.ApplicantProfile.ModerationStatus = CandidateModerationStatuses.Normalize(seedCandidate.ModerationStatus);
+            }
             users.Add(user);
         }
 
@@ -634,6 +642,7 @@ internal static class DevelopmentDataSeeder
                     InstitutionName = "Чувашский государственный университет им. И.Н. Ульянова",
                     Faculty = "Факультет информатики и вычислительной техники",
                     Specialization = "Информационные системы и технологии",
+                    StartYear = 2020,
                     GraduationYear = 2024,
                     IsCompleted = true
                 };
@@ -661,6 +670,7 @@ internal static class DevelopmentDataSeeder
                         (item.EmployerProfile != null && item.EmployerProfile.Inn == normalizedInn),
                     cancellationToken);
 
+            var isNew = false;
             if (user is null)
             {
                 user = new User
@@ -668,7 +678,7 @@ internal static class DevelopmentDataSeeder
                     Email = normalizedEmail,
                     EmployerProfile = new EmployerProfile(),
                 };
-
+                isNew = true;
                 db.Users.Add(user);
             }
 
@@ -676,20 +686,23 @@ internal static class DevelopmentDataSeeder
             user.DeletedAt = null;
             user.IsVerified = true;
             user.PreVerify = true;
-            user.PasswordHash = AuthSupport.HashPassword(user, seedCompany.Password);
-            user.EmployerProfile ??= new EmployerProfile();
-            user.EmployerProfile.CompanyName = seedCompany.CompanyName;
-            user.EmployerProfile.Inn = normalizedInn;
-            user.EmployerProfile.VerificationData = """{"source":"development-seed"}""";
-            user.EmployerProfile.VerificationMethod = "seed";
-            user.EmployerProfile.VerificationStatus = CompanyVerificationStatuses.Approved;
-            user.EmployerProfile.LegalAddress = seedCompany.LegalAddress;
-            user.EmployerProfile.Description = seedCompany.Description;
-            user.EmployerProfile.Socials = seedCompany.SocialsJson;
-            user.EmployerProfile.MediaContent = "[]";
-            user.EmployerProfile.HeroMediaJson = BuildHeroMediaJson(seedCompany);
-            user.EmployerProfile.CaseStudiesJson = BuildCaseStudiesJson(seedCompany);
-            user.EmployerProfile.GalleryJson = BuildGalleryJson(seedCompany);
+            if (isNew)
+            {
+                user.PasswordHash = AuthSupport.HashPassword(user, seedCompany.Password);
+                user.EmployerProfile ??= new EmployerProfile();
+                user.EmployerProfile.CompanyName = seedCompany.CompanyName;
+                user.EmployerProfile.Inn = normalizedInn;
+                user.EmployerProfile.VerificationData = """{"source":"development-seed"}""";
+                user.EmployerProfile.VerificationMethod = "seed";
+                user.EmployerProfile.VerificationStatus = CompanyVerificationStatuses.Approved;
+                user.EmployerProfile.LegalAddress = seedCompany.LegalAddress;
+                user.EmployerProfile.Description = seedCompany.Description;
+                user.EmployerProfile.Socials = seedCompany.SocialsJson;
+                user.EmployerProfile.MediaContent = "[]";
+                user.EmployerProfile.HeroMediaJson = BuildHeroMediaJson(seedCompany);
+                user.EmployerProfile.CaseStudiesJson = BuildCaseStudiesJson(seedCompany);
+                user.EmployerProfile.GalleryJson = BuildGalleryJson(seedCompany);
+            }
             users.Add(user);
         }
 
@@ -756,15 +769,14 @@ internal static class DevelopmentDataSeeder
                 .Where(item => item.EmployerId == companyUser.EmployerProfile.Id)
                 .ToListAsync(cancellationToken);
 
-            foreach (var existingOpportunity in existingCompanyOpportunities)
+            if (existingCompanyOpportunities.Count > 0)
             {
-                existingOpportunity.Tags.Clear();
+                foreach (var op in existingCompanyOpportunities)
+                {
+                    opportunitiesByTitle[op.Title] = op;
+                }
+                continue;
             }
-
-            db.Applications.RemoveRange(existingCompanyOpportunities.SelectMany(item => item.Applications));
-            db.Recommendations.RemoveRange(existingCompanyOpportunities.SelectMany(item => item.Recommendations));
-            db.Opportunities.RemoveRange(existingCompanyOpportunities);
-            await db.SaveChangesAsync(cancellationToken);
 
             foreach (var seedOpportunity in seedCompany.Opportunities)
             {

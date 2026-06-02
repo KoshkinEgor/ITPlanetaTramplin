@@ -45,6 +45,21 @@ const invitedApplication = {
   moderationStatus: "approved",
 };
 
+const rejectedApplicationWithNote = {
+  id: 42,
+  opportunityId: 303,
+  status: "rejected",
+  employerNote: "Потренируйтесь ещё над алгоритмами.",
+  appliedAt: "2026-03-12T12:00:00Z",
+  opportunityTitle: "Middle Frontend Developer",
+  opportunityType: "vacancy",
+  companyName: "ООО Компани",
+  locationCity: "Москва",
+  employmentType: "online",
+  opportunityDeleted: false,
+  moderationStatus: "approved",
+};
+
 function renderApp() {
   return render(
     <MemoryRouter>
@@ -113,5 +128,16 @@ describe("CandidateResponsesApp", () => {
     expect(await screen.findByText("Принято")).toBeInTheDocument();
     expect(screen.getByText("Ваше участие подтверждено.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Подтвердить участие" })).not.toBeInTheDocument();
+  });
+
+  it("renders rejected application card with employer note", async () => {
+    getCandidateApplications.mockResolvedValue([rejectedApplicationWithNote]);
+
+    renderApp();
+
+    expect(await screen.findByText("Middle Frontend Developer")).toBeInTheDocument();
+    expect(screen.getByText("Компания завершила рассмотрение отклика.")).toBeInTheDocument();
+    expect(screen.getByText("Комментарий организатора:")).toBeInTheDocument();
+    expect(screen.getByText("Потренируйтесь ещё над алгоритмами.")).toBeInTheDocument();
   });
 });

@@ -37,7 +37,40 @@ vi.mock("./CompanyGalleryPanel", () => ({
 }));
 
 vi.mock("./CompanyPortfolioCarousel", () => ({
-  CompanyPortfolioCarousel: () => <div>Portfolio preview</div>,
+  CompanyPortfolioCarousel: ({
+    items = [],
+    mode,
+    showOwnerActions,
+    showCreateAction,
+    onCtaClick,
+    onEditItem,
+    onDeleteItem,
+    testId = "company-profile-portfolio-slider",
+  }) => (
+    <div data-testid={testId} data-mode={mode}>
+      <div>Portfolio preview</div>
+      {items.map((item) => (
+        <article key={item.id}>
+          <h3>{item.title || item.description}</h3>
+          {showOwnerActions ? (
+            <>
+              <button type="button" aria-label={`Редактировать проект: ${item.title || item.description}`} onClick={() => onEditItem?.(item)}>
+                edit
+              </button>
+              <button type="button" aria-label={`Удалить проект: ${item.title || item.description}`} onClick={() => onDeleteItem?.(item)}>
+                delete
+              </button>
+            </>
+          ) : null}
+        </article>
+      ))}
+      {showCreateAction !== false && mode === "editor" ? (
+        <button type="button" onClick={onCtaClick}>
+          Добавить проект
+        </button>
+      ) : null}
+    </div>
+  ),
 }));
 
 const baseProfile = {
@@ -55,6 +88,27 @@ const baseProfile = {
   verificationData: null,
   verificationMethod: null,
   verificationStatus: "pending",
+};
+
+const profileWithProjects = {
+  ...baseProfile,
+  caseStudiesJson: JSON.stringify([
+    {
+      id: "case-1",
+      title: "Analytics Hub",
+      description: "Analytics Hub",
+      mediaType: "image",
+      previewUrl: "https://cdn.example.com/analytics.png",
+      sourceUrl: "https://example.com/analytics",
+    },
+  ]),
+  galleryJson: JSON.stringify([
+    {
+      id: "gallery-1",
+      alt: "Office",
+      imageUrl: "https://cdn.example.com/office.png",
+    },
+  ]),
 };
 
 function renderSection(initialEntries = ["/company/dashboard"]) {
@@ -100,6 +154,91 @@ describe("CompanyProfileSection", () => {
 
     expect(await screen.findByDisplayValue("Northwind")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Moscow")).toBeInTheDocument();
+  });
+
+  it("shows project edit and delete actions only in the company cabinet portfolio", async () => {
+    getCompanyProfile.mockResolvedValue(profileWithProjects);
+
+    renderSection();
+
+    expect(await screen.findByRole("button", { name: "Редактировать проект: Analytics Hub" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Удалить проект: Analytics Hub" })).toBeInTheDocument();
+  });
+
+  it("edits an existing company project instead of adding a duplicate", async () => {
+    getCompanyProfile.mockResolvedValue(profileWithProjects);
+    updateCompanyProfile.mockResolvedValue({
+      ...profileWithProjects,
+      caseStudiesJson: JSON.stringify([
+        {
+          id: "case-1",
+          title: "Updated Analytics",
+          description: "Updated Analytics",
+          mediaType: "image",
+          previewUrl: "https://cdn.example.com/analytics.png",
+          sourceUrl: "https://example.com/updated",
+        },
+      ]),
+    });
+
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Редактировать проект: Analytics Hub" }));
+
+    const descriptionInput = await screen.findByDisplayValue("Analytics Hub");
+    fireEvent.change(descriptionInput, { target: { value: "Updated Analytics" } });
+    fireEvent.change(screen.getByDisplayValue("https://example.com/analytics"), {
+      target: { value: "https://example.com/updated" },
+    });
+    fireEvent.submit(descriptionInput.closest("form"));
+
+    fireEvent.click(screen.getByRole("button", { name: /РЎРѕС…СЂР°РЅРёС‚СЊ РєРѕРЅС‚РµРЅС‚|Сохранить контент/i }));
+
+    await waitFor(() => {
+      expect(updateCompanyProfile).toHaveBeenLastCalledWith(expect.objectContaining({
+        caseStudiesJson: expect.any(String),
+      }));
+    });
+
+    const payload = JSON.parse(updateCompanyProfile.mock.calls.at(-1)[0].caseStudiesJson);
+    expect(payload).toHaveLength(1);
+    expect(payload[0]).toMatchObject({
+      id: "case-1",
+      title: "Updated Analytics",
+      description: "Updated Analytics",
+      sourceUrl: "https://example.com/updated",
+    });
+  });
+
+  it("deletes a company project from the draft and persists it with the profile", async () => {
+    getCompanyProfile.mockResolvedValue(profileWithProjects);
+    updateCompanyProfile.mockResolvedValue({ ...profileWithProjects, caseStudiesJson: "[]" });
+
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Удалить проект: Analytics Hub" }));
+    fireEvent.click(screen.getByRole("button", { name: /РЎРѕС…СЂР°РЅРёС‚СЊ РєРѕРЅС‚РµРЅС‚|Сохранить контент/i }));
+
+    await waitFor(() => {
+      expect(updateCompanyProfile).toHaveBeenLastCalledWith(expect.objectContaining({
+        caseStudiesJson: "[]",
+      }));
+    });
+  });
+
+  it("opens draft public preview without project owner controls", async () => {
+    getCompanyProfile.mockResolvedValue(profileWithProjects);
+
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Предпросмотр публичной версии" }));
+
+    const preview = await screen.findByTestId("company-public-draft-preview");
+    expect(within(preview).getAllByText("Northwind").length).toBeGreaterThan(0);
+    expect(within(preview).getByText("Analytics Hub")).toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: /Редактировать проект/i })).not.toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: /Удалить проект/i })).not.toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Добавить проект" })).not.toBeInTheDocument();
   });
 
   it("opens the basic company editor from the cabinet edit hash", async () => {

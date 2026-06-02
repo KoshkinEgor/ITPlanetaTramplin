@@ -2,6 +2,9 @@ import { cn } from "../../../lib/cn";
 import { Button } from "../Button/Button";
 import { FormField } from "../FormField/FormField";
 import { Input } from "../Input/Input";
+import { InstitutionAutocomplete } from "../InstitutionAutocomplete/InstitutionAutocomplete";
+import { Select } from "../Select/Select";
+import { EDUCATION_LEVEL_OPTIONS } from "../../../candidate-portal/education";
 
 function defaultItemLabel(index) {
   return index === 0 ? "Основное образование" : `Дополнительное образование ${index}`;
@@ -35,12 +38,21 @@ export function EducationListEditor({
                 ) : null}
               </div>
 
-              <div className="ui-education-editor__grid">
+              <div className="ui-education-editor__grid ui-education-editor__grid--two">
                 <FormField label="Учебное заведение" required={index === 0} error={itemErrors.institutionName}>
-                  <Input
+                  <InstitutionAutocomplete
                     value={item.institutionName}
                     onValueChange={(value) => onItemChange?.(item.draftKey, "institutionName", value)}
                     placeholder="ЧГУ им. И. Н. Ульянова"
+                    searchPlaceholder="ЧГУ им. И. Н. Ульянова"
+                  />
+                </FormField>
+                <FormField label="Уровень образования">
+                  <Select
+                    value={item.educationLevel || ""}
+                    onValueChange={(value) => onItemChange?.(item.draftKey, "educationLevel", value)}
+                    placeholder="Выберите уровень"
+                    options={EDUCATION_LEVEL_OPTIONS}
                   />
                 </FormField>
               </div>
@@ -62,7 +74,14 @@ export function EducationListEditor({
                 </FormField>
               </div>
 
-              <div className="ui-education-editor__grid ui-education-editor__grid--graduation">
+              <div className="ui-education-editor__grid ui-education-editor__grid--years">
+                <FormField label="Год начала" error={itemErrors.startYear}>
+                  <Input
+                    value={item.startYear || ""}
+                    onValueChange={(value) => onItemChange?.(item.draftKey, "startYear", value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="2023"
+                  />
+                </FormField>
                 <FormField label="Год окончания" error={itemErrors.graduationYear}>
                   <Input
                     value={item.graduationYear}

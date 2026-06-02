@@ -10,6 +10,7 @@ import { refreshAuthSession } from "../auth/api";
 import { OpportunityBlockRail } from "../components/opportunities";
 import { ApiError } from "../lib/http";
 import { getOpportunityCardPresentation } from "../shared/lib/opportunityPresentation";
+import { CompanyProfileSummary } from "../features/company";
 import {
   Alert,
   Button,
@@ -176,6 +177,22 @@ function createCaseStudyForm() {
   };
 }
 
+function createCaseStudyFormFromItem(item) {
+  return {
+    description: String(item?.description || item?.title || "").trim(),
+    sourceUrl: String(item?.sourceUrl ?? "").trim(),
+    previewUrl: String(item?.previewUrl ?? "").trim(),
+  };
+}
+
+function buildDraftPublicStats({ opportunities, caseStudies, gallery }) {
+  return [
+    { value: String(opportunities.length), label: "Открытые возможности" },
+    { value: String(caseStudies.length), label: "Кейсы компании" },
+    { value: String(gallery.length), label: "Фото и офис" },
+  ];
+}
+
 function parseSocialLinks(value) {
   if (!value) {
     return [];
@@ -257,6 +274,19 @@ function createCaseStudyItemFromForm(form, index) {
   );
 }
 
+function updateCaseStudyItemFromForm(item, form) {
+  const description = form.description.trim();
+
+  return createCompanyCaseStudyDraft({
+    ...item,
+    title: description || item?.title || "Проект",
+    description,
+    previewUrl: form.previewUrl.trim(),
+    sourceUrl: form.sourceUrl.trim(),
+    mediaType: "image",
+  });
+}
+
 export function CompanyProfileSection({ onSummaryChange }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -272,6 +302,8 @@ export function CompanyProfileSection({ onSummaryChange }) {
   const [saveState, setSaveState] = useState({ status: "idle", error: "" });
   const [isBasicProfileEditing, setIsBasicProfileEditing] = useState(false);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
+  const [editingCaseStudyId, setEditingCaseStudyId] = useState(null);
+  const [publicPreviewOpen, setPublicPreviewOpen] = useState(false);
   const [caseStudyForm, setCaseStudyForm] = useState(createCaseStudyForm());
   const [caseStudyFormError, setCaseStudyFormError] = useState("");
   const [profileImageState, setProfileImageState] = useState({ status: "idle", error: "" });
@@ -357,6 +389,29 @@ export function CompanyProfileSection({ onSummaryChange }) {
   const opportunityItems = useMemo(
     () => state.opportunities.map(createCompanyOpportunityCardItem),
     [state.opportunities]
+  );
+  const publicPreviewProfile = useMemo(
+    () => ({
+      ...state.profile,
+      companyName: draft.companyName.trim(),
+      legalAddress: draft.legalAddress.trim(),
+      description: draft.description.trim(),
+      profileImage: draft.profileImage.trim(),
+      socials: stringifySocialLinks(socialLinks),
+      heroMediaJson: serializeCompanyHeroMedia(draft.heroMedia),
+      caseStudiesJson: serializeCompanyCaseStudies(draft.caseStudies),
+      galleryJson: serializeCompanyGallery(draft.gallery),
+    }),
+    [draft, socialLinks, state.profile]
+  );
+  const publicPreviewStats = useMemo(
+    () =>
+      buildDraftPublicStats({
+        opportunities: state.opportunities,
+        caseStudies: draft.caseStudies,
+        gallery: draft.gallery,
+      }),
+    [draft.caseStudies, draft.gallery, state.opportunities]
   );
   const visibleSocialLinks = useMemo(
     () => socialLinks.map((link) => link.trim()).filter(Boolean),
@@ -538,10 +593,24 @@ export function CompanyProfileSection({ onSummaryChange }) {
   function resetCaseStudyForm() {
     setCaseStudyForm(createCaseStudyForm());
     setCaseStudyFormError("");
+    setEditingCaseStudyId(null);
   }
 
   function handleOpenPortfolioModal() {
     resetCaseStudyForm();
+    setPortfolioModalOpen(true);
+  }
+
+  function handleEditCaseStudy(item) {
+    const foundItem = draft.caseStudies.find((caseStudy) => String(caseStudy.id) === String(item?.id));
+
+    if (!foundItem) {
+      return;
+    }
+
+    setEditingCaseStudyId(foundItem.id);
+    setCaseStudyForm(createCaseStudyFormFromItem(foundItem));
+    setCaseStudyFormError("");
     setPortfolioModalOpen(true);
   }
 
@@ -602,13 +671,24 @@ export function CompanyProfileSection({ onSummaryChange }) {
       return;
     }
 
-    setDraft((current) => ({
-      ...current,
-      caseStudies: [
-        ...current.caseStudies,
-        createCaseStudyItemFromForm(caseStudyForm, current.caseStudies.length),
-      ],
-    }));
+    setDraft((current) => {
+      if (editingCaseStudyId) {
+        return {
+          ...current,
+          caseStudies: current.caseStudies.map((item) =>
+            item.id === editingCaseStudyId ? updateCaseStudyItemFromForm(item, caseStudyForm) : item
+          ),
+        };
+      }
+
+      return {
+        ...current,
+        caseStudies: [
+          ...current.caseStudies,
+          createCaseStudyItemFromForm(caseStudyForm, current.caseStudies.length),
+        ],
+      };
+    });
     markDirty();
     handleClosePortfolioModal();
   }
@@ -912,6 +992,9 @@ export function CompanyProfileSection({ onSummaryChange }) {
                 title="Портфолио компании"
                 description="Добавьте проекты, чтобы показать кандидатам опыт команды, подход к работе и результаты в живом формате."
                 onCtaClick={handleOpenPortfolioModal}
+                showOwnerActions
+                onEditItem={handleEditCaseStudy}
+                onDeleteItem={(item) => handleRemoveCaseStudy(item.id)}
               />
             </div>
 
@@ -988,6 +1071,9 @@ export function CompanyProfileSection({ onSummaryChange }) {
             )}
 
             <div className="company-dashboard-panel__actions">
+              <Button type="button" variant="secondary" onClick={() => setPublicPreviewOpen(true)}>
+                Предпросмотр публичной версии
+              </Button>
               <Button type="submit" disabled={saveState.status === "saving"}>
                 {saveState.status === "saving" ? "Сохраняем..." : "Сохранить контент страницы"}
               </Button>
@@ -999,32 +1085,11 @@ export function CompanyProfileSection({ onSummaryChange }) {
       <Modal
         open={portfolioModalOpen}
         onClose={handleClosePortfolioModal}
-        title="Добавить проект"
+        title={editingCaseStudyId ? "Редактировать проект" : "Добавить проект"}
         description="Загрузите изображение проекта, добавьте краткое описание и ссылку для перехода с публичной страницы."
         size="lg"
       >
         <div className="company-dashboard-project-modal">
-          {draft.caseStudies.length ? (
-            <div className="company-dashboard-project-modal__list" role="list" aria-label="Текущие проекты">
-              {draft.caseStudies.map((item, index) => (
-                <Card key={item.id} className="company-dashboard-project-modal__item" role="listitem" tone="neutral">
-                  <div className="company-dashboard-project-modal__item-media">
-                    {item.previewUrl ? (
-                      <img src={item.previewUrl} alt={item.title || `Проект ${index + 1}`} loading="lazy" />
-                    ) : null}
-                  </div>
-                  <div className="company-dashboard-project-modal__item-copy">
-                    <strong>{item.description || item.title || `Проект ${index + 1}`}</strong>
-                    {item.sourceUrl ? <span>{item.sourceUrl}</span> : null}
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveCaseStudy(item.id)}>
-                    Удалить
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          ) : null}
-
           <form className="company-dashboard-project-modal__form" onSubmit={handleCaseStudySubmit}>
             <input
               ref={caseStudyFileInputRef}
@@ -1096,9 +1161,89 @@ export function CompanyProfileSection({ onSummaryChange }) {
               <Button type="button" variant="ghost" onClick={handleClosePortfolioModal}>
                 Закрыть
               </Button>
-              <Button type="submit">Добавить проект</Button>
+              <Button type="submit">{editingCaseStudyId ? "Сохранить проект" : "Добавить проект"}</Button>
             </div>
           </form>
+        </div>
+      </Modal>
+
+      <Modal
+        open={publicPreviewOpen}
+        onClose={() => setPublicPreviewOpen(false)}
+        title="Предпросмотр публичной версии"
+        description="Так страницу компании увидят пользователи после сохранения текущего контента."
+        size="xl"
+      >
+        <div className="company-dashboard-public-preview" data-testid="company-public-draft-preview">
+          <CompanyProfileSummary profile={publicPreviewProfile} stats={publicPreviewStats} mode="public" />
+
+          <section className="company-dashboard-public-preview__grid">
+            <CompanyHeroMediaPanel
+              media={draft.heroMedia}
+              mode="viewer"
+              compact
+              eyebrow="О компании"
+              title={draft.heroMedia.title || "Видео-презентация и атмосфера команды"}
+              description=""
+            />
+
+            <CompanyPortfolioCarousel
+              mode="viewer"
+              items={draft.caseStudies}
+              compact
+              eyebrow="Кейсы"
+              title="Портфолио компании"
+              description="Здесь собраны кейсы, которые компания показывает соискателям и партнерам."
+              showCreateAction={false}
+              testId="company-public-draft-preview-portfolio"
+            />
+          </section>
+
+          <section className="company-dashboard-public-preview__section">
+            <div className="company-dashboard-section-intro">
+              <span className="company-dashboard-section-intro__eyebrow">Галерея</span>
+              <h3 className="company-dashboard-section-intro__title">Наш офис</h3>
+            </div>
+            <CompanyGalleryPanel
+              items={draft.gallery}
+              mode="viewer"
+              compact
+              emptyTitle="Галерея пока не заполнена"
+              emptyDescription="Когда компания добавит фото команды или офиса, они появятся в этой ленте."
+            />
+          </section>
+
+          <section className="company-dashboard-public-preview__section">
+            <div className="company-dashboard-section-intro">
+              <span className="company-dashboard-section-intro__eyebrow">Возможности</span>
+              <h3 className="company-dashboard-section-intro__title">Возможности от компании</h3>
+            </div>
+            {opportunityItems.length ? (
+              <OpportunityBlockRail
+                items={opportunityItems}
+                className="company-dashboard-opportunity-rail"
+                size="sm"
+                surface="panel"
+                cardPropsBuilder={(item) => ({
+                  showSave: false,
+                  detailAction: {
+                    href: item.detailHref,
+                    label: "Подробнее",
+                    variant: "secondary",
+                  },
+                })}
+              />
+            ) : (
+              <Card>
+                <EmptyState
+                  compact
+                  tone="neutral"
+                  title="Пока нет активных публикаций"
+                  description="Когда компания разместит одобренные возможности, они появятся в этой ленте."
+                />
+              </Card>
+            )}
+          </section>
         </div>
       </Modal>
     </>

@@ -79,7 +79,7 @@ public sealed class ChatService
         var contextType = ChatContextTypes.Normalize(request.ContextType);
         await EnsureCanStartThreadAsync(currentUser, recipient, contextType, request.ContextId);
 
-        var existing = await FindExistingThreadAsync(currentUser.Id, recipient.Id, contextType, request.ContextId);
+        var existing = await FindExistingThreadAsync(currentUser, recipient, contextType, request.ContextId);
         if (existing is not null)
         {
             if (!string.IsNullOrWhiteSpace(request.InitialMessage))
@@ -244,13 +244,50 @@ public sealed class ChatService
             .Include(item => item.Participants)
             .FirstOrDefaultAsync(item => item.Id == threadId);
 
-    private async Task<ChatThread?> FindExistingThreadAsync(int firstUserId, int secondUserId, string contextType, int? contextId) =>
-        await LoadThreadQuery()
+    private async Task<ChatThread?> FindExistingThreadAsync(User firstUser, User secondUser, string contextType, int? contextId)
+    {
+        var firstUserId = firstUser.Id;
+        var secondUserId = secondUser.Id;
+        var exactMatch = await LoadThreadQuery()
             .Where(item => item.ContextType == contextType && item.ContextId == contextId)
             .Where(item => item.Participants.Count == 2)
             .Where(item => item.Participants.Any(participant => participant.UserId == firstUserId))
             .Where(item => item.Participants.Any(participant => participant.UserId == secondUserId))
             .FirstOrDefaultAsync();
+
+        if (exactMatch is not null)
+        {
+            return exactMatch;
+        }
+
+        var firstRole = AuthEndpointSupport.GetPublicRole(firstUser);
+        var secondRole = AuthEndpointSupport.GetPublicRole(secondUser);
+        if (firstRole is not null && secondRole is not null && IsCandidateCompanyPair(firstRole, secondRole))
+        {
+            var candidateCompanyMatch = await LoadThreadQuery()
+                .Where(item => item.Participants.Count == 2)
+                .Where(item => item.Participants.Any(participant => participant.UserId == firstUserId))
+                .Where(item => item.Participants.Any(participant => participant.UserId == secondUserId))
+                .OrderByDescending(item => item.LastMessageAt)
+                .ThenByDescending(item => item.Id)
+                .FirstOrDefaultAsync();
+
+            if (candidateCompanyMatch is not null)
+            {
+                if (candidateCompanyMatch.ContextType == ChatContextTypes.Direct && contextType != ChatContextTypes.Direct)
+                {
+                    candidateCompanyMatch.ContextType = contextType;
+                    candidateCompanyMatch.ContextId = contextId;
+                    _db.ChatThreads.Update(candidateCompanyMatch);
+                    await _db.SaveChangesAsync();
+                }
+
+                return candidateCompanyMatch;
+            }
+        }
+
+        return null;
+    }
 
     private async Task EnsureCanStartThreadAsync(User currentUser, User recipient, string contextType, int? contextId)
     {

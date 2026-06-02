@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject } from "../api/candidate";
+import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject, getCandidateDirectory, getCandidateProfile } from "../api/candidate";
 import { uploadImage } from "../api/uploads";
 import { Alert, Button, Card, FormField, Input, Loader, MediaUploadIcon, SectionHeader, Select, StatusBadge, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, PROJECT_TAG_SUGGESTIONS, PROJECT_TYPE_OPTIONS } from "./config";
@@ -63,8 +63,20 @@ function normalizeProjectMonth(value) {
   return normalizedValue ? normalizedValue.slice(0, 7) : "";
 }
 
-function createProjectDraftFromProject(project) {
+function createProjectDraftFromProject(project, currentUserProfile) {
   const initialDraft = createInitialProjectDraft();
+  const rawParticipants = Array.isArray(project?.participants) ? project.participants : [];
+
+  const currentUserId = currentUserProfile?.userId;
+  const ownerNameNormalized = currentUserProfile 
+    ? `${currentUserProfile.name || ""} ${currentUserProfile.surname || ""}`.trim().toLowerCase() 
+    : "";
+
+  const editableParticipants = rawParticipants.filter(p => {
+    if (currentUserId && p.userId === currentUserId) return false;
+    if (ownerNameNormalized && (p.name || "").trim().toLowerCase() === ownerNameNormalized) return false;
+    return true;
+  });
 
   return {
     ...initialDraft,
@@ -84,9 +96,7 @@ function createProjectDraftFromProject(project) {
     lessonsLearned: normalizeString(project?.lessonsLearned),
     tags: Array.isArray(project?.tags) ? project.tags.filter((tag) => typeof tag === "string" && tag.trim()) : [],
     coverImageUrl: normalizeString(project?.coverImageUrl),
-    participants: Array.isArray(project?.participants)
-      ? project.participants.map((participant) => createProjectParticipantDraft(participant))
-      : [],
+    participants: editableParticipants.map((participant) => createProjectParticipantDraft(participant)),
     demoUrl: normalizeString(project?.demoUrl),
     repositoryUrl: normalizeString(project?.repositoryUrl),
     designUrl: normalizeString(project?.designUrl),
@@ -102,7 +112,7 @@ function createProjectPayload(normalizedProjectDraft) {
     shortDescription: normalizedProjectDraft.shortDescription,
     organization: normalizedProjectDraft.organization || null,
     role: normalizedProjectDraft.role,
-    teamSize: normalizedProjectDraft.teamSize ? Number(normalizedProjectDraft.teamSize) : null,
+    teamSize: normalizedProjectDraft.participants.length + 1,
     startDate: normalizedProjectDraft.startMonth,
     endDate: normalizedProjectDraft.isOngoing ? null : normalizedProjectDraft.endMonth,
     isOngoing: normalizedProjectDraft.isOngoing,
@@ -116,6 +126,7 @@ function createProjectPayload(normalizedProjectDraft) {
     participants: normalizedProjectDraft.participants.map((participant) => ({
       name: participant.name,
       role: participant.role || null,
+      userId: participant.userId || null,
     })),
     demoUrl: normalizedProjectDraft.demoUrl || null,
     repositoryUrl: normalizedProjectDraft.repositoryUrl || null,
@@ -229,9 +240,63 @@ function ProjectCoverUploader({
   );
 }
 
-function ProjectParticipantsEditor({ participants, error, onAdd, onChange, onRemove }) {
+function ProjectParticipantsEditor({ participants, error, directory = [], currentUserId, currentUserProfile, onAdd, onChange, onRemove }) {
+  const [activeSearchKey, setActiveSearchKey] = useState(null);
+  const rootRef = useRef(null);
+
+  const filteredDirectory = useMemo(() => {
+    const ownerNameNormalized = currentUserProfile 
+      ? `${currentUserProfile.name || ""} ${currentUserProfile.surname || ""}`.trim().toLowerCase() 
+      : "";
+
+    return directory.filter((user) => {
+      if (currentUserId && user.userId === currentUserId) {
+        return false;
+      }
+      if (ownerNameNormalized) {
+        const userNameNormalized = (user.name || "").trim().toLowerCase();
+        if (userNameNormalized === ownerNameNormalized) {
+          return false;
+        }
+      }
+      const permission = user.links?.preferences?.projectAdditionPermission || "everyone";
+      if (permission === "nobody") {
+        return false;
+      }
+      if (permission === "contacts") {
+        return (
+          user.relationship?.contactState === "saved" ||
+          user.relationship?.friendState === "friends"
+        );
+      }
+      return true; // everyone
+    });
+  }, [directory, currentUserId, currentUserProfile]);
+
+  useEffect(() => {
+    function handleOutsideClick(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setActiveSearchKey(null);
+      }
+    }
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
+
+  const getSuggestions = (searchVal) => {
+    const query = String(searchVal || "").trim().toLowerCase();
+    if (!query) {
+      return filteredDirectory.slice(0, 5);
+    }
+    return filteredDirectory.filter((user) => {
+      const name = String(user.name || "").toLowerCase();
+      const email = String(user.email || "").toLowerCase();
+      return name.includes(query) || email.includes(query);
+    });
+  };
+
   return (
-    <div className="candidate-project-editor-participants">
+    <div ref={rootRef} className="candidate-project-editor-participants">
       <div className="candidate-project-editor-participants__head">
         <div className="candidate-project-editor-participants__copy">
           <span className="ui-label">Участники проекта</span>
@@ -248,12 +313,58 @@ function ProjectParticipantsEditor({ participants, error, onAdd, onChange, onRem
           {participants.map((participant) => (
             <div key={participant.draftKey} className="candidate-project-editor-participant">
               <div className="candidate-project-editor-participant__fields">
-                <FormField label="Имя участника" required>
-                  <Input
-                    value={participant.name}
-                    onValueChange={(value) => onChange(participant.draftKey, "name", value)}
-                    placeholder="Например, Анна Петрова"
-                  />
+                <FormField
+                  label="Имя участника"
+                  required
+                  hint={participant.userId ? "Связан с профилем пользователя платформы" : undefined}
+                >
+                  <div style={{ position: "relative" }}>
+                    <Input
+                      value={participant.name}
+                      disabled={participant.isSelf || Boolean(participant.userId)}
+                      onFocus={() => {
+                        if (!participant.userId) {
+                          setActiveSearchKey(participant.draftKey);
+                        }
+                      }}
+                      onValueChange={(value) => {
+                        onChange(participant.draftKey, "name", value);
+                        if (!participant.userId) {
+                          setActiveSearchKey(participant.draftKey);
+                        }
+                      }}
+                      placeholder="Например, Анна Петрова"
+                    />
+
+                    {activeSearchKey === participant.draftKey && !participant.userId && (
+                      <div className="candidate-project-editor-autocomplete__menu">
+                        {getSuggestions(participant.name).length > 0 ? (
+                          getSuggestions(participant.name).map((user) => (
+                            <button
+                              key={user.userId}
+                              type="button"
+                              className="candidate-project-editor-autocomplete__option"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                              }}
+                              onClick={() => {
+                                onChange(participant.draftKey, "name", user.name);
+                                onChange(participant.draftKey, "userId", user.userId);
+                                setActiveSearchKey(null);
+                              }}
+                            >
+                              <strong>{user.name}</strong>
+                              {user.email && <small>{user.email}</small>}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="candidate-project-editor-autocomplete__state">
+                            Ничего не найдено
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </FormField>
 
                 <FormField label="Роль в команде">
@@ -296,6 +407,9 @@ export function CandidateProjectEditorApp() {
   const coverInputRef = useRef(null);
   const [draft, setDraft] = useState(() => createProjectDraftFromSearchParams(searchParams));
   const [errors, setErrors] = useState({});
+  const [directory, setDirectory] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [actionError, setActionError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -306,6 +420,27 @@ export function CandidateProjectEditorApp() {
   }));
 
   useEffect(() => {
+    const controller = new AbortController();
+    async function loadData() {
+      try {
+        const [users, profile] = await Promise.all([
+          getCandidateDirectory(controller.signal),
+          getCandidateProfile(controller.signal),
+        ]);
+        setDirectory(Array.isArray(users) ? users : []);
+        if (profile) {
+          setCurrentUserId(profile.userId);
+          setCurrentUserProfile(profile);
+        }
+      } catch (err) {
+        console.error("Failed to load candidate directory or profile", err);
+      }
+    }
+    loadData();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!isEditMode) {
       setDraft(createProjectDraftFromSearchParams(new URLSearchParams(searchParamsKey)));
       setErrors({});
@@ -314,6 +449,10 @@ export function CandidateProjectEditorApp() {
         status: "ready",
         error: null,
       });
+      return undefined;
+    }
+
+    if (!currentUserProfile) {
       return undefined;
     }
 
@@ -344,7 +483,7 @@ export function CandidateProjectEditorApp() {
           return;
         }
 
-        setDraft(createProjectDraftFromProject(matchedProject));
+        setDraft(createProjectDraftFromProject(matchedProject, currentUserProfile));
         setErrors({});
         setActionError("");
         setProjectState({
@@ -366,7 +505,7 @@ export function CandidateProjectEditorApp() {
     loadProject();
 
     return () => controller.abort();
-  }, [isEditMode, projectId, searchParamsKey]);
+  }, [isEditMode, projectId, searchParamsKey, currentUserProfile]);
 
   function clearFieldErrors(fields) {
     setErrors((current) => {
@@ -590,7 +729,7 @@ export function CandidateProjectEditorApp() {
               <Textarea value={draft.shortDescription} onValueChange={(value) => updateField("shortDescription", value)} rows={4} autoResize />
             </FormField>
 
-            <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--three">
+            <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
               <FormField label="Организация">
                 <Input value={draft.organization} onValueChange={(value) => updateField("organization", value)} />
               </FormField>
@@ -598,15 +737,14 @@ export function CandidateProjectEditorApp() {
               <FormField label="Роль в проекте" required error={errors.role}>
                 <Input value={draft.role} onValueChange={(value) => updateField("role", value)} />
               </FormField>
-
-              <FormField label="Размер команды" error={errors.teamSize}>
-                <Input value={draft.teamSize} onValueChange={(value) => updateField("teamSize", value)} type="number" min="1" step="1" />
-              </FormField>
             </div>
 
             <ProjectParticipantsEditor
               participants={draft.participants}
               error={errors.participants}
+              directory={directory}
+              currentUserId={currentUserId}
+              currentUserProfile={currentUserProfile}
               onAdd={handleAddParticipant}
               onChange={handleParticipantChange}
               onRemove={handleParticipantRemove}

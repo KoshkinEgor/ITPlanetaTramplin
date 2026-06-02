@@ -26,6 +26,8 @@ export { Avatar } from "../../components/ui/Avatar/Avatar";
 export { SearchInput } from "../../components/ui/SearchInput/SearchInput";
 export { CityAutocomplete } from "../../components/ui/CityAutocomplete/CityAutocomplete";
 export { AddressAutocomplete } from "../../components/ui/AddressAutocomplete/AddressAutocomplete";
+export { InstitutionAutocomplete } from "../../components/ui/InstitutionAutocomplete/InstitutionAutocomplete";
+export { CompanyAutocomplete } from "../../components/ui/CompanyAutocomplete/CompanyAutocomplete";
 export { TagSelector } from "../../components/ui/TagSelector/TagSelector";
 export { SegmentedControl } from "../../components/ui/SegmentedControl/SegmentedControl";
 export { SettingsSectionCard } from "../../components/ui/SettingsSectionCard/SettingsSectionCard";
@@ -93,6 +95,7 @@ export {
   InfoIcon,
   MediaUploadIcon,
   PlayBadgeIcon,
+  TrashIcon,
   CandidateIcon,
   EmployerIcon,
   CuratorIcon,

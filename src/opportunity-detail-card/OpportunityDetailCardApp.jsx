@@ -1598,7 +1598,12 @@ export function OpportunityDetailCardApp() {
 
       if (publicCompanyProfile?.userId) {
         try {
-          const thread = await startChat({ recipientUserId: publicCompanyProfile.userId });
+          const thread = await startChat({
+            recipientUserId: publicCompanyProfile.userId,
+            contextType: "application",
+            contextId: application.id,
+            subject: state.item?.title ? `Отклик: ${state.item.title}` : "Отклик кандидата",
+          });
           const text = `Здравствуйте! Я откликнулся на вашу публикацию "${state.item?.title || "Возможность"}". Буду рад обсудить подробности!`;
           await sendChatMessage(thread.id, { body: text });
         } catch (chatErr) {
@@ -1731,7 +1736,15 @@ ${currentUrl}`;
     }
     setCompanyChatBusy(true);
     try {
-      const thread = await startChat({ recipientUserId: publicCompanyProfile.userId });
+      const startArgs = {
+        recipientUserId: publicCompanyProfile.userId,
+      };
+      if (currentApplication?.id) {
+        startArgs.contextType = "application";
+        startArgs.contextId = currentApplication.id;
+        startArgs.subject = state.item?.title ? `Отклик: ${state.item.title}` : "Отклик кандидата";
+      }
+      const thread = await startChat(startArgs);
       navigate(`${routes.candidate.messages}?thread=${thread.id}`);
     } catch (error) {
       console.error("Failed to start chat with company", error);

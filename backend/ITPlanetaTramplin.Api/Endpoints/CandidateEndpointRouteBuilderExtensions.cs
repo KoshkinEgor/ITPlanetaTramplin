@@ -121,6 +121,11 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
+        if (request.StartYear.HasValue && request.GraduationYear.HasValue && request.StartYear.Value > request.GraduationYear.Value)
+        {
+            return Results.BadRequest(new { message = "Год начала обучения не может быть больше года окончания." });
+        }
+
         var education = new ApplicantEducation
         {
             ApplicantId = profile.Id,
@@ -131,6 +136,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             GraduationYear = request.GraduationYear,
             IsCompleted = request.IsCompleted,
             Description = request.Description,
+            EducationLevel = request.EducationLevel,
         };
 
         db.ApplicantEducations.Add(education);
@@ -168,40 +174,23 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.NotFound();
         }
 
+        if (request.StartYear.HasValue && request.GraduationYear.HasValue && request.StartYear.Value > request.GraduationYear.Value)
+        {
+            return Results.BadRequest(new { message = "Год начала обучения не может быть больше года окончания." });
+        }
+
         if (request.InstitutionName is not null)
         {
             education.InstitutionName = request.InstitutionName;
         }
 
-        if (request.Faculty is not null)
-        {
-            education.Faculty = request.Faculty;
-        }
-
-        if (request.Specialization is not null)
-        {
-            education.Specialization = request.Specialization;
-        }
-
-        if (request.StartYear.HasValue)
-        {
-            education.StartYear = request.StartYear;
-        }
-
-        if (request.GraduationYear.HasValue)
-        {
-            education.GraduationYear = request.GraduationYear;
-        }
-
-        if (request.IsCompleted.HasValue)
-        {
-            education.IsCompleted = request.IsCompleted;
-        }
-
-        if (request.Description is not null)
-        {
-            education.Description = request.Description;
-        }
+        education.Faculty = request.Faculty;
+        education.Specialization = request.Specialization;
+        education.StartYear = request.StartYear;
+        education.GraduationYear = request.GraduationYear;
+        education.IsCompleted = request.IsCompleted;
+        education.Description = request.Description;
+        education.EducationLevel = request.EducationLevel;
 
         if (request.Attachments is not null)
         {
@@ -221,6 +210,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             IsCompleted = education.IsCompleted,
             Description = education.Description,
             Attachments = education.Attachments,
+            EducationLevel = education.EducationLevel,
         });
     }
 
@@ -734,7 +724,9 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             }
         }
 
-        return normalizedNames;
+        return normalizedNames
+            .Where(name => tagsByName.TryGetValue(name, out var tag) && tag.IsActive == true)
+            .ToList();
     }
 
     internal static async Task<CandidateProfileReadDTO> MapCandidateProfileAsync(ApplicantProfile profile, ApplicationDBContext db)
@@ -779,6 +771,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 item.IsCompleted,
                 item.Description,
                 item.Attachments,
+                item.EducationLevel,
             })
             .ToListAsync();
 

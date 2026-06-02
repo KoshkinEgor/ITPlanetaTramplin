@@ -45,15 +45,15 @@ describe("project-storage", () => {
       {
         name: "Анна Петрова",
         role: "Product designer",
+        userId: null,
       },
     ]);
     expect(previewItem.coverImageUrl).toBe("data:image/png;base64,ZmFrZQ==");
     expect(previewItem.participants).toHaveLength(1);
   });
 
-  it("requires participant names and checks team size", () => {
+  it("requires participant names", () => {
     const draft = createValidDraft({
-      teamSize: "1",
       participants: [
         createProjectParticipantDraft({ name: "", role: "Backend developer" }),
         createProjectParticipantDraft({ name: "Илья Смирнов", role: "Designer" }),
@@ -63,6 +63,5 @@ describe("project-storage", () => {
     const { errors } = validateProjectDraft(draft);
 
     expect(errors.participants).toBe("Укажите имя для каждого добавленного участника.");
-    expect(errors.teamSize).toBe("Количество участников не может быть больше размера команды.");
   });
 });

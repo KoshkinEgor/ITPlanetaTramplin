@@ -2,6 +2,16 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+export const EDUCATION_LEVEL_OPTIONS = [
+  { value: "Среднее", label: "Среднее" },
+  { value: "Среднее профессиональное", label: "Среднее профессиональное" },
+  { value: "Неоконченное высшее", label: "Неоконченное высшее" },
+  { value: "Бакалавриат", label: "Высшее (Бакалавриат)" },
+  { value: "Магистратура", label: "Высшее (Магистратура)" },
+  { value: "Специалитет", label: "Высшее (Специалитет)" },
+  { value: "Аспирантура", label: "Аспирантура / Докторантура" },
+];
+
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -21,7 +31,9 @@ export function createCandidateEducationDraft(item = {}) {
     institutionName: item.institutionName ?? "",
     faculty: item.faculty ?? "",
     specialization: item.specialization ?? "",
+    startYear: item.startYear != null ? String(item.startYear) : "",
     graduationYear: item.graduationYear != null ? String(item.graduationYear) : "",
+    educationLevel: item.educationLevel ?? "",
   };
 }
 
@@ -56,7 +68,9 @@ export function isCandidateEducationDraftEmpty(item) {
     item.institutionName,
     item.faculty,
     item.specialization,
+    item.startYear,
     item.graduationYear,
+    item.educationLevel,
   ].every((value) => !normalizeString(value));
 }
 
@@ -72,19 +86,34 @@ export function getCandidateEducationDraftErrors(items = [], { requireAtLeastOne
     };
   }
 
-  activeItems.forEach((item) => {
-    const errors = {};
+  normalizedItems.forEach((item, index) => {
+    const isEmpty = isCandidateEducationDraftEmpty(item);
+    if ((index === 0 && requireAtLeastOne) || !isEmpty) {
+      const errors = {};
 
-    if (!normalizeString(item.institutionName)) {
-      errors.institutionName = "Укажите учебное заведение.";
-    }
+      if (!normalizeString(item.institutionName)) {
+        errors.institutionName = "Укажите учебное заведение.";
+      }
 
-    if (!/^\d{4}$/.test(normalizeString(item.graduationYear))) {
-      errors.graduationYear = "Укажите год в формате YYYY.";
-    }
+      if (item.startYear && !/^\d{4}$/.test(normalizeString(item.startYear))) {
+        errors.startYear = "Укажите год в формате YYYY.";
+      }
 
-    if (Object.keys(errors).length) {
-      itemErrors[item.draftKey] = errors;
+      if (!normalizeString(item.graduationYear)) {
+        errors.graduationYear = "Укажите год окончания.";
+      } else if (!/^\d{4}$/.test(normalizeString(item.graduationYear))) {
+        errors.graduationYear = "Укажите год в формате YYYY.";
+      }
+
+      if (item.startYear && item.graduationYear && /^\d{4}$/.test(normalizeString(item.startYear)) && /^\d{4}$/.test(normalizeString(item.graduationYear))) {
+        if (Number(item.startYear) > Number(item.graduationYear)) {
+          errors.startYear = "Год начала не может быть больше года окончания.";
+        }
+      }
+
+      if (Object.keys(errors).length) {
+        itemErrors[item.draftKey] = errors;
+      }
     }
   });
 
@@ -103,7 +132,9 @@ export function buildCandidateEducationLinkItems(items = []) {
     institutionName: normalizeString(item.institutionName),
     faculty: normalizeString(item.faculty),
     specialization: normalizeString(item.specialization),
+    startYear: normalizeString(item.startYear),
     graduationYear: normalizeString(item.graduationYear),
+    educationLevel: normalizeString(item.educationLevel),
   }));
 }
 

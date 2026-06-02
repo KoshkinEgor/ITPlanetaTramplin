@@ -14,6 +14,7 @@ internal static class CommonEndpointRouteBuilderExtensions
     public static RouteGroupBuilder MapCommonEndpoints(this RouteGroupBuilder api)
     {
         api.MapGet("/professions", HandleProfessionSearchAsync);
+        api.MapGet("/education/institutions", HandleInstitutionSearchAsync);
         api.MapGet("/tags", GetPublicTagsAsync);
         api.MapGet("/system/references", GetPublicSystemReferencesAsync);
         api.MapPost("/uploads/images", UploadImageAsync).RequireAuthorization().DisableAntiforgery();
@@ -26,6 +27,12 @@ internal static class CommonEndpointRouteBuilderExtensions
     private static IResult HandleProfessionSearchAsync(string? query, int? count)
     {
         var items = CandidateProfessionCatalog.Search(query, count ?? 12);
+        return Results.Ok(new { Items = items });
+    }
+
+    private static IResult HandleInstitutionSearchAsync(string? query, int? limit)
+    {
+        var items = CandidateInstitutionCatalog.Search(query, limit ?? 12);
         return Results.Ok(new { Items = items });
     }
 

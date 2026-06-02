@@ -2,6 +2,7 @@ using Application.DBContext;
 using DTO;
 using ITPlanetaTramplin.Api.Auth;
 using ITPlanetaTramplin.Api.Domain;
+using ITPlanetaTramplin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -527,7 +528,8 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         int applicationId,
         [FromBody] OpportunityApplicationStatusUpdateDTO request,
         HttpContext context,
-        ApplicationDBContext db)
+        ApplicationDBContext db,
+        ChatService chatService)
     {
         var userId = AuthEndpointSupport.GetCurrentUserId(context);
         if (userId is null)
@@ -577,6 +579,9 @@ internal static class OpportunityEndpointRouteBuilderExtensions
         var previousNote = application.EmployerNote;
         application.Status = normalizedStatus;
         application.EmployerNote = string.IsNullOrWhiteSpace(request.EmployerNote) ? null : request.EmployerNote.Trim();
+        var shouldSendEmployerNoteToChat =
+            !string.IsNullOrWhiteSpace(application.EmployerNote) &&
+            !string.Equals(previousNote?.Trim(), application.EmployerNote, StringComparison.Ordinal);
 
         if (previousStatus != normalizedStatus || !string.Equals(previousNote, application.EmployerNote, StringComparison.Ordinal))
         {
@@ -590,6 +595,18 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 actorUserId: userId.Value,
                 opportunityId: application.OpportunityId,
                 applicationId: application.Id);
+        }
+
+        if (shouldSendEmployerNoteToChat)
+        {
+            await chatService.StartThreadAsync(userId.Value, new ChatStartDTO
+            {
+                RecipientUserId = application.Applicant.UserId,
+                ContextType = ChatContextTypes.Application,
+                ContextId = application.Id,
+                Subject = $"Отклик: {application.Opportunity.Title}",
+                InitialMessage = $"Комментарий по отклику «{application.Opportunity.Title}»: {application.EmployerNote}",
+            });
         }
 
         await db.SaveChangesAsync();
@@ -1318,7 +1335,10 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 tagsByName[tagName] = tag;
             }
 
-            resolvedTags.Add(tag);
+            if (tag.IsActive == true)
+            {
+                resolvedTags.Add(tag);
+            }
         }
 
         return resolvedTags;

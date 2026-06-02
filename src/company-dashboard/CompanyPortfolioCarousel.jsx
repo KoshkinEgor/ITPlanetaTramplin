@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CandidatePortfolioProjectCard } from "../candidate-portal/portfolio-kit";
-import { Button, Card, EmptyState } from "../shared/ui";
+import { Button, Card, EmptyState, IconButton, PencilIcon, TrashIcon } from "../shared/ui";
 import "./company-dashboard.css";
 
 const COMPANY_PORTFOLIO_DETAIL_HREF = "#company-portfolio-projects";
@@ -139,6 +139,11 @@ export function CompanyPortfolioCarousel({
   ctaLabel = "Добавить проект",
   onCtaClick,
   ctaHref,
+  showOwnerActions = false,
+  onEditItem,
+  onDeleteItem,
+  editItemLabel = "Редактировать проект",
+  deleteItemLabel = "Удалить проект",
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const portfolioItems = useMemo(
@@ -151,6 +156,7 @@ export function CompanyPortfolioCarousel({
   const copy = PORTFOLIO_COPY[mode] ?? PORTFOLIO_COPY.editor;
   const shouldShowCreateAction =
     typeof showCreateAction === "boolean" ? showCreateAction : copy.showCreateAction;
+  const shouldShowOwnerActions = mode === "editor" && showOwnerActions;
 
   useEffect(() => {
     setActiveIndex((currentIndex) => Math.min(currentIndex, Math.max(totalItems - 1, 0)));
@@ -217,13 +223,39 @@ export function CompanyPortfolioCarousel({
           >
             {portfolioItems.map((item) => (
               <div key={item.id} className="company-dashboard-portfolio__slide">
-                <CandidatePortfolioProjectCard
-                  item={item}
-                  variant="media"
-                  actionHref={item.actionHref}
-                  actionLabel={item.actionLabel}
-                  className="company-dashboard-portfolio__card"
-                />
+                <div className="company-dashboard-portfolio__card-shell">
+                  {shouldShowOwnerActions ? (
+                    <div className="company-dashboard-portfolio__owner-actions" aria-label="Действия с проектом">
+                      <IconButton
+                        type="button"
+                        label={`${editItemLabel}: ${item.title}`}
+                        variant="surface"
+                        size="sm"
+                        className="company-dashboard-portfolio__owner-action"
+                        onClick={() => onEditItem?.(item)}
+                      >
+                        <PencilIcon />
+                      </IconButton>
+                      <IconButton
+                        type="button"
+                        label={`${deleteItemLabel}: ${item.title}`}
+                        variant="surface"
+                        size="sm"
+                        className="company-dashboard-portfolio__owner-action company-dashboard-portfolio__owner-action--danger"
+                        onClick={() => onDeleteItem?.(item)}
+                      >
+                        <TrashIcon />
+                      </IconButton>
+                    </div>
+                  ) : null}
+                  <CandidatePortfolioProjectCard
+                    item={item}
+                    variant="media"
+                    actionHref={item.actionHref}
+                    actionLabel={item.actionLabel}
+                    className="company-dashboard-portfolio__card"
+                  />
+                </div>
               </div>
             ))}
           </div>

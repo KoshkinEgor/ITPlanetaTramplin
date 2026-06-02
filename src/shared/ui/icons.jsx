@@ -32,6 +32,7 @@ export {
   Info as InfoIcon,
   ImagePlus as MediaUploadIcon,
   Play as PlayBadgeIcon,
+  Trash2 as TrashIcon,
   UserRound as CandidateIcon,
   Building2 as EmployerIcon,
   ShieldCheck as CuratorIcon,
@@ -78,4 +79,3 @@ export function VkIcon() {
     </svg>
   );
 }
-

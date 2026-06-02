@@ -3,6 +3,7 @@ import { AppLink } from "../app/AppLink";
 import { Button, Card, EmptyState, IconButton, SegmentedControl, StatusBadge, Tag, MoreIcon } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_PORTFOLIO_TABS } from "./config";
 import { CandidateSectionHeader, CandidateSegmentNav } from "./shared";
+import { buildCandidatePublicProfileRoute } from "../app/routes";
 
 const DEFAULT_PORTFOLIO_TITLE = "\u0420\u0435\u0437\u044E\u043C\u0435 \u0438 \u043F\u043E\u0440\u0442\u0444\u043E\u043B\u0438\u043E";
 const DEFAULT_RESUME_BADGE = "\u0420\u0435\u0437\u044E\u043C\u0435";
@@ -387,6 +388,7 @@ export function CandidatePortfolioProjectCard({
         .map((participant) => ({
           name: typeof participant?.name === "string" ? participant.name.trim() : "",
           role: typeof participant?.role === "string" ? participant.role.trim() : "",
+          userId: participant?.userId || null,
         }))
         .filter((participant) => participant.name)
         .slice(0, 3)
@@ -434,12 +436,27 @@ export function CandidatePortfolioProjectCard({
         <p className="candidate-project-card__role">{item.role}</p>
         {participants.length ? (
           <div className="candidate-project-card__participants" aria-label={PROJECT_PARTICIPANTS_LABEL}>
-            {participants.map((participant, index) => (
-              <div key={`${participant.name}-${participant.role}-${index}`} className="candidate-project-card__participant">
-                <strong>{participant.name}</strong>
-                {participant.role ? <span>{participant.role}</span> : null}
-              </div>
-            ))}
+            {participants.map((participant, index) => {
+              if (participant.userId) {
+                return (
+                  <AppLink
+                    key={`${participant.name}-${participant.role}-${index}`}
+                    href={buildCandidatePublicProfileRoute({ userId: participant.userId, name: participant.name })}
+                    className="candidate-project-card__participant candidate-project-card__participant--link"
+                  >
+                    <strong>{participant.name}</strong>
+                    {participant.role ? <span>{participant.role}</span> : null}
+                  </AppLink>
+                );
+              }
+
+              return (
+                <div key={`${participant.name}-${participant.role}-${index}`} className="candidate-project-card__participant">
+                  <strong>{participant.name}</strong>
+                  {participant.role ? <span>{participant.role}</span> : null}
+                </div>
+              );
+            })}
             {participantOverflow ? (
               <div className="candidate-project-card__participant candidate-project-card__participant--more">+{participantOverflow}</div>
             ) : null}
