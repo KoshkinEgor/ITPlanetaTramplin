@@ -1,5 +1,5 @@
 import { AppLink } from "../app/AppLink";
-import { PUBLIC_HEADER_NAV_ITEMS, buildCandidateSettingsRoute, buildOpportunityDetailRoute } from "../app/routes";
+import { PUBLIC_HEADER_NAV_ITEMS, buildCandidateSettingsRoute, buildOpportunityDetailRoute, buildCandidatePublicProfileRoute } from "../app/routes";
 import { Avatar, Button, Card, FilterPill, FormField, Input, SearchBar, SectionHeader, SegmentedControl, SidebarNav, SortControl, StatusBadge, Tag, ChevronDownIcon, ChevronRightIcon, HeartIcon, MailIcon, MoreIcon, PlusIcon, SortIcon } from "../shared/ui";
 import { useBodyClass } from "../shared/lib/useBodyClass";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
@@ -275,6 +275,7 @@ function getVisibleProjectParticipants(participants) {
     .map((participant) => ({
       name: typeof participant?.name === "string" ? participant.name.trim() : "",
       role: typeof participant?.role === "string" ? participant.role.trim() : "",
+      userId: participant?.userId || null,
     }))
     .filter((participant) => participant.name)
     .slice(0, 3);
@@ -305,12 +306,27 @@ export function CandidateProjectCard({ item }) {
         <p className="candidate-project-card__role">{item.role}</p>
         {participants.length ? (
           <div className="candidate-project-card__participants" aria-label="Участники проекта">
-            {participants.map((participant, index) => (
-              <div key={`${participant.name}-${participant.role}-${index}`} className="candidate-project-card__participant">
-                <strong>{participant.name}</strong>
-                {participant.role ? <span>{participant.role}</span> : null}
-              </div>
-            ))}
+            {participants.map((participant, index) => {
+              if (participant.userId) {
+                return (
+                  <AppLink
+                    key={`${participant.name}-${participant.role}-${index}`}
+                    href={buildCandidatePublicProfileRoute({ userId: participant.userId, name: participant.name })}
+                    className="candidate-project-card__participant candidate-project-card__participant--link"
+                  >
+                    <strong>{participant.name}</strong>
+                    {participant.role ? <span>{participant.role}</span> : null}
+                  </AppLink>
+                );
+              }
+
+              return (
+                <div key={`${participant.name}-${participant.role}-${index}`} className="candidate-project-card__participant">
+                  <strong>{participant.name}</strong>
+                  {participant.role ? <span>{participant.role}</span> : null}
+                </div>
+              );
+            })}
             {participantOverflow ? (
               <div className="candidate-project-card__participant candidate-project-card__participant--more">
                 +{participantOverflow}

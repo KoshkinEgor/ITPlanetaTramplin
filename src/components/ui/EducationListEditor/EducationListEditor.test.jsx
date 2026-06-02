@@ -2,6 +2,16 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { EducationListEditor } from "./EducationListEditor";
 
+vi.mock("../InstitutionAutocomplete/InstitutionAutocomplete", () => ({
+  InstitutionAutocomplete: ({ value, onValueChange, placeholder, searchPlaceholder }) => (
+    <input
+      value={value}
+      onChange={(e) => onValueChange(e.target.value)}
+      placeholder={searchPlaceholder || placeholder}
+    />
+  ),
+}));
+
 function createItem(overrides = {}) {
   return {
     draftKey: overrides.draftKey ?? "education-1",

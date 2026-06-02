@@ -1554,6 +1554,20 @@ body.candidate-portal-react-body {
   line-height: 1.65;
 }
 
+.candidate-application-card__note {
+  max-width: 70ch;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  border-top: 1px solid rgba(24, 29, 45, 0.08);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+.candidate-application-card__note strong {
+  color: var(--ui-color-text);
+  font-weight: 700;
+}
+
 .candidate-application-card__actions {
   display: flex;
   justify-content: flex-end;
@@ -2831,6 +2845,41 @@ body.candidate-portal-react-body {
   gap: 12px;
 }
 
+.candidate-project-editor-friends {
+  display: grid;
+  gap: 10px;
+}
+
+.candidate-project-editor-friends__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.candidate-project-editor-friend {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(43, 92, 230, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ui-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.candidate-project-editor-friend span {
+  font-weight: 800;
+}
+
+.candidate-project-editor-friend small {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+}
+
 .candidate-project-editor-participant {
   display: grid;
   gap: 14px;
@@ -2850,6 +2899,17 @@ body.candidate-portal-react-body {
   justify-self: start;
 }
 
+.candidate-project-editor-participant__badge {
+  justify-self: start;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(43, 92, 230, 0.1);
+  color: var(--ui-color-primary);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  font-weight: 800;
+}
+
 .candidate-project-editor-switches {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2864,12 +2924,15 @@ body.candidate-portal-react-body {
 
 .candidate-project-editor-switch {
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .candidate-project-editor-switch .ui-check__copy {
   display: grid;
   gap: 6px;
+  text-align: left;
 }
 
 .candidate-project-editor-switch .ui-check__label {
@@ -3542,4 +3605,70 @@ body.candidate-portal-react-body {
   .candidate-social-opportunity-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.candidate-project-editor-autocomplete__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid rgba(24, 29, 45, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(24, 29, 45, 0.08);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.candidate-project-editor-autocomplete__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.candidate-project-editor-autocomplete__option:hover {
+  background: rgba(24, 29, 45, 0.04);
+}
+
+.candidate-project-editor-autocomplete__option strong {
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-body);
+  font-weight: 600;
+}
+
+.candidate-project-editor-autocomplete__option small {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+}
+
+.candidate-project-editor-autocomplete__state {
+  padding: 10px 16px;
+  color: var(--ui-color-text-soft);
+  font-size: var(--ui-font-size-small);
+  text-align: center;
+}
+
+.candidate-project-card__participant--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.candidate-project-card__participant--link:hover,
+.candidate-project-card__participant--link:focus-visible {
+  border-color: rgba(43, 92, 230, 0.35);
+  background-color: rgba(235, 242, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(43, 92, 230, 0.08);
 }

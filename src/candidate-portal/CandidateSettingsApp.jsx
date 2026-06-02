@@ -110,6 +110,12 @@ const CHAT_AUDIENCE_OPTIONS = [
   { value: "nobody", label: "Никому" },
 ];
 
+const PROJECT_ADDITION_PERMISSION_OPTIONS = [
+  { value: "everyone", label: "Все пользователи" },
+  { value: "contacts", label: "Друзья и контакты" },
+  { value: "nobody", label: "Никто" },
+];
+
 const MOCK_DB_KEY = "tramplin_mentor_mock_db";
 
 function getMentorLocalData(mentorUserId) {
@@ -197,6 +203,7 @@ function createDraft(profile, education = []) {
       portfolio: normalizeString(contacts.portfolio),
     },
     privacy: {
+      projectAdditionPermission: normalizeString(preferences.projectAdditionPermission) || "everyone",
       profileVisibility: normalizeString(visibility.profileVisibility) || "employers-and-contacts",
       projectsVisibility: normalizeString(visibility.projectsVisibility) || "contacts",
       activityVisibility: normalizeString(visibility.activityVisibility) || "everyone",
@@ -269,6 +276,7 @@ function buildLinksPayload(profile, draft) {
     avatarUrl: normalizeString(draft.avatarUrl) || null,
     preferences: {
       ...currentPreferences,
+      projectAdditionPermission: draft.privacy.projectAdditionPermission || "everyone",
       visibility: {
         profileVisibility: draft.privacy.profileVisibility,
         projectsVisibility: draft.privacy.projectsVisibility,
@@ -659,6 +667,20 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
           <FormField label="Профиль"><Select value={draft.privacy.profileAudience} onValueChange={(value) => onChange("profileAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
           <FormField label="Контакты"><Select value={draft.privacy.contactsAudience} onValueChange={(value) => onChange("contactsAudience", value)} options={AUDIENCE_OPTIONS} /></FormField>
           <FormField label="Сообщения"><Select value={draft.privacy.messagesAudience} onValueChange={(value) => onChange("messagesAudience", value)} options={CHAT_AUDIENCE_OPTIONS} /></FormField>
+        </div>
+      </section>
+
+      <section className="candidate-settings-detail__section">
+        <div className="candidate-settings-detail__head-inline">
+          <div>
+            <h4 className="candidate-settings-detail__section-title">Добавление в проекты</h4>
+            <p className="candidate-settings-detail__section-text">Определите, кто может добавлять вас в качестве участника проектов.</p>
+          </div>
+          <Button type="button" variant="ghost" onClick={() => onChange("projectAdditionPermission", "everyone")}>Сбросить</Button>
+        </div>
+
+        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three">
+          <FormField label="Кто может добавлять"><Select value={draft.privacy.projectAdditionPermission} onValueChange={(value) => onChange("projectAdditionPermission", value)} options={PROJECT_ADDITION_PERMISSION_OPTIONS} /></FormField>
         </div>
       </section>
 
@@ -1669,8 +1691,8 @@ export function CandidateSettingsApp({ onSummaryChange }) {
     const currentSkills = [...state.draft.skills, ...state.draft.pendingSkills].sort().join(",");
     if (initialSkills !== currentSkills) return true;
     
-    const initialEd = (initialDraft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}`).sort().join(",");
-    const currentEd = (state.draft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}`).sort().join(",");
+    const initialEd = (initialDraft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}-${e.educationLevel ?? ""}`).sort().join(",");
+    const currentEd = (state.draft.educations ?? []).map(e => `${e.institutionName}-${e.faculty}-${e.specialization}-${e.graduationYear}-${e.educationLevel ?? ""}`).sort().join(",");
     if (initialEd !== currentEd) return true;
 
     const initialExp = (initialDraft.experiences ?? []).map(e => `${e.company}-${e.role}-${e.startMonth}-${e.endMonth}-${e.isCurrent}`).sort().join(",");

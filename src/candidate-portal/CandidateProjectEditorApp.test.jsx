@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CandidateProjectEditorApp } from "./CandidateProjectEditorApp";
-import { createCandidateProject, deleteCandidateProject, getCandidateProjects, updateCandidateProject } from "../api/candidate";
+import { createCandidateProject, deleteCandidateProject, getCandidateDirectory, getCandidateProjects, updateCandidateProject, getCandidateProfile } from "../api/candidate";
 
 const { navigateMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -20,8 +20,10 @@ vi.mock("react-router-dom", async () => {
 vi.mock("../api/candidate", () => ({
   createCandidateProject: vi.fn(),
   deleteCandidateProject: vi.fn(),
+  getCandidateDirectory: vi.fn(),
   getCandidateProjects: vi.fn(),
   updateCandidateProject: vi.fn(),
+  getCandidateProfile: vi.fn(),
 }));
 
 function renderApp(initialEntry = "/candidate/projects/edit?projectId=7") {
@@ -39,6 +41,12 @@ describe("CandidateProjectEditorApp", () => {
     createCandidateProject.mockResolvedValue({});
     deleteCandidateProject.mockResolvedValue({});
     updateCandidateProject.mockResolvedValue({});
+    getCandidateDirectory.mockResolvedValue([]);
+    getCandidateProfile.mockResolvedValue({
+      userId: 17,
+      name: "Test",
+      surname: "Candidate",
+    });
     getCandidateProjects.mockResolvedValue([
       {
         id: 7,
@@ -84,7 +92,7 @@ describe("CandidateProjectEditorApp", () => {
         shortDescription: "Кейс по исследованию пользовательских сценариев.",
         organization: "IT Planet",
         role: "UX researcher",
-        teamSize: 3,
+        teamSize: 2,
         startDate: "2026-01",
         endDate: "2026-02",
         isOngoing: false,
@@ -95,7 +103,7 @@ describe("CandidateProjectEditorApp", () => {
         lessonsLearned: "Ранние интервью помогают быстрее сузить решение.",
         tags: ["Research", "Figma"],
         coverImageUrl: "https://example.com/cover.png",
-        participants: [{ name: "Анна", role: "Дизайнер" }],
+        participants: [{ name: "Анна", role: "Дизайнер", userId: null }],
         demoUrl: "https://example.com/demo",
         repositoryUrl: "https://github.com/acme/research-sprint",
         designUrl: "https://figma.com/file/abc",

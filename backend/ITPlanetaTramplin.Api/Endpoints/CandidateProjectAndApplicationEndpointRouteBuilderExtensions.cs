@@ -18,7 +18,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         public string ShortDescription { get; init; } = string.Empty;
         public string? Organization { get; init; }
         public string Role { get; init; } = string.Empty;
-        public int? TeamSize { get; init; }
+        public int? TeamSize { get; set; }
         public DateOnly StartDate { get; init; }
         public DateOnly? EndDate { get; init; }
         public bool IsOngoing { get; init; }
@@ -41,6 +41,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
     {
         public string Name { get; init; } = string.Empty;
         public string? Role { get; init; }
+        public int? UserId { get; init; }
     }
 
     private static async Task<IResult> GetCurrentCandidateProjectsAsync(HttpContext context, ApplicationDBContext db)
@@ -51,13 +52,18 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        var projects = await db.CandidateProjects
-            .Where(item => item.ApplicantId == profile.Id)
+        var allProjects = await db.CandidateProjects
+            .Include(item => item.Applicant)
             .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
-            .Select(item => MapCandidateProject(item))
             .ToListAsync();
 
-        return Results.Ok(projects);
+        var filteredProjects = allProjects
+            .Where(project => project.ApplicantId == profile.Id || 
+                ParseCandidateProjectParticipants(project.ParticipantsJson).Any(p => p.UserId == profile.UserId))
+            .Select(project => MapCandidateProject(project))
+            .ToList();
+
+        return Results.Ok(filteredProjects);
     }
 
     private static async Task<IResult> CreateCandidateProjectAsync(
@@ -75,6 +81,22 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         {
             return AuthEndpointSupport.MessageResult(validationError, StatusCodes.Status400BadRequest);
         }
+
+        var privacyError = await ValidateParticipantsPrivacyAsync(db, profile.UserId, request.Participants);
+        if (privacyError != null)
+        {
+            return AuthEndpointSupport.MessageResult(privacyError, StatusCodes.Status400BadRequest);
+        }
+
+        var ownerName = $"{profile.Name} {profile.Surname}".Trim();
+        normalizedProject.Participants.RemoveAll(p => p.UserId == profile.UserId || p.Name.Equals(ownerName, StringComparison.OrdinalIgnoreCase));
+        normalizedProject.Participants.Add(new CandidateProjectParticipantInput
+        {
+            Name = ownerName,
+            Role = normalizedProject.Role,
+            UserId = profile.UserId
+        });
+        normalizedProject.TeamSize = normalizedProject.Participants.Count;
 
         var project = new CandidateProject
         {
@@ -102,10 +124,18 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        var project = await db.CandidateProjects.FirstOrDefaultAsync(item => item.Id == projectId && item.ApplicantId == profile.Id);
+        var project = await db.CandidateProjects.FirstOrDefaultAsync(item => item.Id == projectId);
         if (project is null)
         {
             return Results.NotFound();
+        }
+
+        var isOwner = project.ApplicantId == profile.Id;
+        var isParticipant = ParseCandidateProjectParticipants(project.ParticipantsJson).Any(p => p.UserId == profile.UserId);
+
+        if (!isOwner && !isParticipant)
+        {
+            return Results.Forbid();
         }
 
         var mergedRequest = new CandidateProjectCreateDTO
@@ -138,6 +168,22 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         {
             return AuthEndpointSupport.MessageResult(validationError, StatusCodes.Status400BadRequest);
         }
+
+        var privacyError = await ValidateParticipantsPrivacyAsync(db, profile.UserId, mergedRequest.Participants);
+        if (privacyError != null)
+        {
+            return AuthEndpointSupport.MessageResult(privacyError, StatusCodes.Status400BadRequest);
+        }
+
+        var ownerName = $"{profile.Name} {profile.Surname}".Trim();
+        normalizedProject.Participants.RemoveAll(p => p.UserId == profile.UserId || p.Name.Equals(ownerName, StringComparison.OrdinalIgnoreCase));
+        normalizedProject.Participants.Add(new CandidateProjectParticipantInput
+        {
+            Name = ownerName,
+            Role = normalizedProject.Role,
+            UserId = profile.UserId
+        });
+        normalizedProject.TeamSize = normalizedProject.Participants.Count;
 
         ApplyCandidateProject(project, normalizedProject);
         project.Tags = await ResolveActiveSkillsAndQueueInactiveAsync(db, normalizedProject.Tags);
@@ -320,6 +366,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         {
             Id = project.Id,
             ApplicantId = project.ApplicantId,
+            ApplicantUserId = project.Applicant?.UserId,
             Title = project.Title,
             ProjectType = project.ProjectType,
             ShortDescription = project.ShortDescription,
@@ -471,12 +518,13 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 {
                     Name = participantName,
                     Role = NormalizeOptionalText(participant?.Role),
+                    UserId = participant?.UserId,
                 });
             }
         }
 
         participants = participants
-            .GroupBy(item => $"{item.Name}\u001f{item.Role}", StringComparer.OrdinalIgnoreCase)
+            .GroupBy(item => $"{item.Name}\u001f{item.Role}\u001f{item.UserId}", StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .ToList();
 
@@ -583,6 +631,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             {
                 Name = item.Name,
                 Role = item.Role,
+                UserId = item.UserId,
             }));
     }
 
@@ -619,5 +668,61 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
 
         parsedDate = default;
         return false;
+    }
+
+    private static async Task<string?> ValidateParticipantsPrivacyAsync(
+        ApplicationDBContext db,
+        int currentUserId,
+        List<CandidateProjectParticipantDTO>? participants)
+    {
+        if (participants == null || participants.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var participant in participants)
+        {
+            if (participant.UserId.HasValue && participant.UserId.Value != currentUserId)
+            {
+                var targetUserId = participant.UserId.Value;
+                var targetProfile = await db.ApplicantProfiles
+                    .FirstOrDefaultAsync(item => item.UserId == targetUserId);
+
+                if (targetProfile == null)
+                {
+                    continue;
+                }
+
+                var links = ParseJsonObject(targetProfile.Links);
+                var preferences = GetObjectNode(links, "preferences");
+                var permission = preferences?["projectAdditionPermission"]?.GetValue<string?>()?.Trim().ToLowerInvariant();
+                if (string.IsNullOrEmpty(permission))
+                {
+                    permission = "everyone";
+                }
+
+                if (permission == "nobody")
+                {
+                    return $"Пользователь {participant.Name} запретил добавлять себя в проекты.";
+                }
+
+                if (permission == "contacts")
+                {
+                    var isFriendOrContact = await db.Contacts.AnyAsync(item => item.UserId == targetUserId && item.ContactProfileId == currentUserId)
+                        || await db.Contacts.AnyAsync(item => item.UserId == currentUserId && item.ContactProfileId == targetUserId)
+                        || await db.FriendRequests.AnyAsync(item =>
+                            ((item.SenderUserId == currentUserId && item.RecipientUserId == targetUserId)
+                             || (item.SenderUserId == targetUserId && item.RecipientUserId == currentUserId))
+                            && item.Status == FriendRequestStatuses.Accepted);
+
+                    if (!isFriendOrContact)
+                    {
+                        return $"Пользователь {participant.Name} разрешает добавлять себя в проекты только контактам и друзьям.";
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

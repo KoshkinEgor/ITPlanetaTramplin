@@ -42,6 +42,9 @@ services:
       Smtp__FromName: ${API_SMTP_FROM_NAME:-Tramplin}
       Dadata__ApiKey: ${API_DADATA_API_KEY:-}
       VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
+      UserMedia__StorageRoot: /app/App_Data/user-media
+    volumes:
+      - user_media:/app/App_Data/user-media
     expose:
       - "8080"
 
@@ -79,5 +82,6 @@ services:
 
 volumes:
   postgres_prod_data:
+  user_media:
   caddy_data:
   caddy_config:

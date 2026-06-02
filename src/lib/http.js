@@ -41,10 +41,15 @@ async function parseErrorResponse(response) {
   const contentType = response.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
   const responseData = isJson ? await response.json().catch(() => null) : await response.text().catch(() => "");
+  const isHtmlError =
+    typeof responseData === "string" &&
+    (contentType.includes("text/html") || /^\s*</.test(responseData));
   const errorMessage =
     typeof responseData?.message === "string" && responseData.message.trim()
       ? responseData.message
-      : typeof responseData === "string" && responseData.trim()
+      : isHtmlError
+        ? "Сервис временно недоступен. Попробуйте повторить действие позже."
+        : typeof responseData === "string" && responseData.trim()
         ? responseData
         : `Request failed with status ${response.status}`;
 

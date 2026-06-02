@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { ApiError, apiRequest } from "../lib/http";
 import { normalizeAuthRole } from "./session-utils";
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from "./session-token";
+import { resetCandidateApplicationsStore } from "../candidate-portal/candidate-applications-store";
 
 function mapApiError(error) {
   if (error instanceof ApiError) {
@@ -107,6 +108,12 @@ export function setAuthenticatedSession(user) {
 export function clearAuthSession() {
   authSessionRequest = null;
   clearStoredAuthToken();
+
+  try {
+    resetCandidateApplicationsStore();
+  } catch (error) {
+    // ignore
+  }
 
   setAuthSessionSnapshot({
     status: "guest",

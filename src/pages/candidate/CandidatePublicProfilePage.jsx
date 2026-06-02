@@ -203,9 +203,11 @@ function buildPublicMeta(profile, educationItems = []) {
 
   const courseLabel = normalizeString(education.courseLabel) || normalizeString(education.course);
   const graduation = education.graduationYear ? `Выпуск ${education.graduationYear}` : "";
+  const levelLabel = normalizeString(education.educationLevel);
 
   return [
   normalizeString(education.institutionName),
+  levelLabel,
   normalizeString(onboarding.city),
   courseLabel,
   graduation].
@@ -391,7 +393,8 @@ const PUBLIC_RESUME_SECTION_TITLES = {
   skills: "Навыки",
   languages: "Языки",
   courses: "Курсы",
-  certificates: "Сертификаты"
+  certificates: "Сертификаты",
+  educationLevel: "Уровень образования"
 };
 
 const PUBLIC_RESUME_PREFERRED_KEYS = [

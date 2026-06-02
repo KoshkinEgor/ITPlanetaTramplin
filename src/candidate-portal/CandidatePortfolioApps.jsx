@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildCandidateProjectEditRoute } from "../app/routes";
+import { buildCandidateProjectEditRoute, buildCandidatePublicProfileRoute } from "../app/routes";
 import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, getCandidateProjects } from "../api/candidate";
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, Loader } from "../shared/ui";
@@ -251,7 +251,7 @@ export function CandidateResumeApp() {
               <CandidateResumeRecord
                 key={item.id}
                 title={item.institutionName}
-                description={[item.faculty, item.specialization].filter(Boolean).join(" · ")}
+                description={[item.educationLevel, item.faculty, item.specialization].filter(Boolean).join(" · ")}
                 meta={`${item.startYear || "?"} - ${item.graduationYear || "?"}`}
               />
             )}
@@ -280,6 +280,7 @@ export function CandidateProjectsApp() {
   const [state, setState] = useState({
     status: "loading",
     projects: [],
+    profile: null,
     error: null,
   });
 
@@ -288,11 +289,15 @@ export function CandidateProjectsApp() {
 
     async function load() {
       try {
-        const projects = await getCandidateProjects(controller.signal);
+        const [projects, profile] = await Promise.all([
+          getCandidateProjects(controller.signal),
+          getCandidateProfile(controller.signal),
+        ]);
 
         setState({
           status: "ready",
           projects: Array.isArray(projects) ? projects : [],
+          profile: profile || null,
           error: null,
         });
       } catch (error) {
@@ -303,6 +308,7 @@ export function CandidateProjectsApp() {
         setState({
           status: error instanceof ApiError && error.status === 401 ? "unauthorized" : "error",
           projects: [],
+          profile: null,
           error,
         });
       }
@@ -313,7 +319,14 @@ export function CandidateProjectsApp() {
     return () => controller.abort();
   }, []);
 
-  const projectItems = useMemo(() => state.projects.map(mapCandidateProjectToCard), [state.projects]);
+  const projectItems = useMemo(() => {
+    return state.projects.map((project) => {
+      const card = mapCandidateProjectToCard(project);
+      card.isOwner = state.profile ? project.applicantId === state.profile.id : true;
+      card.applicantUserId = project.applicantUserId;
+      return card;
+    });
+  }, [state.projects, state.profile]);
 
   return (
     <>
@@ -353,6 +366,7 @@ export function CandidateProjectsApp() {
                   key={item.id}
                   item={item}
                   actionHref={buildCandidateProjectEditRoute({ projectId: item.id })}
+                  actionLabel="Подробнее"
                 />
               ))}
             </div>

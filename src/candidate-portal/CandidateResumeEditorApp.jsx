@@ -12,10 +12,11 @@ import {
   updateCandidateProfile,
 } from "../api/candidate";
 import { ApiError } from "../lib/http";
-import { Alert, Button, Card, EmptyState, FormField, Input, Loader, SectionHeader, Switch, TagSelector, Textarea } from "../shared/ui";
+import { Alert, Button, Card, EmptyState, FormField, Input, InstitutionAutocomplete, Loader, SectionHeader, Select, Switch, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
 import { getTags } from "../api/tags";
 import { getCandidatePendingSkills, getCandidateSkills } from "./mappers";
+import { EDUCATION_LEVEL_OPTIONS } from "./education";
 
 function createProfileDraft(profile) {
   return {
@@ -39,6 +40,7 @@ function createEducationDraft(item = {}) {
     graduationYear: item.graduationYear ? String(item.graduationYear) : "",
     isCompleted: Boolean(item.isCompleted),
     description: item.description ?? "",
+    educationLevel: item.educationLevel ?? "",
   };
 }
 
@@ -99,21 +101,30 @@ function EducationCard({ item, busyKey, onChange, onSave, onDelete }) {
     <Card className="candidate-page-panel">
         <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
           <FormField label="Учебное заведение" required>
-            <Input value={item.institutionName} onValueChange={(value) => onChange(item.draftKey, "institutionName", value)} />
+            <InstitutionAutocomplete value={item.institutionName} onValueChange={(value) => onChange(item.draftKey, "institutionName", value)} />
           </FormField>
-          <FormField label="Факультет">
-            <Input value={item.faculty} onValueChange={(value) => onChange(item.draftKey, "faculty", value)} />
+          <FormField label="Уровень образования">
+            <Select
+              value={item.educationLevel || ""}
+              onValueChange={(value) => onChange(item.draftKey, "educationLevel", value)}
+              placeholder="Выберите уровень"
+              options={EDUCATION_LEVEL_OPTIONS}
+            />
           </FormField>
         </div>
 
         <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--two">
+          <FormField label="Факультет">
+            <Input value={item.faculty} onValueChange={(value) => onChange(item.draftKey, "faculty", value)} />
+          </FormField>
           <FormField label="Специализация">
             <Input value={item.specialization} onValueChange={(value) => onChange(item.draftKey, "specialization", value)} />
           </FormField>
-          <FormField label="Описание">
-            <Textarea value={item.description} onValueChange={(value) => onChange(item.draftKey, "description", value)} rows={3} autoResize />
-          </FormField>
         </div>
+
+        <FormField label="Описание">
+          <Textarea value={item.description} onValueChange={(value) => onChange(item.draftKey, "description", value)} rows={3} autoResize />
+        </FormField>
 
         <div className="candidate-project-editor-form-grid candidate-project-editor-form-grid--three">
           <FormField label="Год начала">
@@ -306,6 +317,11 @@ export function CandidateResumeEditorApp() {
       return;
     }
 
+    if (item.startYear && item.graduationYear && Number(item.startYear) > Number(item.graduationYear)) {
+      setSectionError("Год начала обучения не может быть больше года окончания.");
+      return;
+    }
+
     setSectionError("");
     setBusyKey(item.draftKey);
 
@@ -318,6 +334,7 @@ export function CandidateResumeEditorApp() {
         graduationYear: item.graduationYear ? Number(item.graduationYear) : null,
         isCompleted: item.isCompleted,
         description: item.description.trim() || null,
+        educationLevel: item.educationLevel || null,
       };
 
       if (item.id) {

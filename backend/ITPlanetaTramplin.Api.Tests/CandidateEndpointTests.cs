@@ -67,6 +67,12 @@ public class CandidateEndpointTests
             {
                 Assert.Equal("Илья Смирнов", participant.Name);
                 Assert.Equal("Backend developer", participant.Role);
+            },
+            participant =>
+            {
+                Assert.Equal("Test Candidate", participant.Name);
+                Assert.Equal("Fullstack developer", participant.Role);
+                Assert.Equal(17, participant.UserId);
             });
 
         var listResponse = await client.GetAsync("/api/candidate/me/projects");
@@ -78,7 +84,7 @@ public class CandidateEndpointTests
         Assert.Equal("Платформа командной аналитики", projects[0].Title);
         Assert.Equal("data:image/png;base64,ZmFrZQ==", projects[0].CoverImageUrl);
         Assert.NotNull(projects[0].Participants);
-        Assert.Equal(2, projects[0].Participants!.Count);
+        Assert.Equal(3, projects[0].Participants!.Count);
     }
 
     [Fact]

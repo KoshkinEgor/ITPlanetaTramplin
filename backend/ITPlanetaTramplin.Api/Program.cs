@@ -69,7 +69,12 @@ builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
         httpClient.DefaultRequestHeaders.Referrer = new Uri("http://localhost:3000/");
     }
 });
-builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(
+    connectionString,
+    npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+        maxRetryCount: 3,
+        maxRetryDelay: TimeSpan.FromSeconds(5),
+        errorCodesToAdd: null)));
 builder.Services.AddHealthChecks();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ChatService>();

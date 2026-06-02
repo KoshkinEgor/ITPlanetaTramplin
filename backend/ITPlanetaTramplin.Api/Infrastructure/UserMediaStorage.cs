@@ -28,12 +28,12 @@ internal sealed class UserMediaStorage
 
     private readonly string _storageRoot;
 
-    public UserMediaStorage(IOptions<UserMediaOptions> options)
+    public UserMediaStorage(IOptions<UserMediaOptions> options, IWebHostEnvironment environment)
     {
         var value = options.Value;
         _storageRoot = Path.GetFullPath(
             string.IsNullOrWhiteSpace(value.StorageRoot)
-                ? Path.Combine(Path.GetTempPath(), "tramplin", "user-media")
+                ? Path.Combine(environment.ContentRootPath, "App_Data", "user-media")
                 : value.StorageRoot.Trim());
 
         MaxFileSizeBytes = value.MaxFileSizeBytes > 0 ? value.MaxFileSizeBytes : 5 * 1024 * 1024;

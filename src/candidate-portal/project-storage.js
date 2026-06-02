@@ -7,6 +7,7 @@ export function createProjectParticipantDraft(participant = {}) {
     draftKey: participant.draftKey || `project-participant-${participantDraftCounter}`,
     name: trimText(participant.name),
     role: trimText(participant.role),
+    userId: typeof participant.userId === "number" || typeof participant.userId === "string" ? Number(participant.userId) : null,
   };
 }
 
@@ -71,6 +72,7 @@ function normalizeParticipants(participants) {
     .map((participant) => ({
       name: trimText(participant?.name),
       role: trimText(participant?.role),
+      userId: typeof participant?.userId === "number" || typeof participant?.userId === "string" ? Number(participant.userId) : null,
     }))
     .filter((participant) => participant.name || participant.role);
 }
@@ -171,16 +173,6 @@ export function validateProjectDraft(draft) {
     errors.tags = "Добавьте хотя бы один тег.";
   }
 
-  if (normalized.teamSize) {
-    const parsedTeamSize = Number(normalized.teamSize);
-
-    if (!Number.isInteger(parsedTeamSize) || parsedTeamSize <= 0) {
-      errors.teamSize = "Размер команды должен быть положительным числом.";
-    } else if (normalized.participants.length > parsedTeamSize) {
-      errors.teamSize = "Количество участников не может быть больше размера команды.";
-    }
-  }
-
   if (normalized.participants.some((participant) => !participant.name)) {
     errors.participants = "Укажите имя для каждого добавленного участника.";
   }
@@ -233,6 +225,6 @@ export function createProjectPreviewItem(draft) {
     chips: normalized.tags.length ? normalized.tags.slice(0, 4) : ["Добавьте теги"],
     coverImageUrl: normalized.coverImageUrl,
     participants: normalized.participants,
-    teamSize: normalized.teamSize ? Number(normalized.teamSize) : null,
+    teamSize: normalized.participants.length + 1,
   };
 }

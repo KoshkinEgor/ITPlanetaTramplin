@@ -2062,3 +2062,51 @@
     grid-template-columns: 1fr;
   }
 }
+
+.company-dashboard-portfolio__card-shell {
+  position: relative;
+  min-height: 100%;
+}
+
+.company-dashboard-portfolio__owner-actions {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.company-dashboard-portfolio__owner-action.ui-icon-button {
+  color: var(--ui-color-text-primary);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(17, 24, 39, 0.1);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.16);
+  backdrop-filter: blur(12px);
+}
+
+.company-dashboard-portfolio__owner-action--danger.ui-icon-button {
+  color: #b42318;
+}
+
+.company-dashboard-public-preview {
+  display: grid;
+  gap: 24px;
+}
+
+.company-dashboard-public-preview__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.84fr);
+  gap: 20px;
+}
+
+.company-dashboard-public-preview__section {
+  display: grid;
+  gap: 14px;
+}
+
+@media (max-width: 980px) {
+  .company-dashboard-public-preview__grid {
+    grid-template-columns: 1fr;
+  }
+}

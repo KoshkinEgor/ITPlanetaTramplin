@@ -188,34 +188,12 @@
 .company-profile-summary__socials {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.company-profile-summary__social-link {
-  display: inline-flex;
+  gap: 12px;
   align-items: center;
-  justify-content: center;
-  min-width: 46px;
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid rgba(129, 156, 198, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #1c2238;
-  font-size: var(--ui-font-size-caption);
-  font-weight: 800;
-  letter-spacing: var(--ui-letter-spacing-caption);
-  text-decoration: none;
-  transition:
-    transform var(--ui-transition-base),
-    border-color var(--ui-transition-base),
-    box-shadow var(--ui-transition-base);
 }
 
-.company-profile-summary__social-link:hover {
-  transform: translateY(-1px);
-  border-color: rgba(47, 128, 255, 0.22);
-  box-shadow: 0 12px 24px rgba(36, 49, 77, 0.08);
+.company-profile-summary__social-link.ui-icon-button {
+  flex: 0 0 auto;
 }
 
 .company-profile-summary__panel {

@@ -405,8 +405,6 @@ export function CandidateResponsesApp() {
                   isPending={pendingAction.applicationId === item.id}
                   onWithdraw={handleWithdraw}
                   onConfirm={handleConfirm}
-                  onOpenSocialContext={handleOpenSocialContext}
-                  onShareOpportunity={handleOpenShareOpportunity}
                 />
               ))}
             </div>

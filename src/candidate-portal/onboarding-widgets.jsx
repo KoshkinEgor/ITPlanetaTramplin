@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProfessionOptions } from "../api/professions";
-import { Button, Checkbox, FormField, Input, Modal, SearchInput, Textarea, CloseIcon } from "../shared/ui";
+import { Button, Checkbox, CompanyAutocomplete, FormField, Input, Modal, SearchInput, Textarea, CloseIcon } from "../shared/ui";
 import { cn } from "../shared/lib/cn";
 import { createEmptyCandidateExperienceDraft } from "./onboarding";
 import "./onboarding-widgets.css";
@@ -174,6 +174,7 @@ export function CandidateProfessionSelector({
 export function CandidateExperienceListEditor({
   experiences = [createEmptyCandidateExperienceDraft()],
   noExperience = false,
+  companyOptions = [],
   onNoExperienceChange,
   onExperienceChange,
   onExperienceAdd,
@@ -220,7 +221,13 @@ export function CandidateExperienceListEditor({
 
               <div className="candidate-onboarding-experience__grid candidate-onboarding-experience__grid--two">
                 <FormField label="Компания" required>
-                  <Input value={item.company} onValueChange={(value) => onExperienceChange?.(item.draftKey, "company", value)} placeholder="IT-Планета" />
+                  <CompanyAutocomplete
+                    value={item.company}
+                    options={companyOptions}
+                    onValueChange={(value) => onExperienceChange?.(item.draftKey, "company", value)}
+                    placeholder="IT-Планета"
+                    searchPlaceholder="Начните вводить компанию"
+                  />
                 </FormField>
                 <FormField label="Должность" required>
                   <Input value={item.role} onValueChange={(value) => onExperienceChange?.(item.draftKey, "role", value)} placeholder="Frontend-разработчик" />

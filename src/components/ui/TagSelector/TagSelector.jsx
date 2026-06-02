@@ -57,9 +57,12 @@ export function TagSelector({
   const [loading, setLoading] = useState(false);
   const sharedClassName = cn(getFontWeightClassName(fontWeight), getWidthClassName(width));
 
+  const valueSerialized = JSON.stringify(value);
+  const pendingValueSerialized = JSON.stringify(pendingValue);
+
   useEffect(() => {
     setDraft([...value, ...pendingValue]);
-  }, [value, pendingValue]);
+  }, [valueSerialized, pendingValueSerialized]);
 
   useEffect(() => {
     if (!isEditing) {

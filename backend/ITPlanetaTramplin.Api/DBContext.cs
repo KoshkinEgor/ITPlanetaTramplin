@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ITPlanetaTramplin.Api.Domain;
 using Models;
@@ -140,6 +140,9 @@ public partial class ApplicationDBContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("specialization");
             entity.Property(e => e.StartYear).HasColumnName("start_year");
+            entity.Property(e => e.EducationLevel)
+                .HasMaxLength(100)
+                .HasColumnName("education_level");
 
             entity.HasOne(d => d.Applicant).WithMany(p => p.ApplicantEducations)
                 .HasForeignKey(d => d.ApplicantId)

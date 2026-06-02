@@ -1,7 +1,8 @@
 import { routes } from "../../../app/routes";
 import { AppLink } from "../../../app/AppLink";
 import { parseSocialLinks } from "../socialLinks";
-import { Card } from "../../../shared/ui";
+import { resolveSocialType, getSocialIcon } from "../../../shared/lib/socialPresentation";
+import { Card, IconButton } from "../../../shared/ui";
 import "./CompanyProfileSummary.css";
 
 const LEGAL_PREFIXES = new Set(["ООО", "АО", "ПАО", "ОАО", "ЗАО", "ИП", "LLC", "INC", "LTD"]);
@@ -133,18 +134,22 @@ export function CompanyProfileSummary({
                 <span className="company-profile-summary__fact-label">Ссылки</span>
                 {socialLinks.length ? (
                   <div className="company-profile-summary__socials">
-                    {socialLinks.map((item) => (
-                      <a
-                        key={item.id}
-                        className="company-profile-summary__social-link"
-                        href={item.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={item.label}
-                      >
-                        {item.label}
-                      </a>
-                    ))}
+                    {socialLinks.map((item) => {
+                      const type = resolveSocialType(item.label, item.href);
+                      return (
+                        <IconButton
+                          key={item.id}
+                          href={item.href}
+                          label={item.label}
+                          size="lg"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="company-profile-summary__social-link"
+                        >
+                          {getSocialIcon(type)}
+                        </IconButton>
+                      );
+                    })}
                   </div>
                 ) : (
                   <span className="company-profile-summary__fact-note">Ссылки пока не добавлены.</span>

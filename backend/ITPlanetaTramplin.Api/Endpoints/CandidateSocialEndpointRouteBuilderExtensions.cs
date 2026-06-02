@@ -42,13 +42,20 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         var canSeeContacts = CanAccessScope(contactsAudience, relationship, currentUserId.Value == userId);
         var visibleSocialLinks = canSeeContacts ? rawSocialLinks : null;
         var visibleResumes = ExtractVisibleResumes(resumes, relationship, currentUserId.Value == userId);
-        var totalPortfolioProjects = await db.CandidateProjects.CountAsync(item => item.ApplicantId == profile.Id && item.ShowInPortfolio);
+        var allPublicProjects = await db.CandidateProjects
+            .Include(item => item.Applicant)
+            .Where(item => item.ShowInPortfolio)
+            .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
+            .ToListAsync();
+
+        var candidatePublicProjects = allPublicProjects
+            .Where(project => project.ApplicantId == profile.Id || 
+                ParseCandidateProjectParticipants(project.ParticipantsJson).Any(p => p.UserId == profile.UserId))
+            .ToList();
+
+        var totalPortfolioProjects = candidatePublicProjects.Count;
         var visibleProjects = canSeeProjects
-            ? await db.CandidateProjects
-                .Where(item => item.ApplicantId == profile.Id && item.ShowInPortfolio)
-                .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
-                .Select(item => (object)MapCandidateProject(item))
-                .ToListAsync()
+            ? candidatePublicProjects.Select(item => (object)MapCandidateProject(item)).ToList()
             : [];
 
         var allSkills = profile.Skills ?? new List<string>();
@@ -782,6 +789,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
                 item.StartYear,
                 item.GraduationYear,
                 item.IsCompleted,
+                item.EducationLevel,
             })
             .FirstOrDefault();
 

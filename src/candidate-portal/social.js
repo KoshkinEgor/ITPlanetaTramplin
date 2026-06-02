@@ -265,6 +265,7 @@ export function mapSocialUserToCard(user) {
     relationshipState: getRelationshipActionState(relationship),
     badge: getRelationshipBadge(relationship),
     href: buildSocialProfileHref(user),
+    links: user?.links,
   };
 }
 
