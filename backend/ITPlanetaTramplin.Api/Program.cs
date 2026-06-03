@@ -129,6 +129,7 @@ builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql
         errorCodesToAdd: null)));
 builder.Services.AddHealthChecks();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<IAiCareerService, AiCareerService>();
 
