@@ -50,6 +50,7 @@ builder.Services.Configure<ModeratorInvitationOptions>(builder.Configuration.Get
 builder.Services.Configure<PasswordResetOptions>(builder.Configuration.GetSection("PasswordReset"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.Configure<DadataOptions>(builder.Configuration.GetSection("Dadata"));
+builder.Services.Configure<GigaChatOptions>(builder.Configuration.GetSection("GigaChat"));
 builder.Services.AddSingleton(Options.Create(BuildYandexGeocoderOptions(builder.Configuration, builder.Environment)));
 builder.Services.Configure<CompanyVerificationOptions>(builder.Configuration.GetSection("CompanyVerification"));
 builder.Services.Configure<UserMediaOptions>(builder.Configuration.GetSection("UserMedia"));
@@ -69,6 +70,57 @@ builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
         httpClient.DefaultRequestHeaders.Referrer = new Uri("http://localhost:3000/");
     }
 });
+builder.Services.AddHttpClient<IGigaChatClient, GigaChatClient>()
+    .ConfigurePrimaryHttpMessageHandler(sp =>
+    {
+        var handler = new HttpClientHandler();
+        var configuration = sp.GetRequiredService<IConfiguration>();
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        
+        var allowInsecureTls = configuration.GetValue<bool>("GigaChat:AllowInsecureTls");
+        var caCertificatePath = configuration["GigaChat:CaCertificatePath"];
+
+        if (env.IsDevelopment() && allowInsecureTls)
+        {
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        }
+        else if (!string.IsNullOrWhiteSpace(caCertificatePath) && File.Exists(caCertificatePath))
+        {
+            try
+            {
+                var rootCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(caCertificatePath);
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    if (errors == System.Net.Security.SslPolicyErrors.None)
+                    {
+                        return true;
+                    }
+
+                    if (chain != null)
+                    {
+                        chain.ChainPolicy.ExtraStore.Add(rootCert);
+                        foreach (var element in chain.ChainElements)
+                        {
+                            if (element.Certificate.Thumbprint == rootCert.Thumbprint ||
+                                element.Certificate.Subject == rootCert.Subject)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                };
+            }
+            catch (Exception ex)
+            {
+                var logger = sp.GetRequiredService<ILogger<GigaChatClient>>();
+                logger.LogError(ex, "Failed to load custom GigaChat CA certificate from {Path}", caCertificatePath);
+            }
+        }
+
+        return handler;
+    });
 builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(
     connectionString,
     npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
@@ -78,6 +130,7 @@ builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql
 builder.Services.AddHealthChecks();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<IAiCareerService, AiCareerService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -188,6 +241,7 @@ api.MapModerationEndpoints();
 api.MapComplaintEndpoints();
 api.MapNotificationEndpoints();
 api.MapChatEndpoints();
+api.MapAiEndpoints();
 
 app.MapHub<ChatHub>("/hubs/chat");
 

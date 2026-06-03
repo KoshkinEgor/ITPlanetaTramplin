@@ -8,7 +8,7 @@ import { Card } from "../Card/Card";
 import { IconButton } from "../IconButton/IconButton";
 import { StatusBadge } from "../StatusBadge/StatusBadge";
 import { Tag } from "../Tag/Tag";
-import { HeartIcon, PlusIcon } from "../../../shared/ui";
+import { HeartIcon, PlusIcon, SparkIcon } from "../../../shared/ui";
 
 function getInitials(name) {
   return String(name ?? "")
@@ -150,11 +150,18 @@ export function CareerCourseCard({
   actionTarget,
   actionRel,
   className,
+  aiRecommended = false,
   ...props
 }) {
   return (
-    <Card className={["ui-career-course-card", className].filter(Boolean).join(" ")} {...props}>
+    <Card className={["ui-career-course-card", className, aiRecommended && "ui-career-course-card--ai"].filter(Boolean).join(" ")} {...props}>
       <div className="ui-career-course-card__copy">
+        {aiRecommended && (
+          <div className="ui-career-course-card__ai-badge">
+            <SparkIcon className="ui-career-course-card__ai-spark" />
+            <span>Подбор ИИ</span>
+          </div>
+        )}
         {meta ? <p className="ui-career-course-card__meta">{meta}</p> : null}
         {title ? <h3 className="ui-career-course-card__title">{title}</h3> : null}
         {provider ? <p className="ui-career-course-card__provider">{provider}</p> : null}

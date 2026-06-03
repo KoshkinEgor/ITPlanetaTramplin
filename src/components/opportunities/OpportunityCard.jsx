@@ -5,7 +5,7 @@ import { extractOpportunityId } from "../../features/favorites/storage";
 import { normalizeOpportunityCardItem } from "../../shared/lib/opportunityPresentation";
 import "./OpportunityCard.css";
 
-import { HeartIcon } from "../../shared/ui";
+import { HeartIcon, SparkIcon, InfoIcon } from "../../shared/ui";
 
 const CHIP_PLACEMENT_BY_VARIANT = {
   row: "top",
@@ -103,6 +103,7 @@ function OpportunityCardBase({
   favoriteLabel = "Сохранить возможность",
   favoritePressed = false,
   onFavoriteClick,
+  aiItem,
   ...props
 }) {
   const data = normalizeOpportunity(item);
@@ -112,7 +113,7 @@ function OpportunityCardBase({
   const shouldShowSave = showSave && variant !== "mini";
   const saveButtonSize = variant === "row" ? "xl" : size === "sm" ? "sm" : "md";
   const actionButtonSize = variant === "row" ? "lg" : size === "sm" ? "md" : "lg";
-  const hasTopRow = data.type || data.status || topTags.length > 0 || shouldShowSave;
+  const hasTopRow = data.type || data.status || topTags.length > 0 || shouldShowSave || aiItem;
   const handleFavoriteClick = () => {
     const nextState = toggleFavorite();
     onFavoriteClick?.(opportunityId, nextState);
@@ -168,6 +169,30 @@ function OpportunityCardBase({
               {chip}
             </Tag>
           ))}
+          {aiItem ? (
+            <div className="candidate-career-opportunity-ai__badge-wrapper" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div className="candidate-career-opportunity-ai__badge">
+                <SparkIcon className="candidate-career-opportunity-ai__spark" />
+                <span>{Math.max(0, Math.min(99, Math.round(aiItem.matchPercent)))}% совпадение</span>
+              </div>
+              {aiItem.reason ? (
+                <div className="candidate-career-opportunity-ai__info-wrapper">
+                  <button type="button" className="candidate-career-opportunity-ai__info-trigger" aria-label="Почему подходит?">
+                    <InfoIcon />
+                  </button>
+                  <div className="candidate-career-opportunity-ai__tooltip">
+                    <div className="candidate-career-opportunity-ai__tooltip-title">Анализ соответствия</div>
+                    <p className="candidate-career-opportunity-ai__tooltip-text">{aiItem.reason}</p>
+                    {aiItem.nextStep ? (
+                      <div className="candidate-career-opportunity-ai__tooltip-next">
+                        <strong>Рекомендация:</strong> {aiItem.nextStep}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {saveButton}
@@ -184,6 +209,34 @@ function OpportunityCardBase({
         {data.meta ? <p className="ui-opportunity-card__meta">{data.meta}</p> : null}
       </div>
       {details}
+      {aiItem && (aiItem.matchedSkills?.length > 0 || aiItem.missingSkills?.length > 0) ? (
+        <div className="candidate-career-opportunity-ai__skills-alignment" style={{ marginTop: "12px", marginBottom: "4px" }}>
+          {aiItem.matchedSkills.length > 0 ? (
+            <div className="candidate-career-opportunity-ai__skills-row">
+              <span className="candidate-career-opportunity-ai__skills-label">Вам подходит:</span>
+              <div className="candidate-career-opportunity-ai__skills-list">
+                {aiItem.matchedSkills.slice(0, 3).map((skill) => (
+                  <span key={skill} className="candidate-career-opportunity-ai__skill-tag is-matched">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {aiItem.missingSkills.length > 0 ? (
+            <div className="candidate-career-opportunity-ai__skills-row">
+              <span className="candidate-career-opportunity-ai__skills-label">Стоит подтянуть:</span>
+              <div className="candidate-career-opportunity-ai__skills-list">
+                {aiItem.missingSkills.slice(0, 3).map((skill) => (
+                  <span key={skill} className="candidate-career-opportunity-ai__skill-tag is-missing">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 

@@ -87,7 +87,7 @@ describe("CandidateCareerDashboard", () => {
     const careerTitle = screen.getByRole("heading", { name: "Карьера" });
     const topPanel = screen.getByRole("heading", { name: "Твоя карьера" });
     const coursesSection = screen.getByRole("heading", { name: "Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:" });
-    const opportunitiesSection = screen.getByRole("heading", { name: "Пройди стажировку и совершенствуй свои навыки" });
+    const opportunitiesSection = screen.getByRole("heading", { name: "Рекомендованные возможности" });
     const mentorsSection = screen.getByRole("heading", { name: "Менторские программы" });
     const networkSection = screen.getByRole("heading", { name: "Активные связи" });
     const suggestionsSection = screen.getByRole("heading", { name: "Люди под ваши отклики" });
@@ -98,8 +98,8 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByRole("heading", { name: "Твои навыки" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Уровень зарплат в Чебоксары" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Career courses slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(6);
-    expect(screen.getByRole("region", { name: "Career opportunities slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(1);
-    expect(screen.getByText("Нейросети для дизайна")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Стажировки AI slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(1);
+    expect(screen.getAllByText("Нейросети для дизайна").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Веб-дизайнер").length).toBeGreaterThan(0);
     expect(screen.getByText("Оплата")).toBeInTheDocument();
     expect(screen.getAllByText("Без оплаты").length).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByText("Мария Ильина")).toBeInTheDocument();
 
     const firstCourseLink = screen.getAllByRole("link", { name: "Перейти к курсу" })[0];
-    const opportunitiesSlider = screen.getByRole("region", { name: "Career opportunities slider" }).parentElement;
+    const opportunitiesSlider = screen.getByRole("region", { name: "Стажировки AI slider" }).parentElement;
 
     expect(firstCourseLink).toHaveAttribute("href", "https://practicum.yandex.ru/ai-tools-for-designers/");
     expect(firstCourseLink).toHaveAttribute("target", "_blank");

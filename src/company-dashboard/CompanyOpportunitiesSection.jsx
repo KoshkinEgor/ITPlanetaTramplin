@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildOpportunityDetailRoute } from "../app/routes";
 import { getCompanyOpportunities } from "../api/company";
-import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity } from "../api/opportunities";
+import { createOpportunity, deleteOpportunity, getOpportunity, updateOpportunity, suggestOpportunityTagsWithAi } from "../api/opportunities";
 import { FALLBACK_REFERENCE_CATEGORIES, getSystemReferences, normalizeReferenceCategories } from "../api/systemReferences";
 import { getTags } from "../api/tags";
 import { uploadImage } from "../api/uploads";
@@ -18,7 +18,7 @@ import {
   translateWorkSchedule,
   validateOpportunityDraftForSubmit,
 } from "../shared/lib/opportunityPresentation";
-import { Alert, Badge, Button, Checkbox, EmptyState, FormField, Input, Loader, Select, Tag, TagSelector, Textarea } from "../shared/ui";
+import { Alert, Badge, Button, Card, Checkbox, EmptyState, FormField, Input, Loader, Select, Tag, TagSelector, Textarea } from "../shared/ui";
 import { CabinetContentSection } from "../widgets/layout";
 import { createOpportunityContactDraft, createOpportunityMediaDraft } from "./utils";
 import { OpportunityLocationPicker } from "./OpportunityLocationPicker";
@@ -161,6 +161,75 @@ function renderTypedFields({ draft, onFieldChange, isEditingExisting }) {
   }
 }
 
+function AiTagSuggestionsPanel({ suggestions, status, error, canRequest, onRequest, onApply, onRemove }) {
+  const activeTags = Array.isArray(suggestions?.tags ?? suggestions?.Tags) ? (suggestions.tags ?? suggestions.Tags) : [];
+  const pendingTags = Array.isArray(suggestions?.pendingTags ?? suggestions?.PendingTags) ? (suggestions.pendingTags ?? suggestions.PendingTags) : [];
+  const improvementTips = Array.isArray(suggestions?.improvementTips ?? suggestions?.ImprovementTips) ? (suggestions.improvementTips ?? suggestions.ImprovementTips) : [];
+  const reason = suggestions?.reason ?? suggestions?.Reason ?? "";
+  const hasSuggestions = activeTags.length > 0 || pendingTags.length > 0;
+
+  return (
+    <Card className="company-dashboard-ai-tags">
+      <div className="company-dashboard-ai-tags__head">
+        <div>
+          <span className="company-dashboard-ai-tags__badge">AI · GigaChat</span>
+          <h3 className="ui-type-h3">AI-подбор тегов</h3>
+        </div>
+        <Button type="button" variant="secondary" onClick={onRequest} disabled={!canRequest || status === "loading"}>
+          {status === "loading" ? "Подбираем..." : suggestions ? "Повторить подбор" : "Подобрать теги AI"}
+        </Button>
+      </div>
+
+      {!canRequest ? <p className="ui-type-caption">Заполните название или описание, чтобы AI предложил теги.</p> : null}
+      {status === "loading" ? <Loader label="Анализируем описание публикации..." surface /> : null}
+      {status === "error" ? (
+        <Alert tone="warning" title="AI-подбор тегов временно недоступен" showIcon>
+          {error?.message ?? "Теги можно выбрать вручную."}
+        </Alert>
+      ) : null}
+
+      {reason ? <p className="ui-type-body">{reason}</p> : null}
+
+      {hasSuggestions ? (
+        <>
+          <p className="ui-type-caption">AI предложил теги по описанию вакансии. Перед применением можно удалить лишние варианты.</p>
+          <div className="company-dashboard-ai-tags__groups">
+            <div>
+              <strong>AI предложил активные теги</strong>
+              <div className="company-dashboard-ai-tags__list">
+                {activeTags.map((tag) => (
+                  <button key={tag} type="button" onClick={() => onRemove(tag, "tags")}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <strong>Новые теги на модерацию</strong>
+              <div className="company-dashboard-ai-tags__list">
+                {pendingTags.map((tag) => (
+                  <button key={tag} type="button" onClick={() => onRemove(tag, "pendingTags")}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {improvementTips.length ? (
+            <div className="company-dashboard-ai-tags__tips">
+              <strong>Что можно уточнить в вакансии</strong>
+              {improvementTips.map((tip) => (
+                <p key={tip}>{tip}</p>
+              ))}
+            </div>
+          ) : null}
+          <Button type="button" onClick={onApply}>Добавить все</Button>
+        </>
+      ) : null}
+    </Card>
+  );
+}
+
 export function CompanyOpportunitiesSection() {
   const [state, setState] = useState({ status: "loading", opportunities: [], error: null });
   const [draft, setDraft] = useState(createOpportunityDraft());
@@ -170,6 +239,9 @@ export function CompanyOpportunitiesSection() {
   const [reloadKey, setReloadKey] = useState(0);
   const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
   const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [aiTagSuggestions, setAiTagSuggestions] = useState(null);
+  const [aiTagStatus, setAiTagStatus] = useState("idle");
+  const [aiTagError, setAiTagError] = useState(null);
   const [filters, setFilters] = useState({
     query: "",
     status: ALL_FILTER_VALUE,
@@ -287,6 +359,9 @@ export function CompanyOpportunitiesSection() {
     setOriginalItem(initial);
     setEditorMode("create");
     setSaveState({ status: "idle", error: "", message: "" });
+    setAiTagSuggestions(null);
+    setAiTagStatus("idle");
+    setAiTagError(null);
     scrollEditorIntoView();
   }
 
@@ -324,10 +399,69 @@ export function CompanyOpportunitiesSection() {
     setOriginalItem(null);
     setEditorMode(null);
     setSaveState({ status: "idle", error: "", message: "" });
+    setAiTagSuggestions(null);
+    setAiTagStatus("idle");
+    setAiTagError(null);
   }
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
+    resetSuccessState();
+  }
+
+  async function requestAiTagSuggestions() {
+    if (!String(draft.title ?? "").trim() && !String(draft.description ?? "").trim()) {
+      return;
+    }
+
+    setAiTagStatus("loading");
+    setAiTagError(null);
+
+    try {
+      const response = await suggestOpportunityTagsWithAi({
+        title: draft.title,
+        description: draft.description,
+        opportunityType: draft.opportunityType,
+        employmentType: draft.employmentType,
+        experienceLevel: draft.experienceLevel,
+        schedule: draft.schedule,
+      });
+      const normalized = {
+        tags: response?.tags ?? response?.Tags ?? [],
+        pendingTags: response?.pendingTags ?? response?.PendingTags ?? [],
+        improvementTips: response?.improvementTips ?? response?.ImprovementTips ?? [],
+        reason: response?.reason ?? response?.Reason ?? "",
+        isFallback: Boolean(response?.isFallback ?? response?.IsFallback),
+      };
+      setAiTagSuggestions(normalized);
+      setAiTagStatus("ready");
+    } catch (error) {
+      setAiTagStatus("error");
+      setAiTagError(error);
+    }
+  }
+
+  function removeAiTagSuggestion(tag, group) {
+    setAiTagSuggestions((current) => {
+      if (!current) return current;
+      const key = group === "pendingTags" ? "pendingTags" : "tags";
+      return {
+        ...current,
+        [key]: (current[key] ?? []).filter((item) => item !== tag),
+      };
+    });
+  }
+
+  function applyAiTagSuggestions() {
+    if (!aiTagSuggestions) {
+      return;
+    }
+
+    setDraft((current) => ({
+      ...current,
+      tags: [...new Set([...(current.tags ?? []), ...aiTagSuggestions.tags])],
+      pendingTags: [...new Set([...(current.pendingTags ?? []), ...aiTagSuggestions.pendingTags])],
+    }));
     resetSuccessState();
   }
 
@@ -436,6 +570,9 @@ export function CompanyOpportunitiesSection() {
 
   async function startEditing(item) {
     setSaveState({ status: "idle", error: "", message: "" });
+    setAiTagSuggestions(null);
+    setAiTagStatus("idle");
+    setAiTagError(null);
 
     try {
       const opportunity = await getOpportunity(item.id);
@@ -810,6 +947,15 @@ export function CompanyOpportunitiesSection() {
                       }));
                       resetSuccessState();
                     }}
+                  />
+                  <AiTagSuggestionsPanel
+                    suggestions={aiTagSuggestions}
+                    status={aiTagStatus}
+                    error={aiTagError}
+                    canRequest={Boolean(String(draft.title ?? "").trim() || String(draft.description ?? "").trim())}
+                    onRequest={requestAiTagSuggestions}
+                    onApply={applyAiTagSuggestions}
+                    onRemove={removeAiTagSuggestion}
                   />
                 </FormField>
 

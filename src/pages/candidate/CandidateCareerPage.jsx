@@ -5,6 +5,7 @@ import {
   createCandidateEducation,
   deleteCandidateEducation,
   getCandidateApplications,
+  getCandidateAiCareerRecommendations,
   getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
@@ -329,6 +330,9 @@ export function CandidateCareerPage() {
     recommendations: [],
     opportunities: [],
     directory: [],
+    aiRecommendations: null,
+    aiStatus: "idle",
+    aiError: null,
     degraded: false,
     error: null,
   });
@@ -408,24 +412,30 @@ export function CandidateCareerPage() {
     let active = true;
     const controller = new AbortController();
 
-    setDashboardState((current) => ({ ...current, status: "loading", error: null }));
+    setDashboardState((current) => ({ ...current, status: "loading", aiStatus: "loading", error: null }));
 
-    Promise.allSettled([
+    const regularPromise = Promise.allSettled([
       getCandidateApplications(controller.signal),
       getCandidateContacts(controller.signal),
       getCandidateContactSuggestions({ source: "dashboard", limit: 6 }, controller.signal),
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
       getCandidateDirectory(controller.signal),
-    ]).then((results) => {
+    ]);
+
+    const aiPromise = getCandidateAiCareerRecommendations(controller.signal);
+
+    regularPromise.then((results) => {
       if (!active || controller.signal.aborted) {
         return;
       }
 
       const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
+      const requiredFailedCount = failedCount;
 
-      setDashboardState({
+      setDashboardState((current) => ({
+        ...current,
         status: "ready",
         applications: applicationsResult.status === "fulfilled" ? safeArray(applicationsResult.value) : [],
         contacts: contactsResult.status === "fulfilled" ? safeArray(contactsResult.value) : [],
@@ -433,17 +443,18 @@ export function CandidateCareerPage() {
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
         directory: directoryResult.status === "fulfilled" ? safeArray(directoryResult.value) : [],
-        degraded: failedCount > 0,
-        error: failedCount === results.length
+        degraded: requiredFailedCount > 0,
+        error: requiredFailedCount === 6
           ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason)
           : null,
-      });
+      }));
     }).catch((error) => {
       if (!active || controller.signal.aborted) {
         return;
       }
 
-      setDashboardState({
+      setDashboardState((current) => ({
+        ...current,
         status: "error",
         applications: [],
         contacts: [],
@@ -451,9 +462,36 @@ export function CandidateCareerPage() {
         recommendations: [],
         opportunities: [],
         directory: [],
+        aiRecommendations: null,
+        aiStatus: "idle",
+        aiError: null,
         degraded: false,
         error,
-      });
+      }));
+    });
+
+    aiPromise.then((aiRecommendations) => {
+      if (!active || controller.signal.aborted) {
+        return;
+      }
+
+      setDashboardState((current) => ({
+        ...current,
+        aiRecommendations,
+        aiStatus: "ready",
+        aiError: null,
+      }));
+    }).catch((error) => {
+      if (!active || controller.signal.aborted) {
+        return;
+      }
+
+      setDashboardState((current) => ({
+        ...current,
+        aiRecommendations: null,
+        aiStatus: "error",
+        aiError: error,
+      }));
     });
 
     return () => {
@@ -461,6 +499,26 @@ export function CandidateCareerPage() {
       controller.abort();
     };
   }, [contextState]);
+
+  async function refreshAiCareerRecommendations() {
+    setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
+
+    try {
+      const aiRecommendations = await getCandidateAiCareerRecommendations();
+      setDashboardState((current) => ({
+        ...current,
+        aiRecommendations,
+        aiStatus: "ready",
+        aiError: null,
+      }));
+    } catch (error) {
+      setDashboardState((current) => ({
+        ...current,
+        aiStatus: "error",
+        aiError: error,
+      }));
+    }
+  }
 
   useEffect(() => {
     if (!location.hash) {
@@ -723,7 +781,11 @@ export function CandidateCareerPage() {
                 {dashboardState.error?.message ?? "Попробуйте обновить страницу чуть позже."}
               </Alert>
             ) : (
-              <CandidateCareerDashboard profile={contextState.data.profile} dashboardState={dashboardState} />
+              <CandidateCareerDashboard
+                profile={contextState.data.profile}
+                dashboardState={dashboardState}
+                onRefreshAiRecommendations={refreshAiCareerRecommendations}
+              />
             )
           ) : null}
 
