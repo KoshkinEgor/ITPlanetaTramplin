@@ -237,3 +237,10 @@ code {
   letter-spacing: var(--ui-letter-spacing-overline);
   text-transform: uppercase;
 }
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

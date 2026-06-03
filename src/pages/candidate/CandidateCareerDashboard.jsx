@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
-import { buildCandidatePublicProfileRoute, buildOpportunityDetailRoute, routes } from "../../app/routes";
+import { buildCandidatePublicProfileRoute, buildOpportunityDetailRoute, routes, withSearch } from "../../app/routes";
 import { getCandidateDisplayName, getCandidateSkills } from "../../candidate-portal/mappers";
 import { mapSocialUserToCard } from "../../candidate-portal/social";
 import { OpportunityBlockSlider } from "../../components/opportunities";
+import { OpportunityBlockCard } from "../../components/opportunities/OpportunityCard";
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
+import { cn } from "../../lib/cn";
 import {
   Alert,
   Button,
+  Card,
   CareerCourseCard,
   CareerMentorCard,
   CareerPeerCard,
@@ -16,7 +19,10 @@ import {
   CareerStatsPanel,
   FilterPill,
   HeartIcon,
+  InfoIcon,
+  Loader,
   SectionHeader,
+  SparkIcon,
   Tag,
 } from "../../shared/ui";
 
@@ -25,6 +31,15 @@ const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
 const COURSE_ACTION_TARGET = "_blank";
 const COURSE_ACTION_REL = "noreferrer";
 const MENTOR_CATALOG_HREF = `${routes.opportunities.catalog}?type=mentoring`;
+
+const AI_RECOMMENDATION_TABS = [
+  { value: "all", label: "Все" },
+  { value: "vacancy", label: "Вакансии" },
+  { value: "internship", label: "Стажировки" },
+  { value: "event", label: "Мероприятия" },
+  { value: "mentoring", label: "Менторство" },
+  { value: "course", label: "Курсы" },
+];
 
 const SALARY_TRACKS = {
   design: [
@@ -255,6 +270,7 @@ function mapOpportunityCard(item) {
 
   return {
     id: opportunityId ?? `${item.title ?? "career"}-${item.companyName ?? "item"}`,
+    opportunityType: item.opportunityType ?? item.type ?? "",
     ...presentation,
     status: item.moderationStatus === "approved" ? "Активно" : item.statusLabel ?? "Активно",
     statusTone: "success",
@@ -268,9 +284,8 @@ function mapOpportunityCard(item) {
 
 
 function getOpportunityCards(recommendations, opportunities) {
-  const filterInternships = (list) => safeArray(list).filter((item) => item?.opportunityType === "internship");
-  const primary = filterInternships(recommendations).map(mapOpportunityCard).filter(Boolean);
-  const secondary = filterInternships(opportunities).map(mapOpportunityCard).filter(Boolean);
+  const primary = safeArray(recommendations).map(mapOpportunityCard).filter(Boolean);
+  const secondary = safeArray(opportunities).map(mapOpportunityCard).filter(Boolean);
   const merged = [];
   const seenIds = new Set();
 
@@ -288,6 +303,409 @@ function getOpportunityCards(recommendations, opportunities) {
   });
 
   return merged;
+}
+
+function getAiOpportunityCards(aiRecommendations, opportunities) {
+  const aiItems = normalizeAiRecommendationItems(aiRecommendations);
+  const opportunitiesById = new Map(safeArray(opportunities).map((item) => [Number(item?.id ?? item?.opportunityId), item]));
+
+  return aiItems
+    .map((item) => opportunitiesById.get(item.opportunityId))
+    .filter(Boolean)
+    .map(mapOpportunityCard)
+    .filter(Boolean);
+}
+
+function normalizeOpportunityType(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+
+  if (["job", "vacancy"].includes(normalized)) return "vacancy";
+  if (normalized === "internship") return "internship";
+  if (normalized === "event") return "event";
+  if (["mentor", "mentoring"].includes(normalized)) return "mentoring";
+  if (["course", "courses"].includes(normalized)) return "course";
+  if (normalized === "fallback") return "fallback";
+
+  return "other";
+}
+
+function getOpportunityTypeLabel(type) {
+  switch (normalizeOpportunityType(type)) {
+    case "vacancy":
+      return "Вакансии";
+    case "internship":
+      return "Стажировки";
+    case "event":
+      return "Мероприятия";
+    case "mentoring":
+      return "Менторство";
+    case "course":
+      return "Курсы";
+    case "fallback":
+      return "Подбор по навыкам";
+    default:
+      return "Другие возможности";
+  }
+}
+
+function getOpportunityActionLabel(type) {
+  switch (normalizeOpportunityType(type)) {
+    case "event":
+      return "Посмотреть мероприятие";
+    case "mentoring":
+      return "Посмотреть программу";
+    case "course":
+      return "Перейти к курсу";
+    default:
+      return "Подробнее";
+  }
+}
+
+function normalizeAiRecommendationItems(aiRecommendations) {
+  return safeArray(aiRecommendations?.items ?? aiRecommendations?.Items)
+    .map((item) => ({
+      opportunityId: Number(item?.opportunityId ?? item?.OpportunityId ?? 0),
+      matchPercent: Number(item?.matchPercent ?? item?.MatchPercent ?? 0),
+      reason: item?.reason ?? item?.Reason ?? "",
+      matchedSkills: safeArray(item?.matchedSkills ?? item?.MatchedSkills).filter(Boolean),
+      missingSkills: safeArray(item?.missingSkills ?? item?.MissingSkills).filter(Boolean),
+      nextStep: item?.nextStep ?? item?.NextStep ?? "",
+    }))
+    .filter((item) => item.opportunityId > 0);
+}
+
+function normalizeAiCareerPlan(aiRecommendations) {
+  return safeArray(aiRecommendations?.careerPlan ?? aiRecommendations?.CareerPlan)
+    .map((item, index) => ({
+      day: item?.day ?? item?.Day ?? `День ${index + 1}`,
+      action: item?.action ?? item?.Action ?? "",
+      outcome: item?.outcome ?? item?.Outcome ?? "",
+    }))
+    .filter((item) => item.action)
+    .slice(0, 7);
+}
+
+function sanitizeSectionTitle(title, type) {
+  const trimmed = String(title ?? "").trim();
+  if (trimmed.toLowerCase().includes("центрация")) {
+    switch (normalizeOpportunityType(type)) {
+      case "vacancy":
+        return "Рекомендованные вакансии";
+      case "internship":
+        return "Рекомендованные стажировки";
+      case "event":
+        return "Рекомендованные мероприятия";
+      case "mentoring":
+        return "Рекомендованные менторы";
+      case "course":
+        return "Рекомендованные курсы";
+      default:
+        return "Рекомендованные возможности";
+    }
+  }
+  return trimmed;
+}
+
+function getAiRecommendationSections(aiRecommendations, opportunities) {
+  const opportunitiesById = new Map(safeArray(opportunities).map((item) => [Number(item?.id ?? item?.opportunityId), item]));
+  const rawSections = safeArray(aiRecommendations?.sections ?? aiRecommendations?.Sections);
+  const sections = rawSections
+    .map((section) => {
+      const type = normalizeOpportunityType(section?.type ?? section?.Type);
+      const items = normalizeAiRecommendationItems({ items: section?.items ?? section?.Items })
+        .map((aiItem) => {
+          const opportunity = opportunitiesById.get(aiItem.opportunityId);
+          const card = mapOpportunityCard(opportunity);
+
+          return card ? { card, aiItem } : null;
+        })
+        .filter(Boolean);
+
+      const rawTitle = section?.title ?? section?.Title ?? getOpportunityTypeLabel(type);
+      return {
+        type,
+        title: sanitizeSectionTitle(rawTitle, type),
+        items,
+      };
+    })
+    .filter((section) => section.items.length);
+
+  if (sections.length) {
+    return sections;
+  }
+
+  const aiItems = normalizeAiRecommendationItems(aiRecommendations);
+  if (!aiItems.length) {
+    return [];
+  }
+
+  const items = aiItems
+    .map((aiItem) => {
+      const opportunity = opportunitiesById.get(aiItem.opportunityId);
+      const card = mapOpportunityCard(opportunity);
+
+      return card ? { card, aiItem } : null;
+    })
+    .filter(Boolean);
+
+  return Object.values(
+    items.reduce((acc, item) => {
+      const type = normalizeOpportunityType(item.card.opportunityType);
+      const key = type === "other" ? "vacancy" : type;
+
+      if (!acc[key]) {
+        acc[key] = { type: key, title: getOpportunityTypeLabel(key), items: [] };
+      }
+
+      if (acc[key].items.length < 4) {
+        acc[key].items.push(item);
+      }
+
+      return acc;
+    }, {})
+  );
+}
+
+function getBaseRecommendationSections(recommendations, opportunities, aiItems = []) {
+  const aiById = new Map(aiItems.map((item) => [item.opportunityId, item]));
+  const merged = [];
+  const seen = new Set();
+
+  [...safeArray(recommendations), ...safeArray(opportunities)].forEach((item) => {
+    const card = mapOpportunityCard(item);
+    const id = Number(item?.id ?? item?.opportunityId ?? card?.id);
+    const key = id || card?.title;
+
+    if (!card || !key || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push({ card, aiItem: aiById.get(id) ?? null });
+  });
+
+  return Object.values(
+    merged.reduce((acc, item) => {
+      const type = normalizeOpportunityType(item.card.opportunityType);
+      const key = type === "other" ? "vacancy" : type;
+
+      if (!acc[key]) {
+        acc[key] = { type: key, title: getOpportunityTypeLabel(key), items: [] };
+      }
+
+      if (acc[key].items.length < 4) {
+        acc[key].items.push(item);
+      }
+
+      return acc;
+    }, {})
+  );
+}
+
+function CareerAiInsightPanel({ aiRecommendations, status, error, onRefresh }) {
+  const summary = aiRecommendations?.summary ?? aiRecommendations?.Summary ?? "";
+  const nextActions = safeArray(aiRecommendations?.nextActions ?? aiRecommendations?.NextActions).filter(Boolean).slice(0, 4);
+  const missingSkills = safeArray(aiRecommendations?.missingSkills ?? aiRecommendations?.MissingSkills).filter(Boolean).slice(0, 8);
+  const isFallback = Boolean(aiRecommendations?.isFallback ?? aiRecommendations?.IsFallback);
+
+  return (
+    <Card className="candidate-career-ai-panel">
+      <div className="candidate-career-ai-panel__head">
+        <div>
+          <span className="candidate-career-ai-panel__badge">AI · GigaChat</span>
+          <h2 className="ui-type-h2">AI-карьерный фокус</h2>
+        </div>
+        <Button type="button" variant="secondary" onClick={onRefresh} disabled={status === "loading"}>
+          {status === "loading" ? "Обновляем..." : "Обновить AI-рекомендации"}
+        </Button>
+      </div>
+
+      {status === "loading" ? <Loader label="Анализируем профиль и возможности..." surface /> : null}
+
+      {status === "error" ? (
+        <Alert tone="warning" title="AI временно недоступен" showIcon>
+          {error?.message ?? "Ручной режим и базовые рекомендации остаются доступными."}
+        </Alert>
+      ) : null}
+
+      {status !== "loading" && summary ? (
+        <p className="candidate-career-ai-panel__summary">{summary}</p>
+      ) : null}
+
+      {isFallback ? <p className="ui-type-caption">Рекомендации построены на основе ваших ключевых навыков, пока ИИ-модель GigaChat готовится к ответу.</p> : null}
+
+      {nextActions.length ? (
+        <div className="candidate-career-ai-panel__actions-list">
+          {nextActions.map((action) => (
+            <span key={action}>{action}</span>
+          ))}
+        </div>
+      ) : null}
+
+      {missingSkills.length ? (
+        <div className="candidate-career-ai-panel__tags">
+          {missingSkills.map((skill) => (
+            <Tag key={skill} variant="surface">
+              {skill}
+            </Tag>
+          ))}
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function CareerAiPlanPanel({ aiRecommendations, status }) {
+  const steps = normalizeAiCareerPlan(aiRecommendations);
+
+  if (status === "loading") {
+    return (
+      <Card className="candidate-career-ai-plan">
+        <div className="candidate-career-ai-plan__head">
+          <span className="candidate-career-ai-panel__badge">AI · план</span>
+          <h3 className="ui-type-h3">Мини-план на 7 дней</h3>
+        </div>
+        <Loader label="Формируем карьерный план..." surface />
+      </Card>
+    );
+  }
+
+  if (!steps.length) {
+    return null;
+  }
+
+  return (
+    <Card className="candidate-career-ai-plan">
+      <div className="candidate-career-ai-plan__head">
+        <span className="candidate-career-ai-panel__badge">AI · план</span>
+        <h3 className="ui-type-h3">Мини-план на 7 дней</h3>
+      </div>
+      <div className="candidate-career-ai-plan__list">
+        {steps.map((step, index) => (
+          <div key={`${step.day}-${index}`} className="candidate-career-ai-plan__item">
+            <strong>{step.day || `День ${index + 1}`}</strong>
+            <p>{step.action}</p>
+            {step.outcome ? <span>{step.outcome}</span> : null}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// OpportunityAiReason removed. AI match and fit are now rendered directly inside OpportunityBlockCard.
+
+function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange, aiStatus }) {
+  const visibleTabs = AI_RECOMMENDATION_TABS.filter((tab) => {
+    if (tab.value === "all") {
+      return true;
+    }
+
+    if (tab.value === "course") {
+      return courses.length > 0;
+    }
+
+    return sections.some((section) => normalizeOpportunityType(section.type) === tab.value && section.items.length > 0);
+  });
+
+  const selectedTab = visibleTabs.some((tab) => tab.value === activeTab) ? activeTab : "all";
+  const visibleSections = selectedTab === "all"
+    ? sections
+    : sections.filter((section) => normalizeOpportunityType(section.type) === selectedTab);
+  const showCourses = courses.length > 0 && (selectedTab === "all" || selectedTab === "course");
+
+  return (
+    <Card className="candidate-career-ai-recommendations">
+      <div className="candidate-career-ai-recommendations__head">
+        <div>
+          <span className="candidate-career-ai-panel__badge">AI · подбор</span>
+          <h2 className="ui-type-h2">Рекомендованные возможности</h2>
+          <p className="ui-type-body">Подбор сгруппирован по типам, чтобы быстрее выбрать следующий шаг.</p>
+        </div>
+      </div>
+
+      {aiStatus === "loading" ? (
+        <div className="candidate-career-ai-recommendations__sections" style={{ minHeight: "200px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Loader label="ИИ подбирает подходящие вакансии, стажировки и мероприятия..." surface />
+        </div>
+      ) : (
+        <>
+          <div className="candidate-career-ai-recommendations__tabs" role="tablist" aria-label="AI категории рекомендаций">
+            {visibleTabs.map((tab) => (
+              <FilterPill
+                key={tab.value}
+                active={selectedTab === tab.value}
+                onClick={() => onTabChange(tab.value)}
+              >
+                {tab.label}
+              </FilterPill>
+            ))}
+          </div>
+
+          <div className="candidate-career-ai-recommendations__sections">
+            {visibleSections.map((section) => (
+              <section key={section.type} className="candidate-career-ai-recommendations__section">
+                <OpportunityBlockSlider
+                  ariaLabel={`${section.title || section.type} AI slider`}
+                  items={section.items}
+                  className="candidate-career-dashboard__opportunities-slider"
+                  itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
+                  gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
+                  cardPropsBuilder={(item) => ({
+                    detailAction: {
+                      href: item.card.href ?? routes.opportunities.catalog,
+                      label: getOpportunityActionLabel(item.card.opportunityType),
+                      variant: "secondary",
+                    },
+                  })}
+                  renderItem={(item, _index, { className, cardProps }) => (
+                    <OpportunityBlockCard
+                      item={item.card}
+                      surface="plain"
+                      size="md"
+                      className={cn("candidate-career-opportunity-ai-card", className)}
+                      aiItem={item.aiItem}
+                      {...cardProps}
+                    />
+                  )}
+                />
+              </section>
+            ))}
+
+            {showCourses ? (
+              <section className="candidate-career-ai-recommendations__section">
+                <SectionHeader
+                  title="Рекомендованные курсы (ИИ)"
+                  size="md"
+                  actions={<a href="#career-courses" className="candidate-career-dashboard__section-link">К разделу курсов →</a>}
+                />
+                <OpportunityBlockSlider
+                  ariaLabel="AI courses slider"
+                  items={courses.slice(0, 4)}
+                  className="candidate-career-dashboard__courses-slider"
+                  itemWidth="var(--candidate-career-dashboard-course-slide-width)"
+                  gap="var(--candidate-career-dashboard-course-slide-gap)"
+                  renderItem={(course, _index, { className }) => (
+                    <CareerCourseCard
+                      {...course}
+                      aiRecommended
+                      className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
+                    />
+                  )}
+                />
+              </section>
+            ) : null}
+
+            {!visibleSections.length && !showCourses ? (
+              <Alert tone="info" title="Пока нет доступных рекомендаций" showIcon>
+                Когда появятся подходящие вакансии, стажировки или мероприятия, они будут показаны здесь.
+              </Alert>
+            ) : null}
+          </div>
+        </>
+      )}
+    </Card>
+  );
 }
 
 function getSuggestedSkills(profile) {
@@ -521,29 +939,49 @@ function CareerCtaCard({ profile, opportunity, matchPercentage }) {
   );
 }
 
-export function CandidateCareerDashboard({ profile, dashboardState }) {
+export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiRecommendations }) {
   const [mentorFilter, setMentorFilter] = useState(MENTOR_FILTERS[0].value);
+  const [aiRecommendationTab, setAiRecommendationTab] = useState("all");
 
   const primarySkills = getPrimarySkills(profile);
   const suggestedSkills = getSuggestedSkills(profile);
   const courses = pickCourses(profile).map(mapCourseCard);
-  const opportunities = getOpportunityCards(dashboardState.recommendations, dashboardState.opportunities);
+  const opportunities = useMemo(() => {
+    const aiCards = getAiOpportunityCards(dashboardState.aiRecommendations, dashboardState.opportunities);
+    const baseCards = getOpportunityCards(dashboardState.recommendations, dashboardState.opportunities);
+    const merged = [];
+    const seen = new Set();
+
+    [...aiCards, ...baseCards].forEach((item) => {
+      const key = Number(item?.id) || item?.title;
+      if (!key || seen.has(key) || merged.length >= 4) {
+        return;
+      }
+
+      seen.add(key);
+      merged.push(item);
+    });
+
+    return merged;
+  }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
+  const aiRecommendationSections = useMemo(() => {
+    const sections = getAiRecommendationSections(dashboardState.aiRecommendations, dashboardState.opportunities);
+
+    if (sections.length) {
+      return sections;
+    }
+
+    return getBaseRecommendationSections(
+      dashboardState.recommendations,
+      dashboardState.opportunities,
+      normalizeAiRecommendationItems(dashboardState.aiRecommendations)
+    );
+  }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
   const track = resolveTrackKey(profile);
   const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;
   const matchPercentage = calculateOpportunityMatchPercentage(profile, featuredOpportunity);
   const showCtaCard = matchPercentage >= 70;
 
-  console.log("CandidateCareerDashboard debug:", {
-    email: profile?.email,
-    profession: getProfileProfession(profile),
-    skills: getCandidateSkills(profile),
-    recommendationsCount: dashboardState.recommendations.length,
-    opportunitiesInStateCount: dashboardState.opportunities.length,
-    processedOpportunities: opportunities.map(o => ({ id: o.id, title: o.title, tags: o.tags, chips: o.chips })),
-    featuredOpportunity: featuredOpportunity ? { id: featuredOpportunity.id, title: featuredOpportunity.title } : null,
-    matchPercentage,
-    showCtaCard
-  });
   const salaryTrack = SALARY_TRACKS[track] ?? SALARY_TRACKS.default;
   const networkContacts = getSharedContacts(profile, dashboardState.contacts);
   const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
@@ -633,6 +1071,14 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
 
           <CareerSalaryPanel title="Уровень зарплат" city={getProfileCity(profile)} items={salaryTrack} />
         </div>
+
+        <CareerAiInsightPanel
+          aiRecommendations={dashboardState.aiRecommendations}
+          status={dashboardState.aiStatus}
+          error={dashboardState.aiError}
+          onRefresh={onRefreshAiRecommendations}
+        />
+        <CareerAiPlanPanel aiRecommendations={dashboardState.aiRecommendations} status={dashboardState.aiStatus} />
       </section>
 
       {dashboardState.degraded ? (
@@ -681,33 +1127,13 @@ export function CandidateCareerDashboard({ profile, dashboardState }) {
         />
       </section>
 
-      <section className="candidate-career-dashboard__section">
-        <SectionHeader
-          title="Пройди стажировку и совершенствуй свои навыки"
-          size="md"
-          actions={<a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">Все возможности →</a>}
-        />
-        {opportunities.length ? (
-          <OpportunityBlockSlider
-            ariaLabel={OPPORTUNITY_SLIDER_ARIA_LABEL}
-            items={opportunities}
-            className="candidate-career-dashboard__opportunities-slider"
-            itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
-            gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
-            cardPropsBuilder={(item) => ({
-              detailAction: {
-                href: item.href ?? routes.opportunities.catalog,
-                label: "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435",
-                variant: "secondary",
-              },
-            })}
-          />
-        ) : (
-          <Alert tone="info" title="Пока нет доступных карточек" showIcon>
-            После публикации новых вакансий и возможностей они появятся здесь.
-          </Alert>
-        )}
-      </section>
+      <CareerAiRecommendationTabs
+        sections={aiRecommendationSections}
+        courses={courses}
+        activeTab={aiRecommendationTab}
+        onTabChange={setAiRecommendationTab}
+        aiStatus={dashboardState.aiStatus}
+      />
 
       <section className="candidate-career-dashboard__section" id="mentors">
         <SectionHeader

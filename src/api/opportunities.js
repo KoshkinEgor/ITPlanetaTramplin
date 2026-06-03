@@ -41,3 +41,11 @@ export function createOpportunityComplaint(opportunityId, body) {
     body,
   });
 }
+
+export function suggestOpportunityTagsWithAi(body, signal) {
+  return apiRequest("/opportunities/ai-tag-suggestions", {
+    method: "POST",
+    body,
+    signal,
+  });
+}

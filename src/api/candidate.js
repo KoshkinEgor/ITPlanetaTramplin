@@ -235,6 +235,24 @@ export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }
 
+export function getCandidateAiCareerRecommendations(signal) {
+  return apiRequest("/candidate/me/ai-career-recommendations", { signal });
+}
+
+export function analyzeCandidateResume(signal) {
+  return apiRequest("/candidate/me/resume-analysis", {
+    method: "POST",
+    signal,
+  });
+}
+
+export function analyzeCandidateOpportunityFit(opportunityId, signal) {
+  return apiRequest(`/candidate/me/opportunities/${opportunityId}/resume-fit`, {
+    method: "POST",
+    signal,
+  });
+}
+
 export function createCandidateRecommendation(body) {
   return apiRequest("/candidate/me/recommendations", {
     method: "POST",

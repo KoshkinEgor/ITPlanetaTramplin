@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   createCandidateAchievement,
   createCandidateEducation,
@@ -7,12 +8,14 @@ import {
   getCandidateAchievements,
   getCandidateEducation,
   getCandidateProfile,
+  analyzeCandidateOpportunityFit,
+  analyzeCandidateResume,
   updateCandidateAchievement,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../api/candidate";
 import { ApiError } from "../lib/http";
-import { Alert, Button, Card, EmptyState, FormField, Input, InstitutionAutocomplete, Loader, SectionHeader, Select, Switch, TagSelector, Textarea } from "../shared/ui";
+import { Alert, Button, Card, EmptyState, FormField, Input, InstitutionAutocomplete, Loader, SectionHeader, Select, Switch, Tag, TagSelector, Textarea } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES, CANDIDATE_SKILL_SUGGESTIONS } from "./config";
 import { getTags } from "../api/tags";
 import { getCandidatePendingSkills, getCandidateSkills } from "./mappers";
@@ -90,6 +93,100 @@ function ResumeEditorSection({ eyebrow, title, description, children, actions })
     <Card className="candidate-resume-panel">
       <SectionHeader eyebrow={eyebrow} title={title} description={description} size="md" actions={actions} />
       <div className="candidate-page-stack">{children}</div>
+    </Card>
+  );
+}
+
+function ResumeAiAnalysisPanel({ analysis, status, error, opportunityId, analysisMode, onAnalyze, onAnalyzeOpportunityFit, onApplyDescription, onCopyDescription }) {
+  const improvedDescription = analysis?.improvedDescription ?? analysis?.ImprovedDescription ?? analysis?.recommendedDescription ?? analysis?.RecommendedDescription ?? "";
+  const strengthsSource = analysis?.strengths ?? analysis?.Strengths ?? analysis?.matchedSkills ?? analysis?.MatchedSkills;
+  const issuesSource = analysis?.issues ?? analysis?.Issues ?? analysis?.missingSkills ?? analysis?.MissingSkills;
+  const strengths = Array.isArray(strengthsSource) ? strengthsSource : [];
+  const issues = Array.isArray(issuesSource) ? issuesSource : [];
+  const suggestedSkills = Array.isArray(analysis?.suggestedSkills ?? analysis?.SuggestedSkills) ? (analysis.suggestedSkills ?? analysis.SuggestedSkills) : [];
+  const nextActions = Array.isArray(analysis?.nextActions ?? analysis?.NextActions) ? (analysis.nextActions ?? analysis.NextActions) : [];
+  const score = Number(analysis?.score ?? analysis?.Score ?? 0);
+  const summary = analysis?.summary ?? analysis?.Summary ?? analysis?.reason ?? analysis?.Reason ?? "";
+  const isFallback = Boolean(analysis?.isFallback ?? analysis?.IsFallback);
+  const isFitMode = analysisMode === "fit";
+
+  return (
+    <Card className="candidate-resume-ai-panel">
+      <div className="candidate-resume-ai-panel__head">
+        <div>
+          <span className="candidate-resume-ai-panel__badge">AI · GigaChat</span>
+          <h3 className="ui-type-h3">{isFitMode ? "AI-проверка под возможность" : "AI-анализ резюме"}</h3>
+        </div>
+        <div className="candidate-resume-ai-panel__actions">
+          {opportunityId ? (
+            <Button type="button" variant="secondary" onClick={onAnalyzeOpportunityFit} disabled={status === "loading"}>
+              {status === "loading" && isFitMode ? "Проверяем..." : "Проверить под выбранную возможность"}
+            </Button>
+          ) : null}
+          <Button type="button" variant="secondary" onClick={onAnalyze} disabled={status === "loading"}>
+            {status === "loading" && !isFitMode ? "Проверяем..." : analysis && !isFitMode ? "Повторить анализ" : "Проверить резюме AI"}
+          </Button>
+        </div>
+      </div>
+
+      {opportunityId ? (
+        <p className="ui-type-caption">Можно проверить резюме под возможность #{opportunityId}. Текст из AI не сохраняется автоматически.</p>
+      ) : null}
+
+      {status === "loading" ? <Loader label={isFitMode ? "Сравниваем резюме с выбранной возможностью..." : "Анализируем резюме..."} surface /> : null}
+
+      {status === "error" ? (
+        <Alert tone="warning" title="AI-анализ временно недоступен" showIcon>
+          {error?.message ?? "Редактирование резюме доступно в ручном режиме."}
+        </Alert>
+      ) : null}
+
+      {analysis ? (
+        <div className="candidate-resume-ai-panel__body">
+          <div className="candidate-resume-ai-panel__score">
+            <strong>{Math.max(0, Math.min(100, Math.round(score)))}%</strong>
+            <span>готовность резюме</span>
+          </div>
+          {summary ? <p className="ui-type-body">{summary}</p> : null}
+          {isFallback ? <p className="ui-type-caption">Показана базовая проверка, пока GigaChat не вернул полный ответ.</p> : null}
+
+          <div className="candidate-resume-ai-panel__grid">
+            <div>
+              <h4>{isFitMode ? "Совпавшие навыки" : "Сильные стороны"}</h4>
+              {strengths.length ? strengths.map((item) => <p key={item}>{item}</p>) : <p>Добавьте больше данных для анализа.</p>}
+            </div>
+            <div>
+              <h4>{isFitMode ? "Чего не хватает" : "Что улучшить"}</h4>
+              {issues.length ? issues.map((item) => <p key={item}>{item}</p>) : <p>Критичных замечаний нет.</p>}
+            </div>
+          </div>
+
+          {suggestedSkills.length ? (
+            <div className="candidate-resume-ai-panel__tags">
+              {suggestedSkills.map((skill) => (
+                <Tag key={skill} variant="surface">{skill}</Tag>
+              ))}
+            </div>
+          ) : null}
+
+          {improvedDescription ? (
+            <div className="candidate-resume-ai-panel__description">
+              <h4>{isFitMode ? "Описание под выбранную возможность" : "Вариант описания от AI"}</h4>
+              <p>{improvedDescription}</p>
+              <div className="candidate-resume-ai-panel__actions">
+                <Button type="button" onClick={() => onApplyDescription(improvedDescription)}>Применить описание</Button>
+                <Button type="button" variant="secondary" onClick={() => onCopyDescription(improvedDescription)}>Скопировать</Button>
+              </div>
+            </div>
+          ) : null}
+
+          {nextActions.length ? (
+            <div className="candidate-resume-ai-panel__next">
+              {nextActions.map((item) => <span key={item}>{item}</span>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -195,6 +292,8 @@ function AchievementCard({ item, busyKey, onChange, onSave, onDelete }) {
 }
 
 export function CandidateResumeEditorApp() {
+  const [searchParams] = useSearchParams();
+  const opportunityId = searchParams.get("opportunityId");
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState({ status: "loading", profile: null, error: null });
   const [profileDraft, setProfileDraft] = useState(createProfileDraft(null));
@@ -203,6 +302,11 @@ export function CandidateResumeEditorApp() {
   const [profileSave, setProfileSave] = useState({ status: "idle", error: "" });
   const [busyKey, setBusyKey] = useState("");
   const [sectionError, setSectionError] = useState("");
+  const [resumeAnalysis, setResumeAnalysis] = useState(null);
+  const [resumeAnalysisStatus, setResumeAnalysisStatus] = useState("idle");
+  const [resumeAnalysisError, setResumeAnalysisError] = useState(null);
+  const [resumeAnalysisMode, setResumeAnalysisMode] = useState("resume");
+  const [hasAutoRunFit, setHasAutoRunFit] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -250,6 +354,59 @@ export function CandidateResumeEditorApp() {
   function updateProfileField(field, value) {
     setProfileDraft((current) => ({ ...current, [field]: value }));
     setProfileSave((current) => (current.status === "success" ? { status: "idle", error: "" } : current));
+  }
+
+  async function handleResumeAnalysis() {
+    setResumeAnalysisMode("resume");
+    setResumeAnalysisStatus("loading");
+    setResumeAnalysisError(null);
+
+    try {
+      const analysis = await analyzeCandidateResume();
+      setResumeAnalysis(analysis);
+      setResumeAnalysisStatus("ready");
+    } catch (error) {
+      setResumeAnalysisStatus("error");
+      setResumeAnalysisError(error);
+    }
+  }
+
+  async function handleOpportunityFitAnalysis() {
+    if (!opportunityId) {
+      return;
+    }
+
+    setResumeAnalysisMode("fit");
+    setResumeAnalysisStatus("loading");
+    setResumeAnalysisError(null);
+
+    try {
+      const analysis = await analyzeCandidateOpportunityFit(opportunityId);
+      setResumeAnalysis(analysis);
+      setResumeAnalysisStatus("ready");
+    } catch (error) {
+      setResumeAnalysisStatus("error");
+      setResumeAnalysisError(error);
+    }
+  }
+
+  useEffect(() => {
+    if (state.status === "ready" && opportunityId && !hasAutoRunFit) {
+      setHasAutoRunFit(true);
+      handleOpportunityFitAnalysis();
+    }
+  }, [state.status, opportunityId, hasAutoRunFit]);
+
+  function applyAiDescription(description) {
+    updateProfileField("description", description);
+  }
+
+  async function copyAiDescription(description) {
+    try {
+      await navigator.clipboard?.writeText(description);
+    } catch {
+      // Clipboard is optional; applying the text remains available.
+    }
   }
 
   function updateEducationField(draftKey, field, value) {
@@ -528,6 +685,18 @@ export function CandidateResumeEditorApp() {
                       }
                     }}
                     allowCustomTags={true}
+                  />
+
+                  <ResumeAiAnalysisPanel
+                    analysis={resumeAnalysis}
+                    status={resumeAnalysisStatus}
+                    error={resumeAnalysisError}
+                    opportunityId={opportunityId}
+                    analysisMode={resumeAnalysisMode}
+                    onAnalyze={handleResumeAnalysis}
+                    onAnalyzeOpportunityFit={handleOpportunityFitAnalysis}
+                    onApplyDescription={applyAiDescription}
+                    onCopyDescription={copyAiDescription}
                   />
                 </ResumeEditorSection>
 
