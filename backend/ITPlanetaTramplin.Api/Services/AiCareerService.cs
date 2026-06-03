@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using DTO;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Models;
 
@@ -47,11 +50,13 @@ public sealed class AiCareerService : IAiCareerService
     };
 
     private readonly IGigaChatClient _client;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<AiCareerService> _logger;
 
-    public AiCareerService(IGigaChatClient client, ILogger<AiCareerService> logger)
+    public AiCareerService(IGigaChatClient client, IMemoryCache cache, ILogger<AiCareerService> logger)
     {
         _client = client;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -64,7 +69,20 @@ public sealed class AiCareerService : IAiCareerService
         IReadOnlyCollection<Opportunity> opportunities,
         CancellationToken cancellationToken = default)
     {
-        var candidates = SelectRelevantOpportunities(profile, projects, opportunities, 20);
+        if (string.IsNullOrWhiteSpace(profile.Description) && (profile.Skills == null || profile.Skills.Count == 0))
+        {
+            return CreateCareerFallback("Заполните описание профиля или ключевые навыки, чтобы ИИ мог составить персональные карьерные рекомендации.", [], true);
+        }
+
+        var signature = BuildDataSignature(profile, education, achievements, projects, applications, opportunities);
+        var cacheKey = $"AiCareerRecommendations_{profile.Id}_{signature}";
+
+        if (_cache.TryGetValue<AiCareerRecommendationResponseDTO>(cacheKey, out var cachedResponse))
+        {
+            return cachedResponse!;
+        }
+
+        var candidates = SelectRelevantOpportunities(profile, projects, opportunities, 10);
 
         if (candidates.Count == 0)
         {
@@ -72,13 +90,13 @@ public sealed class AiCareerService : IAiCareerService
         }
 
         var json = await _client.CompleteJsonAsync(
-            "You are a career recommendation service for a Russian platform. Return only valid JSON in Russian. Do not use markdown.",
+            "You are a Russian career AI. Return JSON only. No markdown. Explain cautiously.",
             JsonSerializer.Serialize(new
             {
-                task = "Recommend career focus and grouped opportunities for a Russian career platform. All string values must be in Russian. Explain cautiously: use 'может подойти', 'рекомендуем', 'стоит добавить'. Never guarantee hiring. Return JSON only in this shape: {\"summary\":\"string\",\"nextActions\":[\"string\"],\"missingSkills\":[\"string\"],\"careerPlan\":[{\"day\":\"День 1\",\"action\":\"string\",\"outcome\":\"string\"}],\"sections\":[{\"type\":\"vacancy\",\"title\":\"Вакансии\",\"items\":[{\"opportunityId\":1,\"matchPercent\":80,\"reason\":\"string\",\"matchedSkills\":[\"string\"],\"missingSkills\":[\"string\"],\"nextStep\":\"string\"}]}],\"items\":[{\"opportunityId\":1,\"matchPercent\":80,\"reason\":\"string\",\"matchedSkills\":[\"string\"],\"missingSkills\":[\"string\"],\"nextStep\":\"string\"}]}",
+                task = "Match candidate with opportunities. Russian language. Reason/NextStep/Summary: max 100 chars. Return JSON: {\"summary\":\"str\",\"nextActions\":[\"str\"],\"missingSkills\":[\"str\"],\"careerPlan\":[{\"day\":\"str\",\"action\":\"str\",\"outcome\":\"str\"}],\"sections\":[{\"type\":\"str\",\"title\":\"str\",\"items\":[{\"opportunityId\":1,\"matchPercent\":80,\"reason\":\"str\",\"matchedSkills\":[\"str\"],\"missingSkills\":[\"str\"],\"nextStep\":\"str\"}]}],\"items\":[]}",
                 candidate = BuildCandidatePayload(profile, education, achievements, projects, applications),
                 opportunities = candidates,
-                limits = new { sections = 5, itemsPerSection = 4, totalItems = 12, nextActions = 4, missingSkills = 8, careerPlan = 7 },
+                limits = new { sections = 5, itemsPerSection = 4, totalItems = 10, nextActions = 4, missingSkills = 8, careerPlan = 7 },
             }, JsonOptions),
             cancellationToken);
 
@@ -94,7 +112,7 @@ public sealed class AiCareerService : IAiCareerService
         parsed.Items = NormalizeRecommendationItems(
             (parsed.Sections ?? []).SelectMany(section => section.Items ?? []).Concat(parsed.Items ?? []),
             allowedIds,
-            12);
+            10);
         parsed.NextActions = CleanList(parsed.NextActions ?? [], 4);
         parsed.MissingSkills = CleanList(parsed.MissingSkills ?? [], 8);
         parsed.CareerPlan = NormalizeCareerPlan(parsed.CareerPlan ?? []);
@@ -105,9 +123,16 @@ public sealed class AiCareerService : IAiCareerService
             parsed.Sections = BuildSectionsFromItems(parsed.Items, candidates);
         }
 
-        return parsed.Items.Count > 0 || parsed.CareerPlan.Count > 0
+        var finalResponse = parsed.Items.Count > 0 || parsed.CareerPlan.Count > 0
             ? parsed
             : CreateCareerFallback("ИИ-анализ готовится. Ниже показан автоматический подбор на основе ключевых навыков вашего профиля.", candidates.Select(item => item.Id).Take(4), true);
+
+        if (!finalResponse.IsFallback)
+        {
+            _cache.Set(cacheKey, finalResponse, TimeSpan.FromHours(24));
+        }
+
+        return finalResponse;
     }
 
     public async Task<AiResumeAnalysisResponseDTO> AnalyzeResumeAsync(
@@ -118,10 +143,10 @@ public sealed class AiCareerService : IAiCareerService
         CancellationToken cancellationToken = default)
     {
         var json = await _client.CompleteJsonAsync(
-            "You are a resume review assistant for a Russian career platform. Return only valid JSON in Russian. Do not use markdown.",
+            "You are a resume reviewer. Return JSON only. No markdown.",
             JsonSerializer.Serialize(new
             {
-                task = "Analyze the resume. All string values must be in Russian. Return JSON: {\"score\":75,\"summary\":\"string\",\"strengths\":[\"string\"],\"issues\":[\"string\"],\"suggestedSkills\":[\"string\"],\"improvedDescription\":\"string\",\"nextActions\":[\"string\"]}. Keep lists short and practical.",
+                task = "Analyze candidate resume. Russian language. Keep values short (max 120 chars). Return JSON: {\"score\":75,\"summary\":\"str\",\"strengths\":[\"str\"],\"issues\":[\"str\"],\"suggestedSkills\":[\"str\"],\"improvedDescription\":\"str\",\"nextActions\":[\"str\"]}",
                 candidate = BuildCandidatePayload(profile, education, achievements, projects, []),
                 limits = new { strengths = 4, issues = 4, suggestedSkills = 8, nextActions = 4 },
             }, JsonOptions),
@@ -153,10 +178,10 @@ public sealed class AiCareerService : IAiCareerService
     {
         var opportunityPayload = BuildOpportunityPayload(opportunity);
         var json = await _client.CompleteJsonAsync(
-            "You compare a Russian candidate resume with one career opportunity. Return only valid JSON in Russian. Do not use markdown.",
+            "You compare a candidate resume with an opportunity. Return JSON only. No markdown.",
             JsonSerializer.Serialize(new
             {
-                task = "Check whether the resume may fit the selected opportunity. All string values must be in Russian. Do not guarantee success. Return JSON: {\"score\":75,\"reason\":\"string\",\"matchedSkills\":[\"string\"],\"missingSkills\":[\"string\"],\"recommendedDescription\":\"string\",\"nextActions\":[\"string\"]}.",
+                task = "Check fit. Russian language. Reason/RecommendedDescription: max 120 chars. Return JSON: {\"score\":75,\"reason\":\"str\",\"matchedSkills\":[\"str\"],\"missingSkills\":[\"str\"],\"recommendedDescription\":\"str\",\"nextActions\":[\"str\"]}",
                 candidate = BuildCandidatePayload(profile, education, achievements, projects, []),
                 opportunity = opportunityPayload,
                 limits = new { matchedSkills = 6, missingSkills = 6, nextActions = 4 },
@@ -229,11 +254,11 @@ public sealed class AiCareerService : IAiCareerService
         {
             profile.Name,
             profile.Surname,
-            profile.Description,
+            Description = TruncateText(profile.Description, 800),
             Skills = profile.Skills ?? [],
-            Education = education.Select(item => new { item.InstitutionName, item.Faculty, item.Specialization, item.EducationLevel, item.Description }),
-            Achievements = achievements.Select(item => new { item.Title, item.Description, item.Location }),
-            Projects = projects.Select(item => new { item.Title, item.ShortDescription, item.Tags }),
+            Education = education.Select(item => new { item.InstitutionName, item.Faculty, item.Specialization, item.EducationLevel, Description = TruncateText(item.Description, 300) }),
+            Achievements = achievements.Select(item => new { item.Title, Description = TruncateText(item.Description, 300), item.Location }),
+            Projects = projects.Select(item => new { item.Title, ShortDescription = TruncateText(item.ShortDescription, 300), item.Tags }),
             Applications = applications.Select(item => new { item.Status, OpportunityTitle = item.Opportunity.Title }).Take(8),
         };
     }
@@ -244,7 +269,7 @@ public sealed class AiCareerService : IAiCareerService
         {
             item.Id,
             item.Title,
-            item.Description,
+            Description = TruncateText(item.Description, 500),
             item.OpportunityType,
             item.EmploymentType,
             item.ExperienceLevel,
@@ -361,7 +386,7 @@ public sealed class AiCareerService : IAiCareerService
             {
                 Id = item.Item.Id,
                 Title = item.Item.Title,
-                Description = item.Item.Description,
+                Description = TruncateText(item.Item.Description, 500),
                 OpportunityType = item.Item.OpportunityType,
                 EmploymentType = item.Item.EmploymentType,
                 ExperienceLevel = item.Item.ExperienceLevel,
@@ -615,6 +640,77 @@ public sealed class AiCareerService : IAiCareerService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(limit)
             .ToList()!;
+    }
+
+    private static string TruncateText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength] + "...";
+    }
+
+    private static string BuildDataSignature(
+        ApplicantProfile profile,
+        IReadOnlyCollection<ApplicantEducation> education,
+        IReadOnlyCollection<ApplicantAchievement> achievements,
+        IReadOnlyCollection<CandidateProject> projects,
+        IReadOnlyCollection<OpportunityApplication> applications,
+        IReadOnlyCollection<Opportunity> opportunities)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append(profile.Id).Append('_')
+          .Append(profile.Name).Append('_')
+          .Append(profile.Surname).Append('_')
+          .Append(profile.Description ?? string.Empty).Append('_');
+        if (profile.Skills != null)
+        {
+            foreach (var skill in profile.Skills)
+            {
+                sb.Append(skill).Append(',');
+            }
+        }
+        sb.Append("||");
+
+        foreach (var edu in education)
+        {
+            sb.Append(edu.Id).Append('_')
+              .Append(edu.InstitutionName).Append('_')
+              .Append(edu.Specialization ?? string.Empty).Append(';');
+        }
+        sb.Append("||");
+
+        foreach (var ach in achievements)
+        {
+            sb.Append(ach.Id).Append('_').Append(ach.Title).Append(';');
+        }
+        sb.Append("||");
+
+        foreach (var proj in projects)
+        {
+            sb.Append(proj.Id).Append('_').Append(proj.Title).Append(';');
+        }
+        sb.Append("||");
+
+        foreach (var app in applications)
+        {
+            sb.Append(app.Id).Append('_').Append(app.Status).Append(';');
+        }
+        sb.Append("||");
+
+        sb.Append(opportunities.Count).Append('_');
+        foreach (var opp in opportunities)
+        {
+            sb.Append(opp.Id).Append(',');
+        }
+
+        var inputBytes = Encoding.UTF8.GetBytes(sb.ToString());
+        var hashBytes = MD5.HashData(inputBytes);
+        return Convert.ToHexString(hashBytes);
     }
 
     private sealed class OpportunityCandidate
