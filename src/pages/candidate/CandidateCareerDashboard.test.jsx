@@ -86,9 +86,8 @@ describe("CandidateCareerDashboard", () => {
 
     const careerTitle = screen.getByRole("heading", { name: "Карьера" });
     const topPanel = screen.getByRole("heading", { name: "Твоя карьера" });
-    const coursesSection = screen.getByRole("heading", { name: "Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:" });
     const opportunitiesSection = screen.getByRole("heading", { name: "Рекомендованные возможности" });
-    const mentorsSection = screen.getByRole("heading", { name: "Менторские программы" });
+    const coursesSection = screen.getByRole("heading", { name: "Рекомендованные курсы" });
     const networkSection = screen.getByRole("heading", { name: "Активные связи" });
     const suggestionsSection = screen.getByRole("heading", { name: "Люди под ваши отклики" });
 
@@ -97,8 +96,13 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByRole("link", { name: "Откликнуться" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Твои навыки" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Уровень зарплат в Чебоксары" })).toBeInTheDocument();
+    
+    // The unified "Все" tab slider should contain only 1 opportunity item
+    expect(screen.getByRole("region", { name: "all recommendations slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(1);
+    
+    // The standalone courses slider should contain 6 course items
     expect(screen.getByRole("region", { name: "Career courses slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(6);
-    expect(screen.getByRole("region", { name: "Стажировки AI slider" }).querySelectorAll(".opportunity-block-slider__item")).toHaveLength(1);
+    
     expect(screen.getAllByText("Нейросети для дизайна").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Веб-дизайнер").length).toBeGreaterThan(0);
     expect(screen.getByText("Оплата")).toBeInTheDocument();
@@ -108,21 +112,19 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.getByText("Мария Ильина")).toBeInTheDocument();
 
     const firstCourseLink = screen.getAllByRole("link", { name: "Перейти к курсу" })[0];
-    const opportunitiesSlider = screen.getByRole("region", { name: "Стажировки AI slider" }).parentElement;
+    const opportunitiesSlider = screen.getByRole("region", { name: "all recommendations slider" }).parentElement;
 
     expect(firstCourseLink).toHaveAttribute("href", "https://practicum.yandex.ru/ai-tools-for-designers/");
     expect(firstCourseLink).toHaveAttribute("target", "_blank");
     expect(firstCourseLink).toHaveAttribute("rel", "noreferrer");
     expect(opportunitiesSlider).not.toHaveClass("opportunity-block-slider--leading-featured");
 
-    expect(screen.getByRole("link", { name: "Все программы →" })).toHaveAttribute("href", "/opportunities?type=mentoring");
     expect(screen.getAllByRole("link", { name: "Подробнее" })[0]).toBeInTheDocument();
     expect(screen.queryByText("Менторы скоро появятся")).not.toBeInTheDocument();
 
-    expect(isBefore(careerTitle, coursesSection)).toBe(true);
-    expect(isBefore(coursesSection, opportunitiesSection)).toBe(true);
-    expect(isBefore(opportunitiesSection, mentorsSection)).toBe(true);
-    expect(isBefore(mentorsSection, networkSection)).toBe(true);
+    expect(isBefore(careerTitle, opportunitiesSection)).toBe(true);
+    expect(isBefore(opportunitiesSection, coursesSection)).toBe(true);
+    expect(isBefore(coursesSection, networkSection)).toBe(true);
     expect(isBefore(networkSection, suggestionsSection)).toBe(true);
   });
 

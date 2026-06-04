@@ -7,6 +7,7 @@ import { OpportunityBlockCard } from "../../components/opportunities/Opportunity
 import { getOpportunityCardPresentation } from "../../shared/lib/opportunityPresentation";
 import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
 import { cn } from "../../lib/cn";
+import { normalizeOpportunityType } from "../../shared/lib/opportunityTypes";
 import {
   Alert,
   Button,
@@ -33,13 +34,12 @@ const COURSE_ACTION_TARGET = "_blank";
 const COURSE_ACTION_REL = "noreferrer";
 const MENTOR_CATALOG_HREF = `${routes.opportunities.catalog}?type=mentoring`;
 
-const AI_RECOMMENDATION_TABS = [
+const RECOMMENDATION_TABS = [
   { value: "all", label: "Все" },
   { value: "vacancy", label: "Вакансии" },
   { value: "internship", label: "Стажировки" },
+  { value: "mentoring", label: "Менторские программы" },
   { value: "event", label: "Мероприятия" },
-  { value: "mentoring", label: "Менторство" },
-  { value: "course", label: "Курсы" },
 ];
 
 const SALARY_TRACKS = {
@@ -317,18 +317,7 @@ function getAiOpportunityCards(aiRecommendations, opportunities) {
     .filter(Boolean);
 }
 
-function normalizeOpportunityType(value) {
-  const normalized = String(value ?? "").trim().toLowerCase();
 
-  if (["job", "vacancy"].includes(normalized)) return "vacancy";
-  if (normalized === "internship") return "internship";
-  if (normalized === "event") return "event";
-  if (["mentor", "mentoring"].includes(normalized)) return "mentoring";
-  if (["course", "courses"].includes(normalized)) return "course";
-  if (normalized === "fallback") return "fallback";
-
-  return "other";
-}
 
 function getOpportunityTypeLabel(type) {
   switch (normalizeOpportunityType(type)) {
@@ -339,7 +328,7 @@ function getOpportunityTypeLabel(type) {
     case "event":
       return "Мероприятия";
     case "mentoring":
-      return "Менторство";
+      return "Менторские программы";
     case "course":
       return "Курсы";
     case "fallback":
@@ -452,7 +441,7 @@ function getAiRecommendationSections(aiRecommendations, opportunities) {
   return Object.values(
     items.reduce((acc, item) => {
       const type = normalizeOpportunityType(item.card.opportunityType);
-      const key = type === "other" ? "vacancy" : type;
+      const key = type;
 
       if (!acc[key]) {
         acc[key] = { type: key, title: getOpportunityTypeLabel(key), items: [] };
@@ -488,7 +477,7 @@ function getBaseRecommendationSections(recommendations, opportunities, aiItems =
   return Object.values(
     merged.reduce((acc, item) => {
       const type = normalizeOpportunityType(item.card.opportunityType);
-      const key = type === "other" ? "vacancy" : type;
+      const key = type;
 
       if (!acc[key]) {
         acc[key] = { type: key, title: getOpportunityTypeLabel(key), items: [] };
@@ -596,30 +585,86 @@ function CareerAiPlanPanel({ aiRecommendations, status }) {
 
 // OpportunityAiReason removed. AI match and fit are now rendered directly inside OpportunityBlockCard.
 
-function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange, aiStatus, mode = "system" }) {
-  const visibleTabs = AI_RECOMMENDATION_TABS.filter((tab) => {
+function CareerAiRecommendationTabs({
+  sections,
+  mentoringPrograms,
+  activeTab,
+  onTabChange,
+  aiStatus,
+  mode = "system"
+}) {
+  const getItemsByType = (targetType) => {
+    const list = [];
+    sections.forEach((section) => {
+      const type = normalizeOpportunityType(section.type);
+      if (type === targetType) {
+        list.push(...section.items.map(item => ({ ...item, isCourse: false, type })));
+      }
+    });
+    return list;
+  };
+
+  const vacancyItems = getItemsByType("vacancy");
+  const internshipItems = getItemsByType("internship");
+  const eventItems = getItemsByType("event");
+  const fallbackItems = getItemsByType("fallback");
+  const otherItems = getItemsByType("other");
+  
+  const mentoringItems = (() => {
+    const fromSections = getItemsByType("mentoring");
+    if (fromSections.length > 0) {
+      return fromSections;
+    }
+    return mentoringPrograms.map((card) => ({ card, aiItem: null, isCourse: false, type: "mentoring" }));
+  })();
+
+  const getCombinedAllItems = () => {
+    const list = [];
+    
+    list.push(...vacancyItems);
+    list.push(...internshipItems);
+    list.push(...mentoringItems);
+    list.push(...eventItems);
+    list.push(...fallbackItems);
+    list.push(...otherItems);
+
+    if (mode === "ai") {
+      list.sort((a, b) => {
+        const matchA = a.aiItem?.matchPercent ?? 0;
+        const matchB = b.aiItem?.matchPercent ?? 0;
+        return matchB - matchA;
+      });
+    }
+
+    return list.slice(0, 8);
+  };
+
+  const tabData = {
+    all: [],
+    mentoring: mentoringItems,
+    vacancy: vacancyItems,
+    internship: internshipItems,
+    event: eventItems,
+    fallback: fallbackItems,
+    other: otherItems,
+  };
+  tabData.all = getCombinedAllItems();
+
+  const visibleTabs = RECOMMENDATION_TABS.filter((tab) => {
     if (tab.value === "all") {
-      return true;
+      return tabData.all.length > 0;
     }
-
-    if (tab.value === "course") {
-      return courses.length > 0;
-    }
-
-    return sections.some((section) => normalizeOpportunityType(section.type) === tab.value && section.items.length > 0);
+    return tabData[tab.value] && tabData[tab.value].length > 0;
   });
 
   const selectedTab = visibleTabs.some((tab) => tab.value === activeTab) ? activeTab : "all";
-  const visibleSections = selectedTab === "all"
-    ? sections
-    : sections.filter((section) => normalizeOpportunityType(section.type) === selectedTab);
-  const showCourses = courses.length > 0 && (selectedTab === "all" || selectedTab === "course");
+  const currentItems = tabData[selectedTab] || [];
 
   return (
     <Card className="candidate-career-ai-recommendations">
       <div className="candidate-career-ai-recommendations__head">
         <div>
-          <span className="candidate-career-ai-panel__badge">AI · подбор</span>
+          {mode === "ai" && <span className="candidate-career-ai-panel__badge">AI · подбор</span>}
           <h2 className="ui-type-h2">Рекомендованные возможности</h2>
           <p className="ui-type-body">Подбор сгруппирован по типам, чтобы быстрее выбрать следующий шаг.</p>
         </div>
@@ -627,11 +672,11 @@ function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange,
 
       {aiStatus === "loading" ? (
         <div className="candidate-career-ai-recommendations__sections" style={{ minHeight: "200px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Loader label="ИИ подбирает подходящие вакансии, стажировки и мероприятия..." surface />
+          <Loader label="Подбираем подходящие вакансии, стажировки и мероприятия..." surface />
         </div>
       ) : (
         <>
-          <div className="candidate-career-ai-recommendations__tabs" role="tablist" aria-label="AI категории рекомендаций">
+          <div className="candidate-career-ai-recommendations__tabs" role="tablist" aria-label="Категории рекомендаций">
             {visibleTabs.map((tab) => (
               <FilterPill
                 key={tab.value}
@@ -644,11 +689,11 @@ function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange,
           </div>
 
           <div className="candidate-career-ai-recommendations__sections">
-            {visibleSections.map((section) => (
-              <section key={section.type} className="candidate-career-ai-recommendations__section">
+            {currentItems.length > 0 ? (
+              <section className="candidate-career-ai-recommendations__section">
                 <OpportunityBlockSlider
-                  ariaLabel={`${section.title || section.type} AI slider`}
-                  items={section.items}
+                  ariaLabel={`${selectedTab} recommendations slider`}
+                  items={currentItems}
                   className="candidate-career-dashboard__opportunities-slider"
                   itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
                   gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
@@ -676,43 +721,17 @@ function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange,
                       surface="plain"
                       size="md"
                       className={cn("candidate-career-opportunity-ai-card", className)}
-                      aiItem={item.aiItem}
+                      aiItem={mode === "ai" ? item.aiItem : null}
                       {...cardProps}
                     />
                   )}
                 />
               </section>
-            ))}
-
-            {showCourses ? (
-              <section className="candidate-career-ai-recommendations__section">
-                <SectionHeader
-                  title="Рекомендованные курсы (ИИ)"
-                  size="md"
-                  actions={<a href="#career-courses" className="candidate-career-dashboard__section-link">К разделу курсов →</a>}
-                />
-                <OpportunityBlockSlider
-                  ariaLabel="AI courses slider"
-                  items={courses.slice(0, 4)}
-                  className="candidate-career-dashboard__courses-slider"
-                  itemWidth="var(--candidate-career-dashboard-course-slide-width)"
-                  gap="var(--candidate-career-dashboard-course-slide-gap)"
-                  renderItem={(course, _index, { className }) => (
-                    <CareerCourseCard
-                      {...course}
-                      aiRecommended
-                      className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
-                    />
-                  )}
-                />
-              </section>
-            ) : null}
-
-            {!visibleSections.length && !showCourses ? (
+            ) : (
               <Alert tone="info" title="Пока нет доступных рекомендаций" showIcon>
                 Когда появятся подходящие вакансии, стажировки или мероприятия, они будут показаны здесь.
               </Alert>
-            ) : null}
+            )}
           </div>
         </>
       )}
@@ -1389,89 +1408,134 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
             })()
           )}
 
-          {/* AI Section 2: Portfolio Assessment */}
-          <section className="candidate-career-dashboard__section">
-            <SectionHeader
-              title="Оценка портфолио (AI)"
-              description="Анализ ваших проектов, командной роли и вклада в разработку."
-              size="md"
-            />
-            <Card className="candidate-career-ai-portfolio-section">
-              <div className="portfolio-section__header-row">
-                <CircularScoreGauge score={aiRecommendations.portfolioAssessment?.score || 0} />
-                <div className="portfolio-section__summary-wrapper">
-                  <p className="portfolio-section__summary">{aiRecommendations.portfolioAssessment?.summary}</p>
+          <div className="candidate-career-dashboard__ai-two-column-grid">
+            {/* AI Section 2: Portfolio Assessment */}
+            <section className="candidate-career-dashboard__section">
+              <SectionHeader
+                title="Оценка портфолио (AI)"
+                description="Анализ ваших проектов, командной роли и вклада в разработку."
+                size="md"
+              />
+              <Card className="candidate-career-ai-portfolio-section">
+                <div className="portfolio-section__header-row">
+                  <CircularScoreGauge score={aiRecommendations.portfolioAssessment?.score || 0} />
+                  <div className="portfolio-section__summary-wrapper">
+                    <p className="portfolio-section__summary">{aiRecommendations.portfolioAssessment?.summary}</p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="portfolio-section__details-grid">
-                {aiRecommendations.portfolioAssessment?.strengths?.length > 0 && (
-                  <div className="assessment-group">
-                    <h4 className="assessment-group__title is-strength">Сильные стороны:</h4>
-                    <ul className="assessment-group__list">
-                      {aiRecommendations.portfolioAssessment.strengths.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {aiRecommendations.portfolioAssessment?.improvements?.length > 0 && (
-                  <div className="assessment-group">
-                    <h4 className="assessment-group__title is-improvement">Рекомендации по улучшению:</h4>
-                    <ul className="assessment-group__list">
-                      {aiRecommendations.portfolioAssessment.improvements.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </section>
+                
+                <div className="portfolio-section__details-grid">
+                  {aiRecommendations.portfolioAssessment?.strengths?.length > 0 && (
+                    <div className="assessment-group">
+                      <h4 className="assessment-group__title is-strength">Сильные стороны:</h4>
+                      <ul className="assessment-group__list">
+                        {aiRecommendations.portfolioAssessment.strengths.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {aiRecommendations.portfolioAssessment?.improvements?.length > 0 && (
+                    <div className="assessment-group">
+                      <h4 className="assessment-group__title is-improvement">Рекомендации по улучшению:</h4>
+                      <ul className="assessment-group__list">
+                        {aiRecommendations.portfolioAssessment.improvements.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </section>
 
-          {/* AI Section 3: Skill Gaps */}
-          <section className="candidate-career-dashboard__section">
-            <SectionHeader
-              title="Разрыв навыков (AI)"
-              description="Ключевые компетенции, которых вам не хватает для соответствия выбранным направлениям."
-              size="md"
-            />
-            <Card className="candidate-career-ai-skills-gap-section">
-              {aiRecommendations.skillGaps?.length > 0 ? (
-                <div className="skills-gap-list">
-                  {aiRecommendations.skillGaps.map((item, idx) => {
-                    const priorityLower = String(item.priority || "").toLowerCase();
-                    const priorityClass = priorityLower === "high" ? "is-high" : priorityLower === "medium" ? "is-medium" : "is-low";
-                    const priorityLabel = priorityLower === "high" ? "Высокий приоритет" : priorityLower === "medium" ? "Средний приоритет" : "Низкий приоритет";
-                    
-                    return (
-                      <div key={idx} className="skills-gap-item">
-                        <div className="skills-gap-item__headline">
-                          <strong className="skills-gap-item__name">{item.skill || item.Skill}</strong>
-                          <span className={cn("skills-gap-item__badge", priorityClass)}>{priorityLabel}</span>
+            {/* AI Section 3: Skill Gaps */}
+            <section className="candidate-career-dashboard__section">
+              <SectionHeader
+                title="Разрыв навыков (AI)"
+                description="Ключевые компетенции, которых вам не хватает для соответствия выбранным направлениям."
+                size="md"
+              />
+              <Card className="candidate-career-ai-skills-gap-section">
+                {aiRecommendations.skillGaps?.length > 0 ? (
+                  <div className="skills-gap-list">
+                    {aiRecommendations.skillGaps.map((item, idx) => {
+                      const priorityLower = String(item.priority || "").toLowerCase();
+                      const priorityClass = priorityLower === "high" ? "is-high" : priorityLower === "medium" ? "is-medium" : "is-low";
+                      const priorityLabel = priorityLower === "high" ? "Высокий приоритет" : priorityLower === "medium" ? "Средний приоритет" : "Низкий приоритет";
+                      
+                      return (
+                        <div key={idx} className="skills-gap-item">
+                          <div className="skills-gap-item__headline">
+                            <strong className="skills-gap-item__name">{item.skill || item.Skill}</strong>
+                            <span className={cn("skills-gap-item__badge", priorityClass)}>{priorityLabel}</span>
+                          </div>
+                          <p className="skills-gap-item__reason">{item.reason || item.Reason}</p>
                         </div>
-                        <p className="skills-gap-item__reason">{item.reason || item.Reason}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <Alert tone="success" title="Отличная новость!" showIcon>
-                  ИИ не выявил критических разрывов в ваших ключевых навыках для рекомендованных вакансий.
-                </Alert>
-              )}
-            </Card>
-          </section>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Alert tone="success" title="Отличная новость!" showIcon>
+                    ИИ не выявил критических разрывов в ваших ключевых навыках для рекомендованных вакансий.
+                  </Alert>
+                )}
+              </Card>
+            </section>
+          </div>
 
           {/* AI Section 4: Recommended Opportunities */}
           <CareerAiRecommendationTabs
             sections={aiRecommendationSections}
-            courses={courses}
+            mentoringPrograms={mentoringPrograms}
             activeTab={aiRecommendationTab}
             onTabChange={setAiRecommendationTab}
             aiStatus={dashboardState.aiStatus}
             mode={mode}
           />
+
+          {/* Standalone Recommended Courses Section */}
+          {courses.length > 0 && (
+            <section id="career-courses" className="candidate-career-dashboard__section">
+              <div className="candidate-career-courses-header">
+                <div className="candidate-career-courses-header__title-row">
+                  <h2 className="ui-type-h2">Рекомендованные курсы</h2>
+                  <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
+                    Все курсы →
+                  </a>
+                </div>
+
+                {suggestedSkills.length > 0 && (
+                  <div className="candidate-career-courses-header__skills" style={{ marginTop: "12px" }}>
+                    {suggestedSkills.map((skill) => (
+                      <Tag key={skill} variant="surface">
+                        {skill}
+                      </Tag>
+                    ))}
+                  </div>
+                )}
+
+                <p className="candidate-career-courses-header__description ui-type-body" style={{ marginTop: "8px" }}>
+                  Для получения больших возможностей и приглашений на стажировку или работу вам может не хватать этих навыков. Развивайтесь в данных направлениях для повышения шансов на собеседовании.
+                </p>
+              </div>
+              
+              <OpportunityBlockSlider
+                ariaLabel={COURSE_SLIDER_ARIA_LABEL}
+                items={courses}
+                className="candidate-career-dashboard__courses-slider"
+                itemWidth="var(--candidate-career-dashboard-course-slide-width)"
+                gap="var(--candidate-career-dashboard-course-slide-gap)"
+                renderItem={(course, _index, { className }) => (
+                  <CareerCourseCard
+                    {...course}
+                    aiRecommended={mode === "ai"}
+                    className={cn("candidate-career-dashboard__course-card", className)}
+                  />
+                )}
+              />
+            </section>
+          )}
 
           {/* AI Section 5: 7-day Development Plan */}
           <section className="candidate-career-dashboard__section">
@@ -1485,91 +1549,59 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
             <CareerCtaCard profile={profile} opportunity={featuredOpportunity} matchPercentage={matchPercentage} />
           )}
 
-          <section id="career-courses" className="candidate-career-dashboard__section">
-            <div className="candidate-career-courses-header">
-              <div className="candidate-career-courses-header__title-row">
-                <h2 className="ui-type-h2">
-                  Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:
-                </h2>
-                <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
-                  Все курсы →
-                </a>
-              </div>
-
-              {suggestedSkills.length > 0 && (
-                <div className="candidate-career-courses-header__skills">
-                  {suggestedSkills.map((skill) => (
-                    <Tag key={skill} variant="surface">
-                      {skill}
-                    </Tag>
-                  ))}
-                </div>
-              )}
-
-              <p className="candidate-career-courses-header__description ui-type-body">
-                Развивайтесь в данных направлениях для повышения шансов на собеседовании.
-              </p>
-            </div>
-            
-            <OpportunityBlockSlider
-              ariaLabel={COURSE_SLIDER_ARIA_LABEL}
-              items={courses}
-              className="candidate-career-dashboard__courses-slider"
-              itemWidth="var(--candidate-career-dashboard-course-slide-width)"
-              gap="var(--candidate-career-dashboard-course-slide-gap)"
-              renderItem={(course, _index, { className }) => (
-                <CareerCourseCard
-                  {...course}
-                  className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
-                />
-              )}
-            />
-          </section>
-
           <CareerAiRecommendationTabs
             sections={aiRecommendationSections}
-            courses={courses}
+            mentoringPrograms={mentoringPrograms}
             activeTab={aiRecommendationTab}
             onTabChange={setAiRecommendationTab}
             aiStatus={dashboardState.aiStatus}
             mode={mode}
           />
+
+          {/* Standalone Recommended Courses Section */}
+          {courses.length > 0 && (
+            <section id="career-courses" className="candidate-career-dashboard__section">
+              <div className="candidate-career-courses-header">
+                <div className="candidate-career-courses-header__title-row">
+                  <h2 className="ui-type-h2">Рекомендованные курсы</h2>
+                  <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
+                    Все курсы →
+                  </a>
+                </div>
+
+                {suggestedSkills.length > 0 && (
+                  <div className="candidate-career-courses-header__skills" style={{ marginTop: "12px" }}>
+                    {suggestedSkills.map((skill) => (
+                      <Tag key={skill} variant="surface">
+                        {skill}
+                      </Tag>
+                    ))}
+                  </div>
+                )}
+
+                <p className="candidate-career-courses-header__description ui-type-body" style={{ marginTop: "8px" }}>
+                  Для получения больших возможностей и приглашений на стажировку или работу вам может не хватать этих навыков. Развивайтесь в данных направлениях для повышения шансов на собеседовании.
+                </p>
+              </div>
+              
+              <OpportunityBlockSlider
+                ariaLabel={COURSE_SLIDER_ARIA_LABEL}
+                items={courses}
+                className="candidate-career-dashboard__courses-slider"
+                itemWidth="var(--candidate-career-dashboard-course-slide-width)"
+                gap="var(--candidate-career-dashboard-course-slide-gap)"
+                renderItem={(course, _index, { className }) => (
+                  <CareerCourseCard
+                    {...course}
+                    aiRecommended={mode === "ai"}
+                    className={cn("candidate-career-dashboard__course-card", className)}
+                  />
+                )}
+              />
+            </section>
+          )}
         </>
       )}
-
-      {/* Shared sections rendered in both System and AI modes */}
-      <section className="candidate-career-dashboard__section" id="mentors">
-        <SectionHeader
-          title="Менторские программы"
-          description="Программы долгосрочного развития от компаний и экспертов."
-          size="md"
-          actions={(
-            <a href={MENTOR_CATALOG_HREF} className="candidate-career-dashboard__section-link">
-              Все программы →
-            </a>
-          )}
-        />
-        {mentoringPrograms.length ? (
-          <OpportunityBlockSlider
-            ariaLabel="Mentoring programs slider"
-            items={mentoringPrograms}
-            className="candidate-career-dashboard__opportunities-slider"
-            itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
-            gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
-            cardPropsBuilder={(item) => ({
-              detailAction: {
-                href: item.href ?? routes.opportunities.catalog,
-                label: "Подробнее",
-                variant: "secondary",
-              },
-            })}
-          />
-        ) : (
-          <Alert tone="info" title="Пока нет доступных менторских программ" showIcon>
-            Когда компании опубликуют новые программы менторства, они появятся здесь.
-          </Alert>
-        )}
-      </section>
 
       <section className="candidate-career-dashboard__section">
         <SectionHeader

@@ -12,6 +12,7 @@ import {
   getCandidateDirectory,
   getCandidateProfile,
   getCandidateRecommendations,
+  getCandidateProjects,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
@@ -330,6 +331,7 @@ export function CandidateCareerPage() {
     recommendations: [],
     opportunities: [],
     directory: [],
+    projects: [],
     aiRecommendations: null,
     aiStatus: "idle",
     aiError: null,
@@ -420,7 +422,6 @@ export function CandidateCareerPage() {
       aiStatus: currentMode === "ai" ? "loading" : "idle",
       error: null
     }));
-
     const regularPromise = Promise.allSettled([
       getCandidateApplications(controller.signal),
       getCandidateContacts(controller.signal),
@@ -428,6 +429,7 @@ export function CandidateCareerPage() {
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
       getCandidateDirectory(controller.signal),
+      getCandidateProjects(controller.signal),
     ]);
 
     const aiPromise = currentMode === "ai"
@@ -439,7 +441,7 @@ export function CandidateCareerPage() {
         return;
       }
 
-      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult] = results;
+      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult, projectsResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
       const requiredFailedCount = failedCount;
 
@@ -452,9 +454,10 @@ export function CandidateCareerPage() {
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
         directory: directoryResult.status === "fulfilled" ? safeArray(directoryResult.value) : [],
+        projects: projectsResult.status === "fulfilled" ? safeArray(projectsResult.value) : [],
         degraded: requiredFailedCount > 0,
-        error: requiredFailedCount === 6
-          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason)
+        error: requiredFailedCount === 7
+          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason ?? projectsResult.reason)
           : null,
       }));
     }).catch((error) => {
@@ -471,6 +474,7 @@ export function CandidateCareerPage() {
         recommendations: [],
         opportunities: [],
         directory: [],
+        projects: [],
         aiRecommendations: null,
         aiStatus: "idle",
         aiError: null,

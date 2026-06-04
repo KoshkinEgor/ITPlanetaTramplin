@@ -1163,8 +1163,8 @@
 
 /* AI badge for Career Course Card */
 .ui-career-course-card--ai {
-  border-color: rgba(139, 92, 246, 0.22) !important;
-  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.05) !important;
+  border-color: rgba(47, 128, 255, 0.22) !important;
+  box-shadow: 0 10px 30px rgba(47, 128, 255, 0.05) !important;
 }
 
 .ui-career-course-card__ai-badge {
@@ -1174,8 +1174,8 @@
   width: fit-content;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(139, 92, 246, 0.1);
-  color: #7c3aed;
+  background: rgba(47, 128, 255, 0.1);
+  color: var(--ui-color-accent, #2f80ff);
   font-size: 11px;
   font-weight: 700;
   margin-bottom: -4px;
@@ -1184,7 +1184,7 @@
 .ui-career-course-card__ai-spark {
   width: 12px;
   height: 12px;
-  color: #7c3aed;
+  color: var(--ui-color-accent, #2f80ff);
 }
 
 /* Switcher & Header */
@@ -1243,7 +1243,7 @@
 }
 
 .status-loading .status-dot {
-  background-color: #8b5cf6;
+  background-color: var(--ui-color-accent, #2f80ff);
   animation: pulse-loading-ai 1.2s infinite ease-in-out;
 }
 
@@ -1255,7 +1255,7 @@
   50% {
     transform: scale(1.2);
     opacity: 1;
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 10px rgba(47, 128, 255, 0.8);
   }
   100% {
     transform: scale(0.8);
@@ -1293,13 +1293,13 @@
   box-shadow: 0 4px 12px rgba(24, 29, 45, 0.08);
 }
 
-/* AI switcher button active state highlight when in AI mode */
+/* AI switcher button active state highlight when in AI mode - Blue theme */
 .candidate-career-switcher__btn.is-active[aria-checked="true"]:nth-child(2) {
-  color: #7c3aed;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+  color: var(--ui-color-accent-strong, #2f80ff);
+  box-shadow: 0 4px 12px rgba(47, 128, 255, 0.15);
 }
 
-/* Common AI Card Style: Match system card shapes exactly, but using AI color coding */
+/* Common AI Card Style: Match system card shapes exactly, using system blue color coding */
 .candidate-career-ai-generate-card.ui-card,
 .candidate-career-ai-focus-card.ui-card,
 .candidate-career-ai-profile-card.ui-card,
@@ -1312,10 +1312,10 @@
   min-height: 100%;
   padding: var(--ui-space-4) !important;
   border-radius: calc(var(--ui-radius-xl) - 4px) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
-  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.06), transparent 34%),
+  border: 1px solid rgba(47, 128, 255, 0.18) !important;
+  background: radial-gradient(circle at top right, rgba(47, 128, 255, 0.05), transparent 34%),
               rgba(255, 255, 255, 0.84) !important;
-  box-shadow: 0 24px 60px rgba(139, 92, 246, 0.05) !important;
+  box-shadow: 0 24px 60px rgba(47, 128, 255, 0.04) !important;
   backdrop-filter: blur(18px) !important;
   transition: transform var(--ui-transition-base), border-color var(--ui-transition-base), box-shadow var(--ui-transition-base);
 }
@@ -1330,17 +1330,17 @@
 .candidate-career-ai-plan.ui-card:hover,
 .candidate-career-ai-recommendations.ui-card:hover {
   transform: translateY(-2px) !important;
-  border-color: rgba(139, 92, 246, 0.35) !important;
-  box-shadow: 0 24px 60px rgba(139, 92, 246, 0.12), 0 0 20px rgba(139, 92, 246, 0.05) !important;
+  border-color: rgba(47, 128, 255, 0.32) !important;
+  box-shadow: 0 24px 60px rgba(47, 128, 255, 0.1), 0 0 20px rgba(47, 128, 255, 0.04) !important;
 }
 
 /* AI Generate Card Specifics */
 .candidate-career-ai-generate-card.ui-card {
   grid-column: 1 / -1;
-  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.12), transparent 35%),
+  background: radial-gradient(circle at top right, rgba(47, 128, 255, 0.08), transparent 35%),
               rgba(255, 255, 255, 0.84) !important;
-  border: 1px solid rgba(139, 92, 246, 0.22) !important;
-  box-shadow: 0 24px 60px rgba(139, 92, 246, 0.06) !important;
+  border: 1px solid rgba(47, 128, 255, 0.2) !important;
+  box-shadow: 0 24px 60px rgba(47, 128, 255, 0.05) !important;
 }
 
 .candidate-career-ai-generate-card__content {
@@ -1355,11 +1355,11 @@
   width: fit-content;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(139, 92, 246, 0.1) !important;
-  color: #7c3aed !important;
+  background: rgba(47, 128, 255, 0.08) !important;
+  color: var(--ui-color-accent, #2f80ff) !important;
   font-size: 12px;
   font-weight: 700;
-  border: 1px solid rgba(139, 92, 246, 0.16) !important;
+  border: 1px solid rgba(47, 128, 255, 0.14) !important;
 }
 
 .candidate-career-ai-generate-card__benefits {
@@ -1381,7 +1381,7 @@
 .benefit-item svg {
   width: 16px;
   height: 16px;
-  color: #8b5cf6;
+  color: var(--ui-color-accent, #2f80ff);
 }
 
 .candidate-career-ai-generate-card__btn {
@@ -1409,7 +1409,7 @@
 
 .score-gauge__progress {
   fill: none;
-  stroke: #8b5cf6 !important;
+  stroke: var(--ui-color-accent, #2f80ff) !important;
   stroke-width: 6;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.6s ease;
@@ -1452,11 +1452,11 @@
   display: inline-flex;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(139, 92, 246, 0.1) !important;
-  color: #7c3aed !important;
+  background: rgba(47, 128, 255, 0.08) !important;
+  color: var(--ui-color-accent-strong, #2f80ff) !important;
   font-size: 11px;
   font-weight: 700;
-  border: 1px solid rgba(139, 92, 246, 0.16) !important;
+  border: 1px solid rgba(47, 128, 255, 0.14) !important;
 }
 
 .candidate-career-ai-card__date {
@@ -1498,8 +1498,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(139, 92, 246, 0.12) !important;
-  color: #7c3aed !important;
+  background: rgba(47, 128, 255, 0.1) !important;
+  color: var(--ui-color-accent-strong, #2f80ff) !important;
   font-weight: 700;
   font-size: 11px;
   flex-shrink: 0;
@@ -1600,7 +1600,7 @@
 }
 
 .salary-level-arrow {
-  color: #8b5cf6 !important;
+  color: var(--ui-color-accent, #2f80ff) !important;
   font-weight: 700;
 }
 
@@ -1624,7 +1624,7 @@
 }
 
 .salary-range-value {
-  color: #7c3aed !important;
+  color: var(--ui-color-accent-strong, #2f80ff) !important;
   font-weight: 700;
 }
 
@@ -1726,26 +1726,27 @@
   color: var(--ui-color-text);
 }
 
+/* details grid is now single-column inside the 50% width grid item */
 .portfolio-section__details-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   border-top: 1px solid rgba(24, 29, 45, 0.08);
-  padding-top: 20px;
+  padding-top: 16px;
 }
 
 /* Skills Gap Section Specifics */
 .skills-gap-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .skills-gap-item {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(24, 29, 45, 0.06);
 }
 
@@ -1797,25 +1798,25 @@
   color: var(--ui-color-text-soft);
 }
 
-/* Recommended Opportunities Tabs Highlights */
+/* Recommended Opportunities Tabs Highlights - Blue theme */
 .candidate-career-ai-recommendations__tabs .ui-filter-pill.is-active,
 .candidate-career-ai-recommendations__tabs .ui-pill-button.is-active {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important;
+  background: linear-gradient(135deg, #2f80ff 0%, #1e62d0 100%) !important;
   color: #ffffff !important;
   border-color: transparent !important;
-  box-shadow: 0 18px 30px rgba(139, 92, 246, 0.2) !important;
+  box-shadow: 0 18px 30px rgba(47, 128, 255, 0.2) !important;
 }
 
 /* AI Opportunity Card Highlights */
 .candidate-career-opportunity-ai-card {
-  border-color: rgba(139, 92, 246, 0.18) !important;
-  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent 34%),
+  border-color: rgba(47, 128, 255, 0.18) !important;
+  background: radial-gradient(circle at top right, rgba(47, 128, 255, 0.05), transparent 34%),
               rgba(255, 255, 255, 0.84) !important;
 }
 
 .candidate-career-opportunity-ai-card:hover {
-  border-color: rgba(139, 92, 246, 0.35) !important;
-  box-shadow: 0 16px 36px rgba(139, 92, 246, 0.08) !important;
+  border-color: rgba(47, 128, 255, 0.35) !important;
+  box-shadow: 0 16px 36px rgba(47, 128, 255, 0.08) !important;
 }
 
 /* Plan Panel Specifics */
@@ -1835,20 +1836,20 @@
   display: grid;
   gap: 6px;
   padding: 14px;
-  border: 1px solid rgba(139, 92, 246, 0.14) !important;
+  border: 1px solid rgba(47, 128, 255, 0.14) !important;
   border-radius: 12px !important;
   background: rgba(255, 255, 255, 0.72) !important;
   transition: all var(--ui-transition-base);
 }
 
 .candidate-career-ai-plan__item:hover {
-  border-color: rgba(139, 92, 246, 0.3) !important;
-  background: rgba(248, 244, 255, 0.85) !important;
+  border-color: rgba(47, 128, 255, 0.3) !important;
+  background: rgba(245, 248, 255, 0.85) !important;
   transform: translateY(-1px);
 }
 
 .candidate-career-ai-plan__item strong {
-  color: #7c3aed !important;
+  color: var(--ui-color-accent, #2f80ff) !important;
   font-size: var(--ui-font-size-caption);
   line-height: var(--ui-line-height-caption);
 }
@@ -1864,11 +1865,28 @@
   color: var(--ui-color-text);
 }
 
+/* Two-column side-by-side layout for Portfolio and Skills Gap */
+.candidate-career-dashboard__ai-two-column-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  align-items: start;
+}
+
+.candidate-career-dashboard__ai-two-column-grid .candidate-career-dashboard__section {
+  gap: 16px;
+}
+
+.candidate-career-ai-portfolio-section.ui-card,
+.candidate-career-ai-skills-gap-section.ui-card {
+  padding: 20px !important;
+}
+
 /* Responsiveness adjustments */
-@media (max-width: 1080px) {
-  .portfolio-section__details-grid {
+@media (max-width: 800px) {
+  .candidate-career-dashboard__ai-two-column-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 28px;
   }
 }
 
