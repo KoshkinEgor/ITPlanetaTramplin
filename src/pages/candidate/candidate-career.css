@@ -1308,6 +1308,7 @@
 .candidate-career-ai-portfolio-section.ui-card,
 .candidate-career-ai-skills-gap-section.ui-card,
 .candidate-career-ai-plan.ui-card,
+.employer-profile-eye-card.ui-card,
 .candidate-career-ai-recommendations.ui-card {
   min-height: 100%;
   padding: var(--ui-space-4) !important;
@@ -1328,6 +1329,7 @@
 .candidate-career-ai-portfolio-section.ui-card:hover,
 .candidate-career-ai-skills-gap-section.ui-card:hover,
 .candidate-career-ai-plan.ui-card:hover,
+.employer-profile-eye-card.ui-card:hover,
 .candidate-career-ai-recommendations.ui-card:hover {
   transform: translateY(-2px) !important;
   border-color: rgba(47, 128, 255, 0.32) !important;
@@ -1915,6 +1917,209 @@
 .candidate-career-ai-profile-card.ui-card,
 .candidate-career-ai-salary-card.ui-card {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 255, 0.96)) !important;
+}
+
+/* Employer Profile Eye View Card */
+.employer-profile-eye-card.ui-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 40px;
+  padding: 32px !important;
+  align-items: stretch;
+}
+
+.employer-profile-eye-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex-grow: 1;
+}
+
+.employer-profile-eye-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employer-profile-eye-card__header h3 {
+  margin: 0;
+}
+
+.employer-profile-eye-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.employer-eye-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.employer-eye-metric__label-group {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.eye-metric-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.eye-metric-icon.is-green {
+  color: #27ae60;
+}
+
+.eye-metric-icon.is-blue {
+  color: #2f80ff;
+}
+
+.eye-metric-icon.is-orange {
+  color: #e67e22;
+}
+
+.eye-metric-icon.is-purple {
+  color: #a855f7;
+}
+
+.employer-eye-metric__label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ui-color-text-soft);
+}
+
+.employer-eye-metric__progress-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-grow: 1;
+}
+
+.employer-eye-metric__progress-bar {
+  height: 8px;
+  background: rgba(24, 29, 45, 0.05);
+  border-radius: 999px;
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.employer-eye-metric__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.employer-eye-metric__progress-fill.is-green {
+  background: #27ae60;
+}
+
+.employer-eye-metric__progress-fill.is-blue {
+  background: #2f80ff;
+}
+
+.employer-eye-metric__progress-fill.is-orange {
+  background: #e67e22;
+}
+
+.employer-eye-metric__progress-fill.is-purple {
+  background: #a855f7;
+}
+
+.employer-eye-metric__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-color-text);
+  min-width: 42px;
+  text-align: right;
+}
+
+.employer-profile-eye-card__tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(39, 174, 96, 0.06);
+  border: 1px solid rgba(39, 174, 96, 0.12);
+  color: #27ae60;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.employer-eye-tip-star {
+  color: #27ae60;
+  flex-shrink: 0;
+}
+
+.employer-profile-eye-card__actions {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  border-left: 1px solid rgba(24, 29, 45, 0.08);
+  padding-left: 32px;
+}
+
+.employer-eye-btn--green.ui-button {
+  background: #27ae60 !important;
+  border-color: #27ae60 !important;
+  color: #ffffff !important;
+}
+
+.employer-eye-btn--green.ui-button:hover,
+.employer-eye-btn--green.ui-button:focus-visible {
+  background: #219653 !important;
+  border-color: #219653 !important;
+}
+
+@media (max-width: 900px) {
+  .employer-profile-eye-card.ui-card {
+    gap: 24px;
+  }
+  .employer-eye-metric__label-group {
+    width: 200px;
+  }
+}
+
+@media (max-width: 760px) {
+  .employer-profile-eye-card.ui-card {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 24px !important;
+  }
+  
+  .employer-profile-eye-card__actions {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(24, 29, 45, 0.08);
+    padding-left: 0;
+    padding-top: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .employer-eye-metric {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .employer-eye-metric__label-group {
+    width: 100%;
+  }
+  
+  .employer-eye-metric__progress-container {
+    width: 100%;
+  }
 }
 
 

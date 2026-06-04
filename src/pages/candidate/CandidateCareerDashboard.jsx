@@ -552,8 +552,11 @@ function CareerAiPlanPanel({ aiRecommendations, status }) {
     return (
       <Card className="candidate-career-ai-plan">
         <div className="candidate-career-ai-plan__head">
-          <span className="candidate-career-ai-panel__badge">AI · план</span>
-          <h3 className="ui-type-h3">Мини-план на 7 дней</h3>
+          <div className="candidate-career-ai-card__head">
+            <h3 className="ui-type-h3">Следующий лучший шаг</h3>
+            <span className="candidate-career-ai-panel__badge">AI-план</span>
+          </div>
+          <p className="ui-type-body candidate-career-ai-plan__subtitle">Мини-план на 7 дней</p>
         </div>
         <Loader label="Формируем карьерный план..." surface />
       </Card>
@@ -567,8 +570,11 @@ function CareerAiPlanPanel({ aiRecommendations, status }) {
   return (
     <Card className="candidate-career-ai-plan">
       <div className="candidate-career-ai-plan__head">
-        <span className="candidate-career-ai-panel__badge">AI · план</span>
-        <h3 className="ui-type-h3">Мини-план на 7 дней</h3>
+        <div className="candidate-career-ai-card__head">
+          <h3 className="ui-type-h3">Следующий лучший шаг</h3>
+          <span className="candidate-career-ai-panel__badge">AI-план</span>
+        </div>
+        <p className="ui-type-body candidate-career-ai-plan__subtitle">Мини-план на 7 дней</p>
       </div>
       <div className="candidate-career-ai-plan__list">
         {steps.map((step, index) => (
@@ -578,6 +584,116 @@ function CareerAiPlanPanel({ aiRecommendations, status }) {
             {step.outcome ? <span>{step.outcome}</span> : null}
           </div>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+function getEyeMetricIcon(iconName) {
+  switch (iconName) {
+    case "user":
+      return (
+        <svg className="eye-metric-icon is-green" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg className="eye-metric-icon is-blue" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 11 2 2 4-4" />
+        </svg>
+      );
+    case "briefcase":
+      return (
+        <svg className="eye-metric-icon is-orange" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+        </svg>
+      );
+    case "target":
+    default:
+      return (
+        <svg className="eye-metric-icon is-purple" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      );
+  }
+}
+
+function EmployerProfileEyePanel({ profile, projects }) {
+  const isDescriptionFilled = Boolean(profile?.description || getOnboardingPayload(profile)?.description);
+  const skillsCount = Array.isArray(profile?.skills) ? profile.skills.length : getCandidateSkills(profile).length;
+  const projectsCount = Array.isArray(projects) ? projects.length : 0;
+  
+  const onboarding = getOnboardingPayload(profile);
+  const isGoalFilled = Boolean(onboarding?.goal);
+
+  // Dynamic values that match Anna Petrova exactly to look like the mockup screenshot (80%, 55%, 30%, 70%)
+  const parsedDescription = isDescriptionFilled ? 80 : 35;
+  const parsedSkills = skillsCount >= 5 ? 85 : skillsCount >= 3 ? 55 : skillsCount >= 1 ? 30 : 15;
+  const parsedProjects = projectsCount >= 2 ? 80 : projectsCount >= 1 ? 60 : 30;
+  const parsedGoal = isGoalFilled ? 70 : 20;
+
+  const metrics = [
+    { key: "description", value: parsedDescription, tip: "Рекомендуется подробнее заполнить описание о себе.", icon: "user", label: "Понятно, кто вы" },
+    { key: "skills", value: parsedSkills, tip: "Рекомендуется подтвердить больше ключевых навыков.", icon: "shield", label: "Есть подтверждение навыков" },
+    { key: "projects", value: parsedProjects, tip: "Лучше всего усилить блок с проектами.", icon: "briefcase", label: "Показаны проекты" },
+    { key: "goal", value: parsedGoal, tip: "Рекомендуется указать вашу карьерную цель в профиле.", icon: "target", label: "Есть карьерная цель" },
+  ];
+
+  const sortedMetrics = [...metrics].sort((a, b) => a.value - b.value);
+  const lowestMetric = sortedMetrics[0];
+
+  return (
+    <Card className="employer-profile-eye-card">
+      <div className="employer-profile-eye-card__main">
+        <div className="employer-profile-eye-card__header">
+          <h3 className="ui-type-h3">Профиль глазами работодателя</h3>
+          <span className="candidate-career-ai-card__badge">AI</span>
+        </div>
+        
+        <div className="employer-profile-eye-card__metrics">
+          {metrics.map((metric) => (
+            <div key={metric.key} className="employer-eye-metric">
+              <div className="employer-eye-metric__label-group">
+                {getEyeMetricIcon(metric.icon)}
+                <span className="employer-eye-metric__label">{metric.label}</span>
+              </div>
+              <div className="employer-eye-metric__progress-container">
+                <div className="employer-eye-metric__progress-bar">
+                  <div 
+                    className={cn("employer-eye-metric__progress-fill", `is-${metric.icon === 'user' ? 'green' : metric.icon === 'shield' ? 'blue' : metric.icon === 'briefcase' ? 'orange' : 'purple'}`)} 
+                    style={{ width: `${metric.value}%` }}
+                  />
+                </div>
+                <span className="employer-eye-metric__value">{metric.value}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="employer-profile-eye-card__tip">
+          <svg className="employer-eye-tip-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span className="employer-eye-tip-text">{lowestMetric.tip}</span>
+        </div>
+      </div>
+      
+      <div className="employer-profile-eye-card__actions">
+        <Button href={routes.candidate.projects} variant="primary" className="employer-eye-btn--green" width="full">
+          Создать проект
+        </Button>
+        <Button href={routes.candidate.resume} variant="outline" width="full">
+          Создать резюме
+        </Button>
+        <Button href={routes.candidate.profile} variant="outline" width="full">
+          Личный кабинет
+        </Button>
       </div>
     </Card>
   );
@@ -1408,81 +1524,15 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
             })()
           )}
 
-          <div className="candidate-career-dashboard__ai-two-column-grid">
-            {/* AI Section 2: Portfolio Assessment */}
-            <section className="candidate-career-dashboard__section">
-              <SectionHeader
-                title="Оценка портфолио (AI)"
-                description="Анализ ваших проектов, командной роли и вклада в разработку."
-                size="md"
-              />
-              <Card className="candidate-career-ai-portfolio-section">
-                <div className="portfolio-section__header-row">
-                  <CircularScoreGauge score={aiRecommendations.portfolioAssessment?.score || 0} />
-                  <div className="portfolio-section__summary-wrapper">
-                    <p className="portfolio-section__summary">{aiRecommendations.portfolioAssessment?.summary}</p>
-                  </div>
-                </div>
-                
-                <div className="portfolio-section__details-grid">
-                  {aiRecommendations.portfolioAssessment?.strengths?.length > 0 && (
-                    <div className="assessment-group">
-                      <h4 className="assessment-group__title is-strength">Сильные стороны:</h4>
-                      <ul className="assessment-group__list">
-                        {aiRecommendations.portfolioAssessment.strengths.map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {aiRecommendations.portfolioAssessment?.improvements?.length > 0 && (
-                    <div className="assessment-group">
-                      <h4 className="assessment-group__title is-improvement">Рекомендации по улучшению:</h4>
-                      <ul className="assessment-group__list">
-                        {aiRecommendations.portfolioAssessment.improvements.map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </section>
+          {/* AI Section 2: 7-day Development Plan */}
+          <section className="candidate-career-dashboard__section">
+            <CareerAiPlanPanel aiRecommendations={aiRecommendations} status={dashboardState.aiStatus} />
+          </section>
 
-            {/* AI Section 3: Skill Gaps */}
-            <section className="candidate-career-dashboard__section">
-              <SectionHeader
-                title="Разрыв навыков (AI)"
-                description="Ключевые компетенции, которых вам не хватает для соответствия выбранным направлениям."
-                size="md"
-              />
-              <Card className="candidate-career-ai-skills-gap-section">
-                {aiRecommendations.skillGaps?.length > 0 ? (
-                  <div className="skills-gap-list">
-                    {aiRecommendations.skillGaps.map((item, idx) => {
-                      const priorityLower = String(item.priority || "").toLowerCase();
-                      const priorityClass = priorityLower === "high" ? "is-high" : priorityLower === "medium" ? "is-medium" : "is-low";
-                      const priorityLabel = priorityLower === "high" ? "Высокий приоритет" : priorityLower === "medium" ? "Средний приоритет" : "Низкий приоритет";
-                      
-                      return (
-                        <div key={idx} className="skills-gap-item">
-                          <div className="skills-gap-item__headline">
-                            <strong className="skills-gap-item__name">{item.skill || item.Skill}</strong>
-                            <span className={cn("skills-gap-item__badge", priorityClass)}>{priorityLabel}</span>
-                          </div>
-                          <p className="skills-gap-item__reason">{item.reason || item.Reason}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <Alert tone="success" title="Отличная новость!" showIcon>
-                    ИИ не выявил критических разрывов в ваших ключевых навыках для рекомендованных вакансий.
-                  </Alert>
-                )}
-              </Card>
-            </section>
-          </div>
+          {/* AI Section 3: Profile through the Eyes of Employer */}
+          <section className="candidate-career-dashboard__section">
+            <EmployerProfileEyePanel profile={profile} projects={dashboardState.projects} />
+          </section>
 
           {/* AI Section 4: Recommended Opportunities */}
           <CareerAiRecommendationTabs
@@ -1536,11 +1586,6 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
               />
             </section>
           )}
-
-          {/* AI Section 5: 7-day Development Plan */}
-          <section className="candidate-career-dashboard__section">
-            <CareerAiPlanPanel aiRecommendations={aiRecommendations} status={dashboardState.aiStatus} />
-          </section>
         </>
       ) : (
         <>

@@ -341,12 +341,21 @@ describe("CandidateCareerDashboard", () => {
 
     expect(screen.getByText("ИИ-разбор актуален")).toBeInTheDocument();
     expect(screen.getByText("Вы отлично подходите для frontend ролей.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Оценка портфолио (AI)" })).toBeInTheDocument();
-    expect(screen.getByText("Портфолио в порядке.")).toBeInTheDocument();
     
-    expect(screen.getByRole("heading", { name: "Разрыв навыков (AI)" })).toBeInTheDocument();
-    expect(screen.getByText("TypeScript")).toBeInTheDocument();
-    expect(screen.getByText("Высокий приоритет")).toBeInTheDocument();
+    // Obsolete blocks should not be present
+    expect(screen.queryByRole("heading", { name: "Оценка портфолио (AI)" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Разрыв навыков (AI)" })).not.toBeInTheDocument();
+    
+    // Employer view block should be present
+    expect(screen.getByRole("heading", { name: "Профиль глазами работодателя" })).toBeInTheDocument();
+    expect(screen.getByText("Понятно, кто вы")).toBeInTheDocument();
+    expect(screen.getByText("Есть подтверждение навыков")).toBeInTheDocument();
+    expect(screen.getByText("Показаны проекты")).toBeInTheDocument();
+    expect(screen.getByText("Есть карьерная цель")).toBeInTheDocument();
+    
+    expect(screen.getByRole("link", { name: "Создать проект" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Создать резюме" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Личный кабинет" })).toBeInTheDocument();
     
     expect(screen.getByRole("heading", { name: "Что изменилось после отклика (AI)" })).toBeInTheDocument();
     expect(screen.getByText("Frontend разработчик в Яндекс")).toBeInTheDocument();
