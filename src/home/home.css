@@ -2,8 +2,9 @@ body.home-react-body {
   margin: 0;
   overflow-x: clip;
   background:
-    radial-gradient(circle at 12% 0%, rgba(47, 128, 255, 0.1), transparent 24%),
-    radial-gradient(circle at 90% 100%, rgba(201, 255, 31, 0.14), transparent 20%),
+    radial-gradient(circle at 12% 0%, rgba(47, 128, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 84% 12%, rgba(201, 255, 31, 0.10), transparent 18%),
+    radial-gradient(circle at 90% 100%, rgba(201, 255, 31, 0.12), transparent 20%),
     linear-gradient(180deg, #fdfefe 0%, #f4f7fd 56%, #eef3fb 100%);
 }
 
