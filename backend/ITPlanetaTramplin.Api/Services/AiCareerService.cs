@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Application.DBContext;
 using DTO;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -17,6 +19,7 @@ public interface IAiCareerService
         IReadOnlyCollection<CandidateProject> projects,
         IReadOnlyCollection<OpportunityApplication> applications,
         IReadOnlyCollection<Opportunity> opportunities,
+        bool forceRefresh = false,
         CancellationToken cancellationToken = default);
 
     Task<AiResumeAnalysisResponseDTO> AnalyzeResumeAsync(
@@ -51,12 +54,14 @@ public sealed class AiCareerService : IAiCareerService
 
     private readonly IGigaChatClient _client;
     private readonly IMemoryCache _cache;
+    private readonly ApplicationDBContext _db;
     private readonly ILogger<AiCareerService> _logger;
 
-    public AiCareerService(IGigaChatClient client, IMemoryCache cache, ILogger<AiCareerService> logger)
+    public AiCareerService(IGigaChatClient client, IMemoryCache cache, ApplicationDBContext db, ILogger<AiCareerService> logger)
     {
         _client = client;
         _cache = cache;
+        _db = db;
         _logger = logger;
     }
 
@@ -67,35 +72,105 @@ public sealed class AiCareerService : IAiCareerService
         IReadOnlyCollection<CandidateProject> projects,
         IReadOnlyCollection<OpportunityApplication> applications,
         IReadOnlyCollection<Opportunity> opportunities,
+        bool forceRefresh = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(profile.Description) && (profile.Skills == null || profile.Skills.Count == 0))
         {
-            return CreateCareerFallback("Заполните описание профиля или ключевые навыки, чтобы ИИ мог составить персональные карьерные рекомендации.", [], true);
+            var fallbackResponse = CreateCareerFallback("Заполните описание профиля или ключевые навыки, чтобы ИИ мог составить персональные карьерные рекомендации.", [], true);
+            fallbackResponse.Signature = BuildDataSignature(profile, education, projects, applications);
+            fallbackResponse.IsStale = false;
+            fallbackResponse.RefreshReason = "incomplete_profile";
+            fallbackResponse.GeneratedAt = DateTime.UtcNow;
+            return fallbackResponse;
         }
 
-        var signature = BuildDataSignature(profile, education, achievements, projects, applications, opportunities);
-        var cacheKey = $"AiCareerRecommendations_{profile.Id}_{signature}";
+        var signature = BuildDataSignature(profile, education, projects, applications);
 
-        if (_cache.TryGetValue<AiCareerRecommendationResponseDTO>(cacheKey, out var cachedResponse))
+        var cacheEntry = await _db.AiCareerCaches
+            .FirstOrDefaultAsync(c => c.ApplicantId == profile.Id && c.Scope == "career", cancellationToken);
+
+        if (cacheEntry != null)
         {
-            return cachedResponse!;
+            var isSignatureMatch = cacheEntry.Signature == signature;
+
+            if (isSignatureMatch)
+            {
+                var cachedDto = TryDeserialize<AiCareerRecommendationResponseDTO>(cacheEntry.PayloadJson);
+                if (cachedDto != null)
+                {
+                    cachedDto.IsStale = false;
+                    cachedDto.Signature = signature;
+                    cachedDto.RefreshReason = "cache_hit";
+                    cachedDto.GeneratedAt = cacheEntry.CreatedAt;
+
+                    cacheEntry.LastServedAt = DateTime.UtcNow;
+                    await _db.SaveChangesAsync(cancellationToken);
+
+                    return cachedDto;
+                }
+            }
+            else
+            {
+                if (!forceRefresh)
+                {
+                    var cachedDto = TryDeserialize<AiCareerRecommendationResponseDTO>(cacheEntry.PayloadJson);
+                    if (cachedDto != null)
+                    {
+                        cachedDto.IsStale = true;
+                        cachedDto.Signature = signature;
+                        cachedDto.RefreshReason = "profile_or_applications_changed";
+                        cachedDto.GeneratedAt = cacheEntry.CreatedAt;
+
+                        return cachedDto;
+                    }
+                }
+            }
+        }
+
+        if (!forceRefresh)
+        {
+            var fallback = CreateCareerFallback("ИИ-анализ ещё не сформирован. Нажмите «Сформировать разбор», чтобы запустить.", [], true);
+            fallback.IsStale = true;
+            fallback.Signature = signature;
+            fallback.RefreshReason = "no_cache";
+            fallback.GeneratedAt = null;
+            return fallback;
         }
 
         var candidates = SelectRelevantOpportunities(profile, projects, opportunities, 10);
 
         if (candidates.Count == 0)
         {
-            return CreateCareerFallback("AI пока не нашел активные возможности для профиля. Базовые рекомендации остаются доступными.", [], true);
+            var fallback = CreateCareerFallback("AI пока не нашел активные возможности для профиля. Базовые рекомендации остаются доступными.", [], true);
+            fallback.Signature = signature;
+            fallback.IsStale = false;
+            fallback.RefreshReason = "no_opportunities";
+            fallback.GeneratedAt = DateTime.UtcNow;
+            return fallback;
         }
+
+        var importantApplication = applications
+            .Where(app => IsImportantStatus(app.Status))
+            .OrderByDescending(app => app.AppliedAt)
+            .FirstOrDefault();
+
+        var importantAppPayload = importantApplication != null ? new
+        {
+            Status = importantApplication.Status,
+            OpportunityTitle = importantApplication.Opportunity.Title
+        } : null;
 
         var json = await _client.CompleteJsonAsync(
             "You are a Russian career AI. Return JSON only. No markdown. Explain cautiously.",
             JsonSerializer.Serialize(new
             {
-                task = "Match candidate with opportunities. Russian language. Reason/NextStep/Summary: max 100 chars. Return JSON: {\"summary\":\"str\",\"nextActions\":[\"str\"],\"missingSkills\":[\"str\"],\"careerPlan\":[{\"day\":\"str\",\"action\":\"str\",\"outcome\":\"str\"}],\"sections\":[{\"type\":\"str\",\"title\":\"str\",\"items\":[{\"opportunityId\":1,\"matchPercent\":80,\"reason\":\"str\",\"matchedSkills\":[\"str\"],\"missingSkills\":[\"str\"],\"nextStep\":\"str\"}]}],\"items\":[]}",
+                task = "Match candidate with opportunities. Russian language. Reason/NextStep/Summary: max 100 chars. " +
+                       "Analyze profile, portfolio, salary, skill gaps, and latest application status changes if provided. " +
+                       "Return JSON: {\"summary\":\"str\",\"nextActions\":[\"str\"],\"missingSkills\":[\"str\"],\"careerPlan\":[{\"day\":\"str\",\"action\":\"str\",\"outcome\":\"str\"}],\"sections\":[{\"type\":\"str\",\"title\":\"str\",\"items\":[{\"opportunityId\":1,\"matchPercent\":80,\"reason\":\"str\",\"matchedSkills\":[\"str\"],\"missingSkills\":[\"str\"],\"nextStep\":\"str\"}]}],\"profileAssessment\":{\"score\":75,\"summary\":\"str\",\"strengths\":[\"str\"],\"improvements\":[\"str\"]},\"portfolioAssessment\":{\"score\":60,\"summary\":\"str\",\"strengths\":[\"str\"],\"improvements\":[\"str\"]},\"salaryInsight\":{\"currentLevel\":\"str\",\"nextLevel\":\"str\",\"summary\":\"str\",\"ranges\":[{\"label\":\"str\",\"range\":\"str\"}]},\"skillGaps\":[{\"skill\":\"str\",\"reason\":\"str\",\"priority\":\"high/medium/low\"}],\"eventInsight\":{\"status\":\"str\",\"opportunityTitle\":\"str\",\"insight\":\"str\",\"recommendedActions\":[\"str\"]}}",
                 candidate = BuildCandidatePayload(profile, education, achievements, projects, applications),
                 opportunities = candidates,
+                importantEvent = importantAppPayload,
                 limits = new { sections = 5, itemsPerSection = 4, totalItems = 10, nextActions = 4, missingSkills = 8, careerPlan = 7 },
             }, JsonOptions),
             cancellationToken);
@@ -104,7 +179,12 @@ public sealed class AiCareerService : IAiCareerService
         if (parsed is null)
         {
             _logger.LogWarning("GigaChat career recommendations returned empty or invalid JSON.");
-            return CreateCareerFallback("ИИ-анализ готовится. Ниже показан автоматический подбор на основе ключевых навыков вашего профиля.", candidates.Select(item => item.Id).Take(4), true);
+            var fallback = CreateCareerFallback("ИИ-анализ готовится. Ниже показан автоматический подбор на основе ключевых навыков вашего профиля.", candidates.Select(item => item.Id).Take(4), true);
+            fallback.Signature = signature;
+            fallback.IsStale = false;
+            fallback.RefreshReason = "fallback";
+            fallback.GeneratedAt = DateTime.UtcNow;
+            return fallback;
         }
 
         var allowedIds = candidates.Select(item => item.Id).ToHashSet();
@@ -117,6 +197,10 @@ public sealed class AiCareerService : IAiCareerService
         parsed.MissingSkills = CleanList(parsed.MissingSkills ?? [], 8);
         parsed.CareerPlan = NormalizeCareerPlan(parsed.CareerPlan ?? []);
         parsed.IsFallback = false;
+        parsed.Signature = signature;
+        parsed.IsStale = false;
+        parsed.RefreshReason = cacheEntry == null ? "new_analysis" : "profile_or_applications_changed";
+        parsed.GeneratedAt = DateTime.UtcNow;
 
         if (parsed.Sections.Count == 0 && parsed.Items.Count > 0)
         {
@@ -127,9 +211,36 @@ public sealed class AiCareerService : IAiCareerService
             ? parsed
             : CreateCareerFallback("ИИ-анализ готовится. Ниже показан автоматический подбор на основе ключевых навыков вашего профиля.", candidates.Select(item => item.Id).Take(4), true);
 
+        finalResponse.Signature = signature;
+        finalResponse.IsStale = false;
+        finalResponse.GeneratedAt = DateTime.UtcNow;
+
         if (!finalResponse.IsFallback)
         {
-            _cache.Set(cacheKey, finalResponse, TimeSpan.FromHours(24));
+            if (cacheEntry == null)
+            {
+                cacheEntry = new AiCareerCache
+                {
+                    ApplicantId = profile.Id,
+                    Scope = "career",
+                    Signature = signature,
+                    PayloadJson = JsonSerializer.Serialize(finalResponse, JsonOptions),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(30),
+                    LastServedAt = DateTime.UtcNow
+                };
+                _db.AiCareerCaches.Add(cacheEntry);
+            }
+            else
+            {
+                cacheEntry.Signature = signature;
+                cacheEntry.PayloadJson = JsonSerializer.Serialize(finalResponse, JsonOptions);
+                cacheEntry.CreatedAt = DateTime.UtcNow;
+                cacheEntry.ExpiresAt = DateTime.UtcNow.AddDays(30);
+                cacheEntry.LastServedAt = DateTime.UtcNow;
+                _db.AiCareerCaches.Update(cacheEntry);
+            }
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         return finalResponse;
@@ -307,6 +418,32 @@ public sealed class AiCareerService : IAiCareerService
                 : [],
             Items = items,
             IsFallback = isFallback,
+            ProfileAssessment = new AiProfileAssessmentDTO
+            {
+                Score = 72,
+                Summary = "Базовая оценка профиля. Заполните все разделы резюме для точного анализа.",
+                Strengths = ["Ключевые разделы заполнены"],
+                Improvements = ["Добавить больше проектов с описанием задач"]
+            },
+            PortfolioAssessment = new AiPortfolioAssessmentDTO
+            {
+                Score = 65,
+                Summary = "Рекомендуется добавить хотя бы один проект с указанием вашей роли и результатов.",
+                Strengths = ["Базовый профиль настроен"],
+                Improvements = ["Опишите командный вклад и технологии"]
+            },
+            SalaryInsight = new AiSalaryInsightDTO
+            {
+                CurrentLevel = "Junior",
+                NextLevel = "Middle",
+                Summary = "Средний уровень зарплат по рынку.",
+                Ranges = [new AiSalaryRangeDTO { Label = "Россия", Range = "45-75 тыс. ₽" }]
+            },
+            SkillGaps =
+            [
+                new() { Skill = "Профессиональные навыки", Reason = "Сравните ключевые требования в интересных вакансиях", Priority = "high" }
+            ],
+            EventInsight = null
         };
     }
 
@@ -653,13 +790,17 @@ public sealed class AiCareerService : IAiCareerService
         return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength] + "...";
     }
 
+    private static bool IsImportantStatus(string? status)
+    {
+        var normalized = status?.Trim().ToLowerInvariant();
+        return normalized is "invited" or "rejected" or "accepted" or "withdrawn";
+    }
+
     private static string BuildDataSignature(
         ApplicantProfile profile,
         IReadOnlyCollection<ApplicantEducation> education,
-        IReadOnlyCollection<ApplicantAchievement> achievements,
         IReadOnlyCollection<CandidateProject> projects,
-        IReadOnlyCollection<OpportunityApplication> applications,
-        IReadOnlyCollection<Opportunity> opportunities)
+        IReadOnlyCollection<OpportunityApplication> applications)
     {
         var sb = new StringBuilder();
 
@@ -669,43 +810,49 @@ public sealed class AiCareerService : IAiCareerService
           .Append(profile.Description ?? string.Empty).Append('_');
         if (profile.Skills != null)
         {
-            foreach (var skill in profile.Skills)
+            foreach (var skill in profile.Skills.OrderBy(s => s))
             {
                 sb.Append(skill).Append(',');
             }
         }
+        sb.Append(profile.Links ?? string.Empty).Append('_');
         sb.Append("||");
 
-        foreach (var edu in education)
+        foreach (var edu in education.OrderBy(e => e.Id))
         {
             sb.Append(edu.Id).Append('_')
               .Append(edu.InstitutionName).Append('_')
-              .Append(edu.Specialization ?? string.Empty).Append(';');
+              .Append(edu.Faculty ?? string.Empty).Append('_')
+              .Append(edu.Specialization ?? string.Empty).Append('_')
+              .Append(edu.StartYear).Append('_')
+              .Append(edu.GraduationYear).Append(';');
         }
         sb.Append("||");
 
-        foreach (var ach in achievements)
+        foreach (var proj in projects.OrderBy(p => p.Id))
         {
-            sb.Append(ach.Id).Append('_').Append(ach.Title).Append(';');
+            sb.Append(proj.Id).Append('_')
+              .Append(proj.Title).Append('_')
+              .Append(proj.Role ?? string.Empty).Append('_')
+              .Append(proj.ShortDescription ?? string.Empty).Append('_');
+            if (proj.Tags != null)
+            {
+                foreach (var tag in proj.Tags.OrderBy(t => t))
+                {
+                    sb.Append(tag).Append(',');
+                }
+            }
+            sb.Append(';');
         }
         sb.Append("||");
 
-        foreach (var proj in projects)
+        var importantApps = applications
+            .Where(app => IsImportantStatus(app.Status))
+            .OrderBy(app => app.Id);
+        foreach (var app in importantApps)
         {
-            sb.Append(proj.Id).Append('_').Append(proj.Title).Append(';');
-        }
-        sb.Append("||");
-
-        foreach (var app in applications)
-        {
-            sb.Append(app.Id).Append('_').Append(app.Status).Append(';');
-        }
-        sb.Append("||");
-
-        sb.Append(opportunities.Count).Append('_');
-        foreach (var opp in opportunities)
-        {
-            sb.Append(opp.Id).Append(',');
+            sb.Append(app.Id).Append('_')
+              .Append(app.Status).Append(';');
         }
 
         var inputBytes = Encoding.UTF8.GetBytes(sb.ToString());

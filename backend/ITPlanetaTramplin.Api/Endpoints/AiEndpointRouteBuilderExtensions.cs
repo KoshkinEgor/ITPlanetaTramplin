@@ -25,6 +25,7 @@ internal static class AiEndpointRouteBuilderExtensions
     }
 
     private static async Task<IResult> GetCurrentCandidateAiCareerRecommendationsAsync(
+        [FromQuery] bool forceRefresh,
         HttpContext context,
         ApplicationDBContext db,
         IAiCareerService aiCareerService,
@@ -62,6 +63,7 @@ internal static class AiEndpointRouteBuilderExtensions
             projects,
             applications,
             opportunities,
+            forceRefresh,
             cancellationToken);
 
         return Results.Ok(response);

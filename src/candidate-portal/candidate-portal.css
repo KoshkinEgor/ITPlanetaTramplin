@@ -3766,3 +3766,61 @@ body.candidate-portal-react-body {
     grid-template-columns: 1fr;
   }
 }
+
+.opportunity-share-modal {
+  max-width: 760px;
+}
+
+.opportunity-share-modal__list {
+  display: grid;
+  gap: 12px;
+}
+
+.opportunity-share-modal__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(129, 156, 198, 0.14);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 255, 0.98));
+}
+
+.opportunity-share-modal__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.opportunity-share-modal__avatar {
+  flex: 0 0 auto;
+}
+
+.opportunity-share-modal__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.opportunity-share-modal__copy strong,
+.opportunity-share-modal__copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opportunity-share-modal__copy span {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-font-size-small);
+  line-height: var(--ui-line-height-small);
+  font-weight: 600;
+}
+
+.opportunity-share-modal__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+

@@ -12,6 +12,7 @@ import {
   getCandidateDirectory,
   getCandidateProfile,
   getCandidateRecommendations,
+  getCandidateProjects,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
@@ -330,12 +331,14 @@ export function CandidateCareerPage() {
     recommendations: [],
     opportunities: [],
     directory: [],
+    projects: [],
     aiRecommendations: null,
     aiStatus: "idle",
     aiError: null,
     degraded: false,
     error: null,
   });
+  const [mode, setMode] = useState(() => localStorage.getItem("career-dashboard-mode") || "system");
   const [platformCompanyOptions, setPlatformCompanyOptions] = useState([]);
   const [draft, setDraft] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -412,8 +415,13 @@ export function CandidateCareerPage() {
     let active = true;
     const controller = new AbortController();
 
-    setDashboardState((current) => ({ ...current, status: "loading", aiStatus: "loading", error: null }));
-
+    const currentMode = localStorage.getItem("career-dashboard-mode") || "system";
+    setDashboardState((current) => ({
+      ...current,
+      status: "loading",
+      aiStatus: currentMode === "ai" ? "loading" : "idle",
+      error: null
+    }));
     const regularPromise = Promise.allSettled([
       getCandidateApplications(controller.signal),
       getCandidateContacts(controller.signal),
@@ -421,16 +429,19 @@ export function CandidateCareerPage() {
       getCandidateRecommendations(controller.signal),
       getOpportunities(controller.signal),
       getCandidateDirectory(controller.signal),
+      getCandidateProjects(controller.signal),
     ]);
 
-    const aiPromise = getCandidateAiCareerRecommendations(controller.signal);
+    const aiPromise = currentMode === "ai"
+      ? getCandidateAiCareerRecommendations(controller.signal)
+      : Promise.resolve(null);
 
     regularPromise.then((results) => {
       if (!active || controller.signal.aborted) {
         return;
       }
 
-      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult] = results;
+      const [applicationsResult, contactsResult, suggestionsResult, recommendationsResult, opportunitiesResult, directoryResult, projectsResult] = results;
       const failedCount = results.filter((item) => item.status === "rejected").length;
       const requiredFailedCount = failedCount;
 
@@ -443,9 +454,10 @@ export function CandidateCareerPage() {
         recommendations: recommendationsResult.status === "fulfilled" ? safeArray(recommendationsResult.value) : [],
         opportunities: opportunitiesResult.status === "fulfilled" ? safeArray(opportunitiesResult.value) : [],
         directory: directoryResult.status === "fulfilled" ? safeArray(directoryResult.value) : [],
+        projects: projectsResult.status === "fulfilled" ? safeArray(projectsResult.value) : [],
         degraded: requiredFailedCount > 0,
-        error: requiredFailedCount === 6
-          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason)
+        error: requiredFailedCount === 7
+          ? (applicationsResult.reason ?? contactsResult.reason ?? suggestionsResult.reason ?? recommendationsResult.reason ?? opportunitiesResult.reason ?? directoryResult.reason ?? projectsResult.reason)
           : null,
       }));
     }).catch((error) => {
@@ -462,6 +474,7 @@ export function CandidateCareerPage() {
         recommendations: [],
         opportunities: [],
         directory: [],
+        projects: [],
         aiRecommendations: null,
         aiStatus: "idle",
         aiError: null,
@@ -477,8 +490,8 @@ export function CandidateCareerPage() {
 
       setDashboardState((current) => ({
         ...current,
-        aiRecommendations,
-        aiStatus: "ready",
+        aiRecommendations: aiRecommendations || current.aiRecommendations,
+        aiStatus: currentMode === "ai" ? "ready" : "idle",
         aiError: null,
       }));
     }).catch((error) => {
@@ -500,11 +513,45 @@ export function CandidateCareerPage() {
     };
   }, [contextState]);
 
+  async function loadAiRecommendations() {
+    if (dashboardState.aiStatus === "loading" || dashboardState.aiRecommendations) {
+      return;
+    }
+    setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
+
+    try {
+      const aiRecommendations = await getCandidateAiCareerRecommendations(false);
+      setDashboardState((current) => ({
+        ...current,
+        aiRecommendations,
+        aiStatus: "ready",
+        aiError: null,
+      }));
+    } catch (error) {
+      setDashboardState((current) => ({
+        ...current,
+        aiStatus: "error",
+        aiError: error,
+      }));
+    }
+  }
+
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    localStorage.setItem("career-dashboard-mode", newMode);
+    if (newMode === "ai") {
+      // Lazy load from cache or API when switching to AI
+      if (!dashboardState.aiRecommendations && dashboardState.aiStatus !== "loading") {
+        loadAiRecommendations();
+      }
+    }
+  };
+
   async function refreshAiCareerRecommendations() {
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations();
+      const aiRecommendations = await getCandidateAiCareerRecommendations(true);
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,
@@ -785,6 +832,8 @@ export function CandidateCareerPage() {
                 profile={contextState.data.profile}
                 dashboardState={dashboardState}
                 onRefreshAiRecommendations={refreshAiCareerRecommendations}
+                mode={mode}
+                onModeChange={handleModeChange}
               />
             )
           ) : null}

@@ -10,7 +10,15 @@ export const OPPORTUNITY_TYPE_OPTIONS = Object.freeze(
 );
 
 export function normalizeOpportunityType(value) {
-  return String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "").trim().toLowerCase();
+
+  if (["job", "vacancy"].includes(normalized)) return "vacancy";
+  if (normalized === "internship") return "internship";
+  if (normalized === "event") return "event";
+  if (["mentor", "mentoring"].includes(normalized)) return "mentoring";
+  if (["course", "courses"].includes(normalized)) return "course";
+
+  return normalized;
 }
 
 export function translateOpportunityType(value, fallback = "Возможность") {

@@ -47,6 +47,7 @@ import {
   GithubIcon,
   LinkIcon,
   MessageIcon,
+  MailIcon,
 } from "../shared/ui";
 import { PortalHeader } from "../widgets/layout/PortalHeader/PortalHeader";
 import { OpportunityLocationPicker } from "../company-dashboard/OpportunityLocationPicker";
@@ -1319,6 +1320,9 @@ export function OpportunityDetailCardApp() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareContactsState, setShareContactsState] = useState(createShareContactsState());
   const [shareBusyKey, setShareBusyKey] = useState("");
+  const [shareFeedback, setShareFeedback] = useState(null);
+  const [shareMethodModalOpen, setShareMethodModalOpen] = useState(false);
+  const [shareMethodFeedback, setShareMethodFeedback] = useState(null);
   const [allowPeerVisibility, setAllowPeerVisibility] = useState(false);
   const [postApplyModalOpen, setPostApplyModalOpen] = useState(false);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
@@ -1383,6 +1387,8 @@ export function OpportunityDetailCardApp() {
     setProfileGateOpen(false);
     setMenuOpen(false);
     setShareModalOpen(false);
+    setShareMethodModalOpen(false);
+    setShareMethodFeedback(null);
     setShareContactsState(createShareContactsState());
     setShareBusyKey("");
     setAllowPeerVisibility(false);
@@ -1671,8 +1677,15 @@ export function OpportunityDetailCardApp() {
       return;
     }
 
-    setShareModalOpen(true);
+    setShareMethodModalOpen(true);
+    setShareMethodFeedback(null);
+    setShareFeedback(null);
     setShareBusyKey("");
+  }
+
+  async function handleSelectShareInChat() {
+    setShareMethodModalOpen(false);
+    setShareModalOpen(true);
     if (shareContactsState.status === "ready" || shareContactsState.status === "loading") {
       setShareContactsState((current) => ({ ...current, error: "" }));
       return;
@@ -1691,15 +1704,70 @@ export function OpportunityDetailCardApp() {
     }
   }
 
-  async function handleShareWithContact(contact) {
+  async function handleGeneralCopyLink() {
     const currentUrl = typeof window !== "undefined" ? window.location.href : buildOpportunityDetailRoute(opportunityId);
     const shareTitle = String(state.item?.title || "Возможность").trim();
     const shareText = `Смотри, нашёл интересную возможность: ${shareTitle}
 ${currentUrl}`;
-    const contactKey = String(contact?.id ?? contact?.email ?? contact?.name ?? "contact");
+
+    setShareMethodFeedback(null);
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        setShareMethodFeedback({
+          type: "success",
+          message: "Ссылка успешно скопирована в буфер обмена."
+        });
+      } else {
+        throw new Error("Копирование не поддерживается вашим браузером.");
+      }
+    } catch (error) {
+      setShareMethodFeedback({
+        type: "error",
+        message: error?.message ?? "Не удалось скопировать ссылку."
+      });
+    }
+  }
+
+  async function handleGeneralSendMail() {
+    const currentUrl = typeof window !== "undefined" ? window.location.href : buildOpportunityDetailRoute(opportunityId);
+    const shareTitle = String(state.item?.title || "Возможность").trim();
+    const shareText = `Смотри, нашёл интересную возможность: ${shareTitle}
+${currentUrl}`;
+
+    setShareMethodFeedback(null);
+
+    try {
+      if (typeof window !== "undefined" && typeof window.open === "function") {
+        const subject = encodeURIComponent(`Поделиться возможностью: ${shareTitle}`);
+        const body = encodeURIComponent(shareText);
+        window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+        setShareMethodFeedback({
+          type: "success",
+          message: "Открыто почтовое приложение."
+        });
+      } else {
+        throw new Error("Не удалось открыть почтовое приложение.");
+      }
+    } catch (error) {
+      setShareMethodFeedback({
+        type: "error",
+        message: error?.message ?? "Не удалось отправить по почте."
+      });
+    }
+  }
+
+  async function handleShareInChat(contact) {
+    const currentUrl = typeof window !== "undefined" ? window.location.href : buildOpportunityDetailRoute(opportunityId);
+    const shareTitle = String(state.item?.title || "Возможность").trim();
+    const shareText = `Смотри, нашёл интересную возможность: ${shareTitle}
+${currentUrl}`;
+    const contactKey = `chat-${contact.id}`;
     const candidateId = Number(contact?.userId);
 
     setShareBusyKey(contactKey);
+    setShareFeedback(null);
 
     try {
       if (!Number.isFinite(candidateId) || !state.item?.id) {
@@ -1719,25 +1787,15 @@ ${currentUrl}`;
         console.error("Failed to automatically send share message in chat", chatErr);
       }
 
-      if (contact?.email && typeof window !== "undefined" && typeof window.open === "function") {
-        const subject = encodeURIComponent(`Поделиться возможностью: ${shareTitle}`);
-        const body = encodeURIComponent(shareText);
-        window.open(`mailto:${contact.email}?subject=${subject}&body=${body}`, "_self");
-        setShareModalOpen(false);
-        return;
-      }
-
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareText);
-      }
-
-      setShareModalOpen(false);
+      setShareFeedback({
+        type: "success",
+        message: `Вы успешно поделились возможностью в чате с ${contact.name || "пользователем"}.`
+      });
     } catch (error) {
-      setShareContactsState((current) => ({
-        ...current,
-        status: current.status === "loading" ? "ready" : current.status,
-        error: error?.message ?? "Не удалось поделиться возможностью."
-      }));
+      setShareFeedback({
+        type: "error",
+        message: error?.message ?? "Не удалось поделиться возможностью."
+      });
     } finally {
       setShareBusyKey("");
     }
@@ -1996,16 +2054,81 @@ ${currentUrl}`;
         </Modal>
 
         <Modal
+          open={shareMethodModalOpen}
+          onClose={() => {
+            setShareMethodModalOpen(false);
+            setShareMethodFeedback(null);
+          }}
+          title="Поделиться возможностью"
+          description="Выберите удобный способ:"
+          size="sm"
+          className="opportunity-share-method-modal"
+        >
+          {shareMethodFeedback ? (
+            <Alert
+              tone={shareMethodFeedback.type}
+              title={shareMethodFeedback.type === "success" ? "Успешно" : "Ошибка"}
+              showIcon
+              style={{ marginBottom: "16px" }}
+            >
+              {shareMethodFeedback.message}
+            </Alert>
+          ) : null}
+
+          <div className="opportunity-share-modal__list">
+            <Button
+              type="button"
+              variant="primary"
+              iconStart={<MessageIcon />}
+              onClick={handleSelectShareInChat}
+              style={{ justifyContent: "flex-start", width: "100%" }}
+            >
+              Поделиться в чате сервиса
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              iconStart={<LinkIcon />}
+              onClick={handleGeneralCopyLink}
+              style={{ justifyContent: "flex-start", width: "100%" }}
+            >
+              Скопировать ссылку
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              iconStart={<MailIcon />}
+              onClick={handleGeneralSendMail}
+              style={{ justifyContent: "flex-start", width: "100%" }}
+            >
+              Отправить по почте
+            </Button>
+          </div>
+        </Modal>
+
+        <Modal
           open={shareModalOpen}
           onClose={() => {
             setShareModalOpen(false);
             setShareBusyKey("");
+            setShareFeedback(null);
           }}
-          title="Поделиться возможностью"
-          description="Выберите контакт, которому хотите отправить карточку публикации."
+          title="Поделиться в чате"
+          description="Выберите контакт, чтобы отправить ссылку во внутреннем чате."
           size="md"
           className="opportunity-share-modal">
           
+          {shareFeedback ? (
+            <Alert
+              tone={shareFeedback.type}
+              title={shareFeedback.type === "success" ? "Успешно" : "Ошибка"}
+              showIcon
+              style={{ marginBottom: "16px" }}
+            >
+              {shareFeedback.message}
+            </Alert>
+          ) : null}
+
           {shareContactsState.status === "loading" ? <Loader label="Загружаем контакты" /> : null}
 
           {shareContactsState.error ?
@@ -2040,17 +2163,18 @@ ${currentUrl}`;
                     </div>
                   </div>
 
-                  <Button
-                type="button"
-                variant="secondary"
-                loading={shareBusyKey === String(contact.id)}
-                disabled={Boolean(shareBusyKey) && shareBusyKey !== String(contact.id)}
-                onClick={() => {
-                  handleShareWithContact(contact);
-                }}>
-                
-                    Поделиться
-                  </Button>
+                  <div className="opportunity-share-modal__actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      loading={shareBusyKey === `chat-${contact.id}`}
+                      disabled={Boolean(shareBusyKey) && shareBusyKey !== `chat-${contact.id}`}
+                      onClick={() => handleShareInChat(contact)}
+                    >
+                      Отправить
+                    </Button>
+                  </div>
                 </div>
             )}
             </div> :
