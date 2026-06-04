@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCandidateProfile } from "../api/candidate";
@@ -290,7 +290,7 @@ describe("OpportunitiesCatalogApp", () => {
     expect(within(results).getByText("Онлайн • Чебоксары")).toBeInTheDocument();
   });
 
-  it("opens filters as a dropdown, applies real filters, and keeps unsupported controls disabled", async () => {
+  it("opens filters as a dropdown, applies real filters, and supports section resets", async () => {
     getOpportunities.mockResolvedValue(opportunities);
     getCandidateProfile.mockResolvedValue(null);
 
@@ -302,13 +302,38 @@ describe("OpportunitiesCatalogApp", () => {
     selectQuickFilter("Тип", "Вакансия");
     fireEvent.click(screen.getByRole("button", { name: "Фильтры" }));
     fireEvent.click(screen.getByLabelText("Удаленно"));
+    const sidebar = container.querySelector(".opportunity-filter-sidebar--dropdown");
+    expect(sidebar).not.toBeNull();
+    const cityInput = within(sidebar).getByLabelText("Город");
+
+    fireEvent.change(cityInput, { target: { value: "Москва" } });
+    fireEvent.keyDown(cityInput, { key: "Enter" });
 
     expect(results).not.toBeNull();
     expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
     expect(within(results).queryByText("IT-Планета")).not.toBeInTheDocument();
     expect(within(results).queryByText("QA Engineer")).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText("от")).toBeDisabled();
-    expect(screen.getAllByText(/обновления данных каталога/i).length).toBeGreaterThan(0);
+    expect(screen.getByPlaceholderText("от")).not.toBeDisabled();
+    expect(screen.queryByText(/обновления данных каталога/i)).not.toBeInTheDocument();
+
+    fireEvent.click(within(sidebar).getAllByRole("button", { name: "Сбросить" })[0]);
+
+    expect(cityInput).toHaveValue("Чебоксары");
+    expect(within(results).getAllByText("Junior Security Analyst")).toHaveLength(1);
+
+    fireEvent.change(cityInput, { target: { value: "Москва" } });
+    fireEvent.keyDown(cityInput, { key: "Enter" });
+
+    fireEvent.change(within(sidebar).getByLabelText("Название"), { target: { value: "IGrids" } });
+    fireEvent.change(within(sidebar).getByPlaceholderText("от"), { target: { value: "100000" } });
+
+    expect(within(results).getByText("Junior Security Analyst")).toBeInTheDocument();
+    expect(within(results).queryByText("Frontend Intern")).not.toBeInTheDocument();
+
+    fireEvent.click(within(sidebar).getByRole("button", { name: "Сбросить все" }));
+
+    expect(cityInput).toHaveValue("Чебоксары");
+    expect(screen.getByRole("searchbox")).toHaveValue("");
   });
 
   it("shows the first three opportunities and expands the list by three more", async () => {

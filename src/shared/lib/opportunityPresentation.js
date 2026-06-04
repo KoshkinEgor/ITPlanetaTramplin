@@ -547,6 +547,7 @@ export function validateOpportunityDraftForSubmit(draft) {
   const meetingFrequency = String(draft?.meetingFrequency ?? "").trim();
   const seatsCount = parseOpportunityCoordinateInput(draft?.seatsCount);
   const schedule = String(draft?.schedule ?? "").trim();
+  const employmentType = String(draft?.employmentType ?? "").trim();
 
   if (!title) {
     errors.push("Укажите название публикации.");
@@ -556,17 +557,51 @@ export function validateOpportunityDraftForSubmit(draft) {
     errors.push("Добавьте описание публикации.");
   }
 
+  // 1. Contacts check: at least one contact with non-empty value
+  const contacts = Array.isArray(draft?.contacts)
+    ? draft.contacts.filter((c) => String(c?.value ?? "").trim())
+    : [];
+  if (contacts.length === 0) {
+    errors.push("Укажите хотя бы один контакт.");
+  }
+
+  // 2. Employment type check
+  if (!employmentType || employmentType.toLowerCase() === "unspecified") {
+    errors.push("Укажите формат занятости.");
+  }
+
+  // 3. Location check for offline/hybrid
+  const isRemote = ["remote", "online"].includes(employmentType.toLowerCase());
+  const locationCity = String(draft?.locationCity ?? "").trim();
+  if (!isRemote && !locationCity) {
+    errors.push("Укажите город для офлайн или гибридной возможности.");
+  }
+
+  // 4. Address check for offline/hybrid event
+  const locationAddress = String(draft?.locationAddress ?? "").trim();
+  if (type === "event" && !isRemote && !locationAddress) {
+    errors.push("Укажите адрес для офлайн или гибридного мероприятия.");
+  }
+
   if ((type === "vacancy" || type === "internship") && !schedule) {
     errors.push("Укажите график для вакансии или стажировки.");
   }
 
-  if (type === "vacancy" && (salaryFrom === null || salaryTo === null)) {
-    errors.push("Для вакансии укажите диапазон зарплаты.");
+  if (type === "vacancy") {
+    if (salaryFrom === null || salaryTo === null) {
+      errors.push("Для вакансии укажите диапазон зарплаты.");
+    } else if (salaryFrom > salaryTo) {
+      errors.push("Минимальная зарплата не может быть больше максимальной.");
+    }
   }
 
   if (type === "internship") {
-    if (draft?.isPaid && (stipendFrom === null || stipendTo === null)) {
-      errors.push("Для оплачиваемой стажировки укажите стипендию.");
+    if (draft?.isPaid) {
+      if (stipendFrom === null || stipendTo === null) {
+        errors.push("Для оплачиваемой стажировки укажите диапазон стипендии.");
+      } else if (stipendFrom > stipendTo) {
+        errors.push("Минимальная стипендия не может быть больше максимальной.");
+      }
     }
 
     if (!duration) {
@@ -582,6 +617,10 @@ export function validateOpportunityDraftForSubmit(draft) {
     if (!registrationDeadline) {
       errors.push("Для мероприятия укажите дедлайн регистрации.");
     }
+
+    if (eventStartAt && registrationDeadline && new Date(registrationDeadline) > new Date(eventStartAt)) {
+      errors.push("Дедлайн регистрации не может быть позже даты события.");
+    }
   }
 
   if (type === "mentoring") {
@@ -593,12 +632,56 @@ export function validateOpportunityDraftForSubmit(draft) {
       errors.push("Для менторской программы укажите частоту встреч.");
     }
 
-    if (seatsCount === null) {
-      errors.push("Для менторской программы укажите количество мест.");
+    if (seatsCount === null || seatsCount <= 0) {
+      errors.push("Для менторской программы укажите количество мест больше нуля.");
     }
   }
 
   return errors;
+}
+
+export function getFriendlyErrorMessage(error, defaultMessage = "Произошла ошибка при выполнении операции.") {
+  if (!error) {
+    return defaultMessage;
+  }
+
+  if (error instanceof TypeError && error.message?.includes("fetch")) {
+    return "Не удалось связаться с сервером. Проверьте интернет-соединение.";
+  }
+
+  if (error.name === "ApiError" || error.status !== undefined) {
+    const status = Number(error.status);
+    
+    if (status === 401) {
+      return "Вы не авторизованы. Войдите в систему заново.";
+    }
+    if (status === 403) {
+      return "Недостаточно прав для выполнения этого действия.";
+    }
+    if (status === 404) {
+      return "Запрашиваемая публикация не найдена.";
+    }
+    if (status >= 500) {
+      return "Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.";
+    }
+
+    const rawMessage = String(error.message || "");
+    const hasCyrillic = /[а-яА-ЯёЁ]/.test(rawMessage);
+    
+    if (status === 400 || status === 409) {
+      if (hasCyrillic) {
+        return rawMessage;
+      }
+      return "Некорректно заполнены поля формы. Проверьте введенные данные.";
+    }
+  }
+
+  const msg = String(error.message || "");
+  if (/[а-яА-ЯёЁ]/.test(msg)) {
+    return msg;
+  }
+
+  return defaultMessage;
 }
 
 export function buildOpportunityPreviewRoute(opportunityId) {

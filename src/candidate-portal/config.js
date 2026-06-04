@@ -78,6 +78,14 @@ export const RESPONSE_FILTERS = [
   { value: "withdrawn", label: "Удаленные" },
 ];
 
+export const RESPONSE_SORT_OPTIONS = [
+  { value: "attention", label: "Требуют внимания" },
+  { value: "newest", label: "Сначала новые" },
+  { value: "oldest", label: "Сначала старые" },
+  { value: "title", label: "По названию" },
+];
+
+
 export const CANDIDATE_SETTINGS_SECTIONS = [
   {
     id: "settings-profile",

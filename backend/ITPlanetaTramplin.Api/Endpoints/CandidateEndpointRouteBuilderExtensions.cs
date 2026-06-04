@@ -49,7 +49,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         api.MapPost("/candidate/me/projects", CreateCandidateProjectAsync).RequireAuthorization("requireCandidateRole");
         api.MapPut("/candidate/me/projects/{projectId:int}", UpdateCandidateProjectByRouteAsync).RequireAuthorization("requireCandidateRole");
         api.MapDelete("/candidate/me/projects/{projectId:int}", DeleteCandidateProjectAsync).RequireAuthorization("requireCandidateRole");
-        api.MapGet("/candidate/public/{userId:int}", GetCandidatePublicProfileAsync).RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/public/{userId:int}", GetCandidatePublicProfileAsync).RequireAuthorization();
         api.MapGet("/candidate/me/applications", GetCurrentCandidateApplicationsAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/applications/{applicationId:int}/withdraw", WithdrawCurrentCandidateApplicationAsync).RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/applications/{applicationId:int}/confirm", ConfirmCurrentCandidateApplicationAsync).RequireAuthorization("requireCandidateRole");

@@ -204,11 +204,12 @@ function createDraft(profile, education = []) {
     },
     privacy: {
       projectAdditionPermission: normalizeString(preferences.projectAdditionPermission) || "everyone",
-      profileVisibility: normalizeString(visibility.profileVisibility) || "employers-and-contacts",
-      projectsVisibility: normalizeString(visibility.projectsVisibility) || "contacts",
+      profileVisibility: normalizeString(visibility.profileVisibility) || "everyone",
+      projectsVisibility: normalizeString(visibility.projectsVisibility) || "everyone",
+      resumesVisibility: normalizeString(visibility.resumesVisibility) || "everyone",
       activityVisibility: normalizeString(visibility.activityVisibility) || "everyone",
-      profileAudience: normalizeString(audience.profileAudience) || "contacts",
-      contactsAudience: normalizeString(audience.contactsAudience) || "employers-and-contacts",
+      profileAudience: normalizeString(audience.profileAudience) || "everyone",
+      contactsAudience: normalizeString(audience.contactsAudience) || "everyone",
       messagesAudience: normalizeString(audience.messagesAudience) || "everyone",
       peerVisibilityDefault: Boolean(social.peerVisibilityDefault),
       responseStatus: notifications.responseStatus !== false,
@@ -280,6 +281,7 @@ function buildLinksPayload(profile, draft) {
       visibility: {
         profileVisibility: draft.privacy.profileVisibility,
         projectsVisibility: draft.privacy.projectsVisibility,
+        resumesVisibility: draft.privacy.resumesVisibility,
         activityVisibility: draft.privacy.activityVisibility,
       },
       audience: {
@@ -647,9 +649,10 @@ function CandidatePrivacySettingsForm({ draft, saveState, onChange, onResetGroup
           <Button type="button" variant="ghost" onClick={() => onResetGroup("visibility")}>Сбросить</Button>
         </div>
 
-        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--three">
+        <div className="candidate-settings-detail__grid candidate-settings-detail__grid--four">
           <FormField label="Профиль"><Select value={draft.privacy.profileVisibility} onValueChange={(value) => onChange("profileVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
           <FormField label="Проекты"><Select value={draft.privacy.projectsVisibility} onValueChange={(value) => onChange("projectsVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
+          <FormField label="Резюме"><Select value={draft.privacy.resumesVisibility} onValueChange={(value) => onChange("resumesVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
           <FormField label="Активность"><Select value={draft.privacy.activityVisibility} onValueChange={(value) => onChange("activityVisibility", value)} options={VISIBILITY_OPTIONS} /></FormField>
         </div>
       </section>
@@ -1627,13 +1630,14 @@ export function CandidateSettingsApp({ onSummaryChange }) {
   function handleResetPrivacyGroup(group) {
     const resets = {
       visibility: {
-        profileVisibility: "employers-and-contacts",
-        projectsVisibility: "contacts",
+        profileVisibility: "everyone",
+        projectsVisibility: "everyone",
+        resumesVisibility: "everyone",
         activityVisibility: "everyone",
       },
       audience: {
-        profileAudience: "contacts",
-        contactsAudience: "employers-and-contacts",
+        profileAudience: "everyone",
+        contactsAudience: "everyone",
         messagesAudience: "everyone",
       },
       notifications: {

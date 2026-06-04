@@ -313,7 +313,11 @@ describe("HomeApp", () => {
     const advancedPickers = advancedPanel.querySelectorAll(".home-skills-filter__trigger");
     fireEvent.click(advancedPickers[0]);
     fireEvent.click(screen.getByRole("option", { name: "Search Lab" }));
-    fireEvent.change(container.querySelectorAll(".home-advanced-search__input")[2], { target: { value: "Remote City" } });
+    const cityInput = within(advancedPanel).getByRole("combobox");
+    fireEvent.change(cityInput, { target: { value: "Remote City" } });
+    fireEvent.keyDown(cityInput, { key: "Enter" });
+    const discoveryCityInput = container.querySelector(".home-discovery__city-picker input");
+    expect(discoveryCityInput).toHaveValue("Remote City");
     fireEvent.click(screen.getByRole("button", { name: "Junior" }));
     fireEvent.click(advancedPickers[1]);
     fireEvent.click(screen.getByRole("option", { name: "GraphQL" }));
@@ -323,6 +327,12 @@ describe("HomeApp", () => {
       expect(within(resultsPanel).getByText("Advanced Full Match")).toBeInTheDocument();
       expect(within(resultsPanel).queryByText("Advanced Mismatch")).not.toBeInTheDocument();
     });
+
+    fireEvent.focus(discoveryCityInput);
+    fireEvent.change(discoveryCityInput, { target: { value: "Other City" } });
+    fireEvent.click(screen.getByRole("option", { name: "Other City" }));
+
+    expect(cityInput).toHaveValue("Other City");
   });
 
   it("falls back to public opportunities when recommendations are unavailable", async () => {

@@ -13,7 +13,7 @@ export function CandidateStandalonePage({ children }) {
       <div className="candidate-portal__shell ui-page-shell">
         <PortalHeader
           navItems={headerNav}
-          currentKey="career"
+          currentKey={undefined}
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
           className="candidate-portal__header"

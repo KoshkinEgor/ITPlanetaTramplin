@@ -4,7 +4,7 @@ import { buildOpportunityDetailRoute } from "../app/routes";
 import { CandidateApplicationCard } from "./CandidateApplicationCard";
 import { useCandidateApplications, upsertCandidateApplication } from "./candidate-applications-store";
 import { Alert, Button, Card, EmptyState, Loader, Modal, Tag } from "../shared/ui";
-import { RESPONSE_FILTERS } from "./config";
+import { RESPONSE_FILTERS, RESPONSE_SORT_OPTIONS } from "./config";
 import { mapCandidateApplicationToCard } from "./mappers";
 import { canShareOpportunityWithRelationship, mapSocialUserToCard } from "./social";
 import { CandidateFilterPill, CandidateSectionHeader, CandidateSortButton } from "./shared";
@@ -142,7 +142,9 @@ function ShareOpportunityModal({ state, onClose, onShare }) {
 export function CandidateResponsesApp() {
   const applicationsState = useCandidateApplications();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("attention");
   const [pendingAction, setPendingAction] = useState({ applicationId: null, kind: null, error: "" });
+  const [withdrawConfirmState, setWithdrawConfirmState] = useState({ open: false, item: null });
   const [socialContextState, setSocialContextState] = useState({
     open: false,
     status: "idle",
@@ -165,18 +167,49 @@ export function CandidateResponsesApp() {
   });
 
   const filteredItems = useMemo(() => {
-    const applications = Array.isArray(applicationsState.applications) ? applicationsState.applications : [];
+    let applications = Array.isArray(applicationsState.applications) ? applicationsState.applications : [];
 
-    if (statusFilter === "all") {
-      return applications.map(mapCandidateApplicationToCard);
+    if (statusFilter !== "all") {
+      applications = applications.filter((item) => item.status === statusFilter);
     }
 
-    return applications
-      .filter((item) => item.status === statusFilter)
-      .map(mapCandidateApplicationToCard);
-  }, [applicationsState.applications, statusFilter]);
+    const sorted = [...applications];
+
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0));
+    } else if (sortBy === "oldest") {
+      sorted.sort((a, b) => new Date(a.appliedAt || 0) - new Date(b.appliedAt || 0));
+    } else if (sortBy === "title") {
+      sorted.sort((a, b) => (a.opportunityTitle || "").localeCompare(b.opportunityTitle || "", "ru"));
+    } else if (sortBy === "attention") {
+      const getPriority = (status) => {
+        const norm = typeof status === "string" ? status.trim().toLowerCase() : "";
+        if (norm === "invited") return 0;
+        if (norm === "reviewing") return 1;
+        if (norm === "submitted") return 2;
+        return 3;
+      };
+      sorted.sort((a, b) => {
+        const priorityDiff = getPriority(a.status) - getPriority(b.status);
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
+        return new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0);
+      });
+    }
+
+    return sorted.map(mapCandidateApplicationToCard);
+  }, [applicationsState.applications, statusFilter, sortBy]);
 
   async function handleWithdraw(item) {
+    setWithdrawConfirmState({ open: true, item });
+  }
+
+  async function handleConfirmWithdraw() {
+    const item = withdrawConfirmState.item;
+    if (!item) return;
+
+    setWithdrawConfirmState({ open: false, item: null });
     setPendingAction({ applicationId: item.id, kind: "withdraw", error: "" });
 
     try {
@@ -393,7 +426,11 @@ export function CandidateResponsesApp() {
                 />
               ))}
             </div>
-            <CandidateSortButton label="Требуют внимания" />
+            <CandidateSortButton
+              value={sortBy}
+              onSelect={setSortBy}
+              options={RESPONSE_SORT_OPTIONS}
+            />
           </div>
 
           {filteredItems.length ? (
@@ -431,6 +468,38 @@ export function CandidateResponsesApp() {
         onClose={() => setShareState((current) => ({ ...current, open: false, busyKey: "" }))}
         onShare={handleShareOpportunity}
       />
+
+      <Modal
+        open={withdrawConfirmState.open}
+        onClose={() => setWithdrawConfirmState({ open: false, item: null })}
+        title={withdrawConfirmState.item?.status === "invited" ? "Отклонить приглашение?" : "Отменить отклик?"}
+        tone="warning"
+        showIcon
+        actions={
+          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", width: "100%" }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setWithdrawConfirmState({ open: false, item: null })}
+            >
+              Назад
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleConfirmWithdraw}
+            >
+              {withdrawConfirmState.item?.status === "invited" ? "Да, отклонить" : "Да, отменить"}
+            </Button>
+          </div>
+        }
+      >
+        <p className="ui-type-body">
+          {withdrawConfirmState.item?.status === "invited"
+            ? "Вы уверены, что хотите отклонить приглашение организатора? Это действие нельзя будет отменить."
+            : "Вы уверены, что хотите отменить отклик? Действие нельзя будет вернуть. При повторном отправлении отклика он будет рассмотрен полностью заново."}
+        </p>
+      </Modal>
     </section>
   );
 }

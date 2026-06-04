@@ -470,10 +470,37 @@ describe("OpportunityDetailCardApp", () => {
 
     fireEvent.click(withdrawButton);
 
+    const confirmButton = await screen.findByRole("button", { name: "Да, отозвать" });
+    fireEvent.click(confirmButton);
+
     await waitFor(() => {
       expect(withdrawCandidateApplication).toHaveBeenCalledWith(55);
       expect(getCandidateApplications).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("shows confirmation modal on withdraw and does not withdraw if canceled", async () => {
+    useAuthSession.mockReturnValue({
+      status: "authenticated",
+      user: { id: 1, role: "candidate", email: "anna@example.com" },
+      error: null,
+    });
+    
+    getCandidateApplications.mockResolvedValue([appliedSummary]);
+
+    renderDetail("/opportunities/101");
+
+    const withdrawButton = await screen.findByRole("button", { name: /Отозвать отклик/ });
+    expect(withdrawButton).toBeInTheDocument();
+
+    fireEvent.click(withdrawButton);
+
+    expect(screen.getByText("Вы уверены, что хотите отозвать отклик? Действие нельзя будет вернуть. При повторном отправлении отклика он будет рассмотрен полностью заново.")).toBeInTheDocument();
+
+    const backButton = screen.getByRole("button", { name: "Назад" });
+    fireEvent.click(backButton);
+
+    expect(withdrawCandidateApplication).not.toHaveBeenCalled();
   });
 
   it("renders remaining seats correctly for mentoring program and disables apply when full", async () => {

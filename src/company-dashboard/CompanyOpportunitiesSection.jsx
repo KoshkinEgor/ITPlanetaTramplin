@@ -11,6 +11,7 @@ import {
   buildOpportunityPayload,
   buildOpportunityPreviewRoute,
   createOpportunityDraft,
+  getFriendlyErrorMessage,
   getModerationStatusTone,
   getOpportunityCardPresentation,
   translateExperienceLevel,
@@ -350,7 +351,7 @@ export function CompanyOpportunitiesSection() {
   }
 
   function resetSuccessState() {
-    setSaveState((current) => (current.status === "success" ? { status: "idle", error: "", message: "" } : current));
+    setSaveState((current) => (["success", "error"].includes(current.status) ? { status: "idle", error: "", message: "" } : current));
   }
 
   function openCreateForm() {
@@ -619,7 +620,7 @@ export function CompanyOpportunitiesSection() {
     } catch (error) {
       setSaveState({
         status: "error",
-        error: error?.message ?? "Не удалось сохранить публикацию.",
+        error: getFriendlyErrorMessage(error, "Не удалось сохранить публикацию."),
         message: "",
       });
     }
@@ -643,7 +644,7 @@ export function CompanyOpportunitiesSection() {
     } catch (error) {
       setSaveState({
         status: "error",
-        error: error?.message ?? "Не удалось удалить публикацию.",
+        error: getFriendlyErrorMessage(error, "Не удалось удалить публикацию."),
         message: "",
       });
     }
@@ -662,7 +663,7 @@ export function CompanyOpportunitiesSection() {
     } catch (error) {
       setSaveState({
         status: "error",
-        error: error?.message ?? "Не удалось архивировать публикацию.",
+        error: getFriendlyErrorMessage(error, "Не удалось архивировать публикацию."),
         message: "",
       });
     }
@@ -820,9 +821,11 @@ export function CompanyOpportunitiesSection() {
                         <Button type="button" variant="secondary" href={buildOpportunityPreviewRoute(item.id)}>
                           Просмотр публичной версии
                         </Button>
-                        <Button type="button" variant="secondary" href={buildOpportunityDetailRoute(item.id)}>
-                          Перейти на страницу возможности
-                        </Button>
+                        {item.moderationStatus === "approved" ? (
+                          <Button type="button" variant="secondary" href={buildOpportunityDetailRoute(item.id)}>
+                            Перейти на страницу возможности
+                          </Button>
+                        ) : null}
                         <Button type="button" variant="secondary" onClick={() => void startEditing(item)} disabled={saveState.status === "saving"}>
                           Редактировать
                         </Button>
@@ -1020,6 +1023,12 @@ export function CompanyOpportunitiesSection() {
                     </Button>
                   </div>
                 </FormField>
+
+                {saveState.status === "error" ? (
+                  <Alert tone="error" title="Операция не выполнена" showIcon>
+                    {saveState.error}
+                  </Alert>
+                ) : null}
 
                 {renderEditorActions()}
               </form>

@@ -922,6 +922,8 @@ export function OpportunitiesCatalogApp() {
     level: FILTER_ALL_VALUE,
     schedule: FILTER_ALL_VALUE,
     incomeFrom: "",
+    incomeTo: "",
+    company: "",
     payoutPeriod: "",
     education: [],
   });
@@ -1100,6 +1102,9 @@ export function OpportunitiesCatalogApp() {
     const selectedEmploymentTypes = filters.employmentTypes.map((value) => normalize(value));
     const normalizedLevel = normalize(filters.level);
     const normalizedSchedule = normalize(filters.schedule);
+    const normalizedCompany = normalize(filters.company);
+    const incomeFrom = Number(filters.incomeFrom) || 0;
+    const incomeTo = Number(filters.incomeTo) || 0;
 
     return state.items.filter((item) => {
       const matchesType = filters.activeType === "all" || item.opportunityType === filters.activeType;
@@ -1117,10 +1122,15 @@ export function OpportunitiesCatalogApp() {
       const matchesSchedule = filters.schedule === FILTER_ALL_VALUE ||
         normalize(item.schedule) === normalizedSchedule ||
         normalize(translateWorkSchedule(item.schedule)) === normalizedSchedule;
+      const matchesCompany = !normalizedCompany || normalize(item.companyName).includes(normalizedCompany);
+      
+      const itemIncome = Number(item.salaryTo ?? item.salaryFrom ?? item.stipendTo ?? item.stipendFrom ?? 0);
+      const matchesIncome = (!incomeFrom || itemIncome >= incomeFrom) && (!incomeTo || itemIncome <= incomeTo);
+
       const haystack = normalize([item.title, item.companyName, item.locationCity, item.description, ...(item.tags ?? [])].join(" "));
       const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
 
-      return matchesType && matchesCity && matchesSpecialization && matchesEmployment && matchesLevel && matchesSchedule && matchesQuery;
+      return matchesType && matchesCity && matchesSpecialization && matchesEmployment && matchesLevel && matchesSchedule && matchesQuery && matchesCompany && matchesIncome;
     });
   }, [filters, state.items]);
 
@@ -1436,6 +1446,7 @@ export function OpportunitiesCatalogApp() {
       <div className="opportunities-browser__shell ui-page-shell">
         <PortalHeader
           navItems={NAV_ITEMS}
+          currentKey="opportunities"
           brandLabel="рамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
@@ -1554,7 +1565,7 @@ export function OpportunitiesCatalogApp() {
                             boundaryRef={filtersAnchorRef}
                             values={filters}
                             options={filterOptions}
-                            disabledSections={{ income: true, payout: true, education: true }}
+                            disabledSections={{ income: false, payout: true, education: true }}
                             onChange={handleFilterChange}
                             onResetSection={handleResetSection}
                             onResetAll={handleResetAll}
@@ -1688,7 +1699,7 @@ export function OpportunitiesCatalogApp() {
                       options={filterOptions}
                       displayOptions={MAP_DISPLAY_ITEMS}
                       displayValue={favoritesDisplay}
-                      disabledSections={{ income: true, payout: true, education: true }}
+                      disabledSections={{ income: false, payout: true, education: true }}
                       onDisplayChange={setFavoritesDisplay}
                       onChange={handleFilterChange}
                       onResetDisplay={handleResetMapDisplay}
