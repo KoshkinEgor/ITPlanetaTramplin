@@ -423,6 +423,12 @@ body.opportunity-card-react-body {
   font-weight: 600;
 }
 
+.opportunity-share-modal__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .opportunity-social-context-card {
   border-radius: 30px;
   border-color: rgba(129, 156, 198, 0.14);

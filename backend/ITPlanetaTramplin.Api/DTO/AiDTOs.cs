@@ -15,6 +15,84 @@ public sealed class AiCareerRecommendationResponseDTO
     public List<AiCareerRecommendationItemDTO> Items { get; set; } = [];
 
     public bool IsFallback { get; set; }
+
+    public AiProfileAssessmentDTO? ProfileAssessment { get; set; }
+
+    public AiPortfolioAssessmentDTO? PortfolioAssessment { get; set; }
+
+    public AiSalaryInsightDTO? SalaryInsight { get; set; }
+
+    public List<AiSkillGapDTO>? SkillGaps { get; set; }
+
+    public AiEventInsightDTO? EventInsight { get; set; }
+
+    public DateTime? GeneratedAt { get; set; }
+
+    public string Signature { get; set; } = string.Empty;
+
+    public bool IsStale { get; set; }
+
+    public string RefreshReason { get; set; } = string.Empty;
+}
+
+public sealed class AiProfileAssessmentDTO
+{
+    public int Score { get; set; }
+
+    public string Summary { get; set; } = string.Empty;
+
+    public List<string> Strengths { get; set; } = [];
+
+    public List<string> Improvements { get; set; } = [];
+}
+
+public sealed class AiPortfolioAssessmentDTO
+{
+    public int Score { get; set; }
+
+    public string Summary { get; set; } = string.Empty;
+
+    public List<string> Strengths { get; set; } = [];
+
+    public List<string> Improvements { get; set; } = [];
+}
+
+public sealed class AiSalaryInsightDTO
+{
+    public string CurrentLevel { get; set; } = string.Empty;
+
+    public string NextLevel { get; set; } = string.Empty;
+
+    public string Summary { get; set; } = string.Empty;
+
+    public List<AiSalaryRangeDTO> Ranges { get; set; } = [];
+}
+
+public sealed class AiSalaryRangeDTO
+{
+    public string Label { get; set; } = string.Empty;
+
+    public string Range { get; set; } = string.Empty;
+}
+
+public sealed class AiSkillGapDTO
+{
+    public string Skill { get; set; } = string.Empty;
+
+    public string Reason { get; set; } = string.Empty;
+
+    public string Priority { get; set; } = string.Empty;
+}
+
+public sealed class AiEventInsightDTO
+{
+    public string Status { get; set; } = string.Empty;
+
+    public string OpportunityTitle { get; set; } = string.Empty;
+
+    public string Insight { get; set; } = string.Empty;
+
+    public List<string> RecommendedActions { get; set; } = [];
 }
 
 public sealed class AiCareerPlanStepDTO

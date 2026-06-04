@@ -336,6 +336,7 @@ export function CandidateCareerPage() {
     degraded: false,
     error: null,
   });
+  const [mode, setMode] = useState(() => localStorage.getItem("career-dashboard-mode") || "system");
   const [platformCompanyOptions, setPlatformCompanyOptions] = useState([]);
   const [draft, setDraft] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -412,7 +413,13 @@ export function CandidateCareerPage() {
     let active = true;
     const controller = new AbortController();
 
-    setDashboardState((current) => ({ ...current, status: "loading", aiStatus: "loading", error: null }));
+    const currentMode = localStorage.getItem("career-dashboard-mode") || "system";
+    setDashboardState((current) => ({
+      ...current,
+      status: "loading",
+      aiStatus: currentMode === "ai" ? "loading" : "idle",
+      error: null
+    }));
 
     const regularPromise = Promise.allSettled([
       getCandidateApplications(controller.signal),
@@ -423,7 +430,9 @@ export function CandidateCareerPage() {
       getCandidateDirectory(controller.signal),
     ]);
 
-    const aiPromise = getCandidateAiCareerRecommendations(controller.signal);
+    const aiPromise = currentMode === "ai"
+      ? getCandidateAiCareerRecommendations(controller.signal)
+      : Promise.resolve(null);
 
     regularPromise.then((results) => {
       if (!active || controller.signal.aborted) {
@@ -477,8 +486,8 @@ export function CandidateCareerPage() {
 
       setDashboardState((current) => ({
         ...current,
-        aiRecommendations,
-        aiStatus: "ready",
+        aiRecommendations: aiRecommendations || current.aiRecommendations,
+        aiStatus: currentMode === "ai" ? "ready" : "idle",
         aiError: null,
       }));
     }).catch((error) => {
@@ -500,11 +509,45 @@ export function CandidateCareerPage() {
     };
   }, [contextState]);
 
+  async function loadAiRecommendations() {
+    if (dashboardState.aiStatus === "loading" || dashboardState.aiRecommendations) {
+      return;
+    }
+    setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
+
+    try {
+      const aiRecommendations = await getCandidateAiCareerRecommendations(false);
+      setDashboardState((current) => ({
+        ...current,
+        aiRecommendations,
+        aiStatus: "ready",
+        aiError: null,
+      }));
+    } catch (error) {
+      setDashboardState((current) => ({
+        ...current,
+        aiStatus: "error",
+        aiError: error,
+      }));
+    }
+  }
+
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    localStorage.setItem("career-dashboard-mode", newMode);
+    if (newMode === "ai") {
+      // Lazy load from cache or API when switching to AI
+      if (!dashboardState.aiRecommendations && dashboardState.aiStatus !== "loading") {
+        loadAiRecommendations();
+      }
+    }
+  };
+
   async function refreshAiCareerRecommendations() {
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations();
+      const aiRecommendations = await getCandidateAiCareerRecommendations(true);
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,
@@ -785,6 +828,8 @@ export function CandidateCareerPage() {
                 profile={contextState.data.profile}
                 dashboardState={dashboardState}
                 onRefreshAiRecommendations={refreshAiCareerRecommendations}
+                mode={mode}
+                onModeChange={handleModeChange}
               />
             )
           ) : null}

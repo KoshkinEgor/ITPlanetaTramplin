@@ -23,6 +23,7 @@ import {
   Loader,
   SectionHeader,
   SparkIcon,
+  StatusBadge,
   Tag,
 } from "../../shared/ui";
 
@@ -595,7 +596,7 @@ function CareerAiPlanPanel({ aiRecommendations, status }) {
 
 // OpportunityAiReason removed. AI match and fit are now rendered directly inside OpportunityBlockCard.
 
-function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange, aiStatus }) {
+function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange, aiStatus, mode = "system" }) {
   const visibleTabs = AI_RECOMMENDATION_TABS.filter((tab) => {
     if (tab.value === "all") {
       return true;
@@ -651,13 +652,24 @@ function CareerAiRecommendationTabs({ sections, courses, activeTab, onTabChange,
                   className="candidate-career-dashboard__opportunities-slider"
                   itemWidth="var(--candidate-career-dashboard-opportunity-slide-width)"
                   gap="var(--candidate-career-dashboard-opportunity-slide-gap)"
-                  cardPropsBuilder={(item) => ({
-                    detailAction: {
-                      href: item.card.href ?? routes.opportunities.catalog,
-                      label: getOpportunityActionLabel(item.card.opportunityType),
-                      variant: "secondary",
-                    },
-                  })}
+                  cardPropsBuilder={(item) => {
+                    const props = {
+                      detailAction: {
+                        href: item.card.href ?? routes.opportunities.catalog,
+                        label: getOpportunityActionLabel(item.card.opportunityType),
+                        variant: "secondary",
+                      },
+                    };
+                    if (mode === "ai" && item.aiItem?.opportunityId) {
+                      props.secondaryAction = {
+                        href: `${routes.candidate.resumeEdit}?opportunityId=${item.aiItem.opportunityId}`,
+                        label: "Проверить резюме",
+                        variant: "outline",
+                        className: "candidate-career-opportunity-ai__resume-btn",
+                      };
+                    }
+                    return props;
+                  }}
                   renderItem={(item, _index, { className, cardProps }) => (
                     <OpportunityBlockCard
                       item={item.card}
@@ -939,13 +951,31 @@ function CareerCtaCard({ profile, opportunity, matchPercentage }) {
   );
 }
 
-export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiRecommendations }) {
+function CircularScoreGauge({ score, size = 90 }) {
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, score)) / 100) * circumference;
+
+  return (
+    <div className="score-gauge-wrapper">
+      <svg className="score-gauge" width={size} height={size}>
+        <circle className="score-gauge__bg" cx={size / 2} cy={size / 2} r={radius} />
+        <circle className="score-gauge__progress" cx={size / 2} cy={size / 2} r={radius} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
+        <text className="score-gauge__text" x={size / 2} y={size / 2 + 5} textAnchor="middle">{score}</text>
+        <text className="score-gauge__label" x={size / 2} y={size / 2 + 20} textAnchor="middle">/ 100</text>
+      </svg>
+    </div>
+  );
+}
+
+export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiRecommendations, mode = "system", onModeChange }) {
   const [mentorFilter, setMentorFilter] = useState(MENTOR_FILTERS[0].value);
   const [aiRecommendationTab, setAiRecommendationTab] = useState("all");
 
   const primarySkills = getPrimarySkills(profile);
   const suggestedSkills = getSuggestedSkills(profile);
   const courses = pickCourses(profile).map(mapCourseCard);
+  
   const opportunities = useMemo(() => {
     const aiCards = getAiOpportunityCards(dashboardState.aiRecommendations, dashboardState.opportunities);
     const baseCards = getOpportunityCards(dashboardState.recommendations, dashboardState.opportunities);
@@ -964,6 +994,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
 
     return merged;
   }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
+
   const aiRecommendationSections = useMemo(() => {
     const sections = getAiRecommendationSections(dashboardState.aiRecommendations, dashboardState.opportunities);
 
@@ -977,6 +1008,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
       normalizeAiRecommendationItems(dashboardState.aiRecommendations)
     );
   }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
+
   const track = resolveTrackKey(profile);
   const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;
   const matchPercentage = calculateOpportunityMatchPercentage(profile, featuredOpportunity);
@@ -986,6 +1018,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
   const networkContacts = getSharedContacts(profile, dashboardState.contacts);
   const suggestedContacts = getSuggestedContacts(dashboardState.suggestions);
   const sharedContacts = networkContacts;
+  
   const dynamicMentors = useMemo(() => {
     return safeArray(dashboardState?.directory)
       .filter((user) => {
@@ -1039,6 +1072,47 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
     cta: { href: "#mentors", label: "Найти программу" },
   };
 
+  const hasCache = dashboardState.aiRecommendations && dashboardState.aiRecommendations.refreshReason !== "no_cache";
+  const isStale = dashboardState.aiRecommendations?.isStale;
+  const showAiLayout = mode === "ai" && hasCache;
+
+  const formattedDate = useMemo(() => {
+    const genAt = dashboardState.aiRecommendations?.generatedAt || dashboardState.aiRecommendations?.GeneratedAt;
+    if (!genAt) return "";
+    try {
+      return new Date(genAt).toLocaleString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  }, [dashboardState.aiRecommendations]);
+
+  let statusText = "Рекомендации готовы";
+  let statusClass = "status-ready";
+
+  if (mode === "ai") {
+    if (dashboardState.aiStatus === "loading") {
+      statusText = "Обновление ИИ-разбора...";
+      statusClass = "status-loading";
+    } else if (!hasCache) {
+      statusText = "ИИ-разбор не сформирован";
+      statusClass = "status-not-formed";
+    } else if (isStale) {
+      statusText = "ИИ-разбор устарел";
+      statusClass = "status-stale";
+    } else {
+      statusText = "ИИ-разбор актуален";
+      statusClass = "status-fresh";
+    }
+  }
+
+  const aiRecommendations = dashboardState.aiRecommendations || {};
+
   return (
     <div className="candidate-career-dashboard">
       <section className="candidate-career-dashboard__hero">
@@ -1048,37 +1122,213 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
           description="Не знаешь куда двигаться? Тогда этот блок именно для тебя. Получи свою траекторию развития для усиления навыков и перехода к следующей цели."
           className="candidate-career-dashboard__intro"
         />
-        {showCtaCard && (
-          <CareerCtaCard profile={profile} opportunity={featuredOpportunity} matchPercentage={matchPercentage} />
-        )}
 
-        <div className="candidate-career-dashboard__top-grid">
-          <CareerStatsPanel
-            title={statsPanel.title}
-            metaTitle={statsPanel.metaTitle}
-            metaDescription={statsPanel.metaDescription}
-            stats={statsPanel.stats}
-            description={statsPanel.description}
-            cta={statsPanel.cta}
-          />
-
-          <CareerSkillsPanel
-            title="Твои навыки"
-            primarySkills={primarySkills}
-            suggestedSkills={suggestedSkills}
-            href="#career-courses"
-          />
-
-          <CareerSalaryPanel title="Уровень зарплат" city={getProfileCity(profile)} items={salaryTrack} />
+        {/* Mode switcher and status header */}
+        <div className="candidate-career-header">
+          <div className="candidate-career-header__left">
+            <h2 className="candidate-career-header__title ui-type-h2">Карьерный маршрут</h2>
+            <div className={cn("candidate-career-header__status", statusClass)}>
+              <span className="status-dot"></span>
+              <span className="status-text">{statusText}</span>
+            </div>
+          </div>
+          <div className="candidate-career-header__right">
+            <div className="candidate-career-switcher" role="radiogroup" aria-label="Режим рекомендаций">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mode === "system"}
+                className={cn("candidate-career-switcher__btn", mode === "system" && "is-active")}
+                onClick={() => onModeChange?.("system")}
+              >
+                Системные
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mode === "ai"}
+                className={cn("candidate-career-switcher__btn", mode === "ai" && "is-active")}
+                onClick={() => onModeChange?.("ai")}
+              >
+                Нейросеть
+              </button>
+            </div>
+          </div>
         </div>
 
-        <CareerAiInsightPanel
-          aiRecommendations={dashboardState.aiRecommendations}
-          status={dashboardState.aiStatus}
-          error={dashboardState.aiError}
-          onRefresh={onRefreshAiRecommendations}
-        />
-        <CareerAiPlanPanel aiRecommendations={dashboardState.aiRecommendations} status={dashboardState.aiStatus} />
+        {/* Top Grid Area */}
+        <div className="candidate-career-dashboard__top-grid">
+          {mode === "system" ? (
+            <>
+              <CareerStatsPanel
+                title={statsPanel.title}
+                metaTitle={statsPanel.metaTitle}
+                metaDescription={statsPanel.metaDescription}
+                stats={statsPanel.stats}
+                description={statsPanel.description}
+                cta={statsPanel.cta}
+              />
+
+              <CareerSkillsPanel
+                title="Твои навыки"
+                primarySkills={primarySkills}
+                suggestedSkills={suggestedSkills}
+                href="#career-courses"
+              />
+
+              <CareerSalaryPanel title="Уровень зарплат" city={getProfileCity(profile)} items={salaryTrack} />
+            </>
+          ) : !hasCache ? (
+            <Card className="candidate-career-ai-generate-card">
+              <div className="candidate-career-ai-generate-card__content">
+                <div className="candidate-career-ai-generate-card__badge">AI · GigaChat</div>
+                <h3 className="ui-type-h3">Персональный ИИ-разбор карьеры</h3>
+                <p className="ui-type-body">
+                  Получите подробный анализ вашего профиля и портфолио от искусственного интеллекта. Мы сопоставим ваши навыки с требованиями рынка, выявим пробелы и составим пошаговый план развития на 7 дней.
+                </p>
+                <div className="candidate-career-ai-generate-card__benefits">
+                  <div className="benefit-item">
+                    <SparkIcon />
+                    <span>Оценка резюме и портфолио с рекомендациями</span>
+                  </div>
+                  <div className="benefit-item">
+                    <SparkIcon />
+                    <span>Выявление критического разрыва в навыках</span>
+                  </div>
+                  <div className="benefit-item">
+                    <SparkIcon />
+                    <span>Индивидуальный пошаговый план на 7 дней</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={onRefreshAiRecommendations}
+                  disabled={dashboardState.aiStatus === "loading"}
+                  className="candidate-career-ai-generate-card__btn"
+                >
+                  {dashboardState.aiStatus === "loading" ? "Формируем разбор..." : "Сформировать разбор"}
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <>
+              {/* Card 1: AI Focus */}
+              <Card className="ui-career-panel candidate-career-ai-focus-card">
+                <div className="ui-career-panel__header">
+                  <div className="candidate-career-ai-card__head">
+                    <h2 className="ui-career-panel__title ui-type-h2">Карьерный фокус</h2>
+                    <span className="candidate-career-ai-card__badge">AI</span>
+                  </div>
+                  {formattedDate && (
+                    <span className="candidate-career-ai-card__date">
+                      Обновлено: {formattedDate}
+                    </span>
+                  )}
+                </div>
+                <p className="ui-career-panel__description">{aiRecommendations.summary}</p>
+                
+                {aiRecommendations.nextActions?.length > 0 && (
+                  <div className="ui-career-panel__recommended ui-type-txt-select">
+                    <span className="ui-career-panel__recommended-title">Ключевые действия</span>
+                    <div className="candidate-career-ai-focus-card__actions-list">
+                      {aiRecommendations.nextActions.slice(0, 3).map((action, i) => (
+                        <div key={i} className="focus-action-item">
+                          <span className="focus-action-index">{i + 1}</span>
+                          <span className="focus-action-text ui-type-body">{action}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={onRefreshAiRecommendations}
+                  disabled={dashboardState.aiStatus === "loading"}
+                  className="ui-career-stats-panel__action"
+                  width="full"
+                >
+                  {dashboardState.aiStatus === "loading" ? "Обновляем..." : "Обновить разбор"}
+                </Button>
+              </Card>
+
+              {/* Card 2: AI Profile Assessment */}
+              <Card className="ui-career-panel candidate-career-ai-profile-card">
+                <div className="ui-career-panel__header">
+                  <div className="candidate-career-ai-card__head">
+                    <h2 className="ui-career-panel__title ui-type-h2">Оценка профиля</h2>
+                    <span className="candidate-career-ai-card__badge">AI</span>
+                  </div>
+                </div>
+                
+                <div className="candidate-career-ai-profile-card__score-section">
+                  <CircularScoreGauge score={aiRecommendations.profileAssessment?.score || 0} />
+                  <p className="ui-career-panel__description">{aiRecommendations.profileAssessment?.summary}</p>
+                </div>
+
+                <div className="candidate-career-ai-profile-card__details">
+                  {aiRecommendations.profileAssessment?.strengths?.length > 0 && (
+                    <div className="ui-career-panel__recommended ui-type-txt-select">
+                      <span className="ui-career-panel__recommended-title is-strength">Сильные стороны</span>
+                      <ul className="assessment-group__list ui-type-body">
+                        {aiRecommendations.profileAssessment.strengths.slice(0, 3).map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {aiRecommendations.profileAssessment?.improvements?.length > 0 && (
+                    <div className="ui-career-panel__recommended ui-type-txt-select">
+                      <span className="ui-career-panel__recommended-title is-improvement">Зоны роста</span>
+                      <ul className="assessment-group__list ui-type-body">
+                        {aiRecommendations.profileAssessment.improvements.slice(0, 3).map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Card 3: AI Salary Insight */}
+              <Card className="ui-career-panel candidate-career-ai-salary-card">
+                <div className="ui-career-panel__header">
+                  <div className="candidate-career-ai-card__head">
+                    <h2 className="ui-career-panel__title ui-type-h2">Зарплатный ориентир</h2>
+                    <span className="candidate-career-ai-card__badge">AI</span>
+                  </div>
+                </div>
+                
+                <div className="candidate-career-ai-salary-card__levels">
+                  <div className="salary-level-item">
+                    <span className="salary-level-label">Текущая роль</span>
+                    <strong className="salary-level-value">{aiRecommendations.salaryInsight?.currentLevel || "Junior"}</strong>
+                  </div>
+                  <div className="salary-level-arrow">→</div>
+                  <div className="salary-level-item">
+                    <span className="salary-level-label">Следующий уровень</span>
+                    <strong className="salary-level-value">{aiRecommendations.salaryInsight?.nextLevel || "Middle"}</strong>
+                  </div>
+                </div>
+
+                <div className="ui-career-salary-panel__list">
+                  {aiRecommendations.salaryInsight?.ranges?.map((rangeItem, idx) => (
+                    <div key={idx} className="ui-career-salary-panel__item">
+                      <p className="ui-career-salary-panel__label ui-type-txt-select">{rangeItem.label || rangeItem.Label}</p>
+                      <strong className="ui-career-salary-panel__value ui-type-h2">{rangeItem.range || rangeItem.Range}</strong>
+                    </div>
+                  ))}
+                </div>
+                
+                {aiRecommendations.salaryInsight?.summary && (
+                  <p className="ui-career-panel__description">{aiRecommendations.salaryInsight.summary}</p>
+                )}
+              </Card>
+            </>
+          )}
+        </div>
       </section>
 
       {dashboardState.degraded ? (
@@ -1087,54 +1337,207 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
         </Alert>
       ) : null}
 
-      <section id="career-courses" className="candidate-career-dashboard__section">
-        <div className="candidate-career-courses-header">
-          <div className="candidate-career-courses-header__title-row">
-            <h2 className="ui-type-h2">
-              Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:
-            </h2>
-            <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
-              Все курсы →
-            </a>
-          </div>
+      {/* Main Content Area below Top Grid */}
+      {showAiLayout ? (
+        <>
+          {/* AI Section 1: Response Status Changes Context */}
+          {aiRecommendations.eventInsight && aiRecommendations.eventInsight.status && (
+            (() => {
+              const eventInsight = aiRecommendations.eventInsight;
+              const statusLower = String(eventInsight.status).toLowerCase();
+              const statusTone = statusLower === "rejected" ? "danger" : (statusLower === "withdrawn" ? "neutral" : "success");
+              const statusLabelMap = {
+                invited: "Получено приглашение",
+                accepted: "Отклик одобрен",
+                rejected: "Получен отказ",
+                withdrawn: "Отклик отозван"
+              };
+              const statusTextRu = statusLabelMap[statusLower] || eventInsight.status;
 
-          {suggestedSkills.length > 0 && (
-            <div className="candidate-career-courses-header__skills">
-              {suggestedSkills.map((skill) => (
-                <Tag key={skill} variant="surface">
-                  {skill}
-                </Tag>
-              ))}
-            </div>
+              return (
+                <section className="candidate-career-dashboard__section">
+                  <SectionHeader
+                    title="Что изменилось после отклика (AI)"
+                    description="Анализ изменения статуса вашего отклика и рекомендации от искусственного интеллекта."
+                    size="md"
+                  />
+                  <Card className={cn("candidate-career-ai-event-insight-card", statusTone)}>
+                    <div className="event-insight__header">
+                      <StatusBadge tone={statusTone} className="event-insight__status-badge">
+                        {statusTextRu}
+                      </StatusBadge>
+                      <h3 className="event-insight__opportunity-title">
+                        {eventInsight.opportunityTitle}
+                      </h3>
+                    </div>
+                    
+                    <p className="event-insight__insight">{eventInsight.insight}</p>
+                    
+                    {eventInsight.recommendedActions?.length > 0 && (
+                      <div className="event-insight__actions">
+                        <h4 className="event-insight__actions-title">Рекомендованные действия:</h4>
+                        <ul className="event-insight__actions-list">
+                          {eventInsight.recommendedActions.map((action, idx) => (
+                            <li key={idx} className="event-insight__action-item">{action}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </Card>
+                </section>
+              );
+            })()
           )}
 
-          <p className="candidate-career-courses-header__description ui-type-body">
-            Развивайтесь в данных направлениях для повышения шансов на собеседовании.
-          </p>
-        </div>
-        <OpportunityBlockSlider
-          ariaLabel={COURSE_SLIDER_ARIA_LABEL}
-          items={courses}
-          className="candidate-career-dashboard__courses-slider"
-          itemWidth="var(--candidate-career-dashboard-course-slide-width)"
-          gap="var(--candidate-career-dashboard-course-slide-gap)"
-          renderItem={(course, _index, { className }) => (
-            <CareerCourseCard
-              {...course}
-              className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
+          {/* AI Section 2: Portfolio Assessment */}
+          <section className="candidate-career-dashboard__section">
+            <SectionHeader
+              title="Оценка портфолио (AI)"
+              description="Анализ ваших проектов, командной роли и вклада в разработку."
+              size="md"
             />
+            <Card className="candidate-career-ai-portfolio-section">
+              <div className="portfolio-section__header-row">
+                <CircularScoreGauge score={aiRecommendations.portfolioAssessment?.score || 0} />
+                <div className="portfolio-section__summary-wrapper">
+                  <p className="portfolio-section__summary">{aiRecommendations.portfolioAssessment?.summary}</p>
+                </div>
+              </div>
+              
+              <div className="portfolio-section__details-grid">
+                {aiRecommendations.portfolioAssessment?.strengths?.length > 0 && (
+                  <div className="assessment-group">
+                    <h4 className="assessment-group__title is-strength">Сильные стороны:</h4>
+                    <ul className="assessment-group__list">
+                      {aiRecommendations.portfolioAssessment.strengths.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {aiRecommendations.portfolioAssessment?.improvements?.length > 0 && (
+                  <div className="assessment-group">
+                    <h4 className="assessment-group__title is-improvement">Рекомендации по улучшению:</h4>
+                    <ul className="assessment-group__list">
+                      {aiRecommendations.portfolioAssessment.improvements.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </section>
+
+          {/* AI Section 3: Skill Gaps */}
+          <section className="candidate-career-dashboard__section">
+            <SectionHeader
+              title="Разрыв навыков (AI)"
+              description="Ключевые компетенции, которых вам не хватает для соответствия выбранным направлениям."
+              size="md"
+            />
+            <Card className="candidate-career-ai-skills-gap-section">
+              {aiRecommendations.skillGaps?.length > 0 ? (
+                <div className="skills-gap-list">
+                  {aiRecommendations.skillGaps.map((item, idx) => {
+                    const priorityLower = String(item.priority || "").toLowerCase();
+                    const priorityClass = priorityLower === "high" ? "is-high" : priorityLower === "medium" ? "is-medium" : "is-low";
+                    const priorityLabel = priorityLower === "high" ? "Высокий приоритет" : priorityLower === "medium" ? "Средний приоритет" : "Низкий приоритет";
+                    
+                    return (
+                      <div key={idx} className="skills-gap-item">
+                        <div className="skills-gap-item__headline">
+                          <strong className="skills-gap-item__name">{item.skill || item.Skill}</strong>
+                          <span className={cn("skills-gap-item__badge", priorityClass)}>{priorityLabel}</span>
+                        </div>
+                        <p className="skills-gap-item__reason">{item.reason || item.Reason}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Alert tone="success" title="Отличная новость!" showIcon>
+                  ИИ не выявил критических разрывов в ваших ключевых навыках для рекомендованных вакансий.
+                </Alert>
+              )}
+            </Card>
+          </section>
+
+          {/* AI Section 4: Recommended Opportunities */}
+          <CareerAiRecommendationTabs
+            sections={aiRecommendationSections}
+            courses={courses}
+            activeTab={aiRecommendationTab}
+            onTabChange={setAiRecommendationTab}
+            aiStatus={dashboardState.aiStatus}
+            mode={mode}
+          />
+
+          {/* AI Section 5: 7-day Development Plan */}
+          <section className="candidate-career-dashboard__section">
+            <CareerAiPlanPanel aiRecommendations={aiRecommendations} status={dashboardState.aiStatus} />
+          </section>
+        </>
+      ) : (
+        <>
+          {/* System Layout Main Content */}
+          {showCtaCard && (
+            <CareerCtaCard profile={profile} opportunity={featuredOpportunity} matchPercentage={matchPercentage} />
           )}
-        />
-      </section>
 
-      <CareerAiRecommendationTabs
-        sections={aiRecommendationSections}
-        courses={courses}
-        activeTab={aiRecommendationTab}
-        onTabChange={setAiRecommendationTab}
-        aiStatus={dashboardState.aiStatus}
-      />
+          <section id="career-courses" className="candidate-career-dashboard__section">
+            <div className="candidate-career-courses-header">
+              <div className="candidate-career-courses-header__title-row">
+                <h2 className="ui-type-h2">
+                  Для получения больших возможностей и приглашений на стажировку или работу вам не хватает таких навыков:
+                </h2>
+                <a href={routes.opportunities.catalog} className="candidate-career-dashboard__section-link">
+                  Все курсы →
+                </a>
+              </div>
 
+              {suggestedSkills.length > 0 && (
+                <div className="candidate-career-courses-header__skills">
+                  {suggestedSkills.map((skill) => (
+                    <Tag key={skill} variant="surface">
+                      {skill}
+                    </Tag>
+                  ))}
+                </div>
+              )}
+
+              <p className="candidate-career-courses-header__description ui-type-body">
+                Развивайтесь в данных направлениях для повышения шансов на собеседовании.
+              </p>
+            </div>
+            
+            <OpportunityBlockSlider
+              ariaLabel={COURSE_SLIDER_ARIA_LABEL}
+              items={courses}
+              className="candidate-career-dashboard__courses-slider"
+              itemWidth="var(--candidate-career-dashboard-course-slide-width)"
+              gap="var(--candidate-career-dashboard-course-slide-gap)"
+              renderItem={(course, _index, { className }) => (
+                <CareerCourseCard
+                  {...course}
+                  className={[className, "candidate-career-dashboard__course-card"].filter(Boolean).join(" ")}
+                />
+              )}
+            />
+          </section>
+
+          <CareerAiRecommendationTabs
+            sections={aiRecommendationSections}
+            courses={courses}
+            activeTab={aiRecommendationTab}
+            onTabChange={setAiRecommendationTab}
+            aiStatus={dashboardState.aiStatus}
+            mode={mode}
+          />
+        </>
+      )}
+
+      {/* Shared sections rendered in both System and AI modes */}
       <section className="candidate-career-dashboard__section" id="mentors">
         <SectionHeader
           title="Менторские программы"
@@ -1207,7 +1610,6 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
           </Alert>
         )}
       </section>
-
     </div>
   );
 }

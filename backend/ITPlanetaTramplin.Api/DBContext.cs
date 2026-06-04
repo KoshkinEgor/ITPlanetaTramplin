@@ -19,6 +19,8 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<ApplicantProfile> ApplicantProfiles { get; set; }
 
+    public virtual DbSet<AiCareerCache> AiCareerCaches { get; set; }
+
     public virtual DbSet<CandidateProject> CandidateProjects { get; set; }
 
     public virtual DbSet<CandidateProjectInvite> CandidateProjectInvites { get; set; }
@@ -1211,6 +1213,45 @@ public partial class ApplicationDBContext : DbContext
 
             entity.Property(e => e.CurrentOpportunitiesCount).HasColumnName("current_opportunities_count");
             entity.Property(e => e.ProfileId).HasColumnName("profile_id");
+        });
+
+        modelBuilder.Entity<AiCareerCache>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_career_cache_pkey");
+
+            entity.ToTable("ai_career_cache");
+
+            entity.HasIndex(e => new { e.ApplicantId, e.Scope }, "ai_career_cache_applicant_id_scope_key").IsUnique();
+            entity.HasIndex(e => e.ExpiresAt, "idx_ai_career_cache_expires_at");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ApplicantId).HasColumnName("applicant_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("expires_at");
+            entity.Property(e => e.LastServedAt)
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("last_served_at");
+            entity.Property(e => e.PayloadJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("payload")
+                .HasDefaultValueSql("'{}'::jsonb");
+            entity.Property(e => e.Scope)
+                .HasMaxLength(80)
+                .HasColumnName("scope");
+            entity.Property(e => e.Signature)
+                .HasMaxLength(64)
+                .HasColumnName("signature");
+
+            entity.HasOne(d => d.Applicant)
+                .WithMany()
+                .HasForeignKey(d => d.ApplicantId)
+                .HasConstraintName("ai_career_cache_applicant_id_fkey")
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

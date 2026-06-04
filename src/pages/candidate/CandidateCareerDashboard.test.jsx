@@ -213,4 +213,144 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.queryByRole("heading", { name: "Воспользуйся моментом" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Откликнуться" })).not.toBeInTheDocument();
   });
+
+  it("renders AI Mode switcher, status, generate card when no cache is present", () => {
+    const profile = {
+      name: "Анна",
+      surname: "Иванова",
+      skills: ["UX"],
+    };
+
+    const dashboardState = {
+      status: "ready",
+      applications: [],
+      contacts: [],
+      suggestions: [],
+      recommendations: [],
+      opportunities: [],
+      aiRecommendations: {
+        refreshReason: "no_cache",
+        isFallback: true,
+      },
+      aiStatus: "idle",
+      aiError: null,
+    };
+
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard
+          profile={profile}
+          dashboardState={dashboardState}
+          mode="ai"
+          onModeChange={() => {}}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("heading", { name: "Карьерный маршрут" })).toBeInTheDocument();
+    expect(screen.getByText("ИИ-разбор не сформирован")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Персональный ИИ-разбор карьеры" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Сформировать разбор" })).toBeInTheDocument();
+  });
+
+  it("renders AI panels and AI sub-sections when cache is present", () => {
+    const profile = {
+      name: "Анна",
+      surname: "Иванова",
+      skills: ["UX"],
+    };
+
+    const dashboardState = {
+      status: "ready",
+      applications: [],
+      contacts: [],
+      suggestions: [],
+      recommendations: [
+        {
+          id: 1,
+          opportunityType: "vacancy",
+          title: "Frontend developer",
+          companyName: "Tech Corp",
+          locationCity: "Москва",
+          tags: ["React"],
+          moderationStatus: "approved",
+        }
+      ],
+      opportunities: [],
+      aiRecommendations: {
+        refreshReason: "profile_or_applications_changed",
+        isFallback: false,
+        summary: "Вы отлично подходите для frontend ролей.",
+        nextActions: ["Изучить React", "Сделать проект"],
+        profileAssessment: {
+          score: 85,
+          summary: "Хороший профиль.",
+          strengths: ["Опыт с JS"],
+          improvements: ["Добавить TypeScript"],
+        },
+        portfolioAssessment: {
+          score: 70,
+          summary: "Портфолио в порядке.",
+          strengths: ["Есть пет-проекты"],
+          improvements: ["Описать архитектуру"],
+        },
+        salaryInsight: {
+          currentLevel: "Junior",
+          nextLevel: "Middle",
+          summary: "Зарплата соответствует.",
+          ranges: [{ label: "Москва", range: "80-120к" }],
+        },
+        skillGaps: [
+          { skill: "TypeScript", reason: "Часто используется", priority: "high" },
+        ],
+        careerPlan: [
+          { day: "День 1", action: "Учить TS", outcome: "Базовые знания" }
+        ],
+        eventInsight: {
+          status: "invited",
+          opportunityTitle: "Frontend разработчик в Яндекс",
+          insight: "Вы приглашены на собеседование.",
+          recommendedActions: ["Подготовить рассказ о проектах"]
+        },
+        items: [
+          {
+            opportunityId: 1,
+            matchPercent: 90,
+            reason: "Подходит по React",
+            matchedSkills: ["React"],
+            missingSkills: [],
+            nextStep: "Откликнуться"
+          }
+        ]
+      },
+      aiStatus: "ready",
+      aiError: null,
+    };
+
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard
+          profile={profile}
+          dashboardState={dashboardState}
+          mode="ai"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("ИИ-разбор актуален")).toBeInTheDocument();
+    expect(screen.getByText("Вы отлично подходите для frontend ролей.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Оценка портфолио (AI)" })).toBeInTheDocument();
+    expect(screen.getByText("Портфолио в порядке.")).toBeInTheDocument();
+    
+    expect(screen.getByRole("heading", { name: "Разрыв навыков (AI)" })).toBeInTheDocument();
+    expect(screen.getByText("TypeScript")).toBeInTheDocument();
+    expect(screen.getByText("Высокий приоритет")).toBeInTheDocument();
+    
+    expect(screen.getByRole("heading", { name: "Что изменилось после отклика (AI)" })).toBeInTheDocument();
+    expect(screen.getByText("Frontend разработчик в Яндекс")).toBeInTheDocument();
+    expect(screen.getByText("Получено приглашение")).toBeInTheDocument();
+    
+    expect(screen.getByText("Мини-план на 7 дней")).toBeInTheDocument();
+    expect(screen.getByText("Учить TS")).toBeInTheDocument();
+  });
 });

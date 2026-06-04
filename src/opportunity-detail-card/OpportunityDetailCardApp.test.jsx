@@ -319,6 +319,13 @@ describe("OpportunityDetailCardApp", () => {
   });
 
   it("opens the share modal with contacts and triggers sharing for the selected contact", async () => {
+    // Mock navigator.clipboard
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn(() => Promise.resolve()),
+      },
+    });
+
     useAuthSession.mockReturnValue({
       status: "authenticated",
       user: { id: 1, role: "candidate", email: "anna@example.com" },
@@ -356,22 +363,56 @@ describe("OpportunityDetailCardApp", () => {
     fireEvent.click(menuButton);
     fireEvent.click(screen.getAllByRole("menuitem")[1]);
 
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Поделиться возможностью" })).toBeInTheDocument();
+
+    const chatButton = screen.getByRole("button", { name: "Поделиться в чате сервиса" });
+    const linkButton = screen.getByRole("button", { name: "Скопировать ссылку" });
+    const mailButton = screen.getByRole("button", { name: "Отправить по почте" });
+
+    expect(chatButton).toBeInTheDocument();
+    expect(linkButton).toBeInTheDocument();
+    expect(mailButton).toBeInTheDocument();
+
+    // 1. Test "В чате"
+    fireEvent.click(chatButton);
+    expect(await screen.findByRole("dialog", { name: "Поделиться в чате" })).toBeInTheDocument();
     expect((await screen.findAllByText("Anna Petrova")).length).toBeGreaterThan(0);
 
-    const shareButton = screen.getAllByRole("button", { name: "Поделиться" }).at(-1);
-
-    expect(shareButton).toBeTruthy();
-    fireEvent.click(shareButton);
-
+    const sendButton = screen.getByRole("button", { name: "Отправить" });
+    fireEvent.click(sendButton);
     await waitFor(() => {
       expect(createCandidateOpportunityShare).toHaveBeenCalledWith({
         recipientUserId: 901,
         opportunityId: 101,
         note: expect.stringContaining("Junior Security Analyst"),
       });
+      expect(screen.getByText(/Вы успешно поделились возможностью в чате с Anna Petrova/i)).toBeInTheDocument();
+    });
+
+    // Close the chat share modal
+    const closeButton = screen.getByRole("button", { name: "Close dialog" });
+    fireEvent.click(closeButton);
+
+    // Reopen ShareMethodModal
+    fireEvent.click(menuButton);
+    fireEvent.click(screen.getAllByRole("menuitem")[1]);
+
+    // 2. Test "Почта"
+    const reopenMailButton = screen.getByRole("button", { name: "Отправить по почте" });
+    fireEvent.click(reopenMailButton);
+    await waitFor(() => {
       expect(window.open).toHaveBeenCalledTimes(1);
-      expect(window.open.mock.calls[0][0]).toContain("mailto:anna.petrova@tramplin.local");
+      expect(window.open.mock.calls[0][0]).toContain("mailto:?subject=");
+      expect(screen.getByText(/Открыто почтовое приложение/i)).toBeInTheDocument();
+    });
+
+    // 3. Test "Ссылка"
+    const reopenLinkButton = screen.getByRole("button", { name: "Скопировать ссылку" });
+    fireEvent.click(reopenLinkButton);
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining("Junior Security Analyst"));
+      expect(screen.getByText(/Ссылка успешно скопирована в буфер обмена/i)).toBeInTheDocument();
     });
   });
 

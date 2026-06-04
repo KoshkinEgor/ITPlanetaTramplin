@@ -121,12 +121,15 @@ builder.Services.AddHttpClient<IGigaChatClient, GigaChatClient>()
 
         return handler;
     });
-builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseNpgsql(
-    connectionString,
-    npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
-        maxRetryCount: 3,
-        maxRetryDelay: TimeSpan.FromSeconds(5),
-        errorCodesToAdd: null)));
+builder.Services.AddDbContext<ApplicationDBContext>(options => {
+    options.UseNpgsql(
+        connectionString,
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorCodesToAdd: null));
+    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 builder.Services.AddHealthChecks();
 builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
