@@ -73,7 +73,9 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 2px 0 10px;
+  padding: 12px 0 12px;
+  margin-top: -10px;
+  margin-bottom: -2px;
   scroll-snap-type: x proximity;
   scroll-padding-inline: 0;
   scrollbar-gutter: stable;
@@ -119,7 +121,9 @@
 .opportunity-block-slider--raised-featured .opportunity-block-slider__rail {
   align-items: flex-end;
   overflow-y: visible;
-  padding: 28px 0 4px;
+  padding: 44px 0 28px;
+  margin-top: -16px;
+  margin-bottom: -24px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   cursor: grab;
@@ -214,7 +218,9 @@
 
 @media (max-width: 640px) {
   .opportunity-block-slider__rail {
-    padding-bottom: 8px;
+    padding: 20px 0 20px;
+    margin-top: -18px;
+    margin-bottom: -12px;
   }
 
   .opportunity-block-slider__toolbar {
@@ -227,7 +233,9 @@
   }
 
   .opportunity-block-slider--raised-featured .opportunity-block-slider__rail {
-    padding-top: 20px;
+    padding: 44px 0 32px;
+    margin-top: -24px;
+    margin-bottom: -28px;
   }
 
   .opportunity-block-slider--raised-featured .opportunity-block-slider__item.is-active .opportunity-block-slider__card.ui-card {

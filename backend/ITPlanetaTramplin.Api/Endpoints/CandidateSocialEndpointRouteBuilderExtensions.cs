@@ -30,18 +30,64 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             return Results.NotFound();
         }
 
+        var role = PublicRoles.Normalize(context.User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value);
+        var isEmployer = role == PublicRoles.Company;
+        var isModerator = role == PublicRoles.Moderator;
+
         var relationship = await BuildRelationshipSummaryAsync(db, currentUserId.Value, userId);
         var links = ParseJsonObject(profile.Links);
         var onboarding = GetObjectNode(links, "onboarding");
         var resumes = GetArrayNode(links, "resumes");
+
+        if (resumes is null || resumes.Count == 0)
+        {
+            var fallbackVisibility = GetNestedString(links, "preferences", "visibility", "resumesVisibility");
+            if (string.IsNullOrEmpty(fallbackVisibility))
+            {
+                var profileVisibility = GetNestedString(links, "preferences", "visibility", "profileVisibility");
+                if (profileVisibility == "employers" || profileVisibility == "employers-and-contacts")
+                {
+                    fallbackVisibility = "employers";
+                }
+                else if (profileVisibility == "private" || profileVisibility == "nobody")
+                {
+                    fallbackVisibility = "private";
+                }
+                else
+                {
+                    fallbackVisibility = "everyone";
+                }
+            }
+
+            var profession = onboarding?["profession"]?.GetValue<string?>() ?? "Резюме кандидата";
+            var completedAt = onboarding?["completedAt"]?.GetValue<string?>();
+            var city = onboarding?["city"]?.GetValue<string?>() ?? "Город не указан";
+
+            var fallbackResume = new JsonObject
+            {
+                ["id"] = "resume-primary",
+                ["title"] = profession,
+                ["updatedAt"] = completedAt,
+                ["city"] = city,
+                ["visibility"] = fallbackVisibility,
+                ["stats"] = new JsonObject
+                {
+                    ["impressions"] = 0,
+                    ["views"] = 0,
+                    ["invitations"] = 0
+                }
+            };
+            resumes = new JsonArray { fallbackResume };
+        }
+
         var mentor = GetObjectNode(links, "mentor");
         var rawSocialLinks = ExtractVisibleSocialLinks(links);
         var projectsVisibility = GetNestedString(links, "preferences", "visibility", "projectsVisibility");
         var contactsAudience = GetNestedString(links, "preferences", "audience", "contactsAudience");
-        var canSeeProjects = CanAccessScope(projectsVisibility, relationship, currentUserId.Value == userId);
-        var canSeeContacts = CanAccessScope(contactsAudience, relationship, currentUserId.Value == userId);
+        var canSeeProjects = CanAccessScope(projectsVisibility, relationship, currentUserId.Value == userId, isEmployer, isModerator);
+        var canSeeContacts = CanAccessScope(contactsAudience, relationship, currentUserId.Value == userId, isEmployer, isModerator);
         var visibleSocialLinks = canSeeContacts ? rawSocialLinks : null;
-        var visibleResumes = ExtractVisibleResumes(resumes, relationship, currentUserId.Value == userId);
+        var visibleResumes = ExtractVisibleResumes(resumes, relationship, currentUserId.Value == userId, isEmployer, isModerator);
         var allPublicProjects = await db.CandidateProjects
             .Include(item => item.Applicant)
             .Where(item => item.ShowInPortfolio)
@@ -683,9 +729,9 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         return nested?[valueKey]?.GetValue<string?>();
     }
 
-    private static bool CanAccessScope(string? scope, RelationshipSummaryDTO relationship, bool isSelf)
+    private static bool CanAccessScope(string? scope, RelationshipSummaryDTO relationship, bool isSelf, bool isEmployer, bool isModerator)
     {
-        if (isSelf)
+        if (isSelf || isModerator)
         {
             return true;
         }
@@ -694,8 +740,8 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         {
             "everyone" => true,
             "contacts" => relationship.ContactState == "saved" || relationship.FriendState == "friends",
-            "employers-and-contacts" => relationship.ContactState == "saved" || relationship.FriendState == "friends",
-            "employers" => false,
+            "employers-and-contacts" => isEmployer || relationship.ContactState == "saved" || relationship.FriendState == "friends",
+            "employers" => isEmployer,
             "nobody" => false,
             "private" => false,
             null or "" => true,
@@ -739,7 +785,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
         return false;
     }
 
-    private static List<object> ExtractVisibleResumes(JsonArray? resumes, RelationshipSummaryDTO relationship, bool isSelf)
+    private static List<object> ExtractVisibleResumes(JsonArray? resumes, RelationshipSummaryDTO relationship, bool isSelf, bool isEmployer, bool isModerator)
     {
         if (resumes is null)
         {
@@ -755,7 +801,7 @@ internal static partial class CandidateEndpointRouteBuilderExtensions
             }
 
             var visibility = resume["visibility"]?.GetValue<string?>();
-            if (!CanAccessScope(visibility, relationship, isSelf))
+            if (!CanAccessScope(visibility, relationship, isSelf, isEmployer, isModerator))
             {
                 continue;
             }

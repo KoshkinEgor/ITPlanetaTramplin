@@ -172,7 +172,7 @@ export function CandidateCabinetPage() {
       header={(
         <PortalHeader
           navItems={headerNav}
-          currentKey="career"
+          currentKey={undefined}
           actionHref={routes.candidate.profile}
           actionLabel="Профиль"
         />

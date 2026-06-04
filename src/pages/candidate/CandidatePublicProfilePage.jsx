@@ -148,7 +148,26 @@ function buildResumeStats(stats) {
 
 function getResumeVisibility(value) {
   const normalized = normalizeString(value).toLowerCase();
-  return normalized === "employers" ? "employers" : "private";
+  return ["everyone", "employers", "private"].includes(normalized) ? normalized : "private";
+}
+
+function getFallbackResumeVisibility(profile) {
+  const links = getCandidateProfileLinks(profile);
+  const preferences = isRecord(links?.preferences) ? links.preferences : {};
+  const visibility = isRecord(preferences?.visibility) ? preferences.visibility : {};
+  const resumesVisibility = normalizeString(visibility?.resumesVisibility);
+
+  if (["everyone", "employers", "private"].includes(resumesVisibility)) {
+    return resumesVisibility;
+  }
+
+  const profileVisibility = normalizeString(visibility?.profileVisibility);
+  if (profileVisibility === "employers" || profileVisibility === "employers-and-contacts") {
+    return "employers";
+  } else if (profileVisibility === "private" || profileVisibility === "nobody") {
+    return "private";
+  }
+  return "everyone";
 }
 
 function buildFallbackResume(profile) {
@@ -160,7 +179,7 @@ function buildFallbackResume(profile) {
     updatedAt: onboarding.completedAt ?? null,
     city: normalizeString(onboarding.city) || "Город не указан",
     experience: getResumeExperienceLabel(onboarding),
-    visibility: "private",
+    visibility: getFallbackResumeVisibility(profile),
     stats: buildResumeStats()
   };
 }
@@ -185,7 +204,7 @@ function buildResumeItems(profile, explicitResumes = []) {
       updatedAt: resume.updatedAt ?? resume.updatedDate ?? resume.lastModifiedAt ?? fallbackResume.updatedAt,
       city: normalizeString(resume.city) || fallbackResume.city,
       experience: experienceLabel || getResumeExperienceLabel(experienceSource) || fallbackResume.experience,
-      visibility: getResumeVisibility(resume.visibility),
+      visibility: ["everyone", "employers", "private"].includes(normalizeString(resume.visibility)) ? resume.visibility : fallbackResume.visibility,
       stats: buildResumeStats(resume.stats),
       downloadUrl: normalizeString(resume.downloadUrl) || normalizeString(resume.fileUrl) || normalizeString(resume.url),
       source: resume

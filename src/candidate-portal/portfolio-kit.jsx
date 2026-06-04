@@ -254,12 +254,13 @@ export function CandidateResumeMiniCard({
     views: Number.isFinite(Number(stats.views)) ? Number(stats.views) : 0,
     invitations: Number.isFinite(Number(stats.invitations)) ? Number(stats.invitations) : 0,
   };
-  const resolvedVisibility = visibility === "employers" ? "employers" : "private";
+  const resolvedVisibility = ["everyone", "employers", "private"].includes(visibility) ? visibility : "private";
   const updatedLabel = `${updatedAtLabel}: ${formatResumeMiniCardDate(updatedAt)}`;
   const chips = [city, experience].filter(Boolean);
   const visibilityItems = [
     { value: "private", label: privateVisibilityLabel },
     { value: "employers", label: employersVisibilityLabel },
+    { value: "everyone", label: "Видно всем" },
   ];
   const resolvedEditHref = editHref ?? menuHref;
   const cardClassName = [
@@ -367,6 +368,14 @@ export function CandidateResumeMiniCard({
               onClick={() => onVisibilityChange?.("employers")}
             >
               {employersVisibilityLabel}
+            </button>
+            <button
+              type="button"
+              className={`candidate-resume-mini-card__visibility-button${resolvedVisibility === "everyone" ? " is-active" : ""}`}
+              aria-pressed={resolvedVisibility === "everyone"}
+              onClick={() => onVisibilityChange?.("everyone")}
+            >
+              Видно всем
             </button>
           </div>
         </div>

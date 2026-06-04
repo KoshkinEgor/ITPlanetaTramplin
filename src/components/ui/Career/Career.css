@@ -175,15 +175,11 @@
 }
 
 .ui-career-skills-panel.ui-card {
-  background:
-    radial-gradient(circle at top right, rgba(209, 255, 39, 0.18), transparent 28%),
-    rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .ui-career-salary-panel.ui-card {
-  background:
-    radial-gradient(circle at top right, rgba(209, 255, 39, 0.24), transparent 32%),
-    rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .ui-career-salary-panel__list {

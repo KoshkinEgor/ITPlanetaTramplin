@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildCandidateProjectEditRoute, buildCandidatePublicProfileRoute } from "../app/routes";
-import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, getCandidateProjects } from "../api/candidate";
+import { getCandidateAchievements, getCandidateEducation, getCandidateProfile, getCandidateProjects, updateCandidateProfile } from "../api/candidate";
 import { ApiError } from "../lib/http";
 import { Alert, Button, Card, EmptyState, Loader } from "../shared/ui";
 import { CANDIDATE_PAGE_ROUTES } from "./config";
@@ -42,11 +42,22 @@ function getResumeExperienceLabel(source) {
 }
 
 function getResumeVisibility(profile) {
-  const preferences = isRecord(profile?.preferences) ? profile.preferences : {};
+  const links = getCandidateProfileLinks(profile);
+  const preferences = isRecord(links?.preferences) ? links.preferences : {};
   const visibility = isRecord(preferences.visibility) ? preferences.visibility : {};
-  const profileVisibility = normalizeString(visibility.profileVisibility);
+  const resumesVisibility = normalizeString(visibility.resumesVisibility);
 
-  return profileVisibility === "employers" || profileVisibility === "employers-and-contacts" ? "employers" : "private";
+  if (["everyone", "employers", "private"].includes(resumesVisibility)) {
+    return resumesVisibility;
+  }
+
+  const profileVisibility = normalizeString(visibility.profileVisibility);
+  if (profileVisibility === "employers" || profileVisibility === "employers-and-contacts") {
+    return "employers";
+  } else if (profileVisibility === "private" || profileVisibility === "nobody") {
+    return "private";
+  }
+  return "everyone";
 }
 
 function buildResumeStats(stats) {
@@ -93,7 +104,7 @@ function buildCandidateResumeItems(profile) {
       updatedAt: resume.updatedAt ?? resume.updatedDate ?? resume.lastModifiedAt ?? fallbackResume.updatedAt,
       city: normalizeString(resume.city) || fallbackResume.city,
       experience: experienceLabel || getResumeExperienceLabel(experienceSource) || fallbackResume.experience,
-      visibility: visibility === "employers" ? "employers" : fallbackResume.visibility,
+      visibility: ["everyone", "employers", "private"].includes(visibility) ? visibility : fallbackResume.visibility,
       stats: buildResumeStats(resume.stats),
     };
   });
@@ -222,11 +233,55 @@ export function CandidateResumeApp() {
                     onDeleteClick={() => {
                       setDeletedResumeIds((current) => (current.includes(item.id) ? current : current.concat(item.id)));
                     }}
-                    onVisibilityChange={(nextVisibility) => {
+                    onVisibilityChange={async (nextVisibility) => {
                       setResumeVisibilityById((current) => ({
                         ...current,
                         [item.id]: nextVisibility,
                       }));
+
+                      try {
+                        const links = getCandidateProfileLinks(state.profile);
+                        const resumes = Array.isArray(links?.resumes) ? links.resumes : [];
+                        
+                        let updatedResumes;
+                        if (item.id === "resume-primary" && !resumes.some((r) => r.id === "resume-primary")) {
+                          updatedResumes = [
+                            ...resumes,
+                            {
+                              id: "resume-primary",
+                              title: item.title,
+                              city: item.city,
+                              experience: item.experience,
+                              visibility: nextVisibility,
+                            },
+                          ];
+                        } else {
+                          updatedResumes = resumes.map((r) => {
+                            if (r.id === item.id) {
+                              return { ...r, visibility: nextVisibility };
+                            }
+                            return r;
+                          });
+                        }
+
+                        const updatedProfile = await updateCandidateProfile({
+                          links: {
+                            ...links,
+                            resumes: updatedResumes,
+                          },
+                        });
+
+                        setState((prev) => ({
+                          ...prev,
+                          profile: updatedProfile,
+                        }));
+                      } catch (err) {
+                        console.error("Failed to update resume visibility:", err);
+                        setResumeVisibilityById((current) => ({
+                          ...current,
+                          [item.id]: item.visibility,
+                        }));
+                      }
                     }}
                   />
                 ))}

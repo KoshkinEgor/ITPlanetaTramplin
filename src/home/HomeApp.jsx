@@ -1329,7 +1329,20 @@ function HubCard({ title, description, href }) {
   );
 }
 
-function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleValue, onChangeField, onReset, onApply }) {
+function AdvancedSectionHead({ label, onReset }) {
+  return (
+    <div className="home-advanced-search__section-head">
+      <span className="home-advanced-search__label">{label}</span>
+      {onReset ? (
+        <button type="button" onClick={onReset}>
+          Сбросить
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AdvancedSearchPanel({ values, cityOptions, companyOptions, skillOptions, onToggleValue, onChangeField, onResetSection, onReset, onApply }) {
   const [openAdvancedPicker, setOpenAdvancedPicker] = useState(null);
 
   return (
@@ -1345,7 +1358,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">Что искать</span>
+        <AdvancedSectionHead label="Что искать" onReset={() => onResetSection?.("directions")} />
         <div className="home-advanced-search__chips">
           {advancedSearchSections.directions.map((item) => (
             <button
@@ -1362,7 +1375,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
 
       <div className="home-advanced-search__grid">
         <div className="home-advanced-search__field">
-          <span className="home-advanced-search__label">Зарплата от</span>
+          <AdvancedSectionHead label="Зарплата от" onReset={() => onResetSection?.("salary")} />
           <Input
             value={values.salaryFrom}
             onValueChange={(nextValue) => onChangeField("salaryFrom", nextValue)}
@@ -1383,7 +1396,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
 
       <div className="home-advanced-search__grid">
         <div className="home-advanced-search__field">
-          <span className="home-advanced-search__label">Компания</span>
+          <AdvancedSectionHead label="Компания" onReset={() => onResetSection?.("companies")} />
           <HomeSkillsFilter
             label="Компания"
             value={values.companies}
@@ -1398,10 +1411,11 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
           />
         </div>
         <div className="home-advanced-search__field">
-          <span className="home-advanced-search__label">Город</span>
-          <Input
+          <AdvancedSectionHead label="Город" onReset={() => onResetSection?.("city")} />
+          <CityAutocomplete
             value={values.city}
             onValueChange={(nextValue) => onChangeField("city", nextValue)}
+            fallbackOptions={cityOptions}
             placeholder="Москва"
             className="home-advanced-search__input"
           />
@@ -1409,7 +1423,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">Формат</span>
+        <AdvancedSectionHead label="Формат" onReset={() => onResetSection?.("formats")} />
         <div className="home-advanced-search__chips">
           {advancedSearchSections.formats.map((item) => (
             <button
@@ -1425,7 +1439,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">Опыт</span>
+        <AdvancedSectionHead label="Опыт" onReset={() => onResetSection?.("levels")} />
         <div className="home-advanced-search__chips">
           {advancedSearchSections.levels.map((item) => (
             <button
@@ -1441,7 +1455,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">График</span>
+        <AdvancedSectionHead label="График" onReset={() => onResetSection?.("schedules")} />
         <div className="home-advanced-search__chips">
           {advancedSearchSections.schedules.map((item) => (
             <button
@@ -1457,7 +1471,7 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">Навыки и ключевые слова</span>
+        <AdvancedSectionHead label="Навыки и ключевые слова" onReset={() => onResetSection?.("skills")} />
         <HomeSkillsFilter
           label="Навыки"
           value={values.skills}
@@ -1470,10 +1484,16 @@ function AdvancedSearchPanel({ values, companyOptions, skillOptions, onToggleVal
           emptyLabel="Выберите навыки из списка или добавьте свой"
           createLabel="Добавить навык"
         />
+        <Input
+          value={values.keywords}
+          onValueChange={(nextValue) => onChangeField("keywords", nextValue)}
+          placeholder="Ключевые слова"
+          className="home-advanced-search__input home-advanced-search__keywords"
+        />
       </div>
 
       <div className="home-advanced-search__section">
-        <span className="home-advanced-search__label">Дополнительно</span>
+        <AdvancedSectionHead label="Дополнительно" onReset={() => onResetSection?.("extras")} />
         <div className="home-advanced-search__checks">
           {advancedSearchSections.extras.map((item) => (
             <Checkbox
@@ -1544,11 +1564,46 @@ export function HomeApp() {
     () => uniqueOptions(nearbyItemsState.items.map((item) => item.companyName)),
     [nearbyItemsState.items]
   );
+  const advancedCityOptions = useMemo(
+    () => [...FALLBACK_CITY_OPTIONS, ...uniqueOptions(nearbyItemsState.items.map((item) => item.city || item.locationCity))],
+    [nearbyItemsState.items]
+  );
   const advancedSkillOptions = quickFilterOptions.skills;
   const hasActiveAdvancedSearchFilters = useMemo(
     () => hasAdvancedSearchFilters(advancedSearchValues),
     [advancedSearchValues]
   );
+
+  const resolveCityOptionByName = (cityName) => {
+    const normalizedCityName = normalizeOptionValue(cityName);
+
+    if (!normalizedCityName) {
+      return null;
+    }
+
+    return advancedCityOptions.find((option) => {
+      const optionName = typeof option === "string" ? option : option?.name;
+      return normalizeOptionValue(optionName) === normalizedCityName;
+    }) ?? getFallbackCityOption(cityName);
+  };
+
+  const syncDiscoveryCity = (cityName) => {
+    const nextCity = String(cityName ?? "").trim();
+
+    setCityInputValue(nextCity);
+    setSelectedCityOption(resolveCityOptionByName(nextCity));
+  };
+
+  const selectDiscoveryCity = (cityName, option = null) => {
+    const nextCity = String(cityName ?? "").trim();
+
+    setCityInputValue(nextCity);
+    setSelectedCityOption(option ?? resolveCityOptionByName(nextCity));
+    setAdvancedSearchValues((current) => ({
+      ...current,
+      city: nextCity,
+    }));
+  };
 
   const updateQuickFilter = (key, nextValue) => {
     setFilterValues((current) => ({
@@ -1629,6 +1684,10 @@ export function HomeApp() {
       setSelectedSkills(nextValue);
     }
 
+    if (field === "city") {
+      syncDiscoveryCity(nextValue);
+    }
+
     setAdvancedSearchValues((current) => ({
       ...current,
       [field]: nextValue,
@@ -1639,6 +1698,39 @@ export function HomeApp() {
     setAdvancedSearchValues(createDefaultAdvancedSearchValues());
     setFilterValues({ ...defaultFilterValues });
     setSelectedSkills([]);
+    syncDiscoveryCity(DEFAULT_CITY_NAME);
+  };
+
+  const resetAdvancedSearchSection = (section) => {
+    setAdvancedSearchValues((current) => {
+      switch (section) {
+        case "salary":
+          return { ...current, salaryFrom: "", salaryTo: "" };
+        case "companies":
+          return { ...current, company: "", companies: [] };
+        case "city":
+          syncDiscoveryCity("");
+          return { ...current, city: "" };
+        case "directions":
+          setFilterValues((filters) => ({ ...filters, type: FILTER_ALL_VALUE }));
+          return { ...current, directions: [] };
+        case "formats":
+          setFilterValues((filters) => ({ ...filters, format: FILTER_ALL_VALUE }));
+          return { ...current, formats: [] };
+        case "levels":
+          setFilterValues((filters) => ({ ...filters, level: FILTER_ALL_VALUE }));
+          return { ...current, levels: [] };
+        case "schedules":
+          return { ...current, schedules: [] };
+        case "skills":
+          setSelectedSkills([]);
+          return { ...current, keywords: "", skills: [] };
+        case "extras":
+          return { ...current, extras: [] };
+        default:
+          return current;
+      }
+    });
   };
 
   const closeNewsletterModal = () => {
@@ -2013,6 +2105,7 @@ export function HomeApp() {
       <div className="home-page__shell ui-page-shell">
         <PortalHeader
           navItems={PUBLIC_HEADER_NAV_ITEMS}
+          currentKey={location.hash === "#about" ? "about" : "home"}
           brandLabel="рамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
@@ -2113,10 +2206,9 @@ export function HomeApp() {
                 selectedOptionId={selectedCityOption?.id}
                 onValueChange={setCityInputValue}
                 onSelectOption={(option) => {
-                  setSelectedCityOption(option);
-                  setCityInputValue(option?.name ?? "");
+                  selectDiscoveryCity(option?.name ?? "", option);
                 }}
-                fallbackOptions={FALLBACK_CITY_OPTIONS}
+                fallbackOptions={advancedCityOptions}
                 className="home-discovery__city-picker"
               />
               <button type="button" className="home-discovery__city">
@@ -2220,10 +2312,12 @@ export function HomeApp() {
             {view === "map" && advancedSearchOpen ? (
               <AdvancedSearchPanel
                 values={advancedSearchValues}
+                cityOptions={advancedCityOptions}
                 companyOptions={advancedCompanyOptions}
                 skillOptions={advancedSkillOptions}
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
+                onResetSection={resetAdvancedSearchSection}
                 onReset={resetAdvancedSearch}
                 onApply={() => setAdvancedSearchOpen(false)}
               />
@@ -2291,10 +2385,12 @@ export function HomeApp() {
             {view === "list" && advancedSearchOpen ? (
               <AdvancedSearchPanel
                 values={advancedSearchValues}
+                cityOptions={advancedCityOptions}
                 companyOptions={advancedCompanyOptions}
                 skillOptions={advancedSkillOptions}
                 onToggleValue={toggleAdvancedValue}
                 onChangeField={updateAdvancedField}
+                onResetSection={resetAdvancedSearchSection}
                 onReset={resetAdvancedSearch}
                 onApply={() => setAdvancedSearchOpen(false)}
               />
@@ -2466,4 +2562,3 @@ export function HomeApp() {
     </main>
   );
 }
-

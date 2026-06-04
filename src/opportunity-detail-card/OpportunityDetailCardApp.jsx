@@ -17,7 +17,7 @@ import { canShareOpportunityWithRelationship, mapSocialUserToCard } from "../can
 import { useFavoriteOpportunity } from "../features/favorites/useFavoriteOpportunity";
 import { ApiError } from "../lib/http";
 import { cn } from "../lib/cn";
-import { buildOpportunityPayload, buildOpportunityPreviewRoute, createOpportunityDraft, formatOpportunityDateTime, getOpportunityDetailPresentation, getOpportunityMiniCardPresentation, getOpportunityOwnerCapabilities, translateModerationStatus, validateOpportunityDraftForSubmit } from "../shared/lib/opportunityPresentation";
+import { buildOpportunityPayload, buildOpportunityPreviewRoute, createOpportunityDraft, formatOpportunityDateTime, getFriendlyErrorMessage, getOpportunityDetailPresentation, getOpportunityMiniCardPresentation, getOpportunityOwnerCapabilities, translateModerationStatus, validateOpportunityDraftForSubmit } from "../shared/lib/opportunityPresentation";
 import { getOpportunityApplyLabel, isEventOpportunity } from "../shared/lib/opportunityTypes";
 import { resolveSocialType, getSocialIcon, getSocialLabel } from "../shared/lib/socialPresentation";
 import { startChat, sendChatMessage } from "../api/chats";
@@ -223,6 +223,7 @@ function OwnerEditorV2({
   onArchive,
   onDelete,
   saving,
+  saveState,
   referenceCategories = FALLBACK_REFERENCE_CATEGORIES,
 }) {
   const cap = getOpportunityOwnerCapabilities(draft, { isOwner: true });
@@ -441,6 +442,12 @@ function OwnerEditorV2({
         </FormField>
 
         {mediaError ? <Alert tone="error" title="Медиа не обновлено" showIcon>{mediaError}</Alert> : null}
+
+        {saveState?.status === "error" ? (
+          <Alert tone="error" title="Операция не выполнена" showIcon>
+            {saveState.error}
+          </Alert>
+        ) : null}
 
         <div className="company-dashboard-panel__actions">
           <Button type="button" onClick={onSaveDraft} disabled={saving}>Сохранить как черновик</Button>
@@ -1315,6 +1322,7 @@ export function OpportunityDetailCardApp() {
   const [allowPeerVisibility, setAllowPeerVisibility] = useState(false);
   const [postApplyModalOpen, setPostApplyModalOpen] = useState(false);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const [referenceCategories, setReferenceCategories] = useState(FALLBACK_REFERENCE_CATEGORIES);
   const [complaintForm, setComplaintForm] = useState({
     reason: COMPLAINT_REASON_OPTIONS[0].value,
@@ -1639,7 +1647,12 @@ export function OpportunityDetailCardApp() {
   }
 
   async function handleWithdraw() {
+    setWithdrawConfirmOpen(true);
+  }
+
+  async function handleConfirmWithdraw() {
     if (!currentApplication) return;
+    setWithdrawConfirmOpen(false);
     setApply(applyState("saving"));
     try {
       await withdrawCandidateApplication(currentApplication.id);
@@ -1807,9 +1820,27 @@ ${currentUrl}`;
     }
   }
 
-  function changeDraft(field, value) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), [field]: value } }));}
-  function changeDraftContacts(next) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), contacts: next } }));}
-  function changeDraftMedia(next) {setOwnerState((current) => ({ ...current, draft: { ...(current.draft ?? createOpportunityDraft(item)), media: next } }));}
+  function changeDraft(field, value) {
+    setOwnerState((current) => ({
+      ...current,
+      saveState: ["success", "error"].includes(current.saveState?.status) ? { status: "idle", error: "", message: "" } : current.saveState,
+      draft: { ...(current.draft ?? createOpportunityDraft(item)), [field]: value }
+    }));
+  }
+  function changeDraftContacts(next) {
+    setOwnerState((current) => ({
+      ...current,
+      saveState: ["success", "error"].includes(current.saveState?.status) ? { status: "idle", error: "", message: "" } : current.saveState,
+      draft: { ...(current.draft ?? createOpportunityDraft(item)), contacts: next }
+    }));
+  }
+  function changeDraftMedia(next) {
+    setOwnerState((current) => ({
+      ...current,
+      saveState: ["success", "error"].includes(current.saveState?.status) ? { status: "idle", error: "", message: "" } : current.saveState,
+      draft: { ...(current.draft ?? createOpportunityDraft(item)), media: next }
+    }));
+  }
   function startEditing() {setOwnerState({ isEditing: true, draft: createOpportunityDraft(item), saveState: { status: "idle", error: "", message: "" } });}
   function stopEditing() {setOwnerState({ isEditing: false, draft: createOpportunityDraft(item), saveState: { status: "idle", error: "", message: "" } });}
 
@@ -1824,14 +1855,14 @@ ${currentUrl}`;
       setState((current) => ({ ...current, item: refreshed }));
       setOwnerState({ isEditing: false, draft: createOpportunityDraft(refreshed), saveState: { status: "success", error: "", message: saveMode === "submit" ? "Публикация отправлена на модерацию." : "Черновик сохранен." } });
     } catch (error) {
-      setOwnerState((current) => ({ ...current, saveState: { status: "error", error: error?.message ?? "Не удалось сохранить публикацию.", message: "" } }));
+      setOwnerState((current) => ({ ...current, saveState: { status: "error", error: getFriendlyErrorMessage(error, "Не удалось сохранить публикацию."), message: "" } }));
     }
   }
 
   async function archiveOwner() {if (!item) return;await updateOpportunity(item.id, { saveMode: "archive", moderationStatus: "archived" });const refreshed = await getOpportunity(item.id);setState((current) => ({ ...current, item: refreshed }));}
   async function deleteOwner() {if (!item) return;await deleteOpportunity(item.id);setState((current) => ({ ...current, status: "ready", item: null, related: [] }));}
 
-  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditorV2 draft={ownerState.draft} referenceCategories={referenceCategories} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="Изменения сохранены" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
+  const ownerPanel = item && isOwner && !previewMode ? ownerState.isEditing ? <OwnerEditorV2 draft={ownerState.draft} saveState={ownerState.saveState} referenceCategories={referenceCategories} onChange={(field, value) => {if (field === "contacts") return changeDraftContacts(value);if (field === "media") return changeDraftMedia(value);changeDraft(field, value);}} onSaveDraft={() => saveOwner("draft")} onSubmit={() => saveOwner("submit")} onPreview={buildOpportunityPreviewRoute(item.id)} onClose={stopEditing} onArchive={archiveOwner} onDelete={deleteOwner} saving={ownerState.saveState.status === "saving"} /> : <Card className="opportunity-owner-panel"><div className="company-dashboard-stack"><div className="company-dashboard-list-item__top"><div><h2 className="ui-type-h3">Управление публикацией</h2><p className="ui-type-caption">{translateModerationStatus(item.moderationStatus)}</p></div><Tag tone="accent">{translateModerationStatus(item.moderationStatus)}</Tag></div>{item.moderationReason ? <Alert tone="warning" title="Причина возврата" showIcon>{item.moderationReason}</Alert> : null}{capabilities?.canViewResponses ? <Button href="/company/dashboard/responses" variant="secondary">{"Открыть отклики"}</Button> : null}<div className="company-dashboard-panel__actions"><Button type="button" onClick={startEditing}>{"Редактировать"}</Button><Button type="button" variant="secondary" onClick={() => {if (typeof window !== "undefined") {window.location.href = buildOpportunityPreviewRoute(item.id);}}}>{"Просмотр публичной версии"}</Button>{capabilities?.canArchive ? <Button type="button" variant="secondary" onClick={archiveOwner}>Снять с публикации/архивировать</Button> : null}{capabilities?.canDelete ? <Button type="button" variant="ghost" onClick={deleteOwner}>Удалить</Button> : null}</div>{ownerState.saveState.status === "error" ? <Alert tone="error" title="Операция не выполнена" showIcon>{ownerState.saveState.error}</Alert> : null}{ownerState.saveState.status === "success" ? <Alert tone="success" title="Изменения сохранены" showIcon>{ownerState.saveState.message}</Alert> : null}</div></Card> : null;
 
   return (
     <main className="opportunity-card-page" data-testid="opportunity-detail-page">
@@ -2053,6 +2084,38 @@ ${currentUrl}`;
               Закрыть
             </Button>
           </div>
+        </Modal>
+
+        <Modal
+          open={withdrawConfirmOpen}
+          onClose={() => setWithdrawConfirmOpen(false)}
+          title={item && isEventOpportunity(item.opportunityType) ? "Отменить запись?" : "Отозвать отклик?"}
+          tone="warning"
+          showIcon
+          actions={
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", width: "100%" }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setWithdrawConfirmOpen(false)}
+              >
+                Назад
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleConfirmWithdraw}
+              >
+                {item && isEventOpportunity(item.opportunityType) ? "Да, отменить" : "Да, отозвать"}
+              </Button>
+            </div>
+          }
+        >
+          <p className="ui-type-body">
+            {item && isEventOpportunity(item.opportunityType)
+              ? "Вы уверены, что хотите отменить запись на это мероприятие? Это действие нельзя будет вернуть."
+              : "Вы уверены, что хотите отозвать отклик? Действие нельзя будет вернуть. При повторном отправлении отклика он будет рассмотрен полностью заново."}
+          </p>
         </Modal>
       </div>
     </main>);

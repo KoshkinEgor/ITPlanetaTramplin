@@ -34,8 +34,11 @@ function OpportunityFilterSidebarContent({
 }) {
   const specializationOptions = normalizeOptions(options?.specializations);
   const employmentOptions = normalizeOptions(options?.employmentTypes);
+  const typeOptions = normalizeOptions(options?.types);
+  const levelOptions = normalizeOptions(options?.levels);
+  const scheduleOptions = normalizeOptions(options?.schedules);
+  const extraOptions = normalizeOptions(options?.extras);
   const resolvedDisplayOptions = normalizeOptions(displayOptions);
-  const unsupportedHint = "Поле появится после обновления данных каталога.";
 
   const updateCheckboxGroup = (field, nextValue, checked) => {
     const currentValues = Array.isArray(values?.[field]) ? values[field] : [];
@@ -45,6 +48,17 @@ function OpportunityFilterSidebarContent({
 
   return (
     <div className="opportunity-filter-sidebar__content">
+      {typeOptions.length ? (
+        <div className="opportunity-filter-sidebar__section">
+          <SectionHead title="Тип" onReset={() => onResetSection?.("activeType")} />
+          <Select
+            value={values?.activeType ?? "all"}
+            onValueChange={(nextValue) => onChange?.("activeType", nextValue)}
+            options={typeOptions}
+          />
+        </div>
+      ) : null}
+
       <div className="opportunity-filter-sidebar__section">
         <SectionHead title="Регион" onReset={() => onResetSection?.("city")} />
         <FormField label="Город">
@@ -58,24 +72,38 @@ function OpportunityFilterSidebarContent({
       </div>
 
       <div className="opportunity-filter-sidebar__section">
-        <SectionHead title="Уровень дохода" onReset={() => onResetSection?.("income")} />
-        <FormField label="От" hint={unsupportedHint}>
+        <SectionHead title="Компания" onReset={() => onResetSection?.("company")} />
+        <FormField label="Название">
           <Input
-            value={values?.incomeFrom ?? ""}
-            onValueChange={(nextValue) => onChange?.("incomeFrom", nextValue)}
-            placeholder="от"
-            disabled={disabledSections.income}
+            value={values?.company ?? ""}
+            onValueChange={(nextValue) => onChange?.("company", nextValue)}
+            placeholder="Название компании"
           />
         </FormField>
-        <FormField label="Период выплат">
-          <Select
-            value={values?.payoutPeriod ?? ""}
-            onValueChange={(nextValue) => onChange?.("payoutPeriod", nextValue)}
-            placeholder="Период выплат"
-            options={[]}
-            disabled={disabledSections.payout}
-          />
-        </FormField>
+      </div>
+
+      <div className="opportunity-filter-sidebar__section">
+        <SectionHead title="Уровень дохода" onReset={() => onResetSection?.("income")} />
+        <div className="opportunity-filter-sidebar__grid">
+          <FormField label="От">
+            <Input
+              value={values?.incomeFrom ?? ""}
+              onValueChange={(nextValue) => onChange?.("incomeFrom", nextValue)}
+              placeholder="от"
+              inputMode="numeric"
+              disabled={disabledSections.income}
+            />
+          </FormField>
+          <FormField label="До">
+            <Input
+              value={values?.incomeTo ?? ""}
+              onValueChange={(nextValue) => onChange?.("incomeTo", nextValue)}
+              placeholder="до"
+              inputMode="numeric"
+              disabled={disabledSections.income}
+            />
+          </FormField>
+        </div>
       </div>
 
       <div className="opportunity-filter-sidebar__section">
@@ -104,6 +132,44 @@ function OpportunityFilterSidebarContent({
         </div>
       </div>
 
+      {levelOptions.length ? (
+        <div className="opportunity-filter-sidebar__section">
+          <SectionHead title="Опыт" onReset={() => onResetSection?.("level")} />
+          <Select
+            value={values?.level ?? "all"}
+            onValueChange={(nextValue) => onChange?.("level", nextValue)}
+            options={levelOptions}
+          />
+        </div>
+      ) : null}
+
+      {scheduleOptions.length ? (
+        <div className="opportunity-filter-sidebar__section">
+          <SectionHead title="График" onReset={() => onResetSection?.("schedule")} />
+          <Select
+            value={values?.schedule ?? "all"}
+            onValueChange={(nextValue) => onChange?.("schedule", nextValue)}
+            options={scheduleOptions}
+          />
+        </div>
+      ) : null}
+
+      {extraOptions.length ? (
+        <div className="opportunity-filter-sidebar__section">
+          <SectionHead title="Дополнительно" onReset={() => onResetSection?.("extras")} />
+          <div className="opportunity-filter-sidebar__checks">
+            {extraOptions.map((option) => (
+              <Checkbox
+                key={option.value}
+                checked={Array.isArray(values?.extras) ? values.extras.includes(option.value) : false}
+                onChange={(event) => updateCheckboxGroup("extras", option.value, event.target.checked)}
+                label={option.label}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {resolvedDisplayOptions.length ? (
         <div className="opportunity-filter-sidebar__section">
           <SectionHead title="Отображение" onReset={onResetDisplay} />
@@ -120,16 +186,6 @@ function OpportunityFilterSidebarContent({
           </div>
         </div>
       ) : null}
-
-      <div className="opportunity-filter-sidebar__section">
-        <SectionHead title="Образование" onReset={() => onResetSection?.("education")} />
-        <p className="opportunity-filter-sidebar__hint">{unsupportedHint}</p>
-        <div className="opportunity-filter-sidebar__checks">
-          {["Не требуется или не указано", "Высшее", "Среднее профессиональное"].map((label) => (
-            <Checkbox key={label} checked={false} disabled={disabledSections.education} label={label} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

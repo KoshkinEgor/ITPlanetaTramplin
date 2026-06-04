@@ -494,7 +494,9 @@
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 10px 0 12px;
+  margin-top: -10px;
+  margin-bottom: -12px;
   scrollbar-width: thin;
 }
 
@@ -1251,6 +1253,8 @@
 .company-dashboard-portfolio__viewport {
   overflow: hidden;
   border-radius: 38px;
+  padding: 10px;
+  margin: -10px;
 }
 
 .company-dashboard-portfolio__track {

@@ -4,7 +4,9 @@
   display: flex;
   gap: var(--ui-content-rail-gap);
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding: 10px 0 12px;
+  margin-top: -10px;
+  margin-bottom: -4px;
   scroll-snap-type: x proximity;
   scroll-padding-inline: 4px;
   scrollbar-gutter: stable both-edges;

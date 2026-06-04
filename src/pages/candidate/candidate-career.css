@@ -774,7 +774,9 @@
 }
 
 .candidate-career-dashboard__courses-slider .opportunity-block-slider__rail {
-  padding: 2px 0 0;
+  padding: 12px 0 12px;
+  margin-top: -10px;
+  margin-bottom: -12px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -793,7 +795,9 @@
 }
 
 .candidate-career-dashboard__opportunities-slider .opportunity-block-slider__rail {
-  padding: 6px 0 12px;
+  padding: 12px 0 12px;
+  margin-top: -6px;
+  margin-bottom: 0;
 }
 
 .candidate-career-dashboard__card-grid--opportunities {

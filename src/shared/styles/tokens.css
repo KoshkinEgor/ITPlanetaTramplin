@@ -69,8 +69,8 @@
   --ui-radius-2xl: 40px;
   --ui-radius-pill: 999px;
 
-  --ui-shadow-soft: 0 16px 36px rgba(36, 49, 77, 0.08);
-  --ui-shadow-strong: 0 24px 60px rgba(36, 49, 77, 0.14);
+  --ui-shadow-soft: 0 8px 22px rgba(36, 49, 77, 0.05);
+  --ui-shadow-strong: 0 12px 30px rgba(36, 49, 77, 0.08);
   --ui-shadow-accent: 0 10px 22px rgba(47, 128, 255, 0.22);
   --ui-shadow-accent-hover: 0 12px 24px rgba(47, 128, 255, 0.26);
   --ui-shadow-danger: 0 10px 22px rgba(222, 101, 68, 0.2);

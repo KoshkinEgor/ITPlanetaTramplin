@@ -18,7 +18,7 @@ export function CandidateFrame({ activeKey, hero, children }) {
       <div className="candidate-portal__shell ui-page-shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
-          currentKey="career"
+          currentKey={undefined}
           actionHref={CANDIDATE_PAGE_ROUTES.overview}
           actionLabel="Профиль"
           className="candidate-portal__header"
@@ -47,7 +47,7 @@ export function CandidateStandaloneFrame({ children }) {
       <div className="candidate-portal__shell ui-page-shell">
         <PortalHeader
           navItems={CANDIDATE_HEADER_NAV}
-          currentKey="career"
+          currentKey={undefined}
           actionHref={CANDIDATE_PAGE_ROUTES.overview}
           actionLabel="Профиль"
           className="candidate-portal__header"
@@ -486,18 +486,16 @@ export function CandidateSearchBar({ value, onChange, placeholder }) {
   );
 }
 
-export function CandidateSortButton({ label = "По новизне" }) {
+export function CandidateSortButton({ value, onSelect, options, label = "Сортировка" }) {
   return (
     <SortControl
-      label="Сортировка"
-      value={label}
-      options={[{ value: label, label }]}
-      open={false}
-      onOpenChange={() => {}}
-      onSelect={() => {}}
+      label={label}
+      value={value}
+      options={options}
+      onSelect={onSelect}
       triggerClassName="candidate-sort-button"
-      triggerLabel={label}
-      endIcon={<SortIcon />}
+      startIcon={<SortIcon />}
+      endIcon={<ChevronDownIcon />}
     />
   );
 }

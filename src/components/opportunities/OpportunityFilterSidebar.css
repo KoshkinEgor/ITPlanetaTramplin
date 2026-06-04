@@ -137,6 +137,12 @@
   gap: 10px;
 }
 
+.opportunity-filter-sidebar__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
 .opportunity-filter-sidebar__section-head span {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-body);
@@ -173,5 +179,11 @@
 
   .opportunity-filter-sidebar--drawer .opportunity-filter-sidebar__surface.ui-card {
     border-radius: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .opportunity-filter-sidebar__grid {
+    grid-template-columns: 1fr;
   }
 }

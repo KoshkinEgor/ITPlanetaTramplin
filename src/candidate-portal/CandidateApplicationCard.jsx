@@ -37,13 +37,13 @@ export function CandidateApplicationCard({
             <strong>Комментарий организатора:</strong> {item.employerNote}
           </div>
         ) : null}
-
       </div>
 
       <div className="candidate-application-card__actions">
         <Button
           href={buildOpportunityDetailRoute(item.opportunityId)}
           variant="secondary"
+          size="sm"
           className="candidate-application-card__action"
         >
           Подробнее
@@ -52,6 +52,7 @@ export function CandidateApplicationCard({
         <Button
           href={routes.candidate.messages}
           variant="secondary"
+          size="sm"
           className="candidate-application-card__action"
         >
           Сообщения
@@ -61,6 +62,7 @@ export function CandidateApplicationCard({
           <Button
             type="button"
             variant="secondary"
+            size="sm"
             loading={isPending}
             disabled={isPending}
             className="candidate-application-card__action candidate-application-card__action--warning"
@@ -74,6 +76,7 @@ export function CandidateApplicationCard({
           <Button
             type="button"
             variant="secondary"
+            size="sm"
             loading={isPending}
             disabled={isPending}
             className="candidate-application-card__action candidate-application-card__action--success"

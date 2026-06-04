@@ -1077,6 +1077,9 @@ body.ui-kit-react-body {
   width: min(100%, 436px);
   margin-inline: auto;
   overflow: hidden;
+  padding: 10px 0;
+  margin-top: -10px;
+  margin-bottom: -10px;
 }
 
 .ui-kit-project-slider__track {
