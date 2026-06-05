@@ -527,6 +527,16 @@ export function CandidateCareerPage() {
 
     try {
       const aiRecommendations = await getCandidateAiCareerRecommendations(false);
+      console.log('[AI-DIAG] loadAiRecommendations response:', JSON.stringify({
+        isFallback: aiRecommendations?.isFallback,
+        source: aiRecommendations?.source,
+        status: aiRecommendations?.status,
+        refreshReason: aiRecommendations?.refreshReason,
+        summary: aiRecommendations?.summary?.substring(0, 80),
+        itemsCount: aiRecommendations?.items?.length,
+        sectionsCount: aiRecommendations?.sections?.length,
+        careerPlanCount: aiRecommendations?.careerPlan?.length,
+      }, null, 2));
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,
@@ -607,10 +617,23 @@ export function CandidateCareerPage() {
   }, [applicationsState.applications, applicationsState.status, mode, shouldLoadApplications]);
 
   async function refreshAiCareerRecommendations(isUpdate = false) {
+    const isUpdateBool = typeof isUpdate === "boolean" ? isUpdate : false;
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(true, isUpdate);
+      const aiRecommendations = await getCandidateAiCareerRecommendations(true, isUpdateBool);
+      console.log('[AI-DIAG] refreshAiCareerRecommendations response:', JSON.stringify({
+        isFallback: aiRecommendations?.isFallback,
+        source: aiRecommendations?.source,
+        status: aiRecommendations?.status,
+        refreshReason: aiRecommendations?.refreshReason,
+        summary: aiRecommendations?.summary?.substring(0, 80),
+        itemsCount: aiRecommendations?.items?.length,
+        sectionsCount: aiRecommendations?.sections?.length,
+        careerPlanCount: aiRecommendations?.careerPlan?.length,
+        errorMessage: aiRecommendations?.errorMessage,
+        hasProfileAssessment: !!aiRecommendations?.profileAssessment,
+      }, null, 2));
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,

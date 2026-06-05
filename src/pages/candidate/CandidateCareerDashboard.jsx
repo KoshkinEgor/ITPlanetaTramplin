@@ -1347,7 +1347,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={onRefreshAiRecommendations}
+                  onClick={() => onRefreshAiRecommendations(false)}
                   disabled={dashboardState.aiStatus === "loading"}
                   className="candidate-career-ai-generate-card__btn"
                 >
@@ -1389,7 +1389,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={onRefreshAiRecommendations}
+                  onClick={() => onRefreshAiRecommendations(false)}
                   disabled={dashboardState.aiStatus === "loading"}
                   className="ui-career-stats-panel__action"
                   width="full"

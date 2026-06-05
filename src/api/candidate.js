@@ -240,15 +240,18 @@ export function getCandidateAiCareerRecommendations(forceRefreshOrSignal, isUpda
   let isUpdate = false;
   let activeSignal = signal;
 
+  const isSignal = (obj) =>
+    obj && typeof obj === "object" && (obj instanceof AbortSignal || "aborted" in obj || obj.constructor?.name === "AbortSignal");
+
   if (typeof forceRefreshOrSignal === "boolean") {
     forceRefresh = forceRefreshOrSignal;
-  } else if (forceRefreshOrSignal && typeof forceRefreshOrSignal === "object") {
+  } else if (isSignal(forceRefreshOrSignal)) {
     activeSignal = forceRefreshOrSignal;
   }
 
   if (typeof isUpdateOrSignal === "boolean") {
     isUpdate = isUpdateOrSignal;
-  } else if (isUpdateOrSignal && typeof isUpdateOrSignal === "object") {
+  } else if (isSignal(isUpdateOrSignal)) {
     activeSignal = isUpdateOrSignal;
   }
 

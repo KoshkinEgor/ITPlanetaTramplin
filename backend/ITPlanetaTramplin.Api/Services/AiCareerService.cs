@@ -86,8 +86,15 @@ public sealed class AiCareerService : IAiCareerService
         bool isUpdate = false,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("[AI-DIAG] BuildCareerRecommendationsAsync called. forceRefresh={ForceRefresh}, isUpdate={IsUpdate}, profileId={ProfileId}, description={HasDesc}, skills={SkillCount}, opportunities={OpCount}",
+            forceRefresh, isUpdate, profile.Id,
+            !string.IsNullOrWhiteSpace(profile.Description),
+            profile.Skills?.Count ?? 0,
+            opportunities.Count);
+
         if (string.IsNullOrWhiteSpace(profile.Description) && (profile.Skills == null || profile.Skills.Count == 0))
         {
+            _logger.LogWarning("[AI-DIAG] FALLBACK: incomplete_profile (no description AND no skills)");
             var fallbackResponse = CreateCareerFallback("Заполните описание профиля или ключевые навыки, чтобы ИИ мог составить персональные карьерные рекомендации.", [], true);
             fallbackResponse.Signature = BuildDataSignature(profile, education, achievements, projects, applications);
             fallbackResponse.IsStale = false;
@@ -142,6 +149,7 @@ public sealed class AiCareerService : IAiCareerService
 
         if (!forceRefresh)
         {
+            _logger.LogWarning("[AI-DIAG] FALLBACK: no_cache (forceRefresh=false, no cache entry matched)");
             var fallback = CreateCareerFallback("ИИ-анализ ещё не сформирован. Нажмите «Сформировать разбор», чтобы запустить.", [], true);
             fallback.IsStale = true;
             fallback.Signature = signature;
@@ -151,6 +159,7 @@ public sealed class AiCareerService : IAiCareerService
         }
 
         var candidates = SelectRelevantOpportunities(profile, projects, opportunities, 10);
+        _logger.LogInformation("[AI-DIAG] Calling GigaChat. candidates={CandidateCount}", candidates.Count);
 
         var importantApplication = applications
             .Where(app => IsImportantStatus(app.Status))
@@ -166,10 +175,10 @@ public sealed class AiCareerService : IAiCareerService
         AiCareerRecommendationResponseDTO? parsed = null;
         var allowedIds = candidates.Select(item => item.Id).ToHashSet();
 
-        for (int attempt = 1; attempt <= 2; attempt++)
+        for (int attempt = 1; attempt <= 3; attempt++)
         {
             var json = await _client.CompleteJsonAsync(
-                "You are a Russian career AI. Return JSON only. No markdown. Explain cautiously.",
+                "You are a Russian career AI. Return JSON only. No markdown. Explain cautiously. CRITICAL: Ensure the JSON structure is strictly valid with correctly balanced braces. Do not truncate the output.",
                 JsonSerializer.Serialize(new
                 {
                     task = "Match candidate with opportunities. Russian language. Use only the exact id values from the opportunities list as opportunityId in the response. Reason/NextStep/Summary: max 100 chars. " +
@@ -178,25 +187,49 @@ public sealed class AiCareerService : IAiCareerService
                     candidate = BuildCandidatePayload(profile, education, achievements, projects, applications),
                     opportunities = candidates,
                     importantEvent = importantAppPayload,
-                    limits = new { sections = 5, itemsPerSection = 4, totalItems = 10, nextActions = 4, missingSkills = 8, careerPlan = 3 },
+                    limits = new { sections = 2, itemsPerSection = 3, totalItems = 5, nextActions = 3, missingSkills = 3, careerPlan = 2 },
                 }, JsonOptions),
                 cancellationToken);
+
+            _logger.LogInformation("[AI-DIAG] GigaChat raw response (attempt {Attempt}): {ResponseLength} chars, FULL:\n{FullResponse}",
+                attempt,
+                json?.Length ?? 0,
+                json ?? "(null)");
 
             parsed = TryDeserialize<AiCareerRecommendationResponseDTO>(json);
             if (parsed != null)
             {
+                _logger.LogInformation("[AI-DIAG] Parsed OK. sections={Sections}, items={Items}, careerPlan={CareerPlan}",
+                    parsed.Sections?.Count ?? 0,
+                    parsed.Items?.Count ?? 0,
+                    parsed.CareerPlan?.Count ?? 0);
+
                 parsed.Sections = NormalizeSections(parsed.Sections ?? [], candidates, allowedIds);
                 parsed.Items = NormalizeRecommendationItems(
                     (parsed.Sections ?? []).SelectMany(section => section.Items ?? []).Concat(parsed.Items ?? []),
                     allowedIds,
                     10);
 
+                _logger.LogInformation("[AI-DIAG] After normalization. items={Items}, candidates={CandidateCount}",
+                    parsed.Items.Count, candidates.Count);
+
                 if (candidates.Count == 0 || parsed.Items.Count > 0)
                 {
+                    _logger.LogInformation("[AI-DIAG] GigaChat response ACCEPTED on attempt {Attempt}", attempt);
                     break;
                 }
 
+                _logger.LogWarning("[AI-DIAG] Items filtered to 0 by NormalizeRecommendationItems. allowedIds={AllowedIds}",
+                    string.Join(",", allowedIds));
                 parsed = null;
+            }
+            else
+            {
+                _logger.LogWarning("[AI-DIAG] TryDeserialize returned null for GigaChat response on attempt {Attempt}", attempt);
+                if (attempt < 3)
+                {
+                    await Task.Delay(2000, cancellationToken); // Wait before retrying
+                }
             }
             _logger.LogWarning("GigaChat career recommendations returned empty, invalid JSON, or no valid opportunity matches on attempt {Attempt}.", attempt);
         }
@@ -836,6 +869,11 @@ public sealed class AiCareerService : IAiCareerService
             cleaned = cleaned.Trim();
         }
 
+        // GigaChat sometimes returns JSON with non-breaking spaces (U+00A0),
+        // zero-width spaces, and other invisible Unicode whitespace characters
+        // that System.Text.Json cannot parse. Replace them with regular spaces.
+        cleaned = SanitizeJsonWhitespace(cleaned);
+
         var start = cleaned.IndexOf('{');
         var end = cleaned.LastIndexOf('}');
         if (start < 0 || end <= start)
@@ -847,10 +885,26 @@ public sealed class AiCareerService : IAiCareerService
         {
             return JsonSerializer.Deserialize<T>(cleaned[start..(end + 1)], JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            Console.Error.WriteLine($"[AI-DIAG] TryDeserialize JsonException: {ex.Message}. Path: {ex.Path}. JSON snippet: {(cleaned.Length > 500 ? cleaned[start..Math.Min(start + 500, end + 1)] : cleaned[start..(end + 1)])}");
             return default;
         }
+    }
+
+    private static string SanitizeJsonWhitespace(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        return input
+            .Replace("\u00A0", " ")   // Non-breaking space
+            .Replace("\u200B", "")    // Zero-width space
+            .Replace("\u200C", "")    // Zero-width non-joiner
+            .Replace("\u200D", "")    // Zero-width joiner
+            .Replace("\uFEFF", "");   // Byte order mark
     }
 
     private static List<string> CleanList(IEnumerable<string>? values, int limit)

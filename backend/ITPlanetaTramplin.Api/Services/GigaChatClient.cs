@@ -53,6 +53,7 @@ public sealed class GigaChatClient : IGigaChatClient
             {
                 model = options.Model,
                 temperature = 0.2,
+                max_tokens = 8192,
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
