@@ -757,13 +757,19 @@ public sealed class AiCareerServiceTests
             _responses.Enqueue(response);
         }
 
-        public Task<string?> CompleteJsonAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+        public Task<GigaChatCompletionResult> CompleteJsonAsync(
+            string systemPrompt,
+            string userPrompt,
+            CancellationToken cancellationToken = default)
         {
             CallCount++;
 
             if (_responses.Count > 0)
             {
-                return Task.FromResult(_responses.Dequeue());
+                var queued = _responses.Dequeue();
+                return Task.FromResult(queued is null
+                    ? GigaChatCompletionResult.Failure("test_failure", true)
+                    : GigaChatCompletionResult.Success(queued));
             }
 
             var response = new
@@ -804,7 +810,7 @@ public sealed class AiCareerServiceTests
                 },
             };
 
-            return Task.FromResult<string?>(JsonSerializer.Serialize(response));
+            return Task.FromResult(GigaChatCompletionResult.Success(JsonSerializer.Serialize(response)));
         }
     }
 

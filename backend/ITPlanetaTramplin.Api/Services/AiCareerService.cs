@@ -104,6 +104,7 @@ public sealed class AiCareerService : IAiCareerService
         }
 
         var signature = BuildDataSignature(profile, education, achievements, projects, applications);
+        var applicationsSignature = BuildApplicationsSignature(applications);
 
         var cacheEntry = await _db.AiCareerCaches
             .FirstOrDefaultAsync(c => c.ApplicantId == profile.Id && c.Scope == "career", cancellationToken);
@@ -133,7 +134,7 @@ public sealed class AiCareerService : IAiCareerService
                 if (!forceRefresh)
                 {
                     var cachedDto = TryDeserialize<AiCareerRecommendationResponseDTO>(cacheEntry.PayloadJson);
-                    if (cachedDto != null)
+                    if (cachedDto != null && cachedDto.ApplicationsSignature == applicationsSignature)
                     {
                         cachedDto.IsStale = true;
                         cachedDto.Status = "stale";
@@ -142,6 +143,11 @@ public sealed class AiCareerService : IAiCareerService
                         cachedDto.GeneratedAt = cacheEntry.CreatedAt;
 
                         return cachedDto;
+                    }
+
+                    if (cachedDto != null && cachedDto.ApplicationsSignature != applicationsSignature)
+                    {
+                        forceRefresh = true;
                     }
                 }
             }
@@ -175,9 +181,9 @@ public sealed class AiCareerService : IAiCareerService
         AiCareerRecommendationResponseDTO? parsed = null;
         var allowedIds = candidates.Select(item => item.Id).ToHashSet();
 
-        for (int attempt = 1; attempt <= 3; attempt++)
+        for (int attempt = 1; attempt <= 2; attempt++)
         {
-            var json = await _client.CompleteJsonAsync(
+            var completion = await _client.CompleteJsonAsync(
                 "You are a Russian career AI. Return JSON only. No markdown. Explain cautiously. CRITICAL: Ensure the JSON structure is strictly valid with correctly balanced braces. Do not truncate the output.",
                 JsonSerializer.Serialize(new
                 {
@@ -190,11 +196,14 @@ public sealed class AiCareerService : IAiCareerService
                     limits = new { sections = 2, itemsPerSection = 3, totalItems = 5, nextActions = 3, missingSkills = 3, careerPlan = 2 },
                 }, JsonOptions),
                 cancellationToken);
+            var json = completion.Content;
 
-            _logger.LogInformation("[AI-DIAG] GigaChat raw response (attempt {Attempt}): {ResponseLength} chars, FULL:\n{FullResponse}",
+            _logger.LogInformation(
+                "[AI-DIAG] GigaChat response. attempt={Attempt}, success={Success}, responseLength={ResponseLength}, errorCode={ErrorCode}",
                 attempt,
+                completion.IsSuccess,
                 json?.Length ?? 0,
-                json ?? "(null)");
+                completion.ErrorCode);
 
             parsed = TryDeserialize<AiCareerRecommendationResponseDTO>(json);
             if (parsed != null)
@@ -213,7 +222,12 @@ public sealed class AiCareerService : IAiCareerService
                 _logger.LogInformation("[AI-DIAG] After normalization. items={Items}, candidates={CandidateCount}",
                     parsed.Items.Count, candidates.Count);
 
-                if (candidates.Count == 0 || parsed.Items.Count > 0)
+                var hasStandaloneAnalysis =
+                    !string.IsNullOrWhiteSpace(parsed.Summary) ||
+                    (parsed.NextActions?.Count ?? 0) > 0 ||
+                    (parsed.CareerPlan?.Count ?? 0) > 0 ||
+                    parsed.ProfileAssessment is not null;
+                if ((candidates.Count == 0 && hasStandaloneAnalysis) || parsed.Items.Count > 0)
                 {
                     _logger.LogInformation("[AI-DIAG] GigaChat response ACCEPTED on attempt {Attempt}", attempt);
                     break;
@@ -226,7 +240,7 @@ public sealed class AiCareerService : IAiCareerService
             else
             {
                 _logger.LogWarning("[AI-DIAG] TryDeserialize returned null for GigaChat response on attempt {Attempt}", attempt);
-                if (attempt < 3)
+                if (attempt < 2)
                 {
                     await Task.Delay(2000, cancellationToken); // Wait before retrying
                 }
@@ -268,6 +282,7 @@ public sealed class AiCareerService : IAiCareerService
         parsed.CareerPlan = NormalizeCareerPlan(parsed.CareerPlan ?? []);
         parsed.IsFallback = false;
         parsed.Signature = signature;
+        parsed.ApplicationsSignature = applicationsSignature;
         parsed.IsStale = false;
         parsed.RefreshReason = cacheEntry == null ? "new_analysis" : "profile_or_applications_changed";
         parsed.GeneratedAt = DateTime.UtcNow;
@@ -370,7 +385,7 @@ public sealed class AiCareerService : IAiCareerService
         IReadOnlyCollection<CandidateProject> projects,
         CancellationToken cancellationToken = default)
     {
-        var json = await _client.CompleteJsonAsync(
+        var completion = await _client.CompleteJsonAsync(
             "You are a resume reviewer. Return JSON only. No markdown.",
             JsonSerializer.Serialize(new
             {
@@ -379,6 +394,7 @@ public sealed class AiCareerService : IAiCareerService
                 limits = new { strengths = 4, issues = 4, suggestedSkills = 8, nextActions = 4 },
             }, JsonOptions),
             cancellationToken);
+        var json = completion.Content;
 
         var parsed = TryDeserialize<AiResumeAnalysisResponseDTO>(json);
         if (parsed is null)
@@ -405,7 +421,7 @@ public sealed class AiCareerService : IAiCareerService
         CancellationToken cancellationToken = default)
     {
         var opportunityPayload = BuildOpportunityPayload(opportunity);
-        var json = await _client.CompleteJsonAsync(
+        var completion = await _client.CompleteJsonAsync(
             "You compare a candidate resume with an opportunity. Return JSON only. No markdown.",
             JsonSerializer.Serialize(new
             {
@@ -415,6 +431,7 @@ public sealed class AiCareerService : IAiCareerService
                 limits = new { matchedSkills = 6, missingSkills = 6, nextActions = 4 },
             }, JsonOptions),
             cancellationToken);
+        var json = completion.Content;
 
         var parsed = TryDeserialize<AiOpportunityFitResponseDTO>(json);
         if (parsed is null)
@@ -445,7 +462,7 @@ public sealed class AiCareerService : IAiCareerService
             };
         }
 
-        var json = await _client.CompleteJsonAsync(
+        var completion = await _client.CompleteJsonAsync(
             "You suggest tags for Russian job, internship, event, and mentoring posts. Return only valid JSON in Russian when explaining.",
             JsonSerializer.Serialize(new
             {
@@ -454,6 +471,7 @@ public sealed class AiCareerService : IAiCareerService
                 activeTags = activeTags.Take(120),
             }, JsonOptions),
             cancellationToken);
+        var json = completion.Content;
 
         var parsed = TryDeserialize<AiOpportunityTagSuggestionResponseDTO>(json);
         if (parsed is null)
@@ -885,9 +903,8 @@ public sealed class AiCareerService : IAiCareerService
         {
             return JsonSerializer.Deserialize<T>(cleaned[start..(end + 1)], JsonOptions);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            Console.Error.WriteLine($"[AI-DIAG] TryDeserialize JsonException: {ex.Message}. Path: {ex.Path}. JSON snippet: {(cleaned.Length > 500 ? cleaned[start..Math.Min(start + 500, end + 1)] : cleaned[start..(end + 1)])}");
             return default;
         }
     }

@@ -31,6 +31,7 @@ internal sealed class TestApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("PasswordReset__HashKey", "test-password-reset-key");
         Environment.SetEnvironmentVariable("Dadata__ApiKey", "test-dadata-api-key");
         Environment.SetEnvironmentVariable("YandexGeocoder__ApiKey", "test-yandex-api-key");
+        Environment.SetEnvironmentVariable("AiCareerJobs__WorkerEnabled", "false");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

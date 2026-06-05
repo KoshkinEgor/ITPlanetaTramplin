@@ -43,6 +43,104 @@ public sealed class AiCareerRecommendationResponseDTO
     public bool IsStale { get; set; }
 
     public string RefreshReason { get; set; } = string.Empty;
+
+    public AiCareerGenerationDTO? Generation { get; set; }
+
+    public List<AiCareerPartialFailureDTO> PartialFailures { get; set; } = [];
+}
+
+public sealed class AiCareerGenerationDTO
+{
+    public Guid? JobId { get; set; }
+
+    public string Status { get; set; } = string.Empty;
+
+    public string Reason { get; set; } = string.Empty;
+
+    public int CompletedSteps { get; set; }
+
+    public int TotalSteps { get; set; } = 3;
+
+    public DateTime? StartedAt { get; set; }
+
+    public DateTime? CompletedAt { get; set; }
+
+    public List<AiCareerJobStepDTO> Steps { get; set; } = [];
+}
+
+public sealed class AiCareerJobStepDTO
+{
+    public string Step { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public int Attempts { get; set; }
+
+    public string? ErrorCode { get; set; }
+}
+
+public sealed class AiCareerPartialFailureDTO
+{
+    public string Step { get; set; } = string.Empty;
+
+    public string ErrorCode { get; set; } = string.Empty;
+
+    public string Message { get; set; } = string.Empty;
+}
+
+public sealed class AiCareerJobResponseDTO
+{
+    public Guid JobId { get; set; }
+
+    public string Status { get; set; } = string.Empty;
+
+    public string Reason { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? StartedAt { get; set; }
+
+    public DateTime? CompletedAt { get; set; }
+
+    public List<AiCareerJobStepDTO> Steps { get; set; } = [];
+}
+
+public sealed class AiCareerJobRequestDTO
+{
+    public string? Reason { get; set; }
+}
+
+public sealed class AiCareerProfilePartDTO
+{
+    public string Summary { get; set; } = string.Empty;
+
+    public AiProfileAssessmentDTO? ProfileAssessment { get; set; }
+
+    public AiPortfolioAssessmentDTO? PortfolioAssessment { get; set; }
+}
+
+public sealed class AiCareerRoutePartDTO
+{
+    public List<string> NextActions { get; set; } = [];
+
+    public List<string> MissingSkills { get; set; } = [];
+
+    public List<AiCareerPlanStepDTO> CareerPlan { get; set; } = [];
+
+    public AiSalaryInsightDTO? SalaryInsight { get; set; }
+
+    public List<AiSkillGapDTO> SkillGaps { get; set; } = [];
+
+    public AiEventInsightDTO? EventInsight { get; set; }
+
+    public List<AiCourseDTO> RecommendedCourses { get; set; } = [];
+}
+
+public sealed class AiCareerOpportunityPartDTO
+{
+    public List<AiCareerRecommendationSectionDTO> Sections { get; set; } = [];
+
+    public List<AiCareerRecommendationItemDTO> Items { get; set; } = [];
 }
 
 public sealed class AiCourseDTO

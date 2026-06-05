@@ -14,6 +14,10 @@ internal static class AiEndpointRouteBuilderExtensions
     {
         api.MapGet("/candidate/me/ai-career-recommendations", GetCurrentCandidateAiCareerRecommendationsAsync)
             .RequireAuthorization("requireCandidateRole");
+        api.MapPost("/candidate/me/ai-career-recommendations/jobs", QueueCurrentCandidateAiCareerRecommendationsAsync)
+            .RequireAuthorization("requireCandidateRole");
+        api.MapGet("/candidate/me/ai-career-recommendations/jobs/{jobId:guid}", GetCurrentCandidateAiCareerJobAsync)
+            .RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/resume-analysis", AnalyzeCurrentCandidateResumeAsync)
             .RequireAuthorization("requireCandidateRole");
         api.MapPost("/candidate/me/opportunities/{opportunityId:int}/resume-fit", AnalyzeCurrentCandidateOpportunityFitAsync)
@@ -27,10 +31,8 @@ internal static class AiEndpointRouteBuilderExtensions
     private static async Task<IResult> GetCurrentCandidateAiCareerRecommendationsAsync(
         HttpContext context,
         ApplicationDBContext db,
-        IAiCareerService aiCareerService,
-        CancellationToken cancellationToken,
-        [FromQuery] bool forceRefresh = false,
-        [FromQuery] bool isUpdate = false)
+        IAiCareerJobService aiCareerJobService,
+        CancellationToken cancellationToken)
     {
         var profile = await GetCurrentCandidateProfileAsync(context, db, cancellationToken);
         if (profile is null)
@@ -38,37 +40,49 @@ internal static class AiEndpointRouteBuilderExtensions
             return Results.Unauthorized();
         }
 
-        var education = await db.ApplicantEducations
-            .Where(item => item.ApplicantId == profile.Id)
-            .ToListAsync(cancellationToken);
-        var achievements = await db.ApplicantAchievements
-            .Where(item => item.ApplicantId == profile.Id)
-            .ToListAsync(cancellationToken);
-        var projects = await db.CandidateProjects
-            .Where(item => item.ApplicantId == profile.Id)
-            .ToListAsync(cancellationToken);
-        var applications = await db.Applications
-            .Include(item => item.Opportunity)
-            .Where(item => item.ApplicantId == profile.Id)
-            .ToListAsync(cancellationToken);
-        var opportunities = await db.Opportunities
-            .Include(item => item.Tags)
-            .Where(item => item.DeletedAt == null && item.ModerationStatus == OpportunityModerationStatuses.Approved)
-            .Take(60)
-            .ToListAsync(cancellationToken);
-
-        var response = await aiCareerService.BuildCareerRecommendationsAsync(
-            profile,
-            education,
-            achievements,
-            projects,
-            applications,
-            opportunities,
-            forceRefresh,
-            isUpdate,
-            cancellationToken);
-
+        var response = await aiCareerJobService.GetOverviewAsync(profile.Id, cancellationToken);
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> QueueCurrentCandidateAiCareerRecommendationsAsync(
+        [FromBody] AiCareerJobRequestDTO? request,
+        HttpContext context,
+        ApplicationDBContext db,
+        IAiCareerJobService aiCareerJobService,
+        CancellationToken cancellationToken)
+    {
+        var profile = await GetCurrentCandidateProfileAsync(context, db, cancellationToken);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var job = await aiCareerJobService.QueueAsync(
+            profile.Id,
+            request?.Reason ?? "manual",
+            cancellationToken);
+        return Results.Accepted(
+            $"/api/candidate/me/ai-career-recommendations/jobs/{job.JobId}",
+            job);
+    }
+
+    private static async Task<IResult> GetCurrentCandidateAiCareerJobAsync(
+        Guid jobId,
+        HttpContext context,
+        ApplicationDBContext db,
+        IAiCareerJobService aiCareerJobService,
+        CancellationToken cancellationToken)
+    {
+        var profile = await GetCurrentCandidateProfileAsync(context, db, cancellationToken);
+        if (profile is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var job = await aiCareerJobService.GetJobAsync(jobId, profile.Id, cancellationToken);
+        return job is null
+            ? Results.NotFound(new { message = "AI-задача не найдена." })
+            : Results.Ok(job);
     }
 
     private static async Task<IResult> AnalyzeCurrentCandidateResumeAsync(

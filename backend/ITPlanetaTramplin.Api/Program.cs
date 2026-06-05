@@ -28,7 +28,7 @@ builder.Services.AddCors(options =>
 });
 
 const string authCookieName = "Authorization";
-var jwtSigningKey = builder.Configuration["Jwt:Key"];
+var jwtSigningKey = builder.Configuration["Auth:Key"] ?? builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtSigningKey))
 {
     jwtSigningKey = builder.Environment.IsDevelopment()
@@ -66,6 +66,7 @@ builder.Services.AddHttpClient<DadataService>();
 builder.Services.AddHttpClient<StepikService>(httpClient =>
 {
     httpClient.BaseAddress = new Uri("https://stepik.org/");
+    httpClient.Timeout = TimeSpan.FromSeconds(10);
 });
 builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
 {
@@ -139,6 +140,12 @@ builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<IAiCareerService, AiCareerService>();
+builder.Services.AddScoped<IAiCareerStepGenerator, AiCareerStepGenerator>();
+builder.Services.AddScoped<IAiCareerJobService, AiCareerJobService>();
+if (builder.Configuration.GetValue("AiCareerJobs:WorkerEnabled", true))
+{
+    builder.Services.AddHostedService<AiCareerJobWorker>();
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {

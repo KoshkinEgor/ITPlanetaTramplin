@@ -21,6 +21,10 @@ public partial class ApplicationDBContext : DbContext
 
     public virtual DbSet<AiCareerCache> AiCareerCaches { get; set; }
 
+    public virtual DbSet<AiCareerJob> AiCareerJobs { get; set; }
+
+    public virtual DbSet<AiCareerJobStep> AiCareerJobSteps { get; set; }
+
     public virtual DbSet<CandidateProject> CandidateProjects { get; set; }
 
     public virtual DbSet<CandidateProjectInvite> CandidateProjectInvites { get; set; }
@@ -1252,6 +1256,54 @@ public partial class ApplicationDBContext : DbContext
                 .HasForeignKey(d => d.ApplicantId)
                 .HasConstraintName("ai_career_cache_applicant_id_fkey")
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AiCareerJob>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_career_jobs_pkey");
+            entity.ToTable("ai_career_jobs");
+            entity.HasIndex(e => e.ApplicantId, "idx_ai_career_jobs_applicant_id");
+            entity.HasIndex(e => e.ApplicantId, "ux_ai_career_jobs_active_applicant")
+                .IsUnique()
+                .HasFilter("\"status\" IN ('queued', 'running')");
+            entity.HasIndex(e => e.CreatedAt, "idx_ai_career_jobs_created_at");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ApplicantId).HasColumnName("applicant_id");
+            entity.Property(e => e.Status).HasMaxLength(24).HasColumnName("status");
+            entity.Property(e => e.Reason).HasMaxLength(64).HasColumnName("reason");
+            entity.Property(e => e.Signature).HasMaxLength(64).HasColumnName("signature");
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp with time zone").HasColumnName("created_at");
+            entity.Property(e => e.StartedAt).HasColumnType("timestamp with time zone").HasColumnName("started_at");
+            entity.Property(e => e.CompletedAt).HasColumnType("timestamp with time zone").HasColumnName("completed_at");
+            entity.HasOne(e => e.Applicant)
+                .WithMany()
+                .HasForeignKey(e => e.ApplicantId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("ai_career_jobs_applicant_id_fkey");
+        });
+
+        modelBuilder.Entity<AiCareerJobStep>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("ai_career_job_steps_pkey");
+            entity.ToTable("ai_career_job_steps");
+            entity.HasIndex(e => new { e.JobId, e.Step }, "ai_career_job_steps_job_id_step_key").IsUnique();
+            entity.HasIndex(e => new { e.Status, e.AvailableAt }, "idx_ai_career_job_steps_claim");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.JobId).HasColumnName("job_id");
+            entity.Property(e => e.Step).HasMaxLength(32).HasColumnName("step");
+            entity.Property(e => e.Status).HasMaxLength(24).HasColumnName("status");
+            entity.Property(e => e.AttemptCount).HasColumnName("attempt_count");
+            entity.Property(e => e.AvailableAt).HasColumnType("timestamp with time zone").HasColumnName("available_at");
+            entity.Property(e => e.LeaseUntil).HasColumnType("timestamp with time zone").HasColumnName("lease_until");
+            entity.Property(e => e.StartedAt).HasColumnType("timestamp with time zone").HasColumnName("started_at");
+            entity.Property(e => e.CompletedAt).HasColumnType("timestamp with time zone").HasColumnName("completed_at");
+            entity.Property(e => e.ErrorCode).HasMaxLength(80).HasColumnName("error_code");
+            entity.Property(e => e.ErrorMessage).HasMaxLength(500).HasColumnName("error_message");
+            entity.HasOne(e => e.Job)
+                .WithMany(e => e.Steps)
+                .HasForeignKey(e => e.JobId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("ai_career_job_steps_job_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);
