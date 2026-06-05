@@ -235,32 +235,20 @@ export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }
 
-export function getCandidateAiCareerRecommendations(forceRefreshOrSignal, isUpdateOrSignal, signal) {
-  let forceRefresh = false;
-  let isUpdate = false;
-  let activeSignal = signal;
+export function getCandidateAiCareerRecommendations(signal) {
+  return apiRequest("/candidate/me/ai-career-recommendations", { signal });
+}
 
-  const isSignal = (obj) =>
-    obj && typeof obj === "object" && (obj instanceof AbortSignal || "aborted" in obj || obj.constructor?.name === "AbortSignal");
+export function queueCandidateAiCareerRecommendations(reason = "manual", signal) {
+  return apiRequest("/candidate/me/ai-career-recommendations/jobs", {
+    method: "POST",
+    body: { reason },
+    signal,
+  });
+}
 
-  if (typeof forceRefreshOrSignal === "boolean") {
-    forceRefresh = forceRefreshOrSignal;
-  } else if (isSignal(forceRefreshOrSignal)) {
-    activeSignal = forceRefreshOrSignal;
-  }
-
-  if (typeof isUpdateOrSignal === "boolean") {
-    isUpdate = isUpdateOrSignal;
-  } else if (isSignal(isUpdateOrSignal)) {
-    activeSignal = isUpdateOrSignal;
-  }
-
-  const params = new URLSearchParams();
-  if (forceRefresh) params.set("forceRefresh", "true");
-  if (isUpdate) params.set("isUpdate", "true");
-
-  const query = params.toString() ? `?${params.toString()}` : "";
-  return apiRequest(`/candidate/me/ai-career-recommendations${query}`, { signal: activeSignal });
+export function getCandidateAiCareerJob(jobId, signal) {
+  return apiRequest(`/candidate/me/ai-career-recommendations/jobs/${jobId}`, { signal });
 }
 
 export function analyzeCandidateResume(signal) {

@@ -418,4 +418,88 @@ describe("CandidateCareerDashboard", () => {
     expect(screen.queryByText("System ranked vacancy")).not.toBeInTheDocument();
     expect(screen.getAllByText(/% совпадение/i)).toHaveLength(1);
   });
+
+  it("keeps the previous overview visible while a three-step job is running", () => {
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard
+          profile={{ name: "Анна", skills: ["React"] }}
+          dashboardState={{
+            status: "ready",
+            applications: [],
+            contacts: [],
+            suggestions: [],
+            recommendations: [],
+            opportunities: [],
+            directory: [],
+            projects: [],
+            aiStatus: "loading",
+            aiRecommendations: {
+              status: "fresh",
+              refreshReason: "cache_hit",
+              summary: "Предыдущий успешный обзор.",
+              profileAssessment: { score: 75, summary: "Профиль сохранён" },
+              salaryInsight: {},
+              careerPlan: [],
+            },
+            aiJob: {
+              jobId: "job-1",
+              status: "running",
+              steps: [
+                { step: "profile", status: "succeeded" },
+                { step: "career", status: "running" },
+                { step: "opportunities", status: "queued" },
+              ],
+            },
+          }}
+          mode="ai"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Предыдущий успешный обзор.")).toBeInTheDocument();
+    expect(screen.getByText("Формируем ИИ-разбор: 1 из 3")).toBeInTheDocument();
+    expect(screen.getByText(/Карьерный маршрут: в работе/)).toBeInTheDocument();
+  });
+
+  it("shows a warning only for the failed partial block", () => {
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard
+          profile={{ name: "Анна", skills: ["React"] }}
+          dashboardState={{
+            status: "ready",
+            applications: [],
+            contacts: [],
+            suggestions: [],
+            recommendations: [],
+            opportunities: [],
+            directory: [],
+            projects: [],
+            aiStatus: "ready",
+            aiRecommendations: {
+              status: "partial",
+              refreshReason: "manual",
+              summary: "Профиль обновлён.",
+              profileAssessment: { score: 80, summary: "Новая оценка" },
+              salaryInsight: {},
+              careerPlan: [],
+              partialFailures: [
+                {
+                  step: "opportunities",
+                  errorCode: "invalid_opportunity_ids",
+                  message: "Не удалось обновить AI-подбор возможностей.",
+                },
+              ],
+            },
+          }}
+          mode="ai"
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("ИИ-разбор готов частично")).toBeInTheDocument();
+    expect(screen.getByText("AI-подбор возможностей не обновился")).toBeInTheDocument();
+    expect(screen.queryByText("Оценка профиля не обновилась")).not.toBeInTheDocument();
+  });
 });

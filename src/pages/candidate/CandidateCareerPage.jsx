@@ -6,6 +6,7 @@ import {
   deleteCandidateEducation,
   getCandidateApplications,
   getCandidateAiCareerRecommendations,
+  getCandidateAiCareerJob,
   getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
@@ -13,6 +14,7 @@ import {
   getCandidateProfile,
   getCandidateRecommendations,
   getCandidateProjects,
+  queueCandidateAiCareerRecommendations,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
@@ -52,6 +54,11 @@ import "./candidate-career.css";
 
 const headerNav = PUBLIC_HEADER_NAV_ITEMS;
 const candidateLoginHref = buildAuthLoginRoute({ role: "candidate" });
+const AI_JOB_TERMINAL_STATUSES = new Set(["succeeded", "partial", "failed"]);
+
+function isAiJobActive(status) {
+  return status === "queued" || status === "running";
+}
 
 function normalizeSearchValue(value) {
   return String(value ?? "").trim().toLowerCase();
@@ -335,6 +342,8 @@ export function CandidateCareerPage() {
     projects: [],
     aiRecommendations: null,
     aiStatus: "idle",
+    aiJobId: null,
+    aiJob: null,
     aiError: null,
     degraded: false,
     error: null,
@@ -494,10 +503,14 @@ export function CandidateCareerPage() {
         return;
       }
 
+      const generation = aiRecommendations?.generation;
+      const activeJobId = isAiJobActive(generation?.status) ? generation?.jobId : null;
       setDashboardState((current) => ({
         ...current,
         aiRecommendations: aiRecommendations || current.aiRecommendations,
-        aiStatus: currentMode === "ai" ? "ready" : "idle",
+        aiStatus: currentMode === "ai" ? (activeJobId ? "loading" : "ready") : "idle",
+        aiJobId: activeJobId,
+        aiJob: generation ?? null,
         aiError: null,
       }));
     }).catch((error) => {
@@ -520,27 +533,21 @@ export function CandidateCareerPage() {
   }, [contextState]);
 
   async function loadAiRecommendations() {
-    if (dashboardState.aiStatus === "loading") {
+    if (dashboardState.aiStatus === "loading" && dashboardState.aiJobId) {
       return;
     }
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(false);
-      console.log('[AI-DIAG] loadAiRecommendations response:', JSON.stringify({
-        isFallback: aiRecommendations?.isFallback,
-        source: aiRecommendations?.source,
-        status: aiRecommendations?.status,
-        refreshReason: aiRecommendations?.refreshReason,
-        summary: aiRecommendations?.summary?.substring(0, 80),
-        itemsCount: aiRecommendations?.items?.length,
-        sectionsCount: aiRecommendations?.sections?.length,
-        careerPlanCount: aiRecommendations?.careerPlan?.length,
-      }, null, 2));
+      const aiRecommendations = await getCandidateAiCareerRecommendations();
+      const generation = aiRecommendations?.generation;
+      const activeJobId = isAiJobActive(generation?.status) ? generation?.jobId : null;
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,
-        aiStatus: "ready",
+        aiStatus: activeJobId ? "loading" : "ready",
+        aiJobId: activeJobId,
+        aiJob: generation ?? null,
         aiError: null,
       }));
     } catch (error) {
@@ -588,15 +595,14 @@ export function CandidateCareerPage() {
     }
 
     let active = true;
-    setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
-
-    getCandidateAiCareerRecommendations(false)
-      .then((aiRecommendations) => {
+    queueCandidateAiCareerRecommendations("application_changed")
+      .then((job) => {
         if (active) {
           setDashboardState((current) => ({
             ...current,
-            aiRecommendations,
-            aiStatus: "ready",
+            aiStatus: "loading",
+            aiJobId: job?.jobId ?? current.aiJobId,
+            aiJob: job ?? current.aiJob,
             aiError: null,
           }));
         }
@@ -617,27 +623,16 @@ export function CandidateCareerPage() {
   }, [applicationsState.applications, applicationsState.status, mode, shouldLoadApplications]);
 
   async function refreshAiCareerRecommendations(isUpdate = false) {
-    const isUpdateBool = typeof isUpdate === "boolean" ? isUpdate : false;
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(true, isUpdateBool);
-      console.log('[AI-DIAG] refreshAiCareerRecommendations response:', JSON.stringify({
-        isFallback: aiRecommendations?.isFallback,
-        source: aiRecommendations?.source,
-        status: aiRecommendations?.status,
-        refreshReason: aiRecommendations?.refreshReason,
-        summary: aiRecommendations?.summary?.substring(0, 80),
-        itemsCount: aiRecommendations?.items?.length,
-        sectionsCount: aiRecommendations?.sections?.length,
-        careerPlanCount: aiRecommendations?.careerPlan?.length,
-        errorMessage: aiRecommendations?.errorMessage,
-        hasProfileAssessment: !!aiRecommendations?.profileAssessment,
-      }, null, 2));
+      const reason = isUpdate === true ? "profile_changed" : "manual";
+      const job = await queueCandidateAiCareerRecommendations(reason);
       setDashboardState((current) => ({
         ...current,
-        aiRecommendations,
-        aiStatus: "ready",
+        aiStatus: "loading",
+        aiJobId: job?.jobId ?? current.aiJobId,
+        aiJob: job ?? current.aiJob,
         aiError: null,
       }));
     } catch (error) {
@@ -648,6 +643,98 @@ export function CandidateCareerPage() {
       }));
     }
   }
+
+  useEffect(() => {
+    const jobId = dashboardState.aiJobId;
+    if (!jobId) {
+      return undefined;
+    }
+
+    let active = true;
+    let timerId = null;
+    let polling = false;
+    const startedAt = Date.now();
+
+    const schedule = () => {
+      if (!active) {
+        return;
+      }
+      const delay = Date.now() - startedAt < 30_000 ? 2_000 : 5_000;
+      timerId = window.setTimeout(poll, delay);
+    };
+
+    const poll = async () => {
+      if (!active || polling) {
+        return;
+      }
+      if (document.visibilityState === "hidden") {
+        schedule();
+        return;
+      }
+
+      polling = true;
+      try {
+        const job = await getCandidateAiCareerJob(jobId);
+        if (!active) {
+          return;
+        }
+
+        if (AI_JOB_TERMINAL_STATUSES.has(job?.status)) {
+          const aiRecommendations = await getCandidateAiCareerRecommendations();
+          if (!active) {
+            return;
+          }
+          setDashboardState((current) => ({
+            ...current,
+            aiRecommendations,
+            aiStatus: "ready",
+            aiJobId: null,
+            aiJob: job,
+            aiError: null,
+          }));
+          return;
+        }
+
+        setDashboardState((current) => ({
+          ...current,
+          aiStatus: "loading",
+          aiJob: job,
+          aiError: null,
+        }));
+        schedule();
+      } catch (error) {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiStatus: "error",
+            aiError: error,
+          }));
+        }
+      } finally {
+        polling = false;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (timerId) {
+          window.clearTimeout(timerId);
+        }
+        poll();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    poll();
+
+    return () => {
+      active = false;
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [dashboardState.aiJobId]);
 
   useEffect(() => {
     if (!location.hash) {

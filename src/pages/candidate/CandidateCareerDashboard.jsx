@@ -33,6 +33,11 @@ const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
 const COURSE_ACTION_TARGET = "_blank";
 const COURSE_ACTION_REL = "noreferrer";
 const MENTOR_CATALOG_HREF = `${routes.opportunities.catalog}?type=mentoring`;
+const AI_STEP_LABELS = {
+  profile: "Профиль и портфолио",
+  career: "Карьерный маршрут",
+  opportunities: "Подбор возможностей",
+};
 
 const RECOMMENDATION_TABS = [
   { value: "all", label: "Все" },
@@ -1256,6 +1261,17 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
   }
 
   const aiRecommendations = dashboardState.aiRecommendations || {};
+  const aiJob = dashboardState.aiJob || aiRecommendations.generation || null;
+  const partialFailures = safeArray(aiRecommendations.partialFailures);
+  const getPartialFailure = (step) => partialFailures.find((item) => item?.step === step);
+  const profileFailure = getPartialFailure("profile");
+  const careerFailure = getPartialFailure("career");
+  const opportunitiesFailure = getPartialFailure("opportunities");
+
+  if (mode === "ai" && aiRecommendations.status === "partial" && dashboardState.aiStatus !== "loading") {
+    statusText = "ИИ-разбор готов частично";
+    statusClass = "status-stale";
+  }
 
   return (
     <div className="candidate-career-dashboard">
@@ -1299,6 +1315,20 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
             </div>
           </div>
         </div>
+
+        {mode === "ai" && dashboardState.aiStatus === "loading" && aiJob ? (
+          <Alert
+            tone="warning"
+            title={`Формируем ИИ-разбор: ${safeArray(aiJob.steps).filter((step) => step.status === "succeeded").length} из ${aiJob.steps?.length || 3}`}
+            showIcon
+          >
+            {safeArray(aiJob.steps)
+              .map((step) => `${AI_STEP_LABELS[step.step] || step.step}: ${
+                step.status === "succeeded" ? "готово" : step.status === "running" ? "в работе" : "в очереди"
+              }`)
+              .join(" · ")}
+          </Alert>
+        ) : null}
 
         {/* Top Grid Area */}
         <div className="candidate-career-dashboard__top-grid">
@@ -1406,6 +1436,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                     <span className="candidate-career-ai-card__badge">AI</span>
                   </div>
                 </div>
+                {profileFailure ? (
+                  <Alert tone="warning" title="Оценка профиля не обновилась" showIcon>
+                    {profileFailure.message}
+                  </Alert>
+                ) : null}
                 
                 <div className="candidate-career-ai-profile-card__score-section">
                   <CircularScoreGauge score={aiRecommendations.profileAssessment?.score || 0} />
@@ -1444,6 +1479,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                     <span className="candidate-career-ai-card__badge">AI</span>
                   </div>
                 </div>
+                {careerFailure ? (
+                  <Alert tone="warning" title="Карьерный маршрут не обновился" showIcon>
+                    {careerFailure.message}
+                  </Alert>
+                ) : null}
                 
                 <div className="candidate-career-ai-salary-card__levels">
                   <div className="salary-level-item">
@@ -1535,6 +1575,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
 
           {/* AI Section 2: 7-day Development Plan */}
           <section className="candidate-career-dashboard__section">
+            {careerFailure ? (
+              <Alert tone="warning" title="Показан предыдущий карьерный план" showIcon>
+                {careerFailure.message}
+              </Alert>
+            ) : null}
             <CareerAiPlanPanel aiRecommendations={aiRecommendations} status={dashboardState.aiStatus} />
           </section>
 
@@ -1544,6 +1589,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
           </section>
 
           {/* AI Section 4: Recommended Opportunities */}
+          {opportunitiesFailure ? (
+            <Alert tone="warning" title="AI-подбор возможностей не обновился" showIcon>
+              {opportunitiesFailure.message}
+            </Alert>
+          ) : null}
           <CareerAiRecommendationTabs
             sections={aiRecommendationSections}
             mentoringPrograms={mentoringPrograms}
