@@ -1447,7 +1447,7 @@ export function OpportunitiesCatalogApp() {
         <PortalHeader
           navItems={NAV_ITEMS}
           currentKey="opportunities"
-          brandLabel="рамплин"
+          brandLabel="трамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
           shellClassName="opportunities-browser__header-shell"

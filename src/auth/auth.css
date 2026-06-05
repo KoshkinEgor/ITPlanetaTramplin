@@ -627,25 +627,30 @@ body.auth-react-body {
 
 .auth-brand {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  gap: 0;
   margin-inline: auto;
   color: #25314b;
 }
 
 .auth-brand__mark {
-  width: 23px;
-  height: 20px;
+  width: 76px;
+  height: 46px;
   flex-shrink: 0;
-  background: center / contain no-repeat url("../home/logo.png");
+  background: center / contain no-repeat url("../shared/assets/logo_min.png");
 }
 
 .auth-brand__label {
+  position: relative;
+  /* z-index: 0; */
+  margin-left: -20px;
+  margin-bottom: 2px;
   font-family: var(--ui-font-family-base);
   font-size: 24px;
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.06em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .auth-screen__copy {
