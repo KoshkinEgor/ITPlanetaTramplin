@@ -34,12 +34,16 @@ services:
         value: "true"
       - key: Database__SeedDemoDataOnStartup
         value: "true"
-      - key: Jwt__Key
+      - key: Auth__Key
         generateValue: true
       - key: EmailVerification__HashKey
         generateValue: true
       - key: PasswordReset__HashKey
         generateValue: true
+      - key: GigaChat__Enabled
+        value: "true"
+      - key: GigaChat__AuthKey
+        sync: false
       - key: Smtp__LogToConsoleWhenUnconfigured
         value: "true"
       - key: Dadata__ApiKey

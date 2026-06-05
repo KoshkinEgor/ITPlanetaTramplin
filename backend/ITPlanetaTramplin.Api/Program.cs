@@ -33,7 +33,13 @@ if (string.IsNullOrWhiteSpace(jwtSigningKey))
 {
     jwtSigningKey = builder.Environment.IsDevelopment()
         ? "local-dev-jwt-signing-key-change-me"
-        : throw new InvalidOperationException("Jwt:Key must be configured.");
+        : throw new InvalidOperationException("Auth:Key must be configured.");
+}
+
+if (!builder.Environment.IsDevelopment())
+{
+    RequireProductionSecret(builder.Configuration, "EmailVerification:HashKey");
+    RequireProductionSecret(builder.Configuration, "PasswordReset:HashKey");
 }
 
 var jwtLifetimeMinutes = int.TryParse(builder.Configuration["Jwt:AccessTokenLifetimeMinutes"], out var configuredTokenLifetimeMinutes)
@@ -277,6 +283,15 @@ static string ResolveConnectionString(IConfiguration configuration)
         ? connectionString
         : throw new InvalidOperationException(
             "Database connection string is not configured. Set ConnectionStrings__DefaultConnection, API_CONNECTION_STRING, DATABASE_URL, or POSTGRES_HOST/POSTGRES_DB/POSTGRES_USER/POSTGRES_PASSWORD.");
+}
+
+static void RequireProductionSecret(IConfiguration configuration, string key)
+{
+    var value = configuration[key];
+    if (string.IsNullOrWhiteSpace(value) || value.Length < 32)
+    {
+        throw new InvalidOperationException($"{key} must be configured with at least 32 characters.");
+    }
 }
 
 static string? TryBuildPostgresConnectionString(IConfiguration configuration)
