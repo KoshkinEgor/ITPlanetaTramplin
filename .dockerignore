@@ -13,3 +13,4 @@ trash.html
 backend/**/bin
 backend/**/obj
 backend/**/artifacts
+backend/ITPlanetaTramplin.Api/App_Data/user-media

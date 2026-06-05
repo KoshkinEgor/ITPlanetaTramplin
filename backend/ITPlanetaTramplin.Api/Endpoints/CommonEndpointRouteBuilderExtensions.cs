@@ -84,7 +84,9 @@ internal static class CommonEndpointRouteBuilderExtensions
         }
 
         var storedFile = await storage.SaveImageAsync(userId.Value, file, cancellationToken);
-        var url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}/uploads/{storedFile.StorageKey}";
+        // Keep media URLs on the application's public origin. The API can sit behind
+        // an HTTPS reverse proxy while its internal request scheme remains HTTP.
+        var url = $"{context.Request.PathBase}/uploads/{storedFile.StorageKey}";
 
         return Results.Ok(new
         {

@@ -20,6 +20,7 @@ internal sealed class TestApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = $"tramplin-tests-{Guid.NewGuid():N}";
     private readonly string _verificationStorageRoot = Path.Combine(Path.GetTempPath(), "tramplin-tests", "company-verification", Guid.NewGuid().ToString("N"));
+    private readonly string _userMediaStorageRoot = Path.Combine(Path.GetTempPath(), "tramplin-tests", "user-media", Guid.NewGuid().ToString("N"));
 
     public TestApplicationFactory()
     {
@@ -47,6 +48,11 @@ internal sealed class TestApplicationFactory : WebApplicationFactory<Program>
             services.Configure<CompanyVerificationOptions>(options =>
             {
                 options.StorageRoot = _verificationStorageRoot;
+                options.MaxFileSizeBytes = 10 * 1024 * 1024;
+            });
+            services.Configure<UserMediaOptions>(options =>
+            {
+                options.StorageRoot = _userMediaStorageRoot;
                 options.MaxFileSizeBytes = 10 * 1024 * 1024;
             });
             services.RemoveAll<DadataService>();
@@ -89,6 +95,11 @@ internal sealed class TestApplicationFactory : WebApplicationFactory<Program>
             if (Directory.Exists(_verificationStorageRoot))
             {
                 Directory.Delete(_verificationStorageRoot, recursive: true);
+            }
+
+            if (Directory.Exists(_userMediaStorageRoot))
+            {
+                Directory.Delete(_userMediaStorageRoot, recursive: true);
             }
         }
         catch

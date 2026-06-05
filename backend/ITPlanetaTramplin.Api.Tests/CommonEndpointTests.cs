@@ -1,5 +1,6 @@
 using DTO;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
@@ -8,6 +9,37 @@ namespace ITPlanetaTramplin.Api.Tests;
 
 public class CommonEndpointTests
 {
+    [Fact]
+    public async Task ImageUpload_ReturnsSameOriginUrl_AndServesStoredFile()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+        await RegisterAndConfirmCandidateAsync(client);
+
+        var imageBytes = new byte[]
+        {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        };
+        using var form = new MultipartFormDataContent();
+        using var image = new ByteArrayContent(imageBytes);
+        image.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        form.Add(image, "file", "avatar.png");
+
+        var uploadResponse = await client.PostAsync("/api/uploads/images", form);
+
+        Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+        using var payload = JsonDocument.Parse(await uploadResponse.Content.ReadAsStringAsync());
+        var url = payload.RootElement.GetProperty("url").GetString();
+        Assert.NotNull(url);
+        Assert.StartsWith("/uploads/user-", url, StringComparison.Ordinal);
+
+        var imageResponse = await client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.OK, imageResponse.StatusCode);
+        Assert.Equal("image/png", imageResponse.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(imageBytes, await imageResponse.Content.ReadAsByteArrayAsync());
+    }
+
     [Fact]
     public async Task ProfessionSearch_ReturnsCatalogMatches()
     {
@@ -90,5 +122,28 @@ public class CommonEndpointTests
         Assert.Equal("Тестовая улица, д. 1", payload.Suggestions[0].Label);
         Assert.Equal(55.755810m, payload.Suggestions[0].Latitude);
         Assert.Equal(37.617710m, payload.Suggestions[0].Longitude);
+    }
+
+    private static async Task RegisterAndConfirmCandidateAsync(HttpClient client)
+    {
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register/candidate", new
+        {
+            email = $"upload-{Guid.NewGuid():N}@tramplin.local",
+            password = "Password1",
+            name = "Upload",
+            surname = "Tester",
+        });
+        Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+        var registration = await registrationResponse.Content.ReadFromJsonAsync<PendingEmailVerificationDTO>();
+        Assert.NotNull(registration);
+
+        var confirmResponse = await client.PostAsJsonAsync("/api/auth/confirm-email", new
+        {
+            email = registration!.Email,
+            role = registration.Role,
+            code = registration.DebugCode,
+        });
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
     }
 }
