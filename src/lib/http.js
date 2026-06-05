@@ -39,14 +39,22 @@ function buildRequest(path, options = {}) {
 
 async function parseErrorResponse(response) {
   const contentType = response.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
+  const isJson = contentType.includes("json");
   const responseData = isJson ? await response.json().catch(() => null) : await response.text().catch(() => "");
+  const validationMessage =
+    responseData?.errors && typeof responseData.errors === "object"
+      ? Object.values(responseData.errors)
+          .flatMap((messages) => (Array.isArray(messages) ? messages : [messages]))
+          .find((message) => typeof message === "string" && message.trim())
+      : "";
   const isHtmlError =
     typeof responseData === "string" &&
     (contentType.includes("text/html") || /^\s*</.test(responseData));
   const errorMessage =
     typeof responseData?.message === "string" && responseData.message.trim()
       ? responseData.message
+      : validationMessage
+        ? validationMessage
       : isHtmlError
         ? "Сервис временно недоступен. Попробуйте повторить действие позже."
         : typeof responseData === "string" && responseData.trim()

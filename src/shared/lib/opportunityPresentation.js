@@ -96,7 +96,7 @@ export function parseDateTimeInputValue(value) {
   }
 
   const date = new Date(normalized);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  return Number.isNaN(date.getTime()) ? null : Math.floor(date.getTime() / 1000);
 }
 
 export function translateEmploymentType(value) {

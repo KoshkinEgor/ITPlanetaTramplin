@@ -65,6 +65,33 @@ describe("apiRequest", () => {
     );
   });
 
+  it("extracts the first ASP.NET validation error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        headers: {
+          get: () => "application/problem+json",
+        },
+        json: async () => ({
+          title: "One or more validation errors occurred.",
+          errors: {
+            eventStartAt: ["The JSON value could not be converted to System.Nullable`1[System.Int64]."],
+          },
+        }),
+        text: async () => "",
+      })
+    );
+
+    await expect(apiRequest("/opportunities", { method: "POST", body: {} })).rejects.toEqual(
+      expect.objectContaining({
+        message: "The JSON value could not be converted to System.Nullable`1[System.Int64].",
+        status: 400,
+      })
+    );
+  });
+
   it("keeps ApiError type for consumers", async () => {
     vi.stubGlobal(
       "fetch",
