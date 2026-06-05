@@ -366,35 +366,62 @@ public sealed class AiCareerJobService : IAiCareerJobService
             return inMemoryStep;
         }
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
-        AiCareerJobStep? step;
-
-        var claimedSteps = await _db.AiCareerJobSteps
-            .FromSqlInterpolated($"""
-                SELECT *
-                FROM ai_career_job_steps
-                WHERE
-                    (status = 'queued' AND available_at <= {now})
-                    OR (status = 'running' AND lease_until < {now})
-                ORDER BY available_at, id
-                FOR UPDATE SKIP LOCKED
-                LIMIT 1
-                """)
-            .ToListAsync(cancellationToken);
-        step = claimedSteps.SingleOrDefault();
-
-        if (step is null)
+        var connection = _db.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
         {
-            await transaction.CommitAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        int? claimedId = null;
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                UPDATE ai_career_job_steps
+                SET status = 'running', attempt_count = attempt_count + 1, started_at = COALESCE(started_at, @now), lease_until = @leaseUntil, error_code = NULL, error_message = NULL
+                WHERE id = (
+                    SELECT id
+                    FROM ai_career_job_steps
+                    WHERE (status = 'queued' AND available_at <= @now)
+                       OR (status = 'running' AND lease_until < @now)
+                    ORDER BY available_at, id
+                    FOR UPDATE SKIP LOCKED
+                    LIMIT 1
+                )
+                RETURNING id;
+                """;
+            var nowParam = command.CreateParameter();
+            nowParam.ParameterName = "@now";
+            nowParam.Value = now;
+            command.Parameters.Add(nowParam);
+
+            var leaseParam = command.CreateParameter();
+            leaseParam.ParameterName = "@leaseUntil";
+            leaseParam.Value = now.AddMinutes(3);
+            command.Parameters.Add(leaseParam);
+
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            if (result != null && result != DBNull.Value)
+            {
+                claimedId = (int)result;
+            }
+        }
+
+        if (claimedId is null)
+        {
             return null;
         }
+
+        var step = await _db.AiCareerJobSteps
+            .FirstAsync(item => item.Id == claimedId.Value, cancellationToken);
 
         await _db.Entry(step)
             .Reference(item => item.Job)
             .LoadAsync(cancellationToken);
-        MarkClaimed(step, now);
+
+        step.Job.Status = "running";
+        step.Job.StartedAt ??= now;
         await _db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+
         return step;
     }
 
@@ -679,8 +706,20 @@ public sealed class AiCareerJobWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 _logger.LogError(ex, "AI career job worker iteration failed.");
-                await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
             }
         }
     }
