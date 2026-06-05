@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildAuthLoginRoute, routes } from "../../app/routes";
 import {
@@ -42,6 +42,7 @@ import {
   getCandidateOnboardingProgress,
   getCandidateOnboardingStepError,
 } from "../../candidate-portal/onboarding";
+import { useCandidateApplications } from "../../candidate-portal/candidate-applications-store";
 import { PortalHeader } from "../../widgets/layout";
 import { Alert, Button, Card, CityAutocomplete, EducationListEditor, FormField, Input, Loader, Modal, SearchInput, Select, Tag, Textarea, CloseIcon } from "../../shared/ui";
 import { scheduleHashScroll } from "../../shared/lib/scrollToHashTarget";
@@ -349,6 +350,11 @@ export function CandidateCareerPage() {
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [gateModalOpen, setGateModalOpen] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
+  const shouldLoadApplications = contextState.status === "ready"
+    && contextState.data?.kind === "candidate"
+    && contextState.data.onboardingComplete;
+  const applicationsState = useCandidateApplications({ autoRefresh: shouldLoadApplications });
+  const applicationsFingerprintRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -514,7 +520,7 @@ export function CandidateCareerPage() {
   }, [contextState]);
 
   async function loadAiRecommendations() {
-    if (dashboardState.aiStatus === "loading" || dashboardState.aiRecommendations) {
+    if (dashboardState.aiStatus === "loading") {
       return;
     }
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
@@ -540,18 +546,71 @@ export function CandidateCareerPage() {
     setMode(newMode);
     localStorage.setItem("career-dashboard-mode", newMode);
     if (newMode === "ai") {
-      // Lazy load from cache or API when switching to AI
-      if (!dashboardState.aiRecommendations && dashboardState.aiStatus !== "loading") {
-        loadAiRecommendations();
-      }
+      loadAiRecommendations();
     }
   };
 
-  async function refreshAiCareerRecommendations() {
+  useEffect(() => {
+    if (!shouldLoadApplications || applicationsState.status !== "ready") {
+      return undefined;
+    }
+
+    const applications = safeArray(applicationsState.applications);
+    const fingerprint = applications
+      .map((item) => [
+        item?.id ?? "",
+        item?.opportunityId ?? item?.opportunity?.id ?? "",
+        normalizeSearchValue(item?.status),
+        item?.appliedAt ?? "",
+      ].join(":"))
+      .sort()
+      .join("|");
+    const previousFingerprint = applicationsFingerprintRef.current;
+
+    applicationsFingerprintRef.current = fingerprint;
+    setDashboardState((current) => ({
+      ...current,
+      applications,
+    }));
+
+    if (previousFingerprint === null || previousFingerprint === fingerprint || mode !== "ai") {
+      return undefined;
+    }
+
+    let active = true;
+    setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
+
+    getCandidateAiCareerRecommendations(false)
+      .then((aiRecommendations) => {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiRecommendations,
+            aiStatus: "ready",
+            aiError: null,
+          }));
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiStatus: "error",
+            aiError: error,
+          }));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [applicationsState.applications, applicationsState.status, mode, shouldLoadApplications]);
+
+  async function refreshAiCareerRecommendations(isUpdate = false) {
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(true);
+      const aiRecommendations = await getCandidateAiCareerRecommendations(true, isUpdate);
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,

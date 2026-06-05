@@ -93,7 +93,7 @@ describe("CandidateCareerDashboard", () => {
 
     expect(topPanel).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Воспользуйся моментом" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Откликнуться" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Подробнее" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Твои навыки" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Уровень зарплат в Чебоксары" })).toBeInTheDocument();
     
@@ -160,7 +160,7 @@ describe("CandidateCareerDashboard", () => {
 
     expect(screen.getByText("Пока нет реальных рекомендаций")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Воспользуйся моментом" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Откликнуться" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Подробнее" })).toBeInTheDocument();
     expect(screen.getByText("Дизайнер интерфейсов Мобильных приложений UI/UX")).toBeInTheDocument();
     expect(screen.queryByText("Александра Морева")).not.toBeInTheDocument();
     expect(screen.queryByText("Анастасия Соколова")).not.toBeInTheDocument();
@@ -213,7 +213,6 @@ describe("CandidateCareerDashboard", () => {
     );
 
     expect(screen.queryByRole("heading", { name: "Воспользуйся моментом" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Откликнуться" })).not.toBeInTheDocument();
   });
 
   it("renders AI Mode switcher, status, generate card when no cache is present", () => {
@@ -363,5 +362,60 @@ describe("CandidateCareerDashboard", () => {
     
     expect(screen.getByText("Мини-план на 7 дней")).toBeInTheDocument();
     expect(screen.getByText("Учить TS")).toBeInTheDocument();
+  });
+
+  it("renders only AI recommended opportunities in AI mode", () => {
+    const opportunities = [
+      {
+        id: 1,
+        opportunityType: "vacancy",
+        title: "AI ranked vacancy",
+        companyName: "AI Corp",
+        tags: ["React"],
+        moderationStatus: "approved",
+      },
+      {
+        id: 2,
+        opportunityType: "vacancy",
+        title: "System ranked vacancy",
+        companyName: "System Corp",
+        tags: ["TypeScript"],
+        moderationStatus: "approved",
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <CandidateCareerDashboard
+          profile={{ name: "Анна", skills: ["React"] }}
+          dashboardState={{
+            status: "ready",
+            applications: [],
+            contacts: [],
+            suggestions: [],
+            recommendations: opportunities,
+            opportunities,
+            directory: [],
+            projects: [],
+            aiRecommendations: {
+              refreshReason: "profile_or_applications_changed",
+              isFallback: false,
+              summary: "Персональный разбор.",
+              careerPlan: [{ day: "Шаг 1", action: "Откликнись", outcome: "Получишь обратную связь" }],
+              items: [{ opportunityId: 1, matchPercent: 92, reason: "Совпадает по React" }],
+            },
+            aiStatus: "ready",
+            aiError: null,
+          }}
+          mode="ai"
+        />
+      </MemoryRouter>
+    );
+
+    const slider = screen.getByRole("region", { name: "all recommendations slider" });
+    expect(slider.querySelectorAll(".opportunity-block-slider__item")).toHaveLength(1);
+    expect(screen.getByText("AI ranked vacancy")).toBeInTheDocument();
+    expect(screen.queryByText("System ranked vacancy")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/% совпадение/i)).toHaveLength(1);
   });
 });

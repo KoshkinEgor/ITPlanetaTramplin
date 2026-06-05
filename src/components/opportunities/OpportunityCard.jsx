@@ -1,8 +1,11 @@
+import { useMemo } from "react";
 import { Button, Card, IconButton, StatusBadge, Tag } from "../ui";
 import { cn } from "../../lib/cn";
 import { useFavoriteOpportunity } from "../../features/favorites/useFavoriteOpportunity";
 import { extractOpportunityId } from "../../features/favorites/storage";
 import { normalizeOpportunityCardItem } from "../../shared/lib/opportunityPresentation";
+import { useAuthSession } from "../../auth/api";
+import { useCandidateApplications } from "../../candidate-portal/candidate-applications-store";
 import "./OpportunityCard.css";
 
 import { HeartIcon, SparkIcon, InfoIcon } from "../../shared/ui";
@@ -113,7 +116,57 @@ function OpportunityCardBase({
   const shouldShowSave = showSave && variant !== "mini";
   const saveButtonSize = variant === "row" ? "xl" : size === "sm" ? "sm" : "md";
   const actionButtonSize = variant === "row" ? "lg" : size === "sm" ? "md" : "lg";
-  const hasTopRow = data.type || data.status || topTags.length > 0 || shouldShowSave || aiItem;
+
+  const authSession = useAuthSession();
+  const isCandidateViewer = authSession?.status === "authenticated" && authSession?.user?.role === "candidate";
+  const { applications } = useCandidateApplications({ autoRefresh: isCandidateViewer });
+
+  const currentApplication = useMemo(() => {
+    if (!opportunityId || !isCandidateViewer) return null;
+    return applications.find((app) => 
+      String(app.opportunityId) === String(opportunityId) && 
+      app.status !== "withdrawn"
+    );
+  }, [applications, opportunityId, isCandidateViewer]);
+
+  const displayStatus = useMemo(() => {
+    if (currentApplication) {
+      const isEvent = data.typeKey === "event" || data.typeKey === "mentoring";
+      const appStatus = currentApplication.status;
+      if (appStatus === "accepted") {
+        return isEvent ? "Записан(а)" : "Принят(а)";
+      } else if (appStatus === "invited") {
+        return "Приглашение";
+      } else if (appStatus === "rejected") {
+        return "Отказ";
+      } else if (appStatus === "reviewing") {
+        return "На рассмотрении";
+      } else if (appStatus === "submitted") {
+        return isEvent ? "Заявка отправлена" : "Отклик отправлен";
+      }
+    }
+    return data.status;
+  }, [currentApplication, data.status, data.typeKey]);
+
+  const displayStatusTone = useMemo(() => {
+    if (currentApplication) {
+      const appStatus = currentApplication.status;
+      if (appStatus === "accepted") {
+        return "success";
+      } else if (appStatus === "invited") {
+        return "lime";
+      } else if (appStatus === "rejected") {
+        return "warning";
+      } else if (appStatus === "reviewing") {
+        return "info";
+      } else if (appStatus === "submitted") {
+        return "info";
+      }
+    }
+    return data.statusTone;
+  }, [currentApplication, data.statusTone]);
+
+  const hasTopRow = data.type || displayStatus || topTags.length > 0 || shouldShowSave || aiItem;
   const handleFavoriteClick = () => {
     const nextState = toggleFavorite();
     onFavoriteClick?.(opportunityId, nextState);
@@ -147,9 +200,9 @@ function OpportunityCardBase({
               {chip}
             </Tag>
           ))}
-          {data.status ? (
-            <StatusBadge tone={data.statusTone} className="ui-opportunity-card__status">
-              {data.status}
+          {displayStatus ? (
+            <StatusBadge tone={displayStatusTone} className="ui-opportunity-card__status">
+              {displayStatus}
             </StatusBadge>
           ) : null}
           {saveButton}
@@ -159,9 +212,9 @@ function OpportunityCardBase({
       <div className="ui-opportunity-card__top">
         <div className="ui-opportunity-card__badges">
           {data.type ? <Tag className="ui-opportunity-card__tag">{data.type}</Tag> : null}
-          {data.status ? (
-            <StatusBadge tone={data.statusTone} className="ui-opportunity-card__status">
-              {data.status}
+          {displayStatus ? (
+            <StatusBadge tone={displayStatusTone} className="ui-opportunity-card__status">
+              {displayStatus}
             </StatusBadge>
           ) : null}
           {topTags.map((chip, index) => (

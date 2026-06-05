@@ -588,9 +588,9 @@ export function validateOpportunityDraftForSubmit(draft) {
   }
 
   if (type === "vacancy") {
-    if (salaryFrom === null || salaryTo === null) {
-      errors.push("Для вакансии укажите диапазон зарплаты.");
-    } else if (salaryFrom > salaryTo) {
+    if (salaryFrom === null) {
+      errors.push("Для вакансии укажите минимальную зарплату.");
+    } else if (salaryTo !== null && salaryFrom > salaryTo) {
       errors.push("Минимальная зарплата не может быть больше максимальной.");
     }
   }

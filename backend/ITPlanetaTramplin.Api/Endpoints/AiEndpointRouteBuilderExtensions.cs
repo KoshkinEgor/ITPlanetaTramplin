@@ -25,11 +25,12 @@ internal static class AiEndpointRouteBuilderExtensions
     }
 
     private static async Task<IResult> GetCurrentCandidateAiCareerRecommendationsAsync(
-        [FromQuery] bool forceRefresh,
         HttpContext context,
         ApplicationDBContext db,
         IAiCareerService aiCareerService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] bool forceRefresh = false,
+        [FromQuery] bool isUpdate = false)
     {
         var profile = await GetCurrentCandidateProfileAsync(context, db, cancellationToken);
         if (profile is null)
@@ -64,6 +65,7 @@ internal static class AiEndpointRouteBuilderExtensions
             applications,
             opportunities,
             forceRefresh,
+            isUpdate,
             cancellationToken);
 
         return Results.Ok(response);

@@ -63,6 +63,10 @@ builder.Services.AddSingleton<CompanyVerificationStorage>();
 builder.Services.AddSingleton<UserMediaStorage>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();
+builder.Services.AddHttpClient<StepikService>(httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://stepik.org/");
+});
 builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
 {
     if (builder.Environment.IsDevelopment())

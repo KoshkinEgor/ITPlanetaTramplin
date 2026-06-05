@@ -1625,7 +1625,7 @@ export function OpportunitiesCatalogApp() {
                             }}
                             detailAction={{
                               href: buildOpportunityDetailRoute(item.id),
-                              label: getOpportunityApplyLabel(item.opportunityType),
+                              label: "Подробнее",
                               variant: "secondary",
                             }}
                           />

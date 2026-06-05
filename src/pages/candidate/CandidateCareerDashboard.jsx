@@ -474,6 +474,10 @@ function getBaseRecommendationSections(recommendations, opportunities, aiItems =
     merged.push({ card, aiItem: aiById.get(id) ?? null });
   });
 
+  merged.sort((left, right) => (
+    (right.aiItem?.matchPercent ?? -1) - (left.aiItem?.matchPercent ?? -1)
+  ));
+
   return Object.values(
     merged.reduce((acc, item) => {
       const type = normalizeOpportunityType(item.card.opportunityType);
@@ -730,6 +734,9 @@ function CareerAiRecommendationTabs({
     const fromSections = getItemsByType("mentoring");
     if (fromSections.length > 0) {
       return fromSections;
+    }
+    if (mode === "ai") {
+      return [];
     }
     return mentoringPrograms.map((card) => ({ card, aiItem: null, isCourse: false, type: "mentoring" }));
   })();
@@ -1079,7 +1086,7 @@ function CareerCtaCard({ profile, opportunity, matchPercentage }) {
           width="full"
           className="candidate-career-cta-vacancy__button"
         >
-          Откликнуться
+          Подробнее
         </Button>
       </div>
     </div>
@@ -1130,19 +1137,21 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
     return merged;
   }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
 
-  const aiRecommendationSections = useMemo(() => {
-    const sections = getAiRecommendationSections(dashboardState.aiRecommendations, dashboardState.opportunities);
-
-    if (sections.length) {
-      return sections;
-    }
-
-    return getBaseRecommendationSections(
-      dashboardState.recommendations,
-      dashboardState.opportunities,
-      normalizeAiRecommendationItems(dashboardState.aiRecommendations)
-    );
-  }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
+  const aiRecommendationSections = useMemo(
+    () => {
+      if (mode === "ai") {
+        return getAiRecommendationSections(
+          dashboardState.aiRecommendations,
+          dashboardState.opportunities
+        );
+      }
+      return getBaseRecommendationSections(
+        dashboardState.recommendations,
+        dashboardState.opportunities
+      );
+    },
+    [mode, dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]
+  );
 
   const track = resolveTrackKey(profile);
   const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;

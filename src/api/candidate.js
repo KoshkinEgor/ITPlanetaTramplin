@@ -235,15 +235,28 @@ export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }
 
-export function getCandidateAiCareerRecommendations(forceRefreshOrSignal, signal) {
+export function getCandidateAiCareerRecommendations(forceRefreshOrSignal, isUpdateOrSignal, signal) {
   let forceRefresh = false;
+  let isUpdate = false;
   let activeSignal = signal;
+
   if (typeof forceRefreshOrSignal === "boolean") {
     forceRefresh = forceRefreshOrSignal;
   } else if (forceRefreshOrSignal && typeof forceRefreshOrSignal === "object") {
     activeSignal = forceRefreshOrSignal;
   }
-  const query = forceRefresh ? "?forceRefresh=true" : "";
+
+  if (typeof isUpdateOrSignal === "boolean") {
+    isUpdate = isUpdateOrSignal;
+  } else if (isUpdateOrSignal && typeof isUpdateOrSignal === "object") {
+    activeSignal = isUpdateOrSignal;
+  }
+
+  const params = new URLSearchParams();
+  if (forceRefresh) params.set("forceRefresh", "true");
+  if (isUpdate) params.set("isUpdate", "true");
+
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest(`/candidate/me/ai-career-recommendations${query}`, { signal: activeSignal });
 }
 

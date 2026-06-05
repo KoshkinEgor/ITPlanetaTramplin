@@ -308,7 +308,7 @@ function createSafeHomeRowActions(item) {
     },
     detailAction: {
       href: item?.detailHref ?? buildOpportunityDetailRoute(item.id),
-      label: getSafeHomeDetailActionLabel(item),
+      label: HOME_DETAIL_ACTION_LABEL,
       variant: "secondary",
     },
   };

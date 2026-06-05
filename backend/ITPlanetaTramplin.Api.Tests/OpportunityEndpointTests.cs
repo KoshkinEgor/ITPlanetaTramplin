@@ -775,4 +775,45 @@ public class OpportunityEndpointTests
             Assert.DoesNotContain(opportunity.Tags, tag => tag.Name == "BrandNewOpportunityTag");
         }
     }
+
+    [Fact]
+    public async Task CreateOpportunity_WithoutSalaryTo_Succeeds()
+    {
+        await using var factory = new TestApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            role = "company",
+            login = "7707083893",
+            password = "Demo1234",
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var submitResponse = await client.PostAsJsonAsync("/api/opportunities", new
+        {
+            title = "Submitted opportunity without salary to",
+            description = "Submitted from test",
+            opportunityType = "vacancy",
+            employmentType = "office",
+            schedule = "full_time",
+            locationCity = "Москва",
+            contactsJson = """{"email":"jobs@test.local"}""",
+            salaryFrom = 100000m,
+            saveMode = "submit",
+        });
+
+        Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDBContext>();
+
+            var submitOpportunity = await db.Opportunities.SingleAsync(item => item.Title == "Submitted opportunity without salary to");
+            Assert.Equal(OpportunityModerationStatuses.Pending, submitOpportunity.ModerationStatus);
+            Assert.Equal(100000m, submitOpportunity.SalaryFrom);
+            Assert.Null(submitOpportunity.SalaryTo);
+        }
+    }
 }

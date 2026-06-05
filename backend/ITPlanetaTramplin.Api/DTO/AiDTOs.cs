@@ -2,6 +2,12 @@ namespace DTO;
 
 public sealed class AiCareerRecommendationResponseDTO
 {
+    public string Source { get; set; } = "system";
+
+    public string Status { get; set; } = "unavailable";
+
+    public string? ErrorMessage { get; set; }
+
     public string Summary { get; set; } = string.Empty;
 
     public List<string> NextActions { get; set; } = [];
@@ -26,13 +32,36 @@ public sealed class AiCareerRecommendationResponseDTO
 
     public AiEventInsightDTO? EventInsight { get; set; }
 
+    public List<AiCourseDTO> RecommendedCourses { get; set; } = [];
+
     public DateTime? GeneratedAt { get; set; }
 
     public string Signature { get; set; } = string.Empty;
 
+    public string ApplicationsSignature { get; set; } = string.Empty;
+
     public bool IsStale { get; set; }
 
     public string RefreshReason { get; set; } = string.Empty;
+}
+
+public sealed class AiCourseDTO
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string Title { get; set; } = string.Empty;
+
+    public string Provider { get; set; } = "Stepik";
+
+    public string Meta { get; set; } = string.Empty;
+
+    public string Href { get; set; } = string.Empty;
+
+    public string Price { get; set; } = string.Empty;
+
+    public string? OldPrice { get; set; }
+
+    public string? Monthly { get; set; }
 }
 
 public sealed class AiProfileAssessmentDTO

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { buildOpportunityDetailRoute } from "../../../app/routes";
 import { extractOpportunityId } from "../../../features/favorites/storage";
 import { useFavoriteOpportunity } from "../../../features/favorites/useFavoriteOpportunity";
@@ -8,6 +9,8 @@ import { Card } from "../Card/Card";
 import { IconButton } from "../IconButton/IconButton";
 import { StatusBadge } from "../StatusBadge/StatusBadge";
 import { Tag } from "../Tag/Tag";
+import { useAuthSession } from "../../../auth/api";
+import { useCandidateApplications } from "../../../candidate-portal/candidate-applications-store";
 import "./OpportunityMiniCard.css";
 import { CloseIcon, HeartIcon } from "../../../shared/ui";
 
@@ -62,6 +65,55 @@ export function OpportunityMiniCard({
     onFavoriteClick?.(opportunityId, nextState);
   };
 
+  const authSession = useAuthSession();
+  const isCandidateViewer = authSession?.status === "authenticated" && authSession?.user?.role === "candidate";
+  const { applications } = useCandidateApplications({ autoRefresh: isCandidateViewer });
+
+  const currentApplication = useMemo(() => {
+    if (!opportunityId || !isCandidateViewer) return null;
+    return applications.find((app) => 
+      String(app.opportunityId) === String(opportunityId) && 
+      app.status !== "withdrawn"
+    );
+  }, [applications, opportunityId, isCandidateViewer]);
+
+  const displayStatus = useMemo(() => {
+    if (currentApplication) {
+      const isEvent = data.typeKey === "event" || data.typeKey === "mentoring";
+      const appStatus = currentApplication.status;
+      if (appStatus === "accepted") {
+        return isEvent ? "Записан(а)" : "Принят(а)";
+      } else if (appStatus === "invited") {
+        return "Приглашение";
+      } else if (appStatus === "rejected") {
+        return "Отказ";
+      } else if (appStatus === "reviewing") {
+        return "На рассмотрении";
+      } else if (appStatus === "submitted") {
+        return isEvent ? "Заявка отправлена" : "Отклик отправлен";
+      }
+    }
+    return data.status;
+  }, [currentApplication, data.status, data.typeKey]);
+
+  const displayStatusTone = useMemo(() => {
+    if (currentApplication) {
+      const appStatus = currentApplication.status;
+      if (appStatus === "accepted") {
+        return "success";
+      } else if (appStatus === "invited") {
+        return "lime";
+      } else if (appStatus === "rejected") {
+        return "warning";
+      } else if (appStatus === "reviewing") {
+        return "info";
+      } else if (appStatus === "submitted") {
+        return "info";
+      }
+    }
+    return data.statusTone;
+  }, [currentApplication, data.statusTone]);
+
   return (
     <Card
       className={cn(
@@ -83,9 +135,9 @@ export function OpportunityMiniCard({
             </Tag>
           ) : null}
 
-          {data.status ? (
-            <StatusBadge tone={data.statusTone} className="ui-opportunity-mini-card__status">
-              {data.status}
+          {displayStatus ? (
+            <StatusBadge tone={displayStatusTone} className="ui-opportunity-mini-card__status">
+              {displayStatus}
             </StatusBadge>
           ) : null}
         </div>
