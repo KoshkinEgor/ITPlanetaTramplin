@@ -1,8 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOpportunityPayload,
   validateOpportunityDraftForSubmit,
   getFriendlyErrorMessage,
 } from "./opportunityPresentation";
+
+describe("buildOpportunityPayload", () => {
+  it("serializes event dates as Unix seconds for the backend DTO", () => {
+    const eventStartAt = "2026-06-10T12:00";
+    const registrationDeadline = "2026-06-09T12:00";
+    const payload = buildOpportunityPayload({
+      opportunityType: "event",
+      eventStartAt,
+      registrationDeadline,
+    });
+
+    expect(payload.eventStartAt).toBe(Math.floor(new Date(eventStartAt).getTime() / 1000));
+    expect(payload.registrationDeadline).toBe(Math.floor(new Date(registrationDeadline).getTime() / 1000));
+  });
+});
 
 describe("validateOpportunityDraftForSubmit", () => {
   it("returns errors when required title and description are missing", () => {
