@@ -14,3 +14,4 @@ artifacts/logs/*.log
 **/bin/
 **/obj/
 **/artifacts/
+backend/ITPlanetaTramplin.Api/App_Data/user-media/
