@@ -235,16 +235,20 @@ export function getCandidateRecommendations(signal) {
   return apiRequest("/candidate/me/recommendations", { signal });
 }
 
-export function getCandidateAiCareerRecommendations(forceRefreshOrSignal, signal) {
-  let forceRefresh = false;
-  let activeSignal = signal;
-  if (typeof forceRefreshOrSignal === "boolean") {
-    forceRefresh = forceRefreshOrSignal;
-  } else if (forceRefreshOrSignal && typeof forceRefreshOrSignal === "object") {
-    activeSignal = forceRefreshOrSignal;
-  }
-  const query = forceRefresh ? "?forceRefresh=true" : "";
-  return apiRequest(`/candidate/me/ai-career-recommendations${query}`, { signal: activeSignal });
+export function getCandidateAiCareerRecommendations(signal) {
+  return apiRequest("/candidate/me/ai-career-recommendations", { signal });
+}
+
+export function queueCandidateAiCareerRecommendations(reason = "manual", signal) {
+  return apiRequest("/candidate/me/ai-career-recommendations/jobs", {
+    method: "POST",
+    body: { reason },
+    signal,
+  });
+}
+
+export function getCandidateAiCareerJob(jobId, signal) {
+  return apiRequest(`/candidate/me/ai-career-recommendations/jobs/${jobId}`, { signal });
 }
 
 export function analyzeCandidateResume(signal) {

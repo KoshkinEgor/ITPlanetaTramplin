@@ -33,6 +33,11 @@ const OPPORTUNITY_SLIDER_ARIA_LABEL = "Career opportunities slider";
 const COURSE_ACTION_TARGET = "_blank";
 const COURSE_ACTION_REL = "noreferrer";
 const MENTOR_CATALOG_HREF = `${routes.opportunities.catalog}?type=mentoring`;
+const AI_STEP_LABELS = {
+  profile: "Профиль и портфолио",
+  career: "Карьерный маршрут",
+  opportunities: "Подбор возможностей",
+};
 
 const RECOMMENDATION_TABS = [
   { value: "all", label: "Все" },
@@ -474,6 +479,10 @@ function getBaseRecommendationSections(recommendations, opportunities, aiItems =
     merged.push({ card, aiItem: aiById.get(id) ?? null });
   });
 
+  merged.sort((left, right) => (
+    (right.aiItem?.matchPercent ?? -1) - (left.aiItem?.matchPercent ?? -1)
+  ));
+
   return Object.values(
     merged.reduce((acc, item) => {
       const type = normalizeOpportunityType(item.card.opportunityType);
@@ -730,6 +739,9 @@ function CareerAiRecommendationTabs({
     const fromSections = getItemsByType("mentoring");
     if (fromSections.length > 0) {
       return fromSections;
+    }
+    if (mode === "ai") {
+      return [];
     }
     return mentoringPrograms.map((card) => ({ card, aiItem: null, isCourse: false, type: "mentoring" }));
   })();
@@ -1079,7 +1091,7 @@ function CareerCtaCard({ profile, opportunity, matchPercentage }) {
           width="full"
           className="candidate-career-cta-vacancy__button"
         >
-          Откликнуться
+          Подробнее
         </Button>
       </div>
     </div>
@@ -1130,19 +1142,21 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
     return merged;
   }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
 
-  const aiRecommendationSections = useMemo(() => {
-    const sections = getAiRecommendationSections(dashboardState.aiRecommendations, dashboardState.opportunities);
-
-    if (sections.length) {
-      return sections;
-    }
-
-    return getBaseRecommendationSections(
-      dashboardState.recommendations,
-      dashboardState.opportunities,
-      normalizeAiRecommendationItems(dashboardState.aiRecommendations)
-    );
-  }, [dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]);
+  const aiRecommendationSections = useMemo(
+    () => {
+      if (mode === "ai") {
+        return getAiRecommendationSections(
+          dashboardState.aiRecommendations,
+          dashboardState.opportunities
+        );
+      }
+      return getBaseRecommendationSections(
+        dashboardState.recommendations,
+        dashboardState.opportunities
+      );
+    },
+    [mode, dashboardState.aiRecommendations, dashboardState.opportunities, dashboardState.recommendations]
+  );
 
   const track = resolveTrackKey(profile);
   const featuredOpportunity = opportunities[0] || FALLBACK_OPPORTUNITIES_BY_TRACK[track] || FALLBACK_OPPORTUNITIES_BY_TRACK.default;
@@ -1247,6 +1261,17 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
   }
 
   const aiRecommendations = dashboardState.aiRecommendations || {};
+  const aiJob = dashboardState.aiJob || aiRecommendations.generation || null;
+  const partialFailures = safeArray(aiRecommendations.partialFailures);
+  const getPartialFailure = (step) => partialFailures.find((item) => item?.step === step);
+  const profileFailure = getPartialFailure("profile");
+  const careerFailure = getPartialFailure("career");
+  const opportunitiesFailure = getPartialFailure("opportunities");
+
+  if (mode === "ai" && aiRecommendations.status === "partial" && dashboardState.aiStatus !== "loading") {
+    statusText = "ИИ-разбор готов частично";
+    statusClass = "status-stale";
+  }
 
   return (
     <div className="candidate-career-dashboard">
@@ -1290,6 +1315,20 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
             </div>
           </div>
         </div>
+
+        {mode === "ai" && dashboardState.aiStatus === "loading" && aiJob ? (
+          <Alert
+            tone="warning"
+            title={`Формируем ИИ-разбор: ${safeArray(aiJob.steps).filter((step) => step.status === "succeeded").length} из ${aiJob.steps?.length || 3}`}
+            showIcon
+          >
+            {safeArray(aiJob.steps)
+              .map((step) => `${AI_STEP_LABELS[step.step] || step.step}: ${
+                step.status === "succeeded" ? "готово" : step.status === "running" ? "в работе" : "в очереди"
+              }`)
+              .join(" · ")}
+          </Alert>
+        ) : null}
 
         {/* Top Grid Area */}
         <div className="candidate-career-dashboard__top-grid">
@@ -1338,7 +1377,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={onRefreshAiRecommendations}
+                  onClick={() => onRefreshAiRecommendations(false)}
                   disabled={dashboardState.aiStatus === "loading"}
                   className="candidate-career-ai-generate-card__btn"
                 >
@@ -1380,7 +1419,7 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={onRefreshAiRecommendations}
+                  onClick={() => onRefreshAiRecommendations(false)}
                   disabled={dashboardState.aiStatus === "loading"}
                   className="ui-career-stats-panel__action"
                   width="full"
@@ -1397,6 +1436,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                     <span className="candidate-career-ai-card__badge">AI</span>
                   </div>
                 </div>
+                {profileFailure ? (
+                  <Alert tone="warning" title="Оценка профиля не обновилась" showIcon>
+                    {profileFailure.message}
+                  </Alert>
+                ) : null}
                 
                 <div className="candidate-career-ai-profile-card__score-section">
                   <CircularScoreGauge score={aiRecommendations.profileAssessment?.score || 0} />
@@ -1435,6 +1479,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
                     <span className="candidate-career-ai-card__badge">AI</span>
                   </div>
                 </div>
+                {careerFailure ? (
+                  <Alert tone="warning" title="Карьерный маршрут не обновился" showIcon>
+                    {careerFailure.message}
+                  </Alert>
+                ) : null}
                 
                 <div className="candidate-career-ai-salary-card__levels">
                   <div className="salary-level-item">
@@ -1526,6 +1575,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
 
           {/* AI Section 2: 7-day Development Plan */}
           <section className="candidate-career-dashboard__section">
+            {careerFailure ? (
+              <Alert tone="warning" title="Показан предыдущий карьерный план" showIcon>
+                {careerFailure.message}
+              </Alert>
+            ) : null}
             <CareerAiPlanPanel aiRecommendations={aiRecommendations} status={dashboardState.aiStatus} />
           </section>
 
@@ -1535,6 +1589,11 @@ export function CandidateCareerDashboard({ profile, dashboardState, onRefreshAiR
           </section>
 
           {/* AI Section 4: Recommended Opportunities */}
+          {opportunitiesFailure ? (
+            <Alert tone="warning" title="AI-подбор возможностей не обновился" showIcon>
+              {opportunitiesFailure.message}
+            </Alert>
+          ) : null}
           <CareerAiRecommendationTabs
             sections={aiRecommendationSections}
             mentoringPrograms={mentoringPrograms}

@@ -28,12 +28,18 @@ builder.Services.AddCors(options =>
 });
 
 const string authCookieName = "Authorization";
-var jwtSigningKey = builder.Configuration["Jwt:Key"];
+var jwtSigningKey = builder.Configuration["Auth:Key"] ?? builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtSigningKey))
 {
     jwtSigningKey = builder.Environment.IsDevelopment()
         ? "local-dev-jwt-signing-key-change-me"
-        : throw new InvalidOperationException("Jwt:Key must be configured.");
+        : throw new InvalidOperationException("Auth:Key must be configured.");
+}
+
+if (!builder.Environment.IsDevelopment())
+{
+    RequireProductionSecret(builder.Configuration, "EmailVerification:HashKey");
+    RequireProductionSecret(builder.Configuration, "PasswordReset:HashKey");
 }
 
 var jwtLifetimeMinutes = int.TryParse(builder.Configuration["Jwt:AccessTokenLifetimeMinutes"], out var configuredTokenLifetimeMinutes)
@@ -63,6 +69,11 @@ builder.Services.AddSingleton<CompanyVerificationStorage>();
 builder.Services.AddSingleton<UserMediaStorage>();
 builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddHttpClient<DadataService>();
+builder.Services.AddHttpClient<StepikService>(httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://stepik.org/");
+    httpClient.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddHttpClient<YandexGeocoderService>(httpClient =>
 {
     if (builder.Environment.IsDevelopment())
@@ -135,6 +146,12 @@ builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<IAiCareerService, AiCareerService>();
+builder.Services.AddScoped<IAiCareerStepGenerator, AiCareerStepGenerator>();
+builder.Services.AddScoped<IAiCareerJobService, AiCareerJobService>();
+if (builder.Configuration.GetValue("AiCareerJobs:WorkerEnabled", true))
+{
+    builder.Services.AddHostedService<AiCareerJobWorker>();
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -266,6 +283,15 @@ static string ResolveConnectionString(IConfiguration configuration)
         ? connectionString
         : throw new InvalidOperationException(
             "Database connection string is not configured. Set ConnectionStrings__DefaultConnection, API_CONNECTION_STRING, DATABASE_URL, or POSTGRES_HOST/POSTGRES_DB/POSTGRES_USER/POSTGRES_PASSWORD.");
+}
+
+static void RequireProductionSecret(IConfiguration configuration, string key)
+{
+    var value = configuration[key];
+    if (string.IsNullOrWhiteSpace(value) || value.Length < 32)
+    {
+        throw new InvalidOperationException($"{key} must be configured with at least 32 characters.");
+    }
 }
 
 static string? TryBuildPostgresConnectionString(IConfiguration configuration)

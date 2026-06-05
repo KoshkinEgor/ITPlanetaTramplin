@@ -308,7 +308,7 @@ function createSafeHomeRowActions(item) {
     },
     detailAction: {
       href: item?.detailHref ?? buildOpportunityDetailRoute(item.id),
-      label: getSafeHomeDetailActionLabel(item),
+      label: HOME_DETAIL_ACTION_LABEL,
       variant: "secondary",
     },
   };
@@ -2106,7 +2106,7 @@ export function HomeApp() {
         <PortalHeader
           navItems={PUBLIC_HEADER_NAV_ITEMS}
           currentKey={location.hash === "#about" ? "about" : "home"}
-          brandLabel="рамплин"
+          brandLabel="трамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
           shellClassName="home-page__header-shell"

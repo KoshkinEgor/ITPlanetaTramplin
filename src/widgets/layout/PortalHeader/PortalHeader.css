@@ -43,32 +43,36 @@
 
 .portal-header__brand {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
+  gap: 0;
   min-width: 0;
   flex: 0 0 auto;
   color: #1e2641;
   font-size: var(--ui-font-size-h4);
   line-height: var(--ui-line-height-h4);
   font-weight: var(--ui-font-weight-strong);
-  letter-spacing: var(--ui-letter-spacing-h4);
   text-decoration: none;
 }
 
 .portal-header__brand-text {
+  position: relative;
+  /* z-index: 0; */
+  margin-left: -20px;
+  margin-bottom: 2px;
   white-space: nowrap;
   font-family: var(--ui-font-family-base);
   font-size: 24px;
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.06em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .portal-header__brand-mark {
-  width: 23px;
-  height: 20px;
+  width: 76px;
+  height: 46px;
   flex-shrink: 0;
   border-radius: 0;
-  background: center / contain no-repeat url("../../../home/logo.png");
+  background: center / contain no-repeat url("../../../shared/assets/logo_min.png");
   box-shadow: none;
 }
 

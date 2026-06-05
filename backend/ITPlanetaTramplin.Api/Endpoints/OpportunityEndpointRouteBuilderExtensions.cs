@@ -452,6 +452,7 @@ internal static class OpportunityEndpointRouteBuilderExtensions
                 ApplicantId = applicant.Id,
                 Status = OpportunityApplicationStatuses.Submitted,
                 AllowPeerVisibility = request.allowPeerVisibility == true,
+                AppliedAt = DateTime.UtcNow,
             });
         }
 
@@ -1098,12 +1099,12 @@ internal static class OpportunityEndpointRouteBuilderExtensions
 
         if (opportunity.OpportunityType == OpportunityTypes.Vacancy)
         {
-            if (!opportunity.SalaryFrom.HasValue || !opportunity.SalaryTo.HasValue)
+            if (!opportunity.SalaryFrom.HasValue)
             {
-                return AuthEndpointSupport.MessageResult("Для вакансии укажите диапазон зарплаты.", StatusCodes.Status400BadRequest);
+                return AuthEndpointSupport.MessageResult("Для вакансии укажите минимальную зарплату.", StatusCodes.Status400BadRequest);
             }
 
-            if (opportunity.SalaryFrom > opportunity.SalaryTo)
+            if (opportunity.SalaryTo.HasValue && opportunity.SalaryFrom > opportunity.SalaryTo)
             {
                 return AuthEndpointSupport.MessageResult("Минимальная зарплата не может быть больше максимальной.", StatusCodes.Status400BadRequest);
             }

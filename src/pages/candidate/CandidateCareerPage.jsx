@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { PUBLIC_HEADER_NAV_ITEMS, buildAuthLoginRoute, routes } from "../../app/routes";
 import {
@@ -6,6 +6,7 @@ import {
   deleteCandidateEducation,
   getCandidateApplications,
   getCandidateAiCareerRecommendations,
+  getCandidateAiCareerJob,
   getCandidateContactSuggestions,
   getCandidateContacts,
   getCandidateEducation,
@@ -13,6 +14,7 @@ import {
   getCandidateProfile,
   getCandidateRecommendations,
   getCandidateProjects,
+  queueCandidateAiCareerRecommendations,
   updateCandidateEducation,
   updateCandidateProfile,
 } from "../../api/candidate";
@@ -42,6 +44,7 @@ import {
   getCandidateOnboardingProgress,
   getCandidateOnboardingStepError,
 } from "../../candidate-portal/onboarding";
+import { useCandidateApplications } from "../../candidate-portal/candidate-applications-store";
 import { PortalHeader } from "../../widgets/layout";
 import { Alert, Button, Card, CityAutocomplete, EducationListEditor, FormField, Input, Loader, Modal, SearchInput, Select, Tag, Textarea, CloseIcon } from "../../shared/ui";
 import { scheduleHashScroll } from "../../shared/lib/scrollToHashTarget";
@@ -51,6 +54,11 @@ import "./candidate-career.css";
 
 const headerNav = PUBLIC_HEADER_NAV_ITEMS;
 const candidateLoginHref = buildAuthLoginRoute({ role: "candidate" });
+const AI_JOB_TERMINAL_STATUSES = new Set(["succeeded", "partial", "failed"]);
+
+function isAiJobActive(status) {
+  return status === "queued" || status === "running";
+}
 
 function normalizeSearchValue(value) {
   return String(value ?? "").trim().toLowerCase();
@@ -334,6 +342,8 @@ export function CandidateCareerPage() {
     projects: [],
     aiRecommendations: null,
     aiStatus: "idle",
+    aiJobId: null,
+    aiJob: null,
     aiError: null,
     degraded: false,
     error: null,
@@ -349,6 +359,11 @@ export function CandidateCareerPage() {
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [gateModalOpen, setGateModalOpen] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
+  const shouldLoadApplications = contextState.status === "ready"
+    && contextState.data?.kind === "candidate"
+    && contextState.data.onboardingComplete;
+  const applicationsState = useCandidateApplications({ autoRefresh: shouldLoadApplications });
+  const applicationsFingerprintRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -488,10 +503,14 @@ export function CandidateCareerPage() {
         return;
       }
 
+      const generation = aiRecommendations?.generation;
+      const activeJobId = isAiJobActive(generation?.status) ? generation?.jobId : null;
       setDashboardState((current) => ({
         ...current,
         aiRecommendations: aiRecommendations || current.aiRecommendations,
-        aiStatus: currentMode === "ai" ? "ready" : "idle",
+        aiStatus: currentMode === "ai" ? (activeJobId ? "loading" : "ready") : "idle",
+        aiJobId: activeJobId,
+        aiJob: generation ?? null,
         aiError: null,
       }));
     }).catch((error) => {
@@ -514,17 +533,21 @@ export function CandidateCareerPage() {
   }, [contextState]);
 
   async function loadAiRecommendations() {
-    if (dashboardState.aiStatus === "loading" || dashboardState.aiRecommendations) {
+    if (dashboardState.aiStatus === "loading" && dashboardState.aiJobId) {
       return;
     }
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(false);
+      const aiRecommendations = await getCandidateAiCareerRecommendations();
+      const generation = aiRecommendations?.generation;
+      const activeJobId = isAiJobActive(generation?.status) ? generation?.jobId : null;
       setDashboardState((current) => ({
         ...current,
         aiRecommendations,
-        aiStatus: "ready",
+        aiStatus: activeJobId ? "loading" : "ready",
+        aiJobId: activeJobId,
+        aiJob: generation ?? null,
         aiError: null,
       }));
     } catch (error) {
@@ -540,22 +563,76 @@ export function CandidateCareerPage() {
     setMode(newMode);
     localStorage.setItem("career-dashboard-mode", newMode);
     if (newMode === "ai") {
-      // Lazy load from cache or API when switching to AI
-      if (!dashboardState.aiRecommendations && dashboardState.aiStatus !== "loading") {
-        loadAiRecommendations();
-      }
+      loadAiRecommendations();
     }
   };
 
-  async function refreshAiCareerRecommendations() {
+  useEffect(() => {
+    if (!shouldLoadApplications || applicationsState.status !== "ready") {
+      return undefined;
+    }
+
+    const applications = safeArray(applicationsState.applications);
+    const fingerprint = applications
+      .map((item) => [
+        item?.id ?? "",
+        item?.opportunityId ?? item?.opportunity?.id ?? "",
+        normalizeSearchValue(item?.status),
+        item?.appliedAt ?? "",
+      ].join(":"))
+      .sort()
+      .join("|");
+    const previousFingerprint = applicationsFingerprintRef.current;
+
+    applicationsFingerprintRef.current = fingerprint;
+    setDashboardState((current) => ({
+      ...current,
+      applications,
+    }));
+
+    if (previousFingerprint === null || previousFingerprint === fingerprint || mode !== "ai") {
+      return undefined;
+    }
+
+    let active = true;
+    queueCandidateAiCareerRecommendations("application_changed")
+      .then((job) => {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiStatus: "loading",
+            aiJobId: job?.jobId ?? current.aiJobId,
+            aiJob: job ?? current.aiJob,
+            aiError: null,
+          }));
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiStatus: "error",
+            aiError: error,
+          }));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [applicationsState.applications, applicationsState.status, mode, shouldLoadApplications]);
+
+  async function refreshAiCareerRecommendations(isUpdate = false) {
     setDashboardState((current) => ({ ...current, aiStatus: "loading", aiError: null }));
 
     try {
-      const aiRecommendations = await getCandidateAiCareerRecommendations(true);
+      const reason = isUpdate === true ? "profile_changed" : "manual";
+      const job = await queueCandidateAiCareerRecommendations(reason);
       setDashboardState((current) => ({
         ...current,
-        aiRecommendations,
-        aiStatus: "ready",
+        aiStatus: "loading",
+        aiJobId: job?.jobId ?? current.aiJobId,
+        aiJob: job ?? current.aiJob,
         aiError: null,
       }));
     } catch (error) {
@@ -566,6 +643,98 @@ export function CandidateCareerPage() {
       }));
     }
   }
+
+  useEffect(() => {
+    const jobId = dashboardState.aiJobId;
+    if (!jobId) {
+      return undefined;
+    }
+
+    let active = true;
+    let timerId = null;
+    let polling = false;
+    const startedAt = Date.now();
+
+    const schedule = () => {
+      if (!active) {
+        return;
+      }
+      const delay = Date.now() - startedAt < 30_000 ? 2_000 : 5_000;
+      timerId = window.setTimeout(poll, delay);
+    };
+
+    const poll = async () => {
+      if (!active || polling) {
+        return;
+      }
+      if (document.visibilityState === "hidden") {
+        schedule();
+        return;
+      }
+
+      polling = true;
+      try {
+        const job = await getCandidateAiCareerJob(jobId);
+        if (!active) {
+          return;
+        }
+
+        if (AI_JOB_TERMINAL_STATUSES.has(job?.status)) {
+          const aiRecommendations = await getCandidateAiCareerRecommendations();
+          if (!active) {
+            return;
+          }
+          setDashboardState((current) => ({
+            ...current,
+            aiRecommendations,
+            aiStatus: "ready",
+            aiJobId: null,
+            aiJob: job,
+            aiError: null,
+          }));
+          return;
+        }
+
+        setDashboardState((current) => ({
+          ...current,
+          aiStatus: "loading",
+          aiJob: job,
+          aiError: null,
+        }));
+        schedule();
+      } catch (error) {
+        if (active) {
+          setDashboardState((current) => ({
+            ...current,
+            aiStatus: "error",
+            aiError: error,
+          }));
+        }
+      } finally {
+        polling = false;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (timerId) {
+          window.clearTimeout(timerId);
+        }
+        poll();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    poll();
+
+    return () => {
+      active = false;
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [dashboardState.aiJobId]);
 
   useEffect(() => {
     if (!location.hash) {

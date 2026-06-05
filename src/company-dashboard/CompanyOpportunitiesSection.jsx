@@ -100,7 +100,7 @@ function renderTypedFields({ draft, onFieldChange, isEditingExisting }) {
           <FormField label="Зарплата от" required>
             <Input type="number" value={draft.salaryFrom} onValueChange={(value) => onFieldChange("salaryFrom", value)} />
           </FormField>
-          <FormField label="Зарплата до" required>
+          <FormField label="Зарплата до">
             <Input type="number" value={draft.salaryTo} onValueChange={(value) => onFieldChange("salaryTo", value)} />
           </FormField>
         </div>

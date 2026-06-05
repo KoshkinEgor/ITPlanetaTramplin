@@ -30,9 +30,12 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: ${API_CONNECTION_STRING}
       Database__ApplyMigrationsOnStartup: ${API_APPLY_MIGRATIONS_ON_STARTUP:-true}
-      Jwt__Key: ${API_JWT_KEY}
+      Auth__Key: ${API_AUTH_KEY}
       EmailVerification__HashKey: ${API_EMAIL_VERIFICATION_HASH_KEY}
       PasswordReset__HashKey: ${API_PASSWORD_RESET_HASH_KEY}
+      GigaChat__Enabled: ${API_GIGACHAT_ENABLED:-true}
+      GigaChat__AuthKey: ${API_GIGACHAT_AUTH_KEY}
+      GigaChat__AllowInsecureTls: "false"
       Smtp__Host: ${API_SMTP_HOST:-}
       Smtp__Port: ${API_SMTP_PORT:-587}
       Smtp__EnableSsl: ${API_SMTP_ENABLE_SSL:-true}

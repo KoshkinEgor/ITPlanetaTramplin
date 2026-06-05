@@ -1447,7 +1447,7 @@ export function OpportunitiesCatalogApp() {
         <PortalHeader
           navItems={NAV_ITEMS}
           currentKey="opportunities"
-          brandLabel="рамплин"
+          brandLabel="трамплин"
           actionHref={routes.auth.login}
           actionLabel="Войти / Регистрация"
           shellClassName="opportunities-browser__header-shell"
@@ -1625,7 +1625,7 @@ export function OpportunitiesCatalogApp() {
                             }}
                             detailAction={{
                               href: buildOpportunityDetailRoute(item.id),
-                              label: getOpportunityApplyLabel(item.opportunityType),
+                              label: "Подробнее",
                               variant: "secondary",
                             }}
                           />

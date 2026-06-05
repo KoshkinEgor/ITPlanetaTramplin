@@ -106,6 +106,35 @@ describe("validateOpportunityDraftForSubmit", () => {
     expect(errors).toContain("Минимальная зарплата не может быть больше максимальной.");
   });
 
+  it("allows vacancy without salaryTo", () => {
+    const errors = validateOpportunityDraftForSubmit({
+      opportunityType: "vacancy",
+      title: "Backend Dev",
+      description: "Super job",
+      contacts: [{ value: "test@example.com" }],
+      employmentType: "online",
+      schedule: "fulltime",
+      salaryFrom: 100,
+      salaryTo: null,
+    });
+    expect(errors).not.toContain("Для вакансии укажите минимальную зарплату.");
+    expect(errors).not.toContain("Минимальная зарплата не может быть больше максимальной.");
+  });
+
+  it("returns error when vacancy salaryFrom is missing", () => {
+    const errors = validateOpportunityDraftForSubmit({
+      opportunityType: "vacancy",
+      title: "Backend Dev",
+      description: "Super job",
+      contacts: [{ value: "test@example.com" }],
+      employmentType: "online",
+      schedule: "fulltime",
+      salaryFrom: null,
+      salaryTo: 200,
+    });
+    expect(errors).toContain("Для вакансии укажите минимальную зарплату.");
+  });
+
   it("returns error when paid internship stipendFrom > stipendTo", () => {
     const errors = validateOpportunityDraftForSubmit({
       opportunityType: "internship",

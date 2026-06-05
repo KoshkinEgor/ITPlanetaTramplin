@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Models;
 using Xunit;
+using ITPlanetaTramplin.Api.Integrations;
 
 namespace ITPlanetaTramplin.Api.Tests;
 
@@ -51,6 +52,122 @@ public sealed class AiCareerServiceTests
     }
 
     [Fact]
+    public async Task BuildCareerRecommendationsAsync_FormAnalysis_ReturnsCache_WhenCacheExists()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "Frontend стажировка");
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: false,
+            cancellationToken: CancellationToken.None);
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: false,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(1, client.CallCount);
+        Assert.Equal(first.Signature, second.Signature);
+        Assert.False(second.IsStale);
+        Assert.Equal("cache_hit", second.RefreshReason);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_UpdateAnalysis_ReturnsCache_WhenSignatureMatches()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "Frontend стажировка");
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: false,
+            cancellationToken: CancellationToken.None);
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(1, client.CallCount);
+        Assert.Equal(first.Signature, second.Signature);
+        Assert.False(second.IsStale);
+        Assert.Equal("cache_hit", second.RefreshReason);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_UpdateAnalysis_BypassesCache_WhenSignatureDiffers()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "Frontend стажировка");
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: false,
+            cancellationToken: CancellationToken.None);
+
+        profile.Description = "Updated profile description";
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            isUpdate: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.NotEqual(first.Signature, second.Signature);
+        Assert.False(second.IsStale);
+        Assert.Equal("profile_or_applications_changed", second.RefreshReason);
+    }
+
+    [Fact]
     public async Task BuildCareerRecommendationsAsync_InvalidatesCache_WhenImportantApplicationStatusChanges()
     {
         await using var db = CreateDb();
@@ -68,6 +185,7 @@ public sealed class AiCareerServiceTests
             [],
             [opportunity],
             forceRefresh: true,
+            isUpdate: false,
             cancellationToken: CancellationToken.None);
 
         var second = await service.BuildCareerRecommendationsAsync(
@@ -78,11 +196,49 @@ public sealed class AiCareerServiceTests
             [CreateApplication(profile.Id, opportunity, OpportunityApplicationStatuses.Invited)],
             [opportunity],
             forceRefresh: true,
+            isUpdate: true,
             cancellationToken: CancellationToken.None);
 
         Assert.Equal(2, client.CallCount);
         Assert.NotEqual(first.Signature, second.Signature);
         Assert.False(second.IsStale);
+        Assert.Equal("profile_or_applications_changed", second.RefreshReason);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_RegeneratesAutomatically_WhenNewApplicationIsSubmitted()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "Frontend стажировка");
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [],
+            [],
+            [],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [],
+            [],
+            [],
+            [CreateApplication(profile.Id, opportunity, OpportunityApplicationStatuses.Submitted)],
+            [opportunity],
+            forceRefresh: false,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.NotEqual(first.Signature, second.Signature);
+        Assert.Equal("ai", second.Source);
+        Assert.Equal("fresh", second.Status);
         Assert.Equal("profile_or_applications_changed", second.RefreshReason);
     }
 
@@ -177,9 +333,314 @@ public sealed class AiCareerServiceTests
         Assert.Equal("cache_hit", second.RefreshReason);
     }
 
-    private static AiCareerService CreateService(FakeGigaChatClient client, IMemoryCache cache, ApplicationDBContext db)
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_IncludesStepikCourses()
     {
-        return new AiCareerService(client, cache, db, NullLogger<AiCareerService>.Instance);
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "Frontend стажировка");
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.NotNull(response.RecommendedCourses);
+        Assert.True(response.RecommendedCourses.Count >= 2);
+        Assert.All(response.RecommendedCourses, course => Assert.Equal("Stepik", course.Provider));
+        Assert.Contains(response.RecommendedCourses, course => course.Title.Contains("React", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(response.RecommendedCourses, course => course.Title.Contains("TypeScript", StringComparison.OrdinalIgnoreCase));
+        Assert.All(response.RecommendedCourses, course => Assert.Contains("По тегу:", course.Meta));
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_BuildsAiPlan_WhenNoOpportunitiesExist()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(1, client.CallCount);
+        Assert.Equal("ai", response.Source);
+        Assert.Equal("fresh", response.Status);
+        Assert.False(response.IsFallback);
+        Assert.NotEmpty(response.CareerPlan);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_Retries_WhenFirstResponseIsInvalid()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient("not-json");
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.Equal("ai", response.Source);
+        Assert.Equal("fresh", response.Status);
+        Assert.NotEmpty(response.CareerPlan);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_Retries_WhenPlanHasNoValidOpportunityRecommendations()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var planWithoutRecommendations = JsonSerializer.Serialize(new
+        {
+            summary = "План без возможностей",
+            careerPlan = new[]
+            {
+                new { day = "Следующий шаг", action = "Обнови портфолио", outcome = "Профиль станет сильнее" },
+            },
+        });
+        var client = new FakeGigaChatClient(planWithoutRecommendations);
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var opportunity = CreateOpportunity(1, "React internship");
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [opportunity],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.Equal("ai", response.Source);
+        Assert.InRange(response.CareerPlan.Count, 1, 3);
+        Assert.Contains(response.Items, item => item.OpportunityId == opportunity.Id);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_ReturnsExplicitSystemFallback_AfterTwoInvalidResponses()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient("not-json", "{}");
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.Equal("system", response.Source);
+        Assert.Equal("unavailable", response.Status);
+        Assert.True(response.IsFallback);
+        Assert.Contains("системные", response.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await db.AiCareerCaches.ToListAsync());
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_ReturnsStaleAiCache_WhenRefreshFails()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        profile.Description = "Changed profile";
+        client.EnqueueResponse("not-json");
+        client.EnqueueResponse("{}");
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [CreateEducation(profile.Id)],
+            [],
+            [CreateProject(profile.Id)],
+            [],
+            [],
+            forceRefresh: true,
+            isUpdate: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal("ai", second.Source);
+        Assert.Equal("stale", second.Status);
+        Assert.True(second.IsStale);
+        Assert.Equal(first.Summary, second.Summary);
+        Assert.Contains("системные", second.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(await db.AiCareerCaches.ToListAsync());
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_InvalidatesCache_WhenAchievementChanges()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db);
+        var profile = CreateProfile();
+        var achievement = new ApplicantAchievement
+        {
+            Id = 70,
+            ApplicantId = profile.Id,
+            Title = "Хакатон",
+            Description = "Финалист",
+            Location = "Москва",
+        };
+
+        var first = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [],
+            [achievement],
+            [],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        achievement.Description = "Победитель";
+
+        var second = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [],
+            [achievement],
+            [],
+            [],
+            [],
+            forceRefresh: true,
+            isUpdate: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(2, client.CallCount);
+        Assert.NotEqual(first.Signature, second.Signature);
+    }
+
+    [Fact]
+    public async Task BuildCareerRecommendationsAsync_KeepsAiPlan_WhenStepikFails()
+    {
+        await using var db = CreateDb();
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var client = new FakeGigaChatClient();
+        var service = CreateService(client, memoryCache, db, new ThrowingStepikMessageHandler());
+        var profile = CreateProfile();
+
+        var response = await service.BuildCareerRecommendationsAsync(
+            profile,
+            [],
+            [],
+            [],
+            [],
+            [],
+            forceRefresh: true,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal("ai", response.Source);
+        Assert.Equal("fresh", response.Status);
+        Assert.NotEmpty(response.CareerPlan);
+        Assert.Empty(response.RecommendedCourses);
+    }
+
+    private static AiCareerService CreateService(
+        FakeGigaChatClient client,
+        IMemoryCache cache,
+        ApplicationDBContext db,
+        HttpMessageHandler? stepikHandler = null)
+    {
+        var httpClient = new HttpClient(stepikHandler ?? new FakeStepikMessageHandler());
+        var stepikService = new StepikService(httpClient, NullLogger<StepikService>.Instance);
+        return new AiCareerService(client, cache, db, NullLogger<AiCareerService>.Instance, stepikService);
+    }
+
+    private sealed class FakeStepikMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Assert.Contains("search=", request.RequestUri?.Query);
+            Assert.DoesNotContain("query=", request.RequestUri?.Query);
+
+            var parsedQuery = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(request.RequestUri?.Query ?? string.Empty);
+            var query = parsedQuery.TryGetValue("search", out var searchValue) ? searchValue.ToString() : "React";
+            var id = query.ToLowerInvariant() switch
+            {
+                "typescript" => 12346,
+                "javascript" => 12347,
+                _ => 12345,
+            };
+            var response = new
+            {
+                courses = new[]
+                {
+                    new
+                    {
+                        id,
+                        title = $"Тестовый курс по {query} со Stepik",
+                        summary = $"Описание курса по {query}",
+                        canonical_url = $"https://stepik.org/course/{id}",
+                        is_free = true,
+                        rating = 4.75
+                    }
+                }
+            };
+
+            var httpResponse = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(response), System.Text.Encoding.UTF8, "application/json")
+            };
+
+            return Task.FromResult(httpResponse);
+        }
+    }
+
+    private sealed class ThrowingStepikMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            throw new HttpRequestException("Stepik unavailable");
+        }
     }
 
     private static ApplicationDBContext CreateDb()
@@ -282,11 +743,34 @@ public sealed class AiCareerServiceTests
 
     private sealed class FakeGigaChatClient : IGigaChatClient
     {
+        private readonly Queue<string?> _responses;
+
+        public FakeGigaChatClient(params string?[] responses)
+        {
+            _responses = new Queue<string?>(responses);
+        }
+
         public int CallCount { get; private set; }
 
-        public Task<string?> CompleteJsonAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+        public void EnqueueResponse(string? response)
+        {
+            _responses.Enqueue(response);
+        }
+
+        public Task<GigaChatCompletionResult> CompleteJsonAsync(
+            string systemPrompt,
+            string userPrompt,
+            CancellationToken cancellationToken = default)
         {
             CallCount++;
+
+            if (_responses.Count > 0)
+            {
+                var queued = _responses.Dequeue();
+                return Task.FromResult(queued is null
+                    ? GigaChatCompletionResult.Failure("test_failure", true)
+                    : GigaChatCompletionResult.Success(queued));
+            }
 
             var response = new
             {
@@ -326,7 +810,8 @@ public sealed class AiCareerServiceTests
                 },
             };
 
-            return Task.FromResult<string?>(JsonSerializer.Serialize(response));
+            return Task.FromResult(GigaChatCompletionResult.Success(JsonSerializer.Serialize(response)));
         }
     }
+
 }
